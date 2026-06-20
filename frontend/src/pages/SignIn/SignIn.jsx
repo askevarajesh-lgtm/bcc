@@ -11,33 +11,40 @@ const SignIn = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     setLoading(true);
     setError('');
-    
-    setTimeout(() => {
-      const { email, password } = values;
-      
-      if (password !== '#India123') {
-        setError('Invalid password. Please use "#India123".');
+    const { email, password } = values;
+
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok || !resData.success) {
+        setError(resData.error || 'Sign in failed. Please check your credentials.');
         setLoading(false);
         return;
       }
 
-      if (email === 'superadmin@gmail.com') {
-        login('superadmin');
-      } else if (email === 'admin@gmail.com') {
-        login('admin');
-      } else if (email === 'agency@gmail.com') {
-        login('agency');
-      } else if (email === 'client@gmail.com') {
-        login('client');
-      } else {
-        setError('Invalid email address. Please use one of the demo emails.');
-      }
-      
+      // Store JWT token and user details in localStorage
+      localStorage.setItem('token', resData.token);
+      localStorage.setItem('user', JSON.stringify(resData.user));
+
+      // Trigger Context login with user role
+      login(resData.user.role);
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('A network error occurred. Please verify your connection.');
+    } finally {
       setLoading(false);
-    }, 800); // Simulate network request
+    }
   };
 
   const containerVariants = {

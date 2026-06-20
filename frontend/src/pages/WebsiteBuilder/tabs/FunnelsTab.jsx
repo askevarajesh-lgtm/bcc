@@ -158,12 +158,81 @@ const CreateFunnelModal = ({ open, onCancel, onCreate }) => {
 };
 
 const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
+  const [steps, setSteps] = useState(activeFunnel.steps || []);
+  const [newStepName, setNewStepName] = useState("");
+  const [stepType, setStepType] = useState("landing");
+  const [funnelName, setFunnelName] = useState(activeFunnel.name || "");
+  const [slug, setSlug] = useState(activeFunnel.slug || "");
+  const [status, setStatus] = useState(activeFunnel.status || "Draft");
+  const [domain, setDomain] = useState(activeFunnel.domain || "");
+
+  const handleAddStep = async () => {
+    if (!newStepName.trim()) return;
+    try {
+      const token = localStorage.getItem("token");
+      const path = `/${newStepName.toLowerCase().replace(/\s+/g, "-")}`;
+      const res = await fetch(`/api/funnels/${activeFunnel.key}/steps`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ name: newStepName, type: stepType, path })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSteps([...steps, data.data]);
+        setNewStepName("");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteStep = async (stepId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/funnels/${activeFunnel.key}/steps/${stepId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSteps(steps.filter(s => s._id !== stepId));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/funnels/${activeFunnel.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ name: funnelName, slug, domain, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Modal.success({ title: "Success", content: "Funnel settings saved successfully!" });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <motion.div variants={itemVariants} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
       <div style={{ padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: '1px solid var(--border-color)' }}>
         <div>
-          <Title level={3} style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{activeFunnel.name}</Title>
-          <Text type="secondary" style={{ fontWeight: 500 }}>/{activeFunnel.slug} / <Tag style={{ margin: '0 0 0 8px', borderRadius: 12, border: 'none', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-warning)', fontWeight: 700 }}>DRAFT</Tag></Text>
+          <Title level={3} style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{funnelName}</Title>
+          <Text type="secondary" style={{ fontWeight: 500 }}>/{slug} / <Tag style={{ margin: '0 0 0 8px', borderRadius: 12, border: 'none', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-warning)', fontWeight: 700 }}>{status.toUpperCase()}</Tag></Text>
         </div>
         <Button style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} onClick={() => setView("list")}>Back to Funnels</Button>
       </div>
@@ -172,9 +241,7 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
         {activeFunnel.isNew && (
           <div style={{ marginBottom: 24, padding: "16px 24px", borderRadius: 12, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600 }}>
             <CheckCircle2 size={20} />
-            {activeFunnel.type === 'ai' 
-              ? "Funnel created successfully. Content was generated from your brief (add OPENAI_API_KEY for full AI generation)." 
-              : "Funnel created successfully."}
+            Funnel created successfully.
           </div>
         )}
 
@@ -186,17 +253,17 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
               <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>FUNNEL NAME</div>
-                  <Input defaultValue={activeFunnel.name} style={{ borderRadius: 8, height: 40 }} />
+                  <Input value={funnelName} onChange={e => setFunnelName(e.target.value)} style={{ borderRadius: 8, height: 40 }} />
                 </div>
                 
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>PATH</div>
-                  <Input defaultValue={`/${activeFunnel.slug}`} style={{ borderRadius: 8, height: 40 }} />
+                  <Input value={slug} onChange={e => setSlug(e.target.value)} style={{ borderRadius: 8, height: 40 }} />
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>DOMAIN</div>
-                  <Input style={{ borderRadius: 8, height: 40 }} />
+                  <Input value={domain} onChange={e => setDomain(e.target.value)} style={{ borderRadius: 8, height: 40 }} />
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
@@ -206,7 +273,7 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
 
                 <div style={{ marginBottom: 32 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>STATUS</div>
-                  <Select defaultValue="Draft" style={{ width: "100%", height: 40 }}>
+                  <Select value={status} onChange={setStatus} style={{ width: "100%", height: 40 }}>
                     <Option value="Draft">Draft</Option>
                     <Option value="Active">Active</Option>
                   </Select>
@@ -234,12 +301,8 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
                   </div>
                 </div>
 
-                <Button type="primary" block style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 16 }}>
+                <Button type="primary" onClick={handleSaveSettings} block style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 16 }}>
                   Save Funnel
-                </Button>
-                
-                <Button danger block style={{ borderRadius: 8, fontWeight: 700, height: 44, background: "var(--accent-danger)", color: "#fff", border: "none" }}>
-                  Delete Funnel
                 </Button>
               </Card>
             </div>
@@ -253,51 +316,35 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
                 <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 24, color: 'var(--text-primary)' }}>Funnel Steps</div>
                 
                 <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-                  <Input placeholder="Step name" style={{ flex: 1, borderRadius: 8, height: 44 }} />
-                  <Select defaultValue="landing" style={{ width: 150, height: 44 }}>
+                  <Input placeholder="Step name" value={newStepName} onChange={e => setNewStepName(e.target.value)} style={{ flex: 1, borderRadius: 8, height: 44 }} />
+                  <Select value={stepType} onChange={setStepType} style={{ width: 150, height: 44 }}>
                     <Option value="landing">Landing</Option>
+                    <Option value="checkout">Checkout</Option>
                   </Select>
-                  <Button type="primary" style={{ background: "var(--text-primary)", color: 'var(--bg-primary)', border: "none", borderRadius: 8, fontWeight: 700, height: 44, padding: "0 24px" }}>
+                  <Button type="primary" onClick={handleAddStep} style={{ background: "var(--text-primary)", color: 'var(--bg-primary)', border: "none", borderRadius: 8, fontWeight: 700, height: 44, padding: "0 24px" }}>
                     Add Step
                   </Button>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  <div style={{ borderTop: "1px solid var(--border-color)", padding: '24px 0', display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Smartphone size={24} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)' }}>Landing Page</div>
-                        <div style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>landing / <Tag style={{ margin: '0 4px', borderRadius: 12, border: 'none', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-warning)', fontWeight: 700, padding: '0 6px', fontSize: 10 }}>DRAFT</Tag> / /landing-page</div>
-                      </div>
-                    </div>
-                    <Space>
-                      <Button icon={<Edit3 size={14}/>} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Edit</Button>
-                      <Button icon={<Eye size={14}/>} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }} />
-                      <Button danger icon={<Trash2 size={14}/>} style={{ borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: 'none' }} />
-                    </Space>
-                  </div>
-
-                  {activeFunnel.type === 'ai' && (
-                    <div style={{ borderTop: "1px solid var(--border-color)", padding: '24px 0', display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {steps.map((step, index) => (
+                    <div key={step._id || index} style={{ borderTop: index > 0 ? "1px solid var(--border-color)" : "none", padding: '24px 0', display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Monitor size={24} />
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Smartphone size={24} />
                         </div>
                         <div>
-                          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)' }}>Contact Page</div>
-                          <div style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>contact / <Tag style={{ margin: '0 4px', borderRadius: 12, border: 'none', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-warning)', fontWeight: 700, padding: '0 6px', fontSize: 10 }}>DRAFT</Tag> / /contact</div>
+                          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)' }}>{step.name}</div>
+                          <div style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{step.type} / <Tag style={{ margin: '0 4px', borderRadius: 12, border: 'none', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-warning)', fontWeight: 700, padding: '0 6px', fontSize: 10 }}>{step.status || "DRAFT"}</Tag> / {step.path}</div>
                         </div>
                       </div>
                       <Space>
                         <Button icon={<Edit3 size={14}/>} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Edit</Button>
                         <Button icon={<Eye size={14}/>} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }} />
-                        <Button danger icon={<Trash2 size={14}/>} style={{ borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: 'none' }} />
+                        <Button danger icon={<Trash2 size={14}/>} style={{ borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: 'none' }} onClick={() => handleDeleteStep(step._id)} />
                       </Space>
                     </div>
-                  )}
+                  ))}
                 </div>
               </Card>
 
@@ -328,33 +375,71 @@ const FunnelsTab = ({ itemVariants }) => {
   const [view, setView] = useState("list");
 
   useEffect(() => {
-    const saved = localStorage.getItem("tunepath_funnels");
-    if (saved) {
-      try { setFunnels(JSON.parse(saved)); } catch (e) {}
-    }
-  }, []);
+    const fetchFunnels = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/funnels", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : ""
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const mapped = data.data.map(f => ({
+            key: f._id,
+            name: f.name,
+            slug: f.slug,
+            lastUpdated: new Date(f.updatedAt).toLocaleDateString(),
+            steps: f.stepsCount || 1,
+            events: f.eventsCount || 0,
+            isNew: false
+          }));
+          setFunnels(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch funnels", err);
+      }
+    };
+    fetchFunnels();
+  }, [view]);
 
-  useEffect(() => {
-    localStorage.setItem("tunepath_funnels", JSON.stringify(funnels));
-  }, [funnels]);
-
-  const handleCreateFunnel = (data) => {
+  const handleCreateFunnel = async (data) => {
     if (data.type === "blank" || data.type === "template" || data.type === "ai") {
-      const newFunnel = {
-        key: Date.now().toString(),
-        name: data.name,
-        type: data.type,
-        slug: data.name.toLowerCase().replace(/\s+/g, '-'),
-        lastUpdated: "Just now",
-        steps: data.type === "template" ? 3 : (data.type === "ai" ? 2 : 1),
-        events: 0,
-        isNew: true
-      };
-      setFunnels([...funnels, newFunnel]);
-      setIsModalOpen(false);
-      setIsTemplateModalOpen(false);
-      setActiveFunnel(newFunnel);
-      setView("manage");
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/funnels", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+          },
+          body: JSON.stringify({
+            name: data.name,
+            type: data.type,
+            templateName: data.template
+          })
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          const newFunnel = {
+            key: resData.data._id,
+            name: resData.data.name,
+            slug: resData.data.slug,
+            type: resData.data.type,
+            lastUpdated: "Just now",
+            steps: resData.data.steps ? resData.data.steps.length : 1,
+            events: 0,
+            isNew: true
+          };
+          setFunnels([newFunnel, ...funnels]);
+          setIsModalOpen(false);
+          setIsTemplateModalOpen(false);
+          setActiveFunnel(newFunnel);
+          setView("manage");
+        }
+      } catch (err) {
+        console.error(err);
+      }
     } else if (data.type === "templates") {
       setPendingFunnelName(data.name);
       setIsModalOpen(false);
@@ -399,9 +484,27 @@ const FunnelsTab = ({ itemVariants }) => {
       render: (_, r) => (
         <span 
           style={{ color: "var(--accent-secondary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-          onClick={() => {
-            setActiveFunnel({ ...r, isNew: false });
-            setView("manage");
+          onClick={async () => {
+            try {
+              const token = localStorage.getItem("token");
+              const res = await fetch(`/api/funnels/${r.key}`, {
+                headers: {
+                  "Authorization": token ? `Bearer ${token}` : ""
+                }
+              });
+              const resData = await res.json();
+              if (resData.success) {
+                setActiveFunnel({
+                  ...resData.data,
+                  key: resData.data._id,
+                  steps: resData.data.steps || [],
+                  isNew: false
+                });
+                setView("manage");
+              }
+            } catch (err) {
+              console.error("Error loading funnel details", err);
+            }
           }}
         >
           Manage <ChevronRight size={14} />

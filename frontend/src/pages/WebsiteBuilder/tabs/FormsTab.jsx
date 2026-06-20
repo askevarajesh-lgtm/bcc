@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Table, Typography, Space, Select, DatePicker, Card, Row, Col, Modal, Checkbox, Tag } from "antd";
-import { Plus, Search, X, ArrowUp, ArrowDown, Edit3, Copy, HelpCircle, FileText, BarChart3, Inbox, Calendar, Link2, ListPlus } from "lucide-react";
+import { Button, Input, Table, Typography, Space, Select, DatePicker, Card, Row, Col, Modal, Checkbox, Tag, message } from "antd";
+import { Plus, Search, X, ArrowUp, ArrowDown, Edit3, Copy, HelpCircle, FileText, BarChart3, Inbox, Calendar, Link2, ListPlus, Upload as UploadIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
@@ -153,6 +153,80 @@ const FormsTab = ({ itemVariants }) => {
 
   const [createType, setCreateType] = useState("templates");
   const [formName, setFormName] = useState("");
+  
+  const [templates, setTemplates] = useState([]);
+  const [categories, setCategories] = useState(["All"]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isTemplateModalOpen) {
+      fetchTemplates();
+    }
+  }, [isTemplateModalOpen]);
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch("/api/templates?type=form");
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(data.data.templates);
+        const catNames = ["All", ...data.data.categories.map(c => c.name)];
+        setCategories(catNames);
+      }
+    } catch (error) {
+      message.error("Failed to load templates");
+    }
+  };
+
+  const handleZipUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name.replace(".zip", ""));
+    formData.append("type", "form");
+    formData.append("category", "Custom Uploads");
+
+    try {
+      message.loading({ content: 'Uploading template...', key: 'upload' });
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/templates/upload", {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success({ content: 'Template uploaded successfully', key: 'upload' });
+        await fetchTemplates();
+        if (data.data && data.data._id) {
+          setSelectedTemplate(data.data._id);
+          setSelectedCategory("All");
+        }
+      } else {
+        message.error({ content: data.error || 'Failed to upload', key: 'upload' });
+      }
+    } catch (error) {
+      message.error({ content: 'Error uploading template', key: 'upload' });
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+  
 
   const handleCreateContinue = () => {
     setIsCreateModalOpen(false);
@@ -489,29 +563,28 @@ const FormsTab = ({ itemVariants }) => {
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
           {/* Left Sidebar */}
           <div style={{ width: 280, borderRight: "1px solid var(--border-color)", padding: "24px", overflowY: "auto", background: 'var(--bg-secondary)' }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 12, color: "var(--accent-primary)", fontWeight: 700, marginBottom: 32 }}>
-              <Checkbox checked={true} />
+            <div 
+              onClick={() => setSelectedCategory("All")}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: selectedCategory === "All" ? "rgba(59, 130, 246, 0.1)" : "transparent", border: selectedCategory === "All" ? "1px solid rgba(59, 130, 246, 0.2)" : "1px solid transparent", borderRadius: 12, color: selectedCategory === "All" ? "var(--accent-primary)" : "var(--text-primary)", fontWeight: 700, marginBottom: 32, cursor: "pointer" }}
+            >
+              <Checkbox checked={selectedCategory === "All"} />
               All Templates
             </div>
 
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", marginBottom: 16, letterSpacing: 0.5 }}>BROWSE CATEGORIES</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { name: "Automotive", count: 4 },
-                { name: "Beauty & Fashion", count: 4 },
-                { name: "Business Coaching", count: 4 },
-                { name: "Creative", count: 4 },
-                { name: "Financial", count: 4 },
-                { name: "Fitness & Wellness", count: 4 },
-                { name: "Food & Restaurant", count: 4 },
-                { name: "Healthcare", count: 4 },
-              ].map(cat => (
-                <div key={cat.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text-primary)", padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }} className="hover-bg-primary">
+              {categories.slice(1).map(cat => (
+                <div 
+                  key={cat} 
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: selectedCategory === cat ? "var(--accent-primary)" : "var(--text-primary)", background: selectedCategory === cat ? "rgba(59, 130, 246, 0.05)" : "transparent", padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }} 
+                  className="hover-bg-primary"
+                >
                   <Space>
-                    <div style={{ width: 16, height: 16, border: "2px solid var(--border-color)", borderRadius: 4 }}></div>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{cat.name}</span>
+                    <div style={{ width: 16, height: 16, border: "2px solid var(--border-color)", borderRadius: 4, background: selectedCategory === cat ? "var(--accent-primary)" : "transparent" }}></div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{cat}</span>
                   </Space>
-                  <span style={{ fontSize: 13, color: "var(--text-tertiary)", fontWeight: 600 }}>{cat.count}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-tertiary)", fontWeight: 600 }}>{templates.filter(t => t.category === cat).length}</span>
                 </div>
               ))}
               <div style={{ color: "var(--accent-primary)", fontWeight: 700, marginTop: 12, fontSize: 14, cursor: "pointer", padding: '0 12px' }}>Show more</div>
@@ -523,39 +596,70 @@ const FormsTab = ({ itemVariants }) => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
               <div>
                 <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Forms</div>
-                <div style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 500 }}>Showing 61 templates</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 500 }}>Showing {filteredTemplates.length} templates</div>
               </div>
-              <Input size="large" placeholder="Search templates..." prefix={<Search size={16} color="var(--text-tertiary)" />} style={{ width: 300, borderRadius: 8 }} />
+              <Space>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".zip,application/zip" 
+                  onChange={handleZipUpload} 
+                />
+                <Button 
+                  icon={<UploadIcon size={16} />}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: "var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                >
+                  Upload ZIP
+                </Button>
+                <Input 
+                  size="large" 
+                  placeholder="Search templates..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  prefix={<Search size={16} color="var(--text-tertiary)" />} 
+                  style={{ width: 300, borderRadius: 8 }} 
+                />
+              </Space>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", margin: "-12px", padding: "12px" }}>
               <Row gutter={[24, 24]}>
-                {[
-                  { title: "Automotive — Test Drive Booking", sub: "Automotive · 5 fields", btn: "var(--accent-primary)" },
-                  { title: "Automotive — Service Appointment", sub: "Automotive · 5 fields", btn: "var(--text-primary)" },
-                  { title: "Automotive — Towing & Roadside", sub: "Automotive · 5 fields", btn: "var(--accent-warning)" },
-                  { title: "Automotive — Trade-in Valuation", sub: "Automotive · 6 fields", btn: "var(--accent-info)" },
-                  { title: "Beauty & Fashion — Salon", sub: "Beauty & Fashion · 5 fields", btn: "var(--accent-danger)" },
-                  { title: "Beauty & Fashion — Skincare", sub: "Beauty & Fashion · 5 fields", btn: "var(--accent-secondary)" },
-                ].map((tpl, i) => (
-                  <Col span={8} key={i}>
-                    <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", cursor: "pointer", background: 'var(--bg-secondary)', transition: 'all 0.2s' }} className="hover-shadow-md">
+                {filteredTemplates.map((tpl, i) => {
+                  const isSelected = selectedTemplate === tpl._id;
+                  return (
+                  <Col span={8} key={tpl._id}>
+                    <Card 
+                      onClick={() => setSelectedTemplate(tpl._id)}
+                      bodyStyle={{ padding: 0 }} 
+                      style={{ 
+                        borderRadius: 16, 
+                        overflow: "hidden", 
+                        border: isSelected ? "2px solid var(--accent-primary)" : "1px solid var(--border-color)", 
+                        cursor: "pointer", 
+                        background: 'var(--bg-secondary)', 
+                        transition: 'all 0.2s',
+                        boxShadow: isSelected ? "0 4px 20px rgba(59, 130, 246, 0.15)" : "none"
+                      }} 
+                      className="hover-shadow-md"
+                    >
                       <div style={{ height: 200, background: "var(--bg-primary)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, borderBottom: '1px solid var(--border-color)' }}>
                         <div style={{ width: "100%", height: "100%", border: "1px solid var(--border-color)", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                            <div style={{ width: "60%", height: 8, background: "var(--text-tertiary)", borderRadius: 4, opacity: 0.5 }}></div>
                            <div style={{ width: "100%", height: 28, background: "var(--bg-primary)", borderRadius: 6, border: "1px solid var(--border-color)" }}></div>
                            <div style={{ width: "100%", height: 28, background: "var(--bg-primary)", borderRadius: 6, border: "1px solid var(--border-color)" }}></div>
                            <div style={{ width: "100%", height: 28, background: "var(--bg-primary)", borderRadius: 6, border: "1px solid var(--border-color)" }}></div>
-                           <div style={{ width: "100%", height: 32, background: tpl.btn, borderRadius: 6, marginTop: "auto" }}></div>
+                           <div style={{ width: "100%", height: 32, background: tpl.thumbnailColor || "var(--accent-primary)", borderRadius: 6, marginTop: "auto" }}></div>
                         </div>
                       </div>
                       <div style={{ padding: "20px" }}>
-                        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tpl.title}</div>
-                        <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 600 }}>{tpl.sub}</div>
+                        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tpl.name}</div>
+                        <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 600 }}>{tpl.category} · {tpl.featuresCount || 5} fields</div>
                       </div>
                     </Card>
                   </Col>
-                ))}
+                )})}
               </Row>
             </div>
           </div>
@@ -577,8 +681,11 @@ const FormsTab = ({ itemVariants }) => {
             </Button>
             <Button size="large" type="primary" style={{ borderRadius: 8, fontWeight: 800, padding: "0 32px", background: "var(--accent-primary)", border: 'none' }} onClick={() => {
               setIsTemplateModalOpen(false);
-              setActiveForm({ name: "Template Form", from: "template" });
-            }}>
+              const templateObj = templates.find(t => t._id === selectedTemplate);
+              setActiveForm({ name: formName || templateObj?.name || "Template Form", from: "template" });
+              setFormName("");
+              setSelectedTemplate(null);
+            }} disabled={!selectedTemplate}>
               Use template
             </Button>
           </Space>

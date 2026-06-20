@@ -17,6 +17,7 @@ const { Title, Text } = Typography;
 
 const WebsiteBuilder = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [websiteInitialAction, setWebsiteInitialAction] = useState(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -50,7 +51,7 @@ const WebsiteBuilder = () => {
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'funnels': return <FunnelsTab itemVariants={itemVariants} />;
-      case 'websites': return <WebsitesTab itemVariants={itemVariants} />;
+      case 'websites': return <WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />;
       case 'stores': return <StoresTab itemVariants={itemVariants} />;
       case 'forms': return <FormsTab itemVariants={itemVariants} />;
       case 'blogs': return <BlogsTab itemVariants={itemVariants} />;
@@ -148,7 +149,7 @@ const WebsiteBuilder = () => {
                     <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><LayoutTemplate size={22} color="var(--accent-info)" /> Start from a Template</Title>
                     <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>100+ professionally designed templates. Filter by industry and customize everything.</Text>
                     
-                    <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(59, 130, 246, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => setActiveTab('websites')}>
+                    <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(59, 130, 246, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => { setWebsiteInitialAction('openTemplates'); setActiveTab('websites'); }}>
                       <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-info)' }}>Browse Templates →</Button>
                     </div>
                   </Card>

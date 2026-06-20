@@ -304,48 +304,94 @@ const ChatWidgetsTab = ({ itemVariants }) => {
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("tunepath_chat_widgets");
-    if (saved) {
+    const fetchWidgets = async () => {
+      if (view !== "list") return;
       try {
-        setWidgets(JSON.parse(saved));
-      } catch (e) {
-        console.error("Parse error", e);
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/chat-widgets", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setWidgets(data.data.map(w => ({
+            key: w._id,
+            name: w.name,
+            type: w.type,
+            status: w.status || 'Draft',
+            assignments: 0, // Mock assignments for now, backend could support it later
+            ...w
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch widgets", err);
       }
-    } else {
-      setWidgets([
-        { key: '1', name: 'Jeema Stores', type: 'All-in-one chat', status: 'Published', assignments: 0 },
-        { key: '2', name: 'Support Bot', type: 'Voice AI', status: 'Draft', assignments: 0 },
-        { key: '3', name: 'Sales Demo', type: 'SMS / Email chat', status: 'Published', assignments: 1 },
-      ]);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tunepath_chat_widgets", JSON.stringify(widgets));
-  }, [widgets]);
-
-  const handleCreateWidget = (data) => {
-    const newWidget = {
-      key: Date.now().toString(),
-      name: data.name,
-      type: data.type,
-      status: "Draft",
-      assignments: 0
     };
-    setWidgets([newWidget, ...widgets]);
-    setActiveWidget(newWidget);
-    setView("configure");
+    fetchWidgets();
+  }, [view]);
+
+  const handleCreateWidget = async (data) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/chat-widgets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          name: data.name,
+          type: data.type,
+          status: "Draft"
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setActiveWidget({ ...resData.data, key: resData.data._id });
+        setView("configure");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleUpdateWidget = (data) => {
-    setWidgets(widgets.map(w => w.key === activeWidget.key ? { ...w, ...data } : w));
-    setActiveWidget({ ...activeWidget, ...data });
-    setView("list");
+  const handleUpdateWidget = async (data) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/chat-widgets/${activeWidget.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(data)
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setActiveWidget({ ...activeWidget, ...data });
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteWidget = (key) => {
-    setWidgets(widgets.filter(w => w.key !== key));
-    setView("list");
+  const handleDeleteWidget = async (key) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/chat-widgets/${key}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWidgets(widgets.filter(w => w.key !== key));
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const renderList = () => {

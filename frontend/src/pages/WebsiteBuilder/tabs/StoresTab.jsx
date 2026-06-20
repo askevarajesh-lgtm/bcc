@@ -724,20 +724,49 @@ const StoresTab = ({ itemVariants }) => {
   const [tempStoreData, setTempStoreData] = useState(null);
 
   useEffect(() => {
-    const savedStores = localStorage.getItem("tunepath_stores");
-    if (savedStores) {
+    const fetchStores = async () => {
       try {
-        setStores(JSON.parse(savedStores));
-      } catch (e) {}
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/stores", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : ""
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const mapped = data.data.map(s => ({
+            key: s._id,
+            store: s.storeName,
+            slug: s.slug,
+            status: s.status,
+            catalog: s.catalog,
+            currency: s.currency
+          }));
+          setStores(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch stores", err);
+      }
+    };
+    fetchStores();
+  }, [view]);
+
+  const handleDelete = async (key) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/stores/${key}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStores(stores.filter(store => store.key !== key));
+      }
+    } catch (err) {
+      console.error(err);
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tunepath_stores", JSON.stringify(stores));
-  }, [stores]);
-
-  const handleDelete = (key) => {
-    setStores(stores.filter(store => store.key !== key));
   };
 
   const columns = [
@@ -786,9 +815,25 @@ const StoresTab = ({ itemVariants }) => {
         <Space size="middle">
           <span 
             style={{ color: "var(--accent-success)", fontWeight: 800, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 6 }}
-            onClick={() => {
-              setActiveStore(record);
-              setView("manage");
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`/api/stores/${record.key}`, {
+                  headers: {
+                    "Authorization": token ? `Bearer ${token}` : ""
+                  }
+                });
+                const resData = await res.json();
+                if (resData.success) {
+                  setActiveStore({
+                    ...resData.data,
+                    key: resData.data._id
+                  });
+                  setView("manage");
+                }
+              } catch (err) {
+                console.error("Error fetching store details", err);
+              }
             }}
           >
             Manage <ArrowRight size={14} />
@@ -801,41 +846,84 @@ const StoresTab = ({ itemVariants }) => {
     },
   ];
 
-  const handleCreateContinue = (data) => {
+  const handleCreateContinue = async (data) => {
     setTempStoreData(data);
     setIsCreateModalOpen(false);
     
     if (data.method === "templates") {
       setIsTemplateModalOpen(true);
     } else {
-      const newStore = {
-        key: Date.now().toString(),
-        store: data.storeName,
-        slug: data.storeName.toLowerCase().replace(/\s+/g, '-'),
-        status: data.status,
-        catalog: "Empty Catalog",
-        currency: data.currency
-      };
-      setStores([...stores, newStore]);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/stores", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+          },
+          body: JSON.stringify({
+            method: data.method,
+            storeName: data.storeName,
+            currency: data.currency,
+            status: data.status,
+            installDemo: false
+          })
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          const newStore = {
+            key: resData.data._id,
+            store: resData.data.storeName,
+            slug: resData.data.slug,
+            status: resData.data.status,
+            catalog: "Empty Catalog",
+            currency: resData.data.currency
+          };
+          setStores([newStore, ...stores]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
-  const handleTemplateCreate = (templateData) => {
-    const newStore = {
-      key: Date.now().toString(),
-      store: templateData.storeName,
-      slug: templateData.storeName.toLowerCase().replace(/\s+/g, '-'),
-      status: tempStoreData?.status || "Draft",
-      catalog: templateData.template ? `Template: ${templateData.template}` : "Demo Catalog",
-      currency: tempStoreData?.currency || "INR"
-    };
-    
-    setStores([...stores, newStore]);
-    setIsTemplateModalOpen(false);
-    setTempStoreData(null);
-
-    setActiveStore(newStore);
-    setView("manage");
+  const handleTemplateCreate = async (templateData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/stores", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          method: "templates",
+          storeName: templateData.storeName,
+          currency: tempStoreData?.currency || "INR",
+          status: tempStoreData?.status || "Draft",
+          installDemo: templateData.installDemo,
+          templateName: templateData.template
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        const newStore = {
+          key: resData.data._id,
+          store: resData.data.storeName,
+          slug: resData.data.slug,
+          status: resData.data.status,
+          catalog: templateData.installDemo ? "6 Products" : "Empty Catalog",
+          currency: resData.data.currency
+        };
+        setStores([newStore, ...stores]);
+        setIsTemplateModalOpen(false);
+        setTempStoreData(null);
+        setActiveStore(newStore);
+        setView("manage");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (view === "manage" && activeStore) {

@@ -185,38 +185,71 @@ const DomainsTab = ({ itemVariants }) => {
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("tunepath_domains");
-    if (saved) {
+    const fetchDomains = async () => {
+      if (view !== "list") return;
       try {
-        setDomains(JSON.parse(saved));
-      } catch (e) {
-        console.error("Parse error", e);
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/domains", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setDomains(data.data.map(d => ({
+            key: d._id,
+            domain: d.customDomain,
+            connectedTo: `${d.propertyType} · JEEMA Digital`,
+            status: d.status || 'Pending',
+            ...d
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch domains", err);
       }
-    } else {
-      setDomains([
-        { key: '1', domain: 'nanaacademy.com', connectedTo: 'Website · NANA Academy', status: 'Pending' },
-      ]);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tunepath_domains", JSON.stringify(domains));
-  }, [domains]);
-
-  const handleConnectDomain = (data) => {
-    const newDomain = {
-      key: Date.now().toString(),
-      domain: data.customDomain,
-      connectedTo: `${data.propertyType} · JEEMA Digital`,
-      status: "Pending"
     };
-    setDomains([newDomain, ...domains]);
-    setView("list");
+    fetchDomains();
+  }, [view]);
+
+  const handleConnectDomain = async (data) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/domains", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          propertyType: data.propertyType,
+          propertyId: null, // Assuming property selection maps to an ID
+          customDomain: data.customDomain
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDisconnect = (key) => {
-    setDomains(domains.filter(d => d.key !== key));
-    setView("list");
+  const handleDisconnect = async (key) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/domains/${key}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDomains(domains.filter(d => d.key !== key));
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const renderList = () => {
