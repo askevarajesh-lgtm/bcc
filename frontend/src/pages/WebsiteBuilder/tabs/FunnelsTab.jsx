@@ -427,7 +427,7 @@ const FunnelsTab = ({ itemVariants }) => {
             slug: resData.data.slug,
             type: resData.data.type,
             lastUpdated: "Just now",
-            steps: resData.data.steps ? resData.data.steps.length : 1,
+            steps: resData.data.steps || [],
             events: 0,
             isNew: true
           };
@@ -470,7 +470,7 @@ const FunnelsTab = ({ itemVariants }) => {
       title: "STEPS",
       dataIndex: "steps",
       key: "steps",
-      render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong>
+      render: t => <strong style={{ color: 'var(--text-primary)' }}>{Array.isArray(t) ? t.length : (t || 0)}</strong>
     },
     {
       title: "EVENTS",

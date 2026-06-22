@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import JSZip from "jszip";
 import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message } from "antd";
 import { Globe, X as CloseIcon, Search as SearchIcon, CheckCircle, Upload as UploadIcon } from "lucide-react";
 
@@ -12,6 +13,10 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   const [templates, setTemplates] = useState([]);
   const [categories, setCategories] = useState(["All"]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showUploadBox, setShowUploadBox] = useState(false);
+  const [uploadTemplateName, setUploadTemplateName] = useState("");
+  const [selectedUploadFile, setSelectedUploadFile] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -44,18 +49,49 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
     }
   };
 
-  const handleZipUpload = async (event) => {
+  const handleFileSelect = (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (file) {
+      setSelectedUploadFile(file);
+    }
+  };
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", file.name.replace(".zip", ""));
-    formData.append("type", "website");
-    formData.append("category", "Custom Uploads");
+  const handleZipUpload = async () => {
+    if (!selectedUploadFile) return;
 
     try {
+      message.loading({ content: 'Validating ZIP...', key: 'upload' });
+      
+      // Validate ZIP contains index.html
+      const zip = new JSZip();
+      const loadedZip = await zip.loadAsync(selectedUploadFile);
+      let hasIndexHtml = false;
+      let htmlFilesCount = 0;
+      
+      loadedZip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.html')) {
+          htmlFilesCount++;
+        }
+        if (!zipEntry.dir && relativePath.toLowerCase().endsWith('index.html')) {
+          hasIndexHtml = true;
+        }
+      });
+
+      if (!hasIndexHtml) {
+        message.error({ content: 'Invalid template: ZIP must contain an index.html file.', key: 'upload' });
+        return;
+      }
+
       message.loading({ content: 'Uploading template...', key: 'upload' });
+      const formData = new FormData();
+      formData.append("file", selectedUploadFile);
+      
+      const defaultName = selectedUploadFile.name.replace(".zip", "");
+      formData.append("name", uploadTemplateName.trim() ? uploadTemplateName.trim() : defaultName);
+      formData.append("type", "website");
+      formData.append("category", "Custom Uploads");
+      formData.append("featuresCount", htmlFilesCount);
+
       const token = localStorage.getItem("token");
       const res = await fetch("/api/templates/upload", {
         method: "POST",
@@ -70,13 +106,18 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
         await fetchTemplates();
         if (data.data && data.data._id) {
           setSelectedTemplate(data.data._id);
-          setSelectedCategory("All"); // Ensure the newly uploaded template is visible
+          setSelectedCategory("All"); 
+          setWebsiteName(data.data.name);
+          setShowUploadBox(false);
+          setSelectedUploadFile(null);
+          setUploadTemplateName("");
         }
       } else {
         message.error({ content: data.error || 'Failed to upload', key: 'upload' });
       }
     } catch (error) {
-      message.error({ content: 'Error uploading template', key: 'upload' });
+      console.error(error);
+      message.error({ content: 'Error processing template upload', key: 'upload' });
     }
     
     // Clear input
@@ -85,13 +126,18 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
     }
   };
 
-  const handleCreate = () => {
-    onCreate({ 
-      name: websiteName, 
-      template: selectedTemplate ? templates.find(t => t._id === selectedTemplate)?.name : null,
-      type: "template"
-    });
-    setSelectedTemplate(null);
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      await onCreate({ 
+        name: websiteName, 
+        template: selectedTemplate ? templates.find(t => t._id === selectedTemplate)?.name : null,
+        type: "template"
+      });
+      setSelectedTemplate(null);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const filteredTemplates = templates.filter(template => {
@@ -177,17 +223,10 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
                 <Text type="secondary">Select a layout to jump-start your project</Text>
               </div>
               <Space>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  accept=".zip,application/zip" 
-                  onChange={handleZipUpload} 
-                />
                 <Button 
                   icon={<UploadIcon size={16} />}
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: "var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  onClick={() => setShowUploadBox(!showUploadBox)}
+                  style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: showUploadBox ? "var(--accent-info)" : "var(--border-color)", background: showUploadBox ? "rgba(14, 165, 233, 0.1)" : "var(--bg-primary)", color: showUploadBox ? "var(--accent-info)" : "var(--text-primary)" }}
                 >
                   Upload ZIP
                 </Button>
@@ -201,6 +240,53 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
               </Space>
             </div>
           </div>
+
+          {showUploadBox && (
+            <div style={{ padding: "16px 24px", background: "rgba(16, 185, 129, 0.05)", borderBottom: "1px solid var(--border-color)" }}>
+              <div style={{ border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 12, padding: "20px", background: "var(--bg-primary)" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 16 }}>
+                  ZIP with <span style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4 }}>index.html</span> and assets folders.
+                </div>
+                <Space size="large" align="center" style={{ width: "100%", flexWrap: "wrap" }}>
+                  <Input 
+                    placeholder="Template name (optional)" 
+                    value={uploadTemplateName}
+                    onChange={(e) => setUploadTemplateName(e.target.value)}
+                    style={{ width: 250, height: 40, borderRadius: 8 }}
+                  />
+                  
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border-color)", borderRadius: 8, padding: "4px 12px 4px 4px", background: "var(--bg-secondary)", height: 40 }}>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      style={{ display: 'none' }} 
+                      accept=".zip,application/zip" 
+                      onChange={handleFileSelect} 
+                    />
+                    <Button 
+                      type="primary"
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ background: "var(--accent-success)", border: "none", borderRadius: 6, fontWeight: 600, height: 32, marginRight: 12 }}
+                    >
+                      Choose File
+                    </Button>
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {selectedUploadFile ? selectedUploadFile.name : "No file chosen"}
+                    </span>
+                  </div>
+
+                  <Button 
+                    type="primary" 
+                    onClick={handleZipUpload}
+                    disabled={!selectedUploadFile}
+                    style={{ background: "var(--accent-success)", border: "none", borderRadius: 8, height: 40, fontWeight: 700, padding: "0 24px" }}
+                  >
+                    Upload
+                  </Button>
+                </Space>
+              </div>
+            </div>
+          )}
 
           <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
             <Row gutter={[24, 24]}>
@@ -274,7 +360,8 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
               <Button 
                 type="primary" 
                 onClick={handleCreate}
-                disabled={!websiteName.trim() || !selectedTemplate}
+                loading={isCreating}
+                disabled={!websiteName.trim() || !selectedTemplate || isCreating}
                 style={{ backgroundColor: "var(--accent-info)", border: "none", borderRadius: 8, height: 44, fontWeight: 700, padding: "0 24px" }}
               >
                 Create Website

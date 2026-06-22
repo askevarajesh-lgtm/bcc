@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm } from "antd";
-import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message } from "antd";
+import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import WebsiteTemplateLibraryModal from "./WebsiteTemplateLibraryModal";
@@ -206,63 +206,41 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
   const navigate = useNavigate();
 
-  const handleAddPage = async () => {
+  const handleAddPage = () => {
     if (!newPageTitle.trim()) return;
-    try {
-      const token = localStorage.getItem("token");
-      const path = `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
-      const res = await fetch(`/api/websites/${activeWebsite.key}/pages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify({ title: newPageTitle, path })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPages([...pages, data.data]);
-        setNewPageTitle("");
-      }
-    } catch (err) {
-      console.error(err);
+    const path = `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
+    const newPage = {
+      _id: `temp-${Date.now()}`,
+      key: `temp-${Date.now()}`,
+      title: newPageTitle,
+      path,
+      status: "Draft",
+      isHome: false,
+      layoutJson: { sections: [] },
+      html: "",
+      css: ""
+    };
+    setPages([...pages, newPage]);
+    setNewPageTitle("");
+  };
+
+  const handleDuplicatePage = (pageId) => {
+    const pageToDuplicate = pages.find(p => p._id === pageId || p.key === pageId);
+    if (pageToDuplicate) {
+      const newPage = {
+        ...pageToDuplicate,
+        _id: `temp-${Date.now()}`,
+        key: `temp-${Date.now()}`,
+        title: `${pageToDuplicate.title} Copy`,
+        path: `${pageToDuplicate.path}-copy`,
+        isHome: false
+      };
+      setPages([...pages, newPage]);
     }
   };
 
-  const handleDuplicatePage = async (pageId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${pageId}/duplicate`, {
-        method: "POST",
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : ""
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPages([...pages, data.data]);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeletePage = async (pageId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${pageId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : ""
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPages(pages.filter(p => p._id !== pageId));
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeletePage = (pageId) => {
+    setPages(pages.filter(p => (p._id !== pageId && p.key !== pageId)));
   };
 
   const handleSaveSettings = async () => {
@@ -274,14 +252,21 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
           "Content-Type": "application/json",
           "Authorization": token ? `Bearer ${token}` : ""
         },
-        body: JSON.stringify({ name: websiteName, description, status })
+        body: JSON.stringify({ name: websiteName, description, status, pages })
       });
       const data = await res.json();
       if (data.success) {
-        Modal.success({ title: "Success", content: "Website settings saved successfully!" });
+        message.success("Changes saved successfully!");
+        // Update local activeWebsite to reflect new saved pages (backend returns updated pages)
+        if (data.data && data.data.pages) {
+           setPages(data.data.pages);
+        }
+      } else {
+        message.error(data.error || "Failed to save changes");
       }
     } catch (err) {
       console.error(err);
+      message.error("Error saving changes");
     }
   };
 
@@ -302,7 +287,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200 }}>
+      <div>
         
         {activeWebsite.isNew && (
           <div style={{ marginBottom: 32, padding: "16px 24px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 12, color: "var(--accent-success)", fontWeight: 600, fontSize: 14 }}>
@@ -386,7 +371,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                 </div>
 
                 <Button type="primary" size="large" onClick={handleSaveSettings} block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
-                  Save Website Settings
+                  Save Changes
                 </Button>
                 
                 <Row gutter={16}>
@@ -471,7 +456,14 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                             <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
                           </div>
                         </div>
-                        <Select size="large" defaultValue={page.status || "Draft"} style={{ width: 120 }}>
+                        <Select 
+                          size="large" 
+                          value={page.status || "Draft"} 
+                          onChange={(val) => {
+                            setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
+                          }}
+                          style={{ width: 120 }}
+                        >
                           <Option value="Draft">Draft</Option>
                           <Option value="Published">Published</Option>
                         </Select>
@@ -514,33 +506,77 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
     }
   }, [initialAction, onActionComplete]);
 
-  useEffect(() => {
-    const fetchWebsites = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("/api/websites", {
-          headers: {
-            "Authorization": token ? `Bearer ${token}` : ""
-          }
-        });
-        const data = await res.json();
-        if (data.success) {
-          const mapped = data.data.map(w => ({
-            key: w._id,
-            name: w.name,
-            description: w.description,
-            lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
-            pages: w.pagesCount || 1,
-            isNew: false
-          }));
-          setWebsites(mapped);
+  const fetchWebsites = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/websites", {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
         }
-      } catch (err) {
-        console.error("Failed to fetch websites", err);
+      });
+      const data = await res.json();
+      if (data.success) {
+        const mapped = data.data.map(w => ({
+          key: w._id,
+          name: w.name,
+          description: w.description,
+          lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
+          pages: w.pagesCount || 1,
+          isNew: false
+        }));
+        setWebsites(mapped);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch websites", err);
+    }
+  };
+
+  useEffect(() => {
     fetchWebsites();
   }, [view]);
+
+  const handleDeleteWebsite = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Website deleted successfully");
+        fetchWebsites();
+      } else {
+        message.error(data.error || "Failed to delete website");
+      }
+    } catch (err) {
+      message.error("Error deleting website");
+    }
+  };
+
+  const handleCloneWebsite = async (id) => {
+    try {
+      message.loading({ content: 'Cloning website...', key: 'clone' });
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${id}/clone`, {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success({ content: 'Website cloned successfully', key: 'clone' });
+        fetchWebsites();
+      } else {
+        message.error({ content: data.error || "Failed to clone website", key: 'clone' });
+      }
+    } catch (err) {
+      message.error({ content: "Error cloning website", key: 'clone' });
+    }
+  };
 
   const handleCreateWebsite = async (data) => {
     if (data.type === "blank" || data.type === "template" || data.type === "ai") {
@@ -617,37 +653,104 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       title: "ACTIONS",
       key: "actions",
       align: "right",
-      render: (_, r) => (
-        <Space>
-          <span 
-            style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem("token");
-                const res = await fetch(`/api/websites/${r.key}`, {
-                  headers: {
-                    "Authorization": token ? `Bearer ${token}` : ""
-                  }
-                });
-                const resData = await res.json();
-                if (resData.success) {
-                  setActiveWebsite({
-                    ...resData.data,
-                    key: resData.data._id,
-                    pages: resData.data.pages || [],
-                    isNew: false
-                  });
-                  setView("manage");
-                }
-              } catch (err) {
-                console.error("Error fetching website details", err);
+      render: (_, r) => {
+        const handleManage = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/websites/${r.key}`, {
+              headers: {
+                "Authorization": token ? `Bearer ${token}` : ""
               }
-            }}
-          >
-            Manage <ArrowRight size={14} />
-          </span>
-        </Space>
-      )
+            });
+            const resData = await res.json();
+            if (resData.success) {
+              setActiveWebsite({
+                ...resData.data,
+                key: resData.data._id,
+                pages: resData.data.pages || [],
+                isNew: false
+              });
+              setView("manage");
+            }
+          } catch (err) {
+            console.error("Error fetching website details", err);
+          }
+        };
+
+        const menuItems = [
+          {
+            key: 'edit',
+            icon: <Edit2 size={16} />,
+            label: 'Edit',
+            onClick: handleManage,
+            style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
+          },
+          {
+            key: 'clone',
+            icon: <Copy size={16} />,
+            label: 'Clone',
+            onClick: () => handleCloneWebsite(r.key),
+            style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
+          },
+          {
+            key: 'folder',
+            icon: <FolderInput size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Move To Folder</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Create a folder first</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'upload',
+            icon: <UploadCloud size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Upload To Website Templates</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Soon</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'share',
+            icon: <Share2 size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Share</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Soon</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'delete',
+            icon: <Trash2 size={16} />,
+            label: 'Delete',
+            danger: true,
+            onClick: () => handleDeleteWebsite(r.key),
+            style: { fontWeight: 700, padding: '8px 12px' }
+          }
+        ];
+
+        return (
+          <Space>
+            <Dropdown 
+              menu={{ items: menuItems }} 
+              trigger={['click']} 
+              placement="bottomRight"
+              overlayStyle={{ minWidth: 220 }}
+            >
+              <Button type="text" icon={<MoreVertical size={18} color="var(--text-secondary)" />} style={{ borderRadius: 8 }} />
+            </Dropdown>
+          </Space>
+        );
+      }
     },
   ];
 
