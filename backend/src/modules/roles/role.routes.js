@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('./user.controller');
+const roleController = require('./role.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.use(authMiddleware);
 
 router.route('/')
-  .get(userController.getUsers)
-  .post(userController.createUser);
+  .get(roleController.getRoles)
+  .post(roleController.createRole);
 
 router.route('/:id')
-  .get(userController.getUser)
-  .put(userController.updateUser)
-  .delete(userController.deleteUser);
+  .put(roleController.updateRole)
+  .delete(roleController.deleteRole);
 
 module.exports = router;

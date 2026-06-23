@@ -10,10 +10,12 @@ import BackendConfigTab from './tabs/BackendConfigTab';
 import AccessMatrixTab from './tabs/AccessMatrixTab';
 import UserManagementTab from './tabs/UserManagementTab';
 import AgencyPackagesTab from './tabs/AgencyPackagesTab';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 const SettingsPage = () => {
+  const { role } = useAuth();
   const [activeTab, setActiveTab] = useState('1');
 
   const containerVariants = {
@@ -55,7 +57,9 @@ const SettingsPage = () => {
     { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
     { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
-    { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> },
+    ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
+      { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> }
+    ]),
   ];
 
   return (

@@ -44,11 +44,11 @@ export const AuthProvider = ({ children }) => {
     } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(user.role)) {
       navigate('/client/dashboard');
     } else {
-      // Fallback for any legacy roles
+      // Fallback for custom roles (like developer, seo, etc)
       if (user.role === 'superadmin') navigate('/superadmin/dashboard');
       else if (user.role === 'agency') navigate('/agency/overview');
       else if (user.role === 'client') navigate('/client/dashboard');
-      else navigate('/dashboard');
+      else navigate('/user/dashboard');
     }
   };
 

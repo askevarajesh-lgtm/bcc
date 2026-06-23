@@ -62,7 +62,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       key: 'clients',
       label: collapsed ? 'CLI' : 'CLIENTS',
       children: [
-        { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', '12', 'default') },
+        ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
+          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', '12', 'default') }
+        ]),
         { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3⚠', 'alert') },
         { key: '/clients/portal', icon: getIcon(Monitor), label: 'Portal Settings' },
       ],

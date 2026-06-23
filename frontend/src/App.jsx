@@ -9,6 +9,7 @@ import SignIn from './pages/SignIn/SignIn';
 import AppLayout from './layouts/AppLayout';
 import AgencyLayout from './layouts/AgencyLayout';
 import ClientLayout from './layouts/ClientLayout';
+import UserLayout from './layouts/UserLayout';
 import PlaceholderPage from './components/PlaceholderPage';
 import { 
   Users, HeartHandshake, Monitor, MessageCircle, TrendingUp, Zap, 
@@ -77,6 +78,10 @@ import ClientWebsiteTab from './pages/ClientPortal/tabs/ClientWebsiteTab';
 import TeamTab from './pages/ClientPortal/tabs/TeamTab';
 import ClientReportsTab from './pages/ClientPortal/tabs/ReportsTab';
 
+// User Portal Tabs
+import UserDashboardTab from './pages/UserPortal/DashboardTab';
+import UserSettingsTab from './pages/UserPortal/SettingsTab';
+
 // Super Admin Layout and Pages
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
@@ -102,7 +107,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
   }
   
   if (allowedRoles && !allowedRoles.includes(role)) {
-    // Redirect to respective dashboard if trying to access unauthorized route
     if (['supreme_super_admin', 'superadmin'].includes(role)) return <Navigate to="/superadmin/dashboard" replace />;
     if (role === 'admin') return <Navigate to="/dashboard" replace />;
     if (role === 'agency_super_admin') return <Navigate to="/agency/admin-overview" replace />;
@@ -110,6 +114,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
     if (role === 'brand_super_admin') return <Navigate to="/client/admin-dashboard" replace />;
     if (role === 'brand_manager') return <Navigate to="/client/manager-dashboard" replace />;
     if (['agency_client', 'brand_team_user', 'client'].includes(role)) return <Navigate to="/client/dashboard" replace />;
+    return <Navigate to="/user/dashboard" replace />;
   }
   
   return <Outlet />;
@@ -128,7 +133,8 @@ const AppRoutes = () => {
           ['agency_manager', 'agency'].includes(role) ? '/agency/overview' : 
           role === 'brand_super_admin' ? '/client/admin-dashboard' :
           role === 'brand_manager' ? '/client/manager-dashboard' :
-          '/client/dashboard'
+          ['agency_client', 'brand_team_user', 'client'].includes(role) ? '/client/dashboard' :
+          '/user/dashboard'
         } replace />
       ) : <SignIn />} />
       
@@ -145,7 +151,6 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      {/* Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'admin']} />}>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -233,7 +238,52 @@ const AppRoutes = () => {
           } replace />} />
           <Route path="admin-dashboard" element={<BrandAdminDashboardTab />} />
           <Route path="manager-dashboard" element={<BrandManagerDashboardTab />} />
+          
           <Route path="dashboard" element={<ClientDashboardTab />} />
+          
+          {/* Brand Admin / Manager Additional Modules */}
+          <Route path="clients/sla" element={<SLA />} />
+          {role !== 'brand_manager' && (
+            <Route path="clients/portal" element={<PortalSettings />} />
+          )}
+
+          <Route path="workspace/strategy" element={<Strategy />} />
+          <Route path="workspace/seo" element={<SEO />} />
+          <Route path="workspace/content" element={<Content />} />
+          <Route path="workspace/aistudio" element={<Creative />} />
+          <Route path="workspace/social" element={<SocialMedia />} />
+          <Route path="workspace/ads" element={<PerformanceAds />} />
+          <Route path="workspace/crm" element={<CRM />} />
+          <Route path="workspace/automation" element={<Automation />} />
+          <Route path="workspace/tasks" element={<Tasks />} />
+          <Route path="workspace/website/*" element={<WebsiteBuilder />} />
+          <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+
+          <Route path="intelligence/analytics" element={<Analytics />} />
+          <Route path="intelligence/mos" element={<MOSScore />} />
+          <Route path="intelligence/copilot" element={<AICopilot />} />
+          <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
+          <Route path="intelligence/canva" element={<ClientCanvaPage />} />
+          <Route path="intelligence/agents" element={<AIAgents />} />
+          <Route path="intelligence/benchmarks" element={<Benchmarks />} />
+          <Route path="intelligence/reporting" element={<Reports />} />
+
+          <Route path="ops/team" element={<Teams />} />
+          <Route path="ops/time" element={<TimeTracking />} />
+          <Route path="ops/resources" element={<Resources />} />
+          <Route path="ops/finance" element={<Finance />} />
+          <Route path="ops/profitability" element={<Profitability />} />
+          <Route path="ops/newbusiness" element={<NewBusiness />} />
+          <Route path="ops/businessintel" element={<BusinessIntel />} />
+
+          <Route path="settings/company" element={<SettingsPage />} />
+          <Route path="settings/marketplace" element={<Marketplace />} />
+          <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
+          <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
+          <Route path="settings/integrations" element={<PlaceholderPage title="Integrations" description="Connect third-party apps and APIs." icon={Zap} />} />
+          <Route path="settings/notifications" element={<PlaceholderPage title="Notifications" description="Configure email and in-app alerts." icon={Bell} />} />
+          <Route path="settings/billing" element={<PlaceholderPage title="Billing" description="Manage subscription plans and payment methods." icon={CreditCard} />} />
+          <Route path="settings/audit" element={<PlaceholderPage title="Audit Logs" description="Review system activity and security events." icon={Activity} />} />
           <Route path="performance" element={<ClientPerformanceTab />} />
           <Route path="leads" element={<ClientLeadsTab />} />
           <Route path="website/*" element={<ClientWebsiteTab />} />
@@ -245,6 +295,20 @@ const AppRoutes = () => {
           <Route path="support" element={<ClientSupportTab />} />
         </Route>
       </Route>
+
+      {/* User Routes */}
+      <Route path="/user" element={
+        <ProtectedRoute />
+      }>
+        <Route element={<UserLayout />}>
+          <Route index element={<Navigate to="/user/dashboard" replace />} />
+          <Route path="dashboard" element={<UserDashboardTab />} />
+          <Route path="tasks" element={<Tasks />} />
+          <Route path="settings" element={<UserSettingsTab />} />
+        </Route>
+      </Route>
+
+
 
       {/* Catch all - Redirect to sign in if no role, otherwise to respective dashboard */}
       <Route path="*" element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'agency', 'client']} />} />

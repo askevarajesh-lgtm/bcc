@@ -18,6 +18,8 @@ const userRoutes = require('../modules/auth/user.routes');
 const superadminRoutes = require('../modules/superadmin/superadmin.routes');
 const agencyPackageRoutes = require('../modules/agencyPackages/agencyPackage.routes');
 const brandRoutes = require('../modules/accounts/brand.routes');
+const departmentRoutes = require('../modules/departments/department.routes');
+const roleRoutes = require('../modules/roles/role.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -55,5 +57,7 @@ router.use('/integrations', integrationRoutes);
 router.use('/users', userRoutes);
 router.use('/superadmin', superadminRoutes);
 router.use('/agency-packages', agencyPackageRoutes);
+router.use('/departments', departmentRoutes);
+router.use('/roles', roleRoutes);
 
 module.exports = router;

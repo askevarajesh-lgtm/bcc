@@ -36,7 +36,7 @@ const Dashboard = () => {
       setRecentCompanies(agenciesRes.data.data.slice(0, 5).map(item => ({
         key: item._id,
         name: item.name || 'Unknown',
-        plan: item.plan ? item.plan.charAt(0).toUpperCase() + item.plan.slice(1) : 'Pro',
+        plan: item.plan ? (typeof item.plan === 'object' ? item.plan.name : item.plan.charAt(0).toUpperCase() + item.plan.slice(1)) : 'Pro',
         status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Active',
         mrr: `$${item.mrr || 0}`,
         joined: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'

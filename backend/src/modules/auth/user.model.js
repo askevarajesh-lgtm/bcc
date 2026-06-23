@@ -2,22 +2,17 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
+  name: { type: String },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
   password: { type: String, required: true },
-  role: { 
-    type: String, 
-    enum: [
-      'supreme_super_admin', 
-      'admin', 
-      'agency_super_admin', 
-      'agency_manager', 
-      'agency_client', 
-      'brand_super_admin', 
-      'brand_manager', 
-      'brand_team_user'
-    ], 
-    required: true 
+  role: { type: String, required: true },
+  companyName: { type: String, default: null },
+  isActive: { type: Boolean, default: true },
+  modules: {
+    chatgpt: { type: Boolean, default: false },
+    canva: { type: Boolean, default: false }
   },
+  departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', default: null },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency', default: null },
   brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', default: null },
   workspaceId: { type: mongoose.Schema.Types.ObjectId, default: null }

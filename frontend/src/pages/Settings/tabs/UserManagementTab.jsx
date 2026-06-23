@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Space, Tag, Input, Modal, Switch, 
-  Card, Tabs, Typography, Form, Select, Checkbox, Row, Col, Popconfirm
+  Card, Tabs, Typography, Form, Select, Checkbox, Popconfirm, message
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, 
@@ -9,47 +9,13 @@ import {
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// --- MOCK DATA ---
-const initialUsers = [
-  { _id: '1', name: 'Manimehalai', email: 'manimehalai.askeva@gmail.com', role: 'developer', companyName: 'Tunepath Technologies', isActive: true },
-  { _id: '2', name: 'Naresh', email: 'nareshmurugadass71@gmail.com', role: 'developer', companyName: 'Tunepath Technologies', isActive: true },
-  { _id: '3', name: 'Sujitha', email: 'sujithakabilan005@gmail.com', role: 'website_coordinator', companyName: 'Tunepath Technologies', isActive: true },
-  { _id: '4', name: 'Jagandran', email: 'jagan.projectcoteam209@gmail.com', role: 'website_coordinator', companyName: 'Tunepath Technologies', isActive: true },
-  { _id: '5', name: 'SAI KRISHNAN S', email: 'saikrishna.askeva@gmail.com', role: 'developer', companyName: 'Tunepath Technologies', isActive: true },
-  { _id: '6', name: 'Suganthi', email: 'suganthi0623m@gmail.com', role: 'developer', companyName: 'Tunepath Technologies', isActive: false },
-  { _id: '7', name: 'Amirtha', email: 'amirtha.askeva@gmail.com', role: 'developer', companyName: 'Tunepath Technologies', isActive: true },
-];
-
-const initialClients = [
-  { _id: '101', name: 'Tunepath', email: 'tunepathmarketing@gmail.com', role: 'client', companyName: 'Tunepath', isActive: true, modules: { chatgpt: false, canva: false } },
-  { _id: '102', name: 'ektahr', email: 'usha@ektahr.com', role: 'client', companyName: 'ektahr', isActive: true, modules: { chatgpt: false, canva: false } },
-  { _id: '103', name: 'shoba textile', email: 'shobamanaparai@gmail.com', role: 'client', companyName: 'shoba textile', isActive: true, modules: { chatgpt: false, canva: false } },
-  { _id: '104', name: 'bio world', email: 'info@bioworld.in', role: 'client', companyName: 'bio world', isActive: true, modules: { chatgpt: false, canva: false } },
-  { _id: '105', name: 'Arumuga Traders', email: 'info@arumugatraders.com', role: 'client', companyName: 'Arumuga Traders', isActive: true, modules: { chatgpt: false, canva: false } },
-];
-
-const initialDepartments = [
-  { _id: 'd1', name: 'General', slug: 'general', status: 'active' },
-  { _id: 'd2', name: 'Web & Application Development', slug: 'web-application-development', status: 'active' },
-  { _id: 'd3', name: 'BDE', slug: 'bde', status: 'active' },
-  { _id: 'd4', name: 'SEO', slug: 'seo', status: 'active' },
-  { _id: 'd5', name: 'Website Designing', slug: 'website-designing', status: 'active' },
-  { _id: 'd6', name: 'Digital Marketing', slug: 'digital-marketing', status: 'active' },
-];
-
-const initialRoles = [
-  { _id: 'r1', roleName: 'Super Admin', departmentId: 'd1', roleKey: 'super_admin', status: 'active' },
-  { _id: 'r2', roleName: 'Admin', departmentId: 'd1', roleKey: 'admin', status: 'active' },
-  { _id: 'r3', roleName: 'Developer', departmentId: 'd2', roleKey: 'developer', status: 'active' },
-  { _id: 'r4', roleName: 'Website Coordinator', departmentId: 'd5', roleKey: 'website_coordinator', status: 'active' },
-  { _id: 'r5', roleName: 'SEO Analyst', departmentId: 'd4', roleKey: 'seo', status: 'active' },
-];
-
 const getRoleColor = (role) => {
+  if (!role) return 'default';
   const colors = {
     super_admin: 'red',
     admin: 'purple',
@@ -68,10 +34,11 @@ const UserManagementTab = () => {
   const [activeTab, setActiveTab] = useState('user');
   
   // States for data
-  const [users, setUsers] = useState(initialUsers);
-  const [clients, setClients] = useState(initialClients);
-  const [departments, setDepartments] = useState(initialDepartments);
-  const [roles, setRoles] = useState(initialRoles);
+  const [users, setUsers] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Search states
   const [userSearch, setUserSearch] = useState('');
@@ -110,18 +77,50 @@ const UserManagementTab = () => {
     ]
   };
 
-  // Handlers
-  const handleToggleUserStatus = (record, isClient = false) => {
-    if (isClient) {
-      setClients(clients.map(c => c._id === record._id ? { ...c, isActive: !c.isActive } : c));
-    } else {
-      setUsers(users.map(u => u._id === record._id ? { ...u, isActive: !u.isActive } : u));
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [usersRes, deptsRes, rolesRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/departments'),
+        api.get('/roles')
+      ]);
+      const allUsers = usersRes.data?.data || [];
+      setUsers(allUsers.filter(u => u.role !== 'agency_client' && u.role !== 'client'));
+      setClients(allUsers.filter(u => u.role === 'agency_client' || u.role === 'client'));
+      setDepartments(deptsRes.data?.data || []);
+      setRoles(rolesRes.data?.data || []);
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to load data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteUser = (id, isClient = false) => {
-    if (isClient) setClients(clients.filter(c => c._id !== id));
-    else setUsers(users.filter(u => u._id !== id));
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Handlers
+  const handleToggleUserStatus = async (record, isClient = false) => {
+    try {
+      await api.put(`/users/${record._id}`, { isActive: !record.isActive });
+      message.success('Status updated');
+      fetchData();
+    } catch (err) {
+      message.error('Failed to update status');
+    }
+  };
+
+  const handleDeleteUser = async (id, isClient = false) => {
+    try {
+      await api.delete(`/users/${id}`);
+      message.success('User deleted');
+      fetchData();
+    } catch (err) {
+      message.error('Failed to delete user');
+    }
   };
 
   // User Columns
@@ -215,7 +214,15 @@ const UserManagementTab = () => {
             setDeptModal({ open: true, record });
             deptForm.setFieldsValue(record);
           }} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Edit</Button>
-          <Popconfirm title="Delete this department?" onConfirm={() => setDepartments(departments.filter(d => d._id !== record._id))}>
+          <Popconfirm title="Delete this department?" onConfirm={async () => {
+            try {
+              await api.delete(`/departments/${record._id}`);
+              message.success('Department deleted');
+              fetchData();
+            } catch (err) {
+              message.error('Failed to delete department');
+            }
+          }}>
             <Button type="text" danger icon={<DeleteOutlined />} style={{ fontWeight: 600 }}>Delete</Button>
           </Popconfirm>
         </Space>
@@ -246,7 +253,15 @@ const UserManagementTab = () => {
             setRoleModal({ open: true, record });
             roleForm.setFieldsValue(record);
           }} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Edit</Button>
-          <Popconfirm title="Delete this role?" onConfirm={() => setRoles(roles.filter(r => r._id !== record._id))}>
+          <Popconfirm title="Delete this role?" onConfirm={async () => {
+            try {
+              await api.delete(`/roles/${record._id}`);
+              message.success('Role deleted');
+              fetchData();
+            } catch (err) {
+              message.error('Failed to delete role');
+            }
+          }}>
             <Button type="text" danger icon={<DeleteOutlined />} style={{ fontWeight: 600 }}>Delete</Button>
           </Popconfirm>
         </Space>
@@ -254,52 +269,80 @@ const UserManagementTab = () => {
     }
   ];
 
-  const handleDeptSubmit = () => {
-    deptForm.validateFields().then(values => {
+  const handleDeptSubmit = async () => {
+    try {
+      const values = await deptForm.validateFields();
       if (deptModal.record) {
-        setDepartments(departments.map(d => d._id === deptModal.record._id ? { ...d, ...values } : d));
+        await api.put(`/departments/${deptModal.record._id}`, values);
+        message.success('Department updated');
       } else {
-        setDepartments([...departments, { ...values, _id: Date.now().toString() }]);
+        await api.post('/departments', values);
+        message.success('Department created');
       }
       setDeptModal({ open: false, record: null });
-    });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      if (err.response) message.error(err.response.data.message || 'Error saving department');
+    }
   };
 
-  const handleRoleSubmit = () => {
-    roleForm.validateFields().then(values => {
+  const handleRoleSubmit = async () => {
+    try {
+      const values = await roleForm.validateFields();
       if (roleModal.record) {
-        setRoles(roles.map(r => r._id === roleModal.record._id ? { ...r, ...values } : r));
+        await api.put(`/roles/${roleModal.record._id}`, values);
+        message.success('Role updated');
       } else {
-        setRoles([...roles, { ...values, _id: Date.now().toString() }]);
+        await api.post('/roles', values);
+        message.success('Role created');
       }
       setRoleModal({ open: false, record: null });
-    });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      if (err.response) message.error(err.response.data.message || 'Error saving role');
+    }
   };
 
-  const handleUserSubmit = () => {
-    userForm.validateFields().then(values => {
+  const handleUserSubmit = async () => {
+    try {
+      const values = await userForm.validateFields();
+      const payload = { ...values, isActive: values.status === 'active' };
       if (userModal.record) {
-        setUsers(users.map(u => u._id === userModal.record._id ? { ...u, ...values, isActive: values.status === 'active' } : u));
+        await api.put(`/users/${userModal.record._id}`, payload);
+        message.success('User updated');
       } else {
-        setUsers([...users, { ...values, _id: Date.now().toString(), isActive: values.status === 'active' }]);
+        await api.post('/users', payload);
+        message.success('User created successfully');
       }
       setUserModal({ open: false, record: null });
-    });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      if (err.response) message.error(err.response.data.message || 'Error saving user');
+    }
   };
 
-  const handleSaveClientModules = () => {
-    setClients(clients.map(c => c._id === selectedClient._id ? { ...c, modules: clientModuleValues } : c));
-    setClientModuleModalOpen(false);
+  const handleSaveClientModules = async () => {
+    try {
+      await api.put(`/users/${selectedClient._id}`, { modules: clientModuleValues });
+      message.success('Client modules updated');
+      setClientModuleModalOpen(false);
+      fetchData();
+    } catch (err) {
+      message.error('Failed to update client modules');
+    }
   };
 
   const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
-    u.email.toLowerCase().includes(userSearch.toLowerCase())
+    (u.name || '').toLowerCase().includes((userSearch || '').toLowerCase()) || 
+    (u.email || '').toLowerCase().includes((userSearch || '').toLowerCase())
   );
 
   const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
-    c.email.toLowerCase().includes(clientSearch.toLowerCase())
+    (c.name || '').toLowerCase().includes((clientSearch || '').toLowerCase()) || 
+    (c.email || '').toLowerCase().includes((clientSearch || '').toLowerCase())
   );
 
   return (
@@ -349,6 +392,7 @@ const UserManagementTab = () => {
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
+                    loading={loading}
                   />
                 </div>
               )
@@ -375,6 +419,7 @@ const UserManagementTab = () => {
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
+                    loading={loading}
                   />
                 </div>
               )
@@ -402,6 +447,7 @@ const UserManagementTab = () => {
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
+                    loading={loading}
                   />
                 </div>
               )
@@ -429,6 +475,7 @@ const UserManagementTab = () => {
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
+                    loading={loading}
                   />
                 </div>
               )
@@ -454,6 +501,11 @@ const UserManagementTab = () => {
           <Form.Item name="email" label={<strong style={{ color: 'var(--text-secondary)' }}>Email Address</strong>} rules={[{ required: true, type: 'email' }]}>
             <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
           </Form.Item>
+          {!userModal.record && (
+            <Form.Item name="password" label={<strong style={{ color: 'var(--text-secondary)' }}>Password</strong>} rules={[{ required: true, message: 'Please set a password' }]}>
+              <Input.Password size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+            </Form.Item>
+          )}
           <Form.Item name="companyName" label={<strong style={{ color: 'var(--text-secondary)' }}>Company Name</strong>} rules={[{ required: true }]}>
             <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
           </Form.Item>

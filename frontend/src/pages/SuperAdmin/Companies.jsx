@@ -30,7 +30,7 @@ const Companies = () => {
         name: item.name || 'Unknown',
         email: item.email || 'N/A',
         users: item.allowedUsers || 0,
-        plan: item.plan ? item.plan.charAt(0).toUpperCase() + item.plan.slice(1) : 'Pro',
+        plan: item.plan ? (typeof item.plan === 'object' ? item.plan.name : item.plan.charAt(0).toUpperCase() + item.plan.slice(1)) : 'Pro',
         status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Active',
         mrr: `$${item.mrr || 0}`,
         joined: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'
