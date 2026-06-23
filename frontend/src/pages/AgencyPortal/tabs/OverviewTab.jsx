@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { Typography, Row, Col, Card, Button, Tag, Progress, Table } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ChevronRight, Activity, Calendar, DollarSign, Clock, Users, ArrowUpRight, ArrowDownRight, ExternalLink } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import SlabCard from '../../../components/SlabCard';
 
 const { Title, Text } = Typography;
 
 const OverviewTab = () => {
+  const { role } = useAuth();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -26,11 +29,15 @@ const OverviewTab = () => {
 
   const stats = [
     { label: 'ACTIVE CLIENTS', value: '12', sub: '+3 this month', color: 'var(--accent-primary)', trend: 'up' },
-    { label: 'TOTAL MRR', value: '₹42.8L', sub: '+12% MoM', color: 'var(--accent-primary)', trend: 'up' },
+    ...(role === 'agency_manager' ? [] : [
+      { label: 'TOTAL MRR', value: '₹42.8L', sub: '+12% MoM', color: 'var(--accent-primary)', trend: 'up' },
+    ]),
     { label: 'SLA COMPLIANCE', value: '94%', sub: '-3% - 3 breaches', color: 'var(--accent-danger)', trend: 'down' },
     { label: 'OPEN ESCALATIONS', value: '3', sub: 'Needs attention today', color: 'var(--accent-warning)', trend: 'neutral' },
     { label: 'TEAM UTILISATION', value: '81%', sub: '+3% - 5 members', color: 'var(--accent-primary)', trend: 'up' },
-    { label: 'COLLECTION RATE', value: '89.7%', sub: '₹4.4L outstanding', color: 'var(--accent-primary)', trend: 'up' },
+    ...(role === 'agency_manager' ? [] : [
+      { label: 'COLLECTION RATE', value: '89.7%', sub: '₹4.4L outstanding', color: 'var(--accent-primary)', trend: 'up' },
+    ])
   ];
 
   const clients = [

@@ -1,23 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message } from 'antd';
-import { Plus, Edit, Trash2, Shield, Zap, Globe, Users, AlertTriangle } from 'lucide-react';
-import { useFeatures } from '../../../contexts/FeatureContext';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 
 const availableFeatures = [
-  { id: 'dashboard', label: 'Client Dashboard', icon: <AlertTriangle size={14} /> },
-  { id: 'performance', label: 'Performance Analytics', icon: <Zap size={14} /> },
-  { id: 'leads', label: 'Lead Management (CRM)', icon: <Users size={14} /> },
-  { id: 'website', label: 'Website Builder', icon: <Globe size={14} /> },
-  { id: 'store', label: 'Asset Store', icon: <Shield size={14} /> },
-  { id: 'tasks', label: 'Task Management', icon: <AlertTriangle size={14} /> },
-  { id: 'billing', label: 'Billing & Invoices', icon: <AlertTriangle size={14} /> },
-  { id: 'support', label: 'Support System', icon: <AlertTriangle size={14} /> },
+  { id: 'dashboard', label: 'Platform Overview' },
+  { id: 'clients', label: 'Clients & Accounts' },
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'seo', label: 'SEO' },
+  { id: 'content', label: 'Content' },
+  { id: 'aistudio', label: 'AI Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM' },
+  { id: 'automation', label: 'Automation' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'website', label: 'Website Builder' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'mos', label: 'MOS Score' },
+  { id: 'copilot', label: 'AI Copilot' },
+  { id: 'chatgpt', label: 'ChatGPT' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'agents', label: 'AI Agents' },
+  { id: 'benchmarks', label: 'Benchmarks' },
+  { id: 'reporting', label: 'Reporting' },
+  { id: 'team', label: 'Team' },
+  { id: 'time', label: 'Time Tracking' },
+  { id: 'resources', label: 'Resources' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'profitability', label: 'Profitability' },
+  { id: 'newbusiness', label: 'New Business' },
+  { id: 'businessintel', label: 'Business Intel' },
+  { id: 'settings', label: 'Settings' }
 ];
 
-const ClientPackagesTab = () => {
-  const { packages, createPackage, updatePackage, deletePackage } = useFeatures();
+const AgencyPackagesTab = () => {
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPkg, setEditingPkg] = useState(null);
   
@@ -27,6 +48,22 @@ const ClientPackagesTab = () => {
     price: '',
     features: []
   });
+
+  const fetchPackages = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/agency-packages');
+      setPackages(res.data.data);
+    } catch (error) {
+      message.error('Failed to fetch agency packages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
 
   const handleOpenModal = (pkg = null) => {
     if (pkg) {
@@ -49,25 +86,35 @@ const ClientPackagesTab = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name) {
       message.error("Package name is required");
       return;
     }
 
-    if (editingPkg) {
-      updatePackage(editingPkg.id, formData);
-      message.success("Package updated successfully");
-    } else {
-      createPackage(formData);
-      message.success("Package created successfully");
+    try {
+      if (editingPkg) {
+        await api.put(`/agency-packages/${editingPkg._id}`, formData);
+        message.success("Package updated successfully");
+      } else {
+        await api.post('/agency-packages', formData);
+        message.success("Package created successfully");
+      }
+      setIsModalOpen(false);
+      fetchPackages();
+    } catch (error) {
+      message.error("Failed to save package");
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id) => {
-    deletePackage(id);
-    message.success("Package deleted successfully");
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/agency-packages/${id}`);
+      message.success("Package deleted successfully");
+      fetchPackages();
+    } catch (error) {
+      message.error("Failed to delete package");
+    }
   };
 
   const toggleFeature = (featureId, checked) => {
@@ -100,14 +147,21 @@ const ClientPackagesTab = () => {
     {
       title: 'Included Features',
       key: 'features',
-      render: (_, record) => (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {record.features.slice(0, 3).map(feat => (
-            <Tag key={feat} color="blue">{feat}</Tag>
-          ))}
-          {record.features.length > 3 && <Tag>+{record.features.length - 3}</Tag>}
-        </div>
-      )
+      render: (_, record) => {
+        const featureLabels = record.features.map(fId => {
+          const feat = availableFeatures.find(a => a.id === fId);
+          return feat ? feat.label : fId;
+        });
+
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {featureLabels.slice(0, 3).map(feat => (
+              <Tag key={feat} color="blue">{feat}</Tag>
+            ))}
+            {featureLabels.length > 3 && <Tag>+{featureLabels.length - 3}</Tag>}
+          </div>
+        );
+      }
     },
     {
       title: 'Actions',
@@ -116,7 +170,7 @@ const ClientPackagesTab = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Button type="text" icon={<Edit size={16} />} onClick={() => handleOpenModal(record)} />
-          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record.id)} />
+          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record._id)} />
         </div>
       )
     }
@@ -126,8 +180,8 @@ const ClientPackagesTab = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Client Packages</Title>
-          <Text type="secondary">Define feature tiers and pricing for your agency clients.</Text>
+          <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Agency Packages</Title>
+          <Text type="secondary">Define feature tiers and pricing for your agency accounts.</Text>
         </div>
         <Button 
           type="primary" 
@@ -143,8 +197,9 @@ const ClientPackagesTab = () => {
         <Table 
           columns={columns} 
           dataSource={packages} 
-          rowKey="id" 
+          rowKey="_id" 
           pagination={false}
+          loading={loading}
         />
       </div>
 
@@ -155,7 +210,7 @@ const ClientPackagesTab = () => {
         onOk={handleSave}
         okText="Save Package"
         okButtonProps={{ style: { background: 'var(--accent-primary)' } }}
-        width={600}
+        width={700}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
           <div>
@@ -188,9 +243,9 @@ const ClientPackagesTab = () => {
 
           <div style={{ marginTop: 8 }}>
             <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Included Features</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxHeight: 300, overflowY: 'auto', paddingRight: 8 }}>
               {availableFeatures.map(feat => (
-                <div key={feat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '12px 16px', borderRadius: 8 }}>
+                <div key={feat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{feat.label}</span>
                   <Switch 
                     size="small" 
@@ -207,4 +262,4 @@ const ClientPackagesTab = () => {
   );
 };
 
-export default ClientPackagesTab;
+export default AgencyPackagesTab;

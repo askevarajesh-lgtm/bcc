@@ -3,11 +3,13 @@ import { Typography, Row, Col, Card, Table, Tag, Progress, List, Button, Avatar 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { agencyClients, alertsData, executionActivityData, teamUtilisationData, teamCapacityData } from '../../data/mock';
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
+  const { role } = useAuth();
   const topClients = [...agencyClients].sort((a, b) => b.mos - a.mos).slice(0, 7);
 
   const containerVariants = {
@@ -70,7 +72,8 @@ const Dashboard = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         {[
           { label: 'ACTIVE CLIENTS', val: '12', sub: '+2 this month', type: 'up' },
-          { label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up' },
+          // Hide MRR for admin
+          ...(role === 'admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up' }]),
           { label: 'AVG MOS SCORE', val: '68', sub: '+4 pts', type: 'up', isProgress: true },
           { label: 'SLA COMPLIANCE', val: '94%', sub: '-2% vs last month', type: 'down' },
           { label: 'OPEN ESCALATIONS', val: '3', sub: 'Needs attention', type: 'alert' }

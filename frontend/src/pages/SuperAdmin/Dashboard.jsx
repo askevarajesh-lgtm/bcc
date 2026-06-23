@@ -1,25 +1,57 @@
-import React from 'react';
-import { Typography, Row, Col, Card, Statistic, Table, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Statistic, Table, Tag, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Building2, Users, CreditCard, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
-  const stats = [
-    { title: 'Total Companies', value: '1,248', prefix: <Building2 size={20} />, trend: '+12%', isPositive: true },
-    { title: 'Active Users', value: '45,231', prefix: <Users size={20} />, trend: '+5.4%', isPositive: true },
-    { title: 'MRR', value: '$842,500', prefix: <CreditCard size={20} />, trend: '+8.2%', isPositive: true },
-    { title: 'Churn Rate', value: '2.1%', prefix: <TrendingUp size={20} />, trend: '-0.4%', isPositive: true },
-  ];
+  const [stats, setStats] = useState([
+    { title: 'Total Companies', value: '0', prefix: <Building2 size={20} />, trend: '0%', isPositive: true },
+    { title: 'Active Users', value: '0', prefix: <Users size={20} />, trend: '0%', isPositive: true },
+    { title: 'MRR', value: '$0', prefix: <CreditCard size={20} />, trend: '0%', isPositive: true },
+    { title: 'Churn Rate', value: '0%', prefix: <TrendingUp size={20} />, trend: '0%', isPositive: true },
+  ]);
+  const [recentCompanies, setRecentCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentCompanies = [
-    { key: '1', name: 'Acme Corp', plan: 'Enterprise', status: 'Active', mrr: '$4,500', joined: 'Oct 24, 2023' },
-    { key: '2', name: 'Globex Inc', plan: 'Pro', status: 'Active', mrr: '$999', joined: 'Oct 23, 2023' },
-    { key: '3', name: 'Soylent Corp', plan: 'Starter', status: 'Trial', mrr: '$0', joined: 'Oct 22, 2023' },
-    { key: '4', name: 'Initech', plan: 'Enterprise', status: 'Active', mrr: '$3,200', joined: 'Oct 20, 2023' },
-    { key: '5', name: 'Umbrella Corp', plan: 'Pro', status: 'Churned', mrr: '$0', joined: 'Oct 15, 2023' },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, agenciesRes] = await Promise.all([
+        api.get('/superadmin/dashboard-stats'),
+        api.get('/agencies')
+      ]);
+
+      const data = statsRes.data.data;
+      setStats([
+        { title: 'Total Companies', value: data.totalCompanies.toString(), prefix: <Building2 size={20} />, trend: '+12%', isPositive: true },
+        { title: 'Active Users', value: data.activeUsers.toString(), prefix: <Users size={20} />, trend: '+5.4%', isPositive: true },
+        { title: 'MRR', value: `$${data.mrr.toLocaleString()}`, prefix: <CreditCard size={20} />, trend: '+8.2%', isPositive: true },
+        { title: 'Churn Rate', value: data.churnRate, prefix: <TrendingUp size={20} />, trend: '-0.4%', isPositive: true },
+      ]);
+
+      // Just take the first 5 for recent
+      setRecentCompanies(agenciesRes.data.data.slice(0, 5).map(item => ({
+        key: item._id,
+        name: item.name || 'Unknown',
+        plan: item.plan ? item.plan.charAt(0).toUpperCase() + item.plan.slice(1) : 'Pro',
+        status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Active',
+        mrr: `$${item.mrr || 0}`,
+        joined: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'
+      })));
+
+    } catch (error) {
+      message.error('Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const columns = [
     {
@@ -117,6 +149,7 @@ const Dashboard = () => {
               <Table 
                 columns={columns} 
                 dataSource={recentCompanies} 
+                loading={loading}
                 pagination={false}
                 className="custom-table"
               />

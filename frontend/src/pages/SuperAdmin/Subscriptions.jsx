@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Switch, Button, List, Tag, Modal, Form, Input, Select } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Switch, Button, List, Tag, Modal, Form, Input, Select, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Check, Plus, CreditCard, Settings, Trash2 } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -10,44 +11,29 @@ const { Option } = Select;
 const Subscriptions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
-  
-  const [plans, setPlans] = useState([
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: '$299',
-      interval: '/month',
-      description: 'Perfect for small agencies just getting started.',
-      features: ['Up to 5 Users', 'Basic CRM', 'Standard Support', '5 Active Projects', '10GB Storage'],
-      popular: false,
-      active: 45,
-    },
-    {
-      id: 'pro',
-      name: 'Professional',
-      price: '$999',
-      interval: '/month',
-      description: 'For growing agencies that need more power.',
-      features: ['Up to 25 Users', 'Advanced CRM & Automation', 'Priority 24/7 Support', 'Unlimited Projects', '100GB Storage', 'White-labeling'],
-      popular: true,
-      active: 124,
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 'Custom',
-      interval: '',
-      description: 'Dedicated resources for large organizations.',
-      features: ['Unlimited Users', 'Custom Integrations', 'Dedicated Account Manager', 'On-premise Deployment Option', 'Unlimited Storage', 'Advanced Security'],
-      popular: false,
-      active: 18,
-    },
-  ]);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleCreatePlan = () => {
-    form.validateFields().then(values => {
+  const fetchPlans = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/subscriptions');
+      setPlans(res.data.data);
+    } catch (error) {
+      message.error('Failed to fetch subscription plans');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const handleCreatePlan = async () => {
+    try {
+      const values = await form.validateFields();
       const newPlan = {
-        id: values.name.toLowerCase().replace(/\s+/g, '-'),
         name: values.name,
         price: values.price,
         interval: values.interval || '',
@@ -57,16 +43,26 @@ const Subscriptions = () => {
         active: 0,
       };
 
-      if (values.popular) {
-        // Only one popular plan allowed
-        setPlans(plans.map(p => ({ ...p, popular: false })).concat(newPlan));
-      } else {
-        setPlans([...plans, newPlan]);
-      }
-      
+      await api.post('/subscriptions', newPlan);
+      message.success('Plan created successfully');
       setIsModalOpen(false);
       form.resetFields();
-    });
+      fetchPlans();
+    } catch (error) {
+      if (error.response) {
+        message.error('Failed to create plan: ' + (error.response.data.message || error.message));
+      }
+    }
+  };
+
+  const handleDeletePlan = async (id) => {
+    try {
+      await api.delete(`/subscriptions/${id}`);
+      message.success('Plan deleted successfully');
+      fetchPlans();
+    } catch (error) {
+      message.error('Failed to delete plan');
+    }
   };
 
   return (
@@ -101,7 +97,7 @@ const Subscriptions = () => {
 
       <Row gutter={[24, 24]}>
         {plans.map((plan, index) => (
-          <Col xs={24} lg={8} key={plan.id}>
+          <Col xs={24} lg={8} key={plan._id}>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} style={{ height: '100%' }}>
               <Card 
                 className={`glassmorphism ${plan.popular ? 'popular-plan' : ''}`}
@@ -125,7 +121,7 @@ const Subscriptions = () => {
                     <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>{plan.name}</Title>
                     <Text type="secondary" style={{ fontSize: 14 }}>{plan.description}</Text>
                   </div>
-                  <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => setPlans(plans.filter(p => p.id !== plan.id))} style={{ padding: 4 }} />
+                  <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDeletePlan(plan._id)} style={{ padding: 4 }} />
                 </div>
 
                 <div style={{ marginBottom: 32 }}>

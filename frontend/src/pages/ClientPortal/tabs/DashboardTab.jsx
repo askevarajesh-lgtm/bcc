@@ -2,11 +2,14 @@ import React from 'react';
 import { Typography, Row, Col, Button, Tag } from 'antd';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Download, Calendar, MessageCircle, BarChart2, CheckCircle2, Eye, FileText } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import BubbleCard from '../../../components/BubbleCard';
 
 const { Title, Text } = Typography;
 
 const DashboardTab = () => {
+  const { role } = useAuth();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -45,8 +48,12 @@ const DashboardTab = () => {
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5 }}>JUNE 2026</Text>
-        <Title level={2} style={{ margin: '4px 0 8px 0', fontWeight: 800 }}>Good morning, Rahul.</Title>
-        <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Here's how Prestige Estates is performing this month.</Text>
+        <Title level={2} style={{ margin: '4px 0 8px 0', fontWeight: 800 }}>
+          Good morning, {role.includes('brand') ? 'Brand Team' : 'Rahul'}.
+        </Title>
+        <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>
+          Here's how {role.includes('brand') ? 'your Brand' : 'Prestige Estates'} is performing this month.
+        </Text>
       </motion.div>
 
       <motion.div variants={itemVariants}>

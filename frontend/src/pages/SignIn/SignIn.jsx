@@ -36,9 +36,8 @@ const SignIn = () => {
       // Store JWT token and user details in localStorage
       localStorage.setItem('token', resData.token);
       localStorage.setItem('user', JSON.stringify(resData.user));
-
-      // Trigger Context login with user role
-      login(resData.user.role);
+      // Trigger Context login with user details and role
+      login(resData.user);
     } catch (err) {
       console.error('Login error:', err);
       setError('A network error occurred. Please verify your connection.');

@@ -10,6 +10,19 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem('userRole') || null;
   });
 
+  const [features, setFeatures] = useState(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.features || [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
   useEffect(() => {
     if (role) {
       localStorage.setItem('userRole', role);
@@ -18,21 +31,37 @@ export const AuthProvider = ({ children }) => {
     }
   }, [role]);
 
-  const login = (selectedRole) => {
-    setRole(selectedRole);
-    if (selectedRole === 'superadmin') navigate('/superadmin/dashboard');
-    else if (selectedRole === 'admin') navigate('/dashboard');
-    else if (selectedRole === 'agency') navigate('/agency/overview');
-    else if (selectedRole === 'client') navigate('/client/dashboard');
+  const login = (user) => {
+    setRole(user.role);
+    setFeatures(user.features || []);
+    
+    if (user.role === 'supreme_super_admin') {
+      navigate('/superadmin/dashboard');
+    } else if (user.role === 'admin') {
+      navigate('/dashboard');
+    } else if (['agency_super_admin', 'agency_manager'].includes(user.role)) {
+      navigate('/agency/overview');
+    } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(user.role)) {
+      navigate('/client/dashboard');
+    } else {
+      // Fallback for any legacy roles
+      if (user.role === 'superadmin') navigate('/superadmin/dashboard');
+      else if (user.role === 'agency') navigate('/agency/overview');
+      else if (user.role === 'client') navigate('/client/dashboard');
+      else navigate('/dashboard');
+    }
   };
 
   const logout = () => {
     setRole(null);
+    setFeatures([]);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/signin');
   };
 
   return (
-    <AuthContext.Provider value={{ role, login, logout }}>
+    <AuthContext.Provider value={{ role, features, setFeatures, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,43 +1,54 @@
-import React from 'react';
-import { Typography, Row, Col, Card, Switch, Button, Tag, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Switch, Button, Tag, Avatar, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Settings, ExternalLink, Link2, Search } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
 const Integrations = () => {
-  const integrationCategories = [
-    {
-      category: 'Payment Gateways',
-      items: [
-        { id: 'stripe', name: 'Stripe', description: 'Process global payments and subscriptions.', status: true, icon: 'S', color: '#6366f1' },
-        { id: 'paypal', name: 'PayPal', description: 'Accept payments via PayPal globally.', status: false, icon: 'P', color: '#003087' },
-        { id: 'razorpay', name: 'Razorpay', description: 'Payment gateway for Indian businesses.', status: true, icon: 'R', color: '#0ea5e9' },
-      ]
-    },
-    {
-      category: 'AI Models & Providers',
-      items: [
-        { id: 'openai', name: 'OpenAI', description: 'GPT-4 and DALL-E integration for AI Copilot.', status: true, icon: 'O', color: '#10a37f' },
-        { id: 'anthropic', name: 'Anthropic', description: 'Claude AI models integration.', status: false, icon: 'A', color: '#d97757' },
-        { id: 'midjourney', name: 'Midjourney', description: 'Advanced image generation via API.', status: true, icon: 'M', color: '#ffffff', bg: '#000000' },
-      ]
-    },
-    {
-      category: 'Communication & Email',
-      items: [
-        { id: 'sendgrid', name: 'SendGrid', description: 'Transactional email delivery service.', status: true, icon: 'S', color: '#1a82e2' },
-        { id: 'twilio', name: 'Twilio', description: 'SMS and WhatsApp API integration.', status: false, icon: 'T', color: '#f22f46' },
-      ]
-    },
-    {
-      category: 'Storage & Infrastructure',
-      items: [
-        { id: 'aws', name: 'AWS S3', description: 'Cloud storage for user files and media.', status: true, icon: 'A', color: '#ff9900' },
-        { id: 'cloudflare', name: 'Cloudflare', description: 'CDN, DNS, and Security management.', status: true, icon: 'C', color: '#f38020' },
-      ]
+  const [integrations, setIntegrations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchIntegrations = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/integrations');
+      setIntegrations(res.data.data);
+    } catch (error) {
+      message.error('Failed to fetch integrations');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchIntegrations();
+  }, []);
+
+  const handleToggleStatus = async (id, currentStatus) => {
+    try {
+      await api.put(`/integrations/${id}`, { status: !currentStatus });
+      message.success(`Integration ${!currentStatus ? 'enabled' : 'disabled'}`);
+      fetchIntegrations();
+    } catch (error) {
+      message.error('Failed to update integration status');
+    }
+  };
+
+  // Group by category
+  const categoriesMap = integrations.reduce((acc, integration) => {
+    if (!acc[integration.category]) {
+      acc[integration.category] = [];
+    }
+    acc[integration.category].push(integration);
+    return acc;
+  }, {});
+
+  const integrationCategories = Object.keys(categoriesMap).map(category => ({
+    category,
+    items: categoriesMap[category]
+  }));
 
   return (
     <div>
@@ -60,12 +71,16 @@ const Integrations = () => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+        {integrationCategories.length === 0 && !loading && (
+          <Text type="secondary">No integrations found in the database.</Text>
+        )}
+        
         {integrationCategories.map((categoryGroup, idx) => (
           <div key={idx}>
             <Title level={4} style={{ marginBottom: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryGroup.category}</Title>
             <Row gutter={[24, 24]}>
               {categoryGroup.items.map((integration, index) => (
-                <Col xs={24} md={12} xl={8} key={integration.id}>
+                <Col xs={24} md={12} xl={8} key={integration._id}>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (idx * 0.1) + (index * 0.05) }}>
                     <Card 
                       className="glassmorphism hover-lift"
@@ -81,14 +96,14 @@ const Integrations = () => {
                           <Avatar 
                             size={48} 
                             style={{ 
-                              background: integration.bg || integration.color, 
+                              background: integration.bg || integration.color || '#ccc', 
                               color: integration.bg ? integration.color : '#fff',
                               fontWeight: 800,
                               fontSize: 20,
                               borderRadius: 12
                             }}
                           >
-                            {integration.icon}
+                            {integration.icon || integration.name.charAt(0)}
                           </Avatar>
                           <div>
                             <Text style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>
@@ -99,7 +114,10 @@ const Integrations = () => {
                             </Tag>
                           </div>
                         </div>
-                        <Switch defaultChecked={integration.status} />
+                        <Switch 
+                          checked={integration.status} 
+                          onChange={() => handleToggleStatus(integration._id, integration.status)}
+                        />
                       </div>
                       
                       <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14, minHeight: 44 }}>

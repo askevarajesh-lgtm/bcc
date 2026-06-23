@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Shield, Eye } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -9,26 +10,65 @@ const { Option } = Select;
 const Companies = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [companiesData, setCompaniesData] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const companiesData = [
-    { key: '1', name: 'Acme Corp', email: 'admin@acmecorp.com', users: 45, plan: 'Enterprise', status: 'Active', mrr: '$4,500', joined: 'Oct 24, 2023' },
-    { key: '2', name: 'Globex Inc', email: 'hello@globex.io', users: 12, plan: 'Pro', status: 'Active', mrr: '$999', joined: 'Oct 23, 2023' },
-    { key: '3', name: 'Soylent Corp', email: 'contact@soylent.co', users: 3, plan: 'Starter', status: 'Trial', mrr: '$0', joined: 'Oct 22, 2023' },
-    { key: '4', name: 'Initech', email: 'bill@initech.com', users: 85, plan: 'Enterprise', status: 'Active', mrr: '$3,200', joined: 'Oct 20, 2023' },
-    { key: '5', name: 'Umbrella Corp', email: 'admin@umbrella.net', users: 1, plan: 'Pro', status: 'Churned', mrr: '$0', joined: 'Oct 15, 2023' },
-    { key: '6', name: 'Stark Industries', email: 'tony@stark.com', users: 120, plan: 'Enterprise', status: 'Active', mrr: '$8,500', joined: 'Sep 12, 2023' },
-    { key: '7', name: 'Wayne Enterprises', email: 'bruce@wayne.com', users: 95, plan: 'Enterprise', status: 'Active', mrr: '$7,200', joined: 'Sep 10, 2023' },
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [agenciesRes, plansRes] = await Promise.all([
+        api.get('/agencies'),
+        api.get('/subscriptions')
+      ]);
+      
+      setPlans(plansRes.data.data || []);
+      
+      setCompaniesData(agenciesRes.data.data.map(item => ({
+        key: item._id,
+        _id: item._id,
+        name: item.name || 'Unknown',
+        email: item.email || 'N/A',
+        users: item.allowedUsers || 0,
+        plan: item.plan ? item.plan.charAt(0).toUpperCase() + item.plan.slice(1) : 'Pro',
+        status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Active',
+        mrr: `$${item.mrr || 0}`,
+        joined: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'
+      })));
+    } catch (error) {
+      message.error('Failed to fetch agencies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/agencies/${id}`);
+      message.success('Company deleted successfully');
+      fetchData();
+    } catch (error) {
+      message.error('Failed to delete company');
+    }
+  };
+
+  const getActionMenu = (record) => [
+    { key: 'view', icon: <Eye size={16} />, label: 'View Details' },
+    { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Company' },
+    { key: 'login', icon: <Shield size={16} />, label: 'Login as Admin' },
+    { type: 'divider' },
+    { key: 'delete', danger: true, icon: <Trash2 size={16} />, label: 'Delete Company' }
   ];
 
-  const getActionMenu = (record) => (
-    <Menu>
-      <Menu.Item key="view" icon={<Eye size={16} />}>View Details</Menu.Item>
-      <Menu.Item key="edit" icon={<Edit2 size={16} />}>Edit Company</Menu.Item>
-      <Menu.Item key="login" icon={<Shield size={16} />}>Login as Admin</Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="delete" danger icon={<Trash2 size={16} />}>Delete Company</Menu.Item>
-    </Menu>
-  );
+  const handleMenuClick = (e, record) => {
+    if (e.key === 'delete') {
+      handleDelete(record._id);
+    }
+  };
 
   const columns = [
     {
@@ -82,16 +122,30 @@ const Companies = () => {
       render: (text) => <Text type="secondary">{text}</Text>,
     },
     {
-      title: '',
-      key: 'action',
-      align: 'right',
+      title: 'Actions',
+      key: 'actions',
       render: (_, record) => (
-        <Dropdown overlay={getActionMenu(record)} trigger={['click']} placement="bottomRight">
+        <Dropdown menu={{ items: getActionMenu(record), onClick: (e) => handleMenuClick(e, record) }} trigger={['click']} placement="bottomRight">
           <Button type="text" icon={<MoreVertical size={16} style={{ color: 'var(--text-secondary)' }} />} />
         </Dropdown>
       ),
     },
   ];
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      await api.post('/agencies', values);
+      message.success('Company created successfully');
+      setIsModalOpen(false);
+      form.resetFields();
+      fetchData();
+    } catch (error) {
+      if (error.response) {
+        message.error('Failed to create company: ' + (error.response.data.message || error.message));
+      }
+    }
+  };
 
   return (
     <div>
@@ -129,9 +183,9 @@ const Companies = () => {
             <Space>
               <Select defaultValue="all" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Plans</Option>
-                <Option value="enterprise">Enterprise</Option>
-                <Option value="pro">Pro</Option>
-                <Option value="starter">Starter</Option>
+                {plans.map(p => (
+                  <Option key={p._id} value={p.name.toLowerCase()}>{p.name}</Option>
+                ))}
               </Select>
               <Select defaultValue="active" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Status</Option>
@@ -145,6 +199,7 @@ const Companies = () => {
           <Table 
             columns={columns} 
             dataSource={companiesData} 
+            loading={loading}
             pagination={{ pageSize: 10 }}
             className="custom-table"
           />
@@ -171,11 +226,11 @@ const Companies = () => {
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item label={<Text style={{ fontWeight: 600 }}>Subscription Plan</Text>} name="plan" initialValue="pro">
-              <Select style={{ borderRadius: 8 }}>
-                <Option value="starter">Starter</Option>
-                <Option value="pro">Pro</Option>
-                <Option value="enterprise">Enterprise</Option>
+            <Form.Item label={<Text style={{ fontWeight: 600 }}>Subscription Plan</Text>} name="plan" rules={[{ required: true, message: 'Please select a plan' }]}>
+              <Select style={{ borderRadius: 8 }} placeholder="Select a plan">
+                {plans.map(p => (
+                  <Option key={p._id} value={p.name.toLowerCase()}>{p.name}</Option>
+                ))}
               </Select>
             </Form.Item>
             <Form.Item label={<Text style={{ fontWeight: 600 }}>Status</Text>} name="status" initialValue="active">
@@ -186,13 +241,9 @@ const Companies = () => {
             </Form.Item>
           </div>
 
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Initial Allowed Users</Text>} name="users" initialValue="5">
-            <Input type="number" style={{ borderRadius: 8 }} />
-          </Form.Item>
-
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
-            <Button type="primary" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Create Company</Button>
+            <Button type="primary" onClick={handleCreate} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Create Company</Button>
           </div>
         </Form>
       </Modal>

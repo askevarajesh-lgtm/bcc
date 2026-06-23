@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLayoutContext } from '../contexts/LayoutContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Sider } = Layout;
 
@@ -17,6 +18,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { isDark } = useTheme();
   const { mobileMenuOpen, setMobileMenuOpen } = useLayoutContext();
+  const { role } = useAuth();
   const screens = Grid.useBreakpoint();
 
   const getIcon = (IconCmp) => <IconCmp size={16} strokeWidth={2} />;
@@ -106,8 +108,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/ops/team', icon: getIcon(Users), label: getLabel('People', '5', 'default') },
         { key: '/ops/time', icon: getIcon(Clock), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
-        { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
-        { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
+        // Admins cannot access financial controls
+        ...(role === 'admin' ? [] : [
+          { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
+          { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' }
+        ]),
         { key: '/ops/newbusiness', icon: getIcon(Briefcase), label: getLabel('New Business', '8', 'default') },
         { key: '/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
       ],

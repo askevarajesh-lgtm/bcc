@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select, Avatar, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Shield, UserX, UserCheck } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -9,26 +10,86 @@ const { Option } = Select;
 const Admins = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [adminsData, setAdminsData] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const adminsData = [
-    { key: '1', name: 'Rajesh Kumar', email: 'rajesh@m1platform.com', role: 'Super Admin', status: 'Active', lastLogin: '2 mins ago', addedOn: 'Oct 24, 2023', initial: 'R' },
-    { key: '2', name: 'John Doe', email: 'john@m1platform.com', role: 'Admin', status: 'Active', lastLogin: '1 hour ago', addedOn: 'Oct 23, 2023', initial: 'J' },
-    { key: '3', name: 'Jane Smith', email: 'jane@m1platform.com', role: 'Support Admin', status: 'Inactive', lastLogin: '5 days ago', addedOn: 'Sep 12, 2023', initial: 'S' },
-    { key: '4', name: 'Alex Johnson', email: 'alex@m1platform.com', role: 'Admin', status: 'Active', lastLogin: 'Yesterday', addedOn: 'Oct 15, 2023', initial: 'A' },
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [usersRes, agenciesRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/agencies')
+      ]);
+      setCompanies(agenciesRes.data.data || []);
+      
+      setAdminsData(usersRes.data.data.map(item => ({
+        key: item._id,
+        _id: item._id,
+        name: item.email.split('@')[0], // Mocking name from email since user model doesn't have name
+        email: item.email,
+        role: item.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        status: 'Active', // Mocking status as User model doesn't have it
+        lastLogin: new Date(item.updatedAt).toLocaleDateString(),
+        addedOn: new Date(item.createdAt).toLocaleDateString(),
+        initial: item.email.charAt(0).toUpperCase()
+      })));
+    } catch (error) {
+      message.error('Failed to fetch admins');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/users/${id}`);
+      message.success('Admin deleted successfully');
+      fetchData();
+    } catch (error) {
+      message.error('Failed to delete admin');
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      const newUser = {
+        email: values.email,
+        password: values.password,
+        role: values.role,
+        agencyId: values.company
+      };
+      await api.post('/users', newUser);
+      message.success('Admin created successfully');
+      setIsModalOpen(false);
+      form.resetFields();
+      fetchData();
+    } catch (error) {
+      if (error.response) {
+        message.error('Failed to create admin: ' + (error.response.data.message || error.message));
+      }
+    }
+  };
+
+  const getActionMenu = (record) => [
+    { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Admin' },
+    record.status === 'Active' 
+      ? { key: 'deactivate', icon: <UserX size={16} />, label: 'Deactivate Account' }
+      : { key: 'activate', icon: <UserCheck size={16} />, label: 'Activate Account' },
+    { type: 'divider' },
+    { key: 'delete', danger: true, icon: <Trash2 size={16} />, label: 'Delete Admin' }
   ];
 
-  const getActionMenu = (record) => (
-    <Menu>
-      <Menu.Item key="edit" icon={<Edit2 size={16} />}>Edit Admin</Menu.Item>
-      {record.status === 'Active' ? (
-        <Menu.Item key="deactivate" icon={<UserX size={16} />}>Deactivate Account</Menu.Item>
-      ) : (
-        <Menu.Item key="activate" icon={<UserCheck size={16} />}>Activate Account</Menu.Item>
-      )}
-      <Menu.Divider />
-      <Menu.Item key="delete" danger icon={<Trash2 size={16} />}>Delete Admin</Menu.Item>
-    </Menu>
-  );
+  const handleMenuClick = (e, record) => {
+    if (e.key === 'delete') {
+      handleDelete(record._id);
+    }
+  };
 
   const columns = [
     {
@@ -52,7 +113,7 @@ const Admins = () => {
       dataIndex: 'role',
       key: 'role',
       render: (role) => (
-        <Tag color={role === 'Super Admin' ? 'purple' : role === 'Admin' ? 'blue' : 'default'} style={{ borderRadius: 12, px: 8 }}>
+        <Tag color={role.includes('Super Admin') ? 'purple' : role.includes('Admin') ? 'blue' : 'default'} style={{ borderRadius: 12, px: 8 }}>
           {role}
         </Tag>
       ),
@@ -80,11 +141,10 @@ const Admins = () => {
       render: (text) => <Text type="secondary">{text}</Text>,
     },
     {
-      title: '',
-      key: 'action',
-      align: 'right',
+      title: 'Actions',
+      key: 'actions',
       render: (_, record) => (
-        <Dropdown overlay={getActionMenu(record)} trigger={['click']} placement="bottomRight">
+        <Dropdown menu={{ items: getActionMenu(record), onClick: (e) => handleMenuClick(e, record) }} trigger={['click']} placement="bottomRight">
           <Button type="text" icon={<MoreVertical size={16} style={{ color: 'var(--text-secondary)' }} />} />
         </Dropdown>
       ),
@@ -127,9 +187,8 @@ const Admins = () => {
             <Space>
               <Select defaultValue="all" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Roles</Option>
-                <Option value="superadmin">Super Admin</Option>
+                <Option value="supreme_super_admin">Supreme Admin</Option>
                 <Option value="admin">Admin</Option>
-                <Option value="support">Support</Option>
               </Select>
               <Select defaultValue="active" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Status</Option>
@@ -142,6 +201,7 @@ const Admins = () => {
           <Table 
             columns={columns} 
             dataSource={adminsData} 
+            loading={loading}
             pagination={{ pageSize: 10 }}
             className="custom-table"
           />
@@ -166,11 +226,22 @@ const Admins = () => {
             <Input placeholder="sarah@m1platform.com" style={{ borderRadius: 8 }} />
           </Form.Item>
           
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true }]}>
+            <Input.Password placeholder="Enter secure password" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Associated Company</Text>} name="company" rules={[{ required: true, message: 'Please select a company' }]}>
+            <Select style={{ borderRadius: 8 }} placeholder="Select a company">
+              {companies.map(c => (
+                <Option key={c._id} value={c._id}>{c.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
           <Form.Item label={<Text style={{ fontWeight: 600 }}>System Role</Text>} name="role" initialValue="admin">
             <Select style={{ borderRadius: 8 }}>
-              <Option value="superadmin">Super Admin</Option>
+              <Option value="supreme_super_admin">Supreme Super Admin</Option>
               <Option value="admin">Admin</Option>
-              <Option value="support">Support Admin</Option>
             </Select>
           </Form.Item>
 
@@ -183,7 +254,7 @@ const Admins = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
-            <Button type="primary" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Create Admin</Button>
+            <Button type="primary" onClick={handleCreate} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Create Admin</Button>
           </div>
         </Form>
       </Modal>

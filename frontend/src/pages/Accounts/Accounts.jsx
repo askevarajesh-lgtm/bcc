@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space, Modal, Form, message, Dropdown } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, Plus, LayoutGrid, List, ArrowUpRight, Users, CircleDollarSign, Activity, AlertTriangle } from 'lucide-react';
-import { agencyClients } from '../../data/mock';
+import { Download, Plus, LayoutGrid, List, ArrowUpRight, Users, CircleDollarSign, Activity, AlertTriangle, MoreVertical, Edit2, Trash2, ShieldOff, ShieldCheck } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Accounts = () => {
   const [filter, setFilter] = useState('All');
+  const [agencies, setAgencies] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAgency, setEditingAgency] = useState(null);
+  const [form] = Form.useForm();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -27,88 +33,211 @@ const Accounts = () => {
     }
   };
 
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [agenciesRes, packagesRes] = await Promise.all([
+        api.get('/agencies'),
+        api.get('/agency-packages')
+      ]);
+      setAgencies(agenciesRes.data.data || []);
+      setPackages(packagesRes.data.data || []);
+    } catch (error) {
+      message.error("Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = (agency = null) => {
+    if (agency) {
+      setEditingAgency(agency);
+      form.setFieldsValue({
+        name: agency.name,
+        email: agency.email,
+        package: agency.plan?._id || agency.plan,
+      });
+    } else {
+      setEditingAgency(null);
+      form.resetFields();
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCreateOrUpdate = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingAgency) {
+        await api.put(`/agencies/${editingAgency._id}`, {
+          name: values.name,
+          email: values.email,
+          ...(values.password ? { password: values.password } : {}),
+          package: values.package
+        });
+        message.success("Agency updated successfully");
+      } else {
+        await api.post('/agencies', {
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          package: values.package
+        });
+        message.success("Agency created successfully");
+      }
+      setIsModalOpen(false);
+      form.resetFields();
+      fetchData();
+    } catch (error) {
+      if (error.response && error.response.data) {
+        message.error(error.response.data.message || "Failed to save agency");
+      }
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await api.put(`/agencies/${id}`, { status: newStatus });
+      message.success(`Agency marked as ${newStatus}`);
+      fetchData();
+    } catch (error) {
+      message.error("Failed to update status");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    Modal.confirm({
+      title: 'Delete Agency',
+      content: 'Are you sure you want to delete this agency? This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await api.delete(`/agencies/${id}`);
+          message.success("Agency deleted successfully");
+          fetchData();
+        } catch (error) {
+          message.error("Failed to delete agency");
+        }
+      }
+    });
+  };
+
+  const getActionMenu = (record) => {
+    return [
+      { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Agency' },
+      record.status === 'active' 
+        ? { key: 'suspend', icon: <ShieldOff size={16} />, label: 'Suspend Agency' }
+        : { key: 'activate', icon: <ShieldCheck size={16} />, label: 'Activate Agency' },
+      { type: 'divider' },
+      { key: 'delete', icon: <Trash2 size={16} />, label: 'Delete Agency', danger: true },
+    ];
+  };
+
+  const handleActionClick = ({ key }, record) => {
+    switch (key) {
+      case 'edit':
+        handleOpenModal(record);
+        break;
+      case 'suspend':
+        handleStatusChange(record._id, 'suspended');
+        break;
+      case 'activate':
+        handleStatusChange(record._id, 'active');
+        break;
+      case 'delete':
+        handleDelete(record._id);
+        break;
+      default:
+        break;
+    }
+  };
+
   const columns = [
     { 
-      title: 'CLIENT', 
+      title: 'AGENCY', 
       dataIndex: 'name', 
       key: 'name', 
-      render: (text, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar style={{ backgroundColor: record.mos > 70 ? 'var(--accent-secondary)' : record.mos > 60 ? 'var(--accent-primary)' : record.mos > 50 ? 'var(--accent-warning)' : 'var(--accent-danger)' }}>{record.id}</Avatar>
-          <div>
-            <strong style={{ color: 'var(--text-primary)', display: 'block' }}>{text}</strong>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, marginTop: 2 }}>
-              <span style={{ color: record.status === 'Healthy' ? 'var(--accent-secondary)' : record.status.includes('risk') || record.status === 'Critical' ? 'var(--accent-danger)' : 'var(--accent-warning)', fontSize: 10 }}>●</span>
-              <Text type="secondary">{record.status}</Text>
+      render: (text, record) => {
+        const initial = text.charAt(0).toUpperCase();
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar style={{ backgroundColor: 'var(--accent-primary)' }}>{initial}</Avatar>
+            <div>
+              <strong style={{ color: 'var(--text-primary)', display: 'block' }}>{text}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, marginTop: 2 }}>
+                <span style={{ color: record.status === 'active' ? 'var(--accent-secondary)' : 'var(--accent-danger)', fontSize: 10 }}>●</span>
+                <Text type="secondary">{record.email}</Text>
+              </div>
             </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     { 
-      title: 'STAGE', 
+      title: 'STATUS', 
       dataIndex: 'status', 
-      key: 'stage', 
+      key: 'status', 
       render: text => {
-        let color = text === 'Healthy' ? 'success' : text.includes('risk') ? 'error' : 'warning';
-        let label = text === 'Healthy' ? 'Active' : text;
-        return <Tag color={color} style={{ borderRadius: 12, background: 'transparent', border: `1px solid var(--accent-${color === 'success' ? 'secondary' : color === 'error' ? 'danger' : 'warning'})`, color: `var(--accent-${color === 'success' ? 'secondary' : color === 'error' ? 'danger' : 'warning'})` }}>{label}</Tag>
+        let color = text === 'active' ? 'success' : 'warning';
+        return <Tag color={color} style={{ borderRadius: 12, background: 'transparent', border: `1px solid var(--accent-${color === 'success' ? 'secondary' : 'warning'})`, color: `var(--accent-${color === 'success' ? 'secondary' : 'warning'})` }}>{text.toUpperCase()}</Tag>
       } 
     },
-    { title: 'INDUSTRY', dataIndex: 'industry', key: 'industry', render: text => <Text type="secondary">{text}</Text> },
     { 
-      title: 'MOS ↑↓', 
-      dataIndex: 'mos', 
-      key: 'mos', 
-      render: val => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <strong style={{ minWidth: 24, color: 'var(--text-primary)' }}>{val}</strong>
-          <Progress percent={val} showInfo={false} size="small" strokeColor={val > 70 ? 'var(--accent-secondary)' : val > 50 ? 'var(--accent-warning)' : 'var(--accent-danger)'} trailColor="var(--bg-tertiary)" style={{ width: 60 }} />
-        </div>
-      )
+      title: 'PACKAGE', 
+      dataIndex: 'plan', 
+      key: 'package', 
+      render: plan => <Text type="secondary" style={{ fontWeight: 600 }}>{plan?.name || 'Custom'}</Text> 
     },
-    { title: 'SLA ↑↓', dataIndex: 'sla', key: 'sla', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}%</strong> },
-    { title: 'MRR ↑↓', dataIndex: 'mrr', key: 'mrr', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
+    { title: 'ALLOWED USERS', dataIndex: 'allowedUsers', key: 'allowedUsers', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
     { 
-      title: 'Growth ↑↓', 
-      dataIndex: 'growth', 
-      key: 'growth', 
-      render: text => <strong style={{ color: text.includes('+') ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{text}</strong> 
+      title: 'CREATED DATE', 
+      dataIndex: 'createdAt', 
+      key: 'createdAt', 
+      render: text => <Text type="secondary">{new Date(text).toLocaleDateString()}</Text> 
     },
-    { title: 'Leads 30d ↑↓', dataIndex: 'leads30d', key: 'leads30d', render: text => <span style={{ color: 'var(--text-primary)' }}>{text}</span> },
-    { title: 'Contract ↑↓', dataIndex: 'contract', key: 'contract', render: text => <Text type="secondary">{text}</Text> },
-    { title: 'OWNER', dataIndex: 'owner', key: 'owner', render: text => <Text type="secondary">{text}</Text> },
-    { title: '', key: 'action', render: () => <ArrowUpRight size={16} color="var(--text-tertiary)" style={{ cursor: 'pointer' }} /> }
+    { 
+      title: '', 
+      key: 'action', 
+      align: 'right',
+      render: (_, record) => (
+        <Dropdown menu={{ items: getActionMenu(record), onClick: (e) => handleActionClick(e, record) }} trigger={['click']} placement="bottomRight">
+          <Button type="text" icon={<MoreVertical size={16} />} />
+        </Dropdown>
+      ) 
+    }
   ];
 
-  const filteredClients = React.useMemo(() => {
-    return agencyClients.filter(client => {
+  const filteredAgencies = React.useMemo(() => {
+    return agencies.filter(agency => {
       if (filter === 'All') return true;
-      if (filter === 'At-risk') return client.status === 'At risk';
-      return client.status === filter;
+      if (filter === 'Active') return agency.status === 'active';
+      return agency.status === filter.toLowerCase();
     });
-  }, [filter]);
+  }, [agencies, filter]);
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 01 · CLIENTS</Text>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Accounts</Title>
-          <Text type="secondary">Every retainer, SLA, and conversation — from onboarding to renewal.</Text>
+          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Agency Accounts</Title>
+          <Text type="secondary">Manage your agency accounts and provision packages.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Export</Button>
-          <Button type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>New client</Button>
+          <Button type="primary" onClick={() => handleOpenModal()} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Agency</Button>
         </div>
       </motion.div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'ACCOUNTS IN VIEW', val: '12', sub: '12 total', icon: <Users size={20} />, color: 'var(--accent-primary)', gradient: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, transparent 100%)' },
-          { label: 'MRR IN VIEW', val: '₹33.90 L', sub: 'Recurring revenue', icon: <CircleDollarSign size={20} />, color: 'var(--accent-secondary)', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, transparent 100%)' },
-          { label: 'AVERAGE MOS', val: '68', sub: 'Marketing Op Score', icon: <Activity size={20} />, color: 'var(--accent-warning)', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, transparent 100%)' },
-          { label: 'NEEDS ATTENTION', val: '3', sub: '1 critical · 2 churn-risk', icon: <AlertTriangle size={20} />, color: 'var(--accent-danger)', isAlert: true, gradient: 'linear-gradient(135deg, rgba(239,68,68,0.1) 0%, transparent 100%)' }
+          { label: 'TOTAL AGENCIES', val: agencies.length, sub: 'All accounts', icon: <Users size={20} />, color: 'var(--accent-primary)', gradient: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, transparent 100%)' },
+          { label: 'ACTIVE AGENCIES', val: agencies.filter(a => a.status === 'active').length, sub: 'Currently active', icon: <Activity size={20} />, color: 'var(--accent-secondary)', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, transparent 100%)' },
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
@@ -147,12 +276,9 @@ const Accounts = () => {
       <motion.div variants={itemVariants} className="glassmorphism" style={{ padding: '20px 24px', borderRadius: 16, marginBottom: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, borderBottom: '1px solid var(--border-color)', marginBottom: 20 }}>
           {[
-            { label: 'All', count: 12 },
-            { label: 'Healthy', count: 7 },
-            { label: 'At-risk', count: 4 },
-            { label: 'Critical', count: 1 },
-            { label: 'Onboarding', count: 2 },
-            { label: 'Churn risk', count: 2 }
+            { label: 'All', count: agencies.length },
+            { label: 'Active', count: agencies.filter(a => a.status === 'active').length },
+            { label: 'Suspended', count: agencies.filter(a => a.status === 'suspended').length }
           ].map(f => (
             <motion.div 
               key={f.label}
@@ -179,18 +305,12 @@ const Accounts = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
           <Input.Search 
-            placeholder="Search clients, industries, owners..." 
+            placeholder="Search agencies..." 
             style={{ width: '100%', maxWidth: 360 }} 
           />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Select defaultValue="All" style={{ width: 130 }} popupMatchSelectWidth={false}>
-              <Option value="All">Industry: All</Option>
-            </Select>
-            <Select defaultValue="All" style={{ width: 130 }} popupMatchSelectWidth={false}>
-              <Option value="All">Owner: All</Option>
-            </Select>
-            <Select defaultValue="All" style={{ width: 130 }} popupMatchSelectWidth={false}>
-              <Option value="All">Group by: All</Option>
+              <Option value="All">Package: All</Option>
             </Select>
             <div style={{ display: 'flex', gap: 8, borderLeft: '1px solid var(--border-color)', paddingLeft: 12 }}>
               <Button icon={<LayoutGrid size={16} />} style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} />
@@ -202,16 +322,56 @@ const Accounts = () => {
         <div style={{ overflowX: 'auto' }}>
           <Table 
             columns={columns} 
-            dataSource={filteredClients} 
-            rowKey="id" 
-            pagination={false} 
+            dataSource={filteredAgencies} 
+            rowKey="_id" 
+            pagination={{ pageSize: 10 }} 
             rowSelection={{ type: 'checkbox' }}
             size="middle"
+            loading={loading}
             scroll={{ x: 1000 }} 
             style={{ minWidth: 1000 }}
           />
         </div>
       </motion.div>
+
+      <Modal
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}>{editingAgency ? "Edit Agency Account" : "Create Agency Account"}</span>}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        className="glass-modal"
+        centered
+        width={500}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Name</Text>} name="name" rules={[{ required: true, message: 'Please enter agency name' }]}>
+            <Input placeholder="e.g. Acme Corp" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+          
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Admin Email</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
+            <Input placeholder="admin@agency.com" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+          
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Password {editingAgency && "(Leave blank to keep current)"}</Text>} name="password" rules={[{ required: !editingAgency, message: 'Please set an initial password' }]}>
+            <Input.Password placeholder={editingAgency ? "Enter new password if changing" : "Set admin password"} style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+          
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Package Selection</Text>} name="package" rules={[{ required: true, message: 'Please select an agency package' }]}>
+            <Select style={{ borderRadius: 8 }} size="large" placeholder="Select a package">
+              {packages.map(pkg => (
+                <Option key={pkg._id} value={pkg._id}>{pkg.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
+            <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel</Button>
+            <Button type="primary" onClick={handleCreateOrUpdate} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">
+              {editingAgency ? "Update Agency" : "Create Agency"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </motion.div>
   );
 };

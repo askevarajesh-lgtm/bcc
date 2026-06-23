@@ -9,7 +9,7 @@ import NotificationsTab from './tabs/NotificationsTab';
 import BackendConfigTab from './tabs/BackendConfigTab';
 import AccessMatrixTab from './tabs/AccessMatrixTab';
 import UserManagementTab from './tabs/UserManagementTab';
-import ClientPackagesTab from './tabs/ClientPackagesTab';
+import AgencyPackagesTab from './tabs/AgencyPackagesTab';
 
 const { Title, Text } = Typography;
 
@@ -42,7 +42,7 @@ const SettingsPage = () => {
       case '5': return <BackendConfigTab />;
       case '6': return <AccessMatrixTab />;
       case '7': return <UserManagementTab />;
-      case '8': return <ClientPackagesTab />;
+      case '8': return <AgencyPackagesTab />;
       default: return <AgencyTab />;
     }
   };
@@ -55,7 +55,7 @@ const SettingsPage = () => {
     { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
     { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
-    { key: '8', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> },
+    { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> },
   ];
 
   return (

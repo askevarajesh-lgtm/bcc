@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Divider } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form } from 'antd';
 import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
@@ -9,7 +9,95 @@ const { Title, Text } = Typography;
 
 const ClientsTab = () => {
   const [selectedClient, setSelectedClient] = useState(null);
-  const { getClientData, updateClientFeatures, packages } = useFeatures();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [dbClients, setDbClients] = useState([]);
+  const [form] = Form.useForm();
+  
+  const { getClientData, updateClientFeatures, packages, createPackage, updatePackage } = useFeatures();
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/brands', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDbClients(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const [isPackagesDrawerOpen, setIsPackagesDrawerOpen] = useState(false);
+  const [editingPackage, setEditingPackage] = useState(null);
+  const [packageForm] = Form.useForm();
+
+  const handleCreateClient = async (values) => {
+    try {
+      setLoading(true);
+
+      let selectedPackage = null;
+      if (values.packageName) {
+        selectedPackage = packages.find(p => p.name === values.packageName);
+      }
+
+      const payload = {
+        ...values,
+        features: selectedPackage ? selectedPackage.features : []
+      };
+
+      const res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        message.success('Client created successfully');
+        setIsCreateModalOpen(false);
+        form.resetFields();
+        fetchClients();
+      } else {
+        message.error(data.message || 'Failed to create client');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePackage = (values) => {
+    const payload = {
+      name: values.name,
+      price: values.price || '',
+      features: values.features || []
+    };
+
+    if (editingPackage) {
+      updatePackage(editingPackage.id || editingPackage.name, payload);
+      message.success(`Package ${payload.name} updated successfully`);
+    } else {
+      createPackage(payload);
+      message.success(`Package ${payload.name} created successfully`);
+    }
+    setIsPackagesDrawerOpen(false);
+    setEditingPackage(null);
+    packageForm.resetFields();
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -68,11 +156,28 @@ const ClientsTab = () => {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
       
-      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>All Clients</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
-          12 active · <span style={{color: 'var(--accent-primary)'}}>6 healthy</span> · <span style={{color: 'var(--accent-warning)'}}>5 at risk</span> · <span style={{color: 'var(--accent-danger)'}}>1 critical</span>
-        </Text>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>All Clients</Title>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
+            {clients.length + dbClients.length} active · <span style={{color: 'var(--accent-primary)'}}>6 healthy</span> · <span style={{color: 'var(--accent-warning)'}}>5 at risk</span> · <span style={{color: 'var(--accent-danger)'}}>1 critical</span>
+          </Text>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Button 
+            onClick={() => setIsPackagesDrawerOpen(true)}
+            style={{ fontWeight: 700, borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            Manage Packages
+          </Button>
+          <Button 
+            type="primary" 
+            onClick={() => setIsCreateModalOpen(true)}
+            style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}
+          >
+            + Create Client
+          </Button>
+        </div>
       </motion.div>
 
       {/* Filter Bar */}
@@ -121,6 +226,46 @@ const ClientsTab = () => {
 
       {/* Client List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Dynamic Database Clients */}
+        {dbClients.map(client => (
+          <motion.div key={client._id} variants={itemVariants}>
+            <SlabCard 
+              shadowColor={getStatusColor('Healthy')} 
+              bodyStyle={{ padding: '24px' }} 
+              style={{ borderLeft: `6px solid ${getStatusColor('Healthy')}`, overflow: 'hidden' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: getStatusColor('Healthy'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 18, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.2)' }}>
+                    {client.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+                      <Text style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 20, lineHeight: 1 }}>
+                        {client.name}
+                      </Text>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: getStatusColor('Healthy'), background: `${getStatusColor('Healthy')}15`, padding: '4px 10px', borderRadius: 20, border: `1px solid ${getStatusColor('Healthy')}40`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: 3, background: getStatusColor('Healthy') }} />
+                        Healthy <span style={{ opacity: 0.6 }}>· 100</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                      Recently Added
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <Button type="primary" onClick={() => setSelectedClient({ ...client, code: client.name.substring(0,2).toUpperCase(), status: 'Healthy', mos: 100, industry: 'N/A', scores: { SEO: 0, ADS: 0, LEADS: 0, SOCIAL: 0, WEB: 0, GEO: 0 }, am: 'Unassigned', retainer: 'Custom', sla: 'N/A', activity: 'Just now' })} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                    View Client <ExternalLink size={16} style={{ marginLeft: 8 }} />
+                  </Button>
+                </div>
+              </div>
+            </SlabCard>
+          </motion.div>
+        ))}
+
+        {/* Mock Clients */}
         {clients.map(client => (
           <motion.div key={client.id} variants={itemVariants}>
             <SlabCard 
@@ -341,6 +486,110 @@ const ClientsTab = () => {
             </Tabs>
           </div>
         )}
+      </Drawer>
+
+      <Modal
+        title="Create New Client"
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        footer={null}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateClient}
+        >
+          <Form.Item
+            name="name"
+            label="Client Name"
+            rules={[{ required: true, message: 'Please enter client name' }]}
+          >
+            <Input placeholder="e.g. Acme Corp" />
+          </Form.Item>
+          
+          <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Client Manager User (Optional)</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Create an initial login account for this client.</Text>
+            
+            <Form.Item name="email" label="Manager Email">
+              <Input type="email" placeholder="manager@client.com" />
+            </Form.Item>
+            
+            <Form.Item name="password" label="Initial Password">
+              <Input.Password placeholder="Enter a secure password" />
+            </Form.Item>
+          </div>
+
+          <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Assign Package (Optional)</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Select a package to assign initial features to this client.</Text>
+            
+            <Form.Item name="packageName" label="Package">
+              <Select placeholder="Select a package" allowClear>
+                {packages.map(pkg => (
+                  <Select.Option key={pkg.name} value={pkg.name}>{pkg.name}</Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading} block style={{ background: 'var(--accent-primary)', fontWeight: 700 }}>
+              Create Client
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Packages Drawer */}
+      <Drawer
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Manage Packages</span>}
+        open={isPackagesDrawerOpen}
+        onClose={() => { setIsPackagesDrawerOpen(false); setEditingPackage(null); }}
+        width={480}
+        closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
+        headerStyle={{ borderBottom: '1px solid var(--border-color)', padding: '24px 32px' }}
+        bodyStyle={{ padding: '32px' }}
+      >
+        <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Title level={5} style={{ margin: 0, fontWeight: 800 }}>Existing Packages</Title>
+          {packages.map(pkg => (
+            <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
+              <div>
+                <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', display: 'block' }}>{pkg.name}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{pkg.features.length} features enabled</span>
+              </div>
+              <Button size="small" onClick={() => { setEditingPackage(pkg); packageForm.setFieldsValue(pkg); }}>Edit</Button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: 'var(--bg-secondary)', padding: 24, borderRadius: 12, border: '1px solid var(--border-color)' }}>
+          <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>{editingPackage ? 'Edit Package' : 'Create New Package'}</Title>
+          <Form form={packageForm} layout="vertical" onFinish={handleSavePackage}>
+            <Form.Item name="name" label="Package Name" rules={[{ required: true }]}>
+              <Input placeholder="e.g. Starter Tier" />
+            </Form.Item>
+            <Form.Item name="price" label="Price (Optional)">
+              <Input placeholder="e.g. ₹1.5L/mo" />
+            </Form.Item>
+            <Form.Item name="features" label="Enabled Features">
+              <Select mode="multiple" placeholder="Select features">
+                {['dashboard', 'performance', 'leads', 'website', 'store', 'seo', 'strategy'].map(feat => (
+                  <Select.Option key={feat} value={feat}>{feat}</Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              {editingPackage && (
+                <Button onClick={() => { setEditingPackage(null); packageForm.resetFields(); }} style={{ flex: 1 }}>Cancel</Button>
+              )}
+              <Button type="primary" htmlType="submit" style={{ flex: 1, background: 'var(--accent-primary)', fontWeight: 700 }}>
+                {editingPackage ? 'Save Changes' : 'Create Package'}
+              </Button>
+            </div>
+          </Form>
+        </div>
       </Drawer>
 
     </motion.div>

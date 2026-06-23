@@ -24,10 +24,31 @@ const Header = () => {
   ];
 
   const getUserDetails = () => {
-    if (role === 'agency') return { name: 'Arjun Sharma', subtitle: 'BCC Martech', initial: 'AS' };
-    if (role === 'client') return { name: 'Rahul Kapoor', subtitle: 'Prestige Estates', initial: 'RK' };
-    if (role === 'superadmin') return { name: 'Super Admin', subtitle: 'Platform Owner', initial: 'SA' };
-    return { name: 'Admin User', subtitle: 'Agency Owner', initial: 'AU' };
+    switch (role) {
+      case 'supreme_super_admin': return { name: 'Supreme Admin', subtitle: 'M1 MOS', initial: 'SA' };
+      case 'admin': return { name: 'Admin', subtitle: 'M1 MOS', initial: 'AD' };
+      case 'agency_super_admin': return { name: 'Agency Admin', subtitle: 'Alpha Partners', initial: 'AA' };
+      case 'agency_manager': return { name: 'Agency Manager', subtitle: 'Alpha Partners', initial: 'AM' };
+      case 'agency_client': return { name: 'Agency Client', subtitle: 'Customer', initial: 'AC' };
+      case 'brand_super_admin': return { name: 'Brand Admin', subtitle: 'Prestige Estates', initial: 'BA' };
+      case 'brand_manager': return { name: 'Brand Manager', subtitle: 'Prestige Estates', initial: 'BM' };
+      case 'brand_team_user': return { name: 'Brand Team', subtitle: 'Prestige Estates', initial: 'BT' };
+      default: return { name: 'User', subtitle: '', initial: 'U' };
+    }
+  };
+
+  const getDashboardName = () => {
+    switch (role) {
+      case 'supreme_super_admin': return 'Supreme Super Admin';
+      case 'admin': return 'Admin Dashboard';
+      case 'agency_super_admin': return 'Agency Admin';
+      case 'agency_manager': return 'Agency Manager';
+      case 'agency_client': return 'Agency Client';
+      case 'brand_super_admin': return 'Brand Admin';
+      case 'brand_manager': return 'Brand Manager';
+      case 'brand_team_user': return 'Brand Team';
+      default: return 'Dashboard';
+    }
   };
 
   const userDetails = getUserDetails();
@@ -45,7 +66,7 @@ const Header = () => {
       height: 64,
       lineHeight: '64px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: screens.lg ? 0 : 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: screens.lg ? 0 : 16, minWidth: 0 }}>
         {!screens.lg && (
           <Button 
             type="text" 
@@ -54,25 +75,32 @@ const Header = () => {
             style={{ color: 'var(--text-primary)', padding: '0 8px', marginLeft: -12 }}
           />
         )}
-        <Input 
-          prefix={<Search size={16} style={{ color: 'var(--text-tertiary)' }} />} 
-          placeholder="Search clients, leads, tasks..." 
-          style={{ 
-            maxWidth: screens.lg ? 400 : '100%', 
-            borderRadius: 8,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)'
-          }}
-          suffix={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>
-              <Command size={12} /> K
-            </div>
-          }
-        />
+        <div style={{ marginRight: screens.lg ? 32 : 16, paddingLeft: 8, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <span style={{ fontWeight: 800, fontSize: screens.lg ? 20 : 16, color: 'var(--text-primary)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {getDashboardName()}
+          </span>
+        </div>
+        {screens.md && (
+          <Input 
+            prefix={<Search size={16} style={{ color: 'var(--text-tertiary)' }} />} 
+            placeholder="Search clients, leads, tasks..." 
+            style={{ 
+              maxWidth: screens.lg ? 400 : 250, 
+              borderRadius: 8,
+              backgroundColor: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)'
+            }}
+            suffix={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>
+                <Command size={12} /> K
+              </div>
+            }
+          />
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {role === 'superadmin' && !location.pathname.startsWith('/superadmin') && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: screens.sm ? 16 : 8, flexShrink: 0 }}>
+        {role === 'supreme_super_admin' && !location.pathname.startsWith('/superadmin') && (
           <Button 
             type="primary" 
             onClick={() => navigate('/superadmin/dashboard')}
@@ -98,10 +126,12 @@ const Header = () => {
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.3s' }} className="hover-bg">
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'right' }}>
-              <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{userDetails.name}</span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{userDetails.subtitle}</span>
-            </div>
+            {screens.sm && (
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{userDetails.name}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{userDetails.subtitle}</span>
+              </div>
+            )}
             <Avatar style={{ backgroundColor: 'var(--accent-primary)', fontWeight: 800 }}>{userDetails.initial}</Avatar>
           </div>
         </Dropdown>
