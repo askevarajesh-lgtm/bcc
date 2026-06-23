@@ -106,7 +106,7 @@ const TimeTracking = () => {
             { label: 'NON-BILLABLE', val: '43h', sub: '15% non-bill.', msg: 'Admin & internal', color: 'var(--accent-warning)', alert: true, icon: <AlertCircle size={20} /> },
             { label: 'UTILISATION RATE', val: '85%', msg: 'Target > 80%', color: 'var(--accent-secondary)', prog: 85, icon: <Target size={20} /> },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={12} xl={12} xxl={6} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   className="glassmorphism hover-bg"

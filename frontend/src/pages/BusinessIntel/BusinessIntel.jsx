@@ -70,7 +70,7 @@ const BusinessIntel = () => {
             { label: 'ARPU', val: '₹3.57L', sub: '12 active clients', icon: <Users size={20}/>, color: 'var(--text-primary)' },
             { label: 'CLIENT LTV (AVG)', val: '₹1.43Cr', sub: '42 months avg tenure', icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={8} xl={8} xxl={4} style={{ flex: '1 1 240px', minWidth: 240}} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   bodyStyle={{ padding: '24px 20px' }} 
@@ -315,7 +315,7 @@ const BusinessIntel = () => {
             { label: 'NET REVENUE RETENTION', val: '108%', sub: '↗ Expansion > churn', color: 'var(--accent-primary)', icon: <TrendingUp size={20}/> },
             { label: 'AGENCY GROSS MARGIN', val: '33.6%', sub: 'Service-business benchmark', icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={12} xl={12} xxl={6} style={{ flex: '1 1 240px', minWidth: 240}} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   bodyStyle={{ padding: '24px 20px' }} 

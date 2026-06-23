@@ -109,7 +109,7 @@ const PerformanceAds = () => {
           { label: 'ROAS', val: '4.2x', sub: '+0.7', subColor: 'var(--accent-primary)', desc: 'Target 3.5x', color: 'var(--accent-warning)', icon: <Activity size={16} /> },
           { label: 'IMPRESSIONS', val: '12.4M', sub: '+8%', subColor: 'var(--accent-primary)', desc: 'Last 30 days', color: 'var(--accent-info)', icon: <Megaphone size={16} /> },
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={kpi.label === 'IMPRESSIONS' ? 8 : 4} lg={8} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }} 

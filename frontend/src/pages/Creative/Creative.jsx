@@ -66,7 +66,7 @@ const Creative = () => {
           { label: 'VIDEOS IN PRODUCTION', val: '3', sub: 'Active shoots/edits', color: 'var(--accent-warning)', icon: <Video size={80} /> },
           { label: 'BRAND ASSETS', val: '124', sub: 'Total in library', color: 'var(--accent-primary)', icon: <FolderOpen size={80} /> }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={kpi.label === 'BRAND ASSETS' ? 8 : 4} lg={8} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: 20, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', zIndex: 2 }} 

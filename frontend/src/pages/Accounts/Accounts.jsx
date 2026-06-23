@@ -110,7 +110,7 @@ const Accounts = () => {
           { label: 'AVERAGE MOS', val: '68', sub: 'Marketing Op Score', icon: <Activity size={20} />, color: 'var(--accent-warning)', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, transparent 100%)' },
           { label: 'NEEDS ATTENTION', val: '3', sub: '1 critical · 2 churn-risk', icon: <AlertTriangle size={20} />, color: 'var(--accent-danger)', isAlert: true, gradient: 'linear-gradient(135deg, rgba(239,68,68,0.1) 0%, transparent 100%)' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={6} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 className="glassmorphism" 

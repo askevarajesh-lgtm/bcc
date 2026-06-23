@@ -115,7 +115,7 @@ const ClientKanban = () => {
           { label: 'CONVERSION RATE', val: '8.4%', sub: '▲ +1.2% vs last mo', desc: 'Lead → Site Visit', color: 'var(--accent-warning)' },
           { label: 'PIPELINE VALUE', val: '₹2.84Cr', sub: '▲ +18% vs last mo', desc: 'Across all open stages', color: 'var(--accent-primary)' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} lg={8} xl={8} xxl={4} style={{ flex: '1 1 240px', minWidth: 240}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '24px 20px', position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column' }} 

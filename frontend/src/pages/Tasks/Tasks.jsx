@@ -136,7 +136,7 @@ const Tasks = () => {
           { label: 'BLOCKED / AT RISK', val: '6', sub: 'Need attention', risk: true, badge: 'RISK', color: 'var(--accent-danger)', icon: <AlertTriangle size={20} color="var(--bg-primary)" /> },
           { label: 'TEAM VELOCITY', val: '34 / wk', sub: '7-day rolling avg', pos: true, badge: '▲ 12%', color: 'var(--accent-info)', icon: <TrendingUp size={20} color="var(--bg-primary)" /> },
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} lg={4} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }} 

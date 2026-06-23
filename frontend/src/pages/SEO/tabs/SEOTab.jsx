@@ -60,7 +60,7 @@ const SEOTab = ({ itemVariants }) => {
           { label: 'BACKLINKS', val: '3,840', sub: '▲ +124', text: 'Referring domains: 264', color: 'var(--accent-warning)', icon: <Link2 size={16} /> },
           { label: 'SITE HEALTH', val: '88/100', sub: '▲ +4 pts', text: '0 critical · 14 warnings', color: 'var(--accent-danger)', icon: <CheckCircle2 size={16} /> },
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={kpi.spark ? 5 : 4} lg={8} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column' }} 

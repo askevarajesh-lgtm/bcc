@@ -72,7 +72,7 @@ const Strategy = () => {
           { label: 'AT RISK / BEHIND', val: '2', sub: '2 need attention', icon: <AlertTriangle size={22} />, color: 'var(--accent-danger)', isAlert: true },
           { label: 'PLANNED SPEND Q3', val: '₹3.84 Cr', sub: 'across 12 accounts', icon: <Banknote size={22} />, color: 'var(--text-primary)', accentColor: 'var(--text-tertiary)', flex: 1.5 }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={kpi.flex ? 6 : 4} lg={8} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', height: '100%' }} 

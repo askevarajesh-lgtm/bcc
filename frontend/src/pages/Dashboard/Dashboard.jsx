@@ -75,7 +75,7 @@ const Dashboard = () => {
           { label: 'SLA COMPLIANCE', val: '94%', sub: '-2% vs last month', type: 'down' },
           { label: 'OPEN ESCALATIONS', val: '3', sub: 'Needs attention', type: 'alert' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} md={8} lg={8} xl={4} style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card className="glassmorphism" bodyStyle={{ padding: '16px 20px' }} style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{kpi.label}</Text>

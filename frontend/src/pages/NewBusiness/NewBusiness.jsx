@@ -100,7 +100,7 @@ const NewBusiness = () => {
             { label: 'PROPOSALS SENT', val: '3', sub: 'Awaiting response or decision', icon: <FileText size={20} />, color: 'var(--text-primary)' },
             { label: 'WIN RATE (YTD)', val: '42%', sub: '3 won · 4 lost · 6 active', color: 'var(--accent-primary)', icon: <Target size={20} /> },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={6} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 {/* File Folder Tab */}
                 <div style={{ 

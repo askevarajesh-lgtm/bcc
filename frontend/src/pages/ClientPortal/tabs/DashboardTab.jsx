@@ -105,7 +105,7 @@ const DashboardTab = () => {
         <Title level={4} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>Performance this month</Title>
         <Row gutter={[24, 24]}>
           {kpis.map((kpi, idx) => (
-            <Col xs={24} md={12} lg={8} key={idx}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={idx}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <BubbleCard bodyStyle={{ padding: 28, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} style={{ height: '100%' }}>
                   <div>

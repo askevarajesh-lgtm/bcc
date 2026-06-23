@@ -97,7 +97,7 @@ const SLA = () => {
           { label: 'ACTIVE BREACHES', val: '3', sub: 'Needs immediate action', color: 'var(--accent-danger)', isAlert: true, icon: <AlertOctagon size={20} />, iconColor: 'var(--accent-danger)', gradient: 'linear-gradient(135deg, rgba(239,68,68,0.1) 0%, transparent 100%)' },
           { label: 'AT RISK', val: '6', sub: '>80% of deadline used', color: 'var(--accent-warning)', icon: <AlertTriangle size={20} />, iconColor: 'var(--accent-warning)', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, transparent 100%)' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={6} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 className="glassmorphism" 

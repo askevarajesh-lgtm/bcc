@@ -119,7 +119,7 @@ const AdminDashboard = () => {
       {/* KPI Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {kpiCards.map((kpi, i) => (
-          <Col xs={12} sm={8} lg={4} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4 }} style={{ height: '100%' }}>
               <Card bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', height: '100%' }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)', height: '100%' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, color: 'var(--accent-primary)' }}>

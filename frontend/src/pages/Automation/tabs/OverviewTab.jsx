@@ -98,7 +98,7 @@ const OverviewTab = ({ itemVariants, onOpenBuilder }) => {
           { label: 'DISPATCHED', val: '2', sub: 'Last 7 Days', color: 'var(--accent-warning)', icon: <Send size={24} color="var(--accent-warning)" style={{ opacity: 0.4 }} /> },
           { label: 'DELIVERY RATE', val: '100%', sub: '2 of 2 delivered', color: '#8b5cf6', icon: <TrendingUp size={24} color="#8b5cf6" style={{ opacity: 0.4 }} /> },
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} lg={6} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }} 

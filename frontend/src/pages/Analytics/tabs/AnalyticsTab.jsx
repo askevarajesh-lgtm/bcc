@@ -53,7 +53,7 @@ const AnalyticsTab = () => {
           { label: 'ORGANIC TRAFFIC SHARE', val: '54%', sub: '▲ +3%', color: 'var(--accent-warning)' },
           { label: 'TOTAL AD SPEND', val: '₹84.2L', sub: '▼ -2%', down: true, color: 'var(--text-tertiary)' },
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} lg={4} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }} 

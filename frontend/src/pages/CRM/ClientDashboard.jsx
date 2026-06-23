@@ -56,7 +56,7 @@ const ClientDashboard = () => {
           { label: 'SITE VISITS', val: '28', sub: '19.7%', desc: 'of total leads', color: 'var(--accent-secondary)' },
           { label: 'BOOKINGS', val: '14', sub: '10%', desc: 'lead-to-booking rate', color: 'var(--accent-warning)', badge: 'Above industry avg ✓' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} lg={6} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4 }}>
               <Card 
                 bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }} 

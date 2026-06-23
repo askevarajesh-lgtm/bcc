@@ -70,7 +70,7 @@ const SEO = () => {
         ].map((kpi, i) => {
           const isActive = activeTab === i;
           return (
-            <Col xs={24} sm={12} lg={6} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%', cursor: 'pointer' }} onClick={() => setActiveTab(i)}>
                 <Card 
                   bodyStyle={{ padding: 24, height: '100%' }} 

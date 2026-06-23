@@ -69,7 +69,7 @@ const Resources = () => {
             { label: 'AVAILABLE', val: '148h', sub: '18.5%', icon: <Clock size={24} />, color: 'var(--accent-primary)', bg: 'rgba(16, 185, 129, 0.15)', iconColor: 'var(--accent-primary)' },
             { label: 'OVERALLOCATED', val: '0 members', sub: 'All within capacity', icon: <AlertTriangle size={24} />, color: 'var(--accent-primary)', bg: 'rgba(16, 185, 129, 0.15)', iconColor: 'var(--accent-primary)' },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={6} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   style={{ 

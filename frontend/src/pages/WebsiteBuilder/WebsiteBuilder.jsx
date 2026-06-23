@@ -69,7 +69,7 @@ const WebsiteBuilder = () => {
                 { label: 'PAGE SPEED SCORE', val: '91/100', badge: 'Good ✓', alert: 'LCP: 2.1s · CLS: 0.08 · INP: 84ms', color: 'var(--accent-warning)' },
                 { label: 'ACTIVE PAGES', val: '48', sub: '▲ +2 new this month', alert: '12 landing · 6 blog · 30 core', color: 'var(--accent-secondary)' },
               ].map((kpi, i) => (
-                <Col xs={24} sm={12} lg={4} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+                <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
                   <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                     <Card 
                       bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }} 

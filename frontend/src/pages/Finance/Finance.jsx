@@ -91,7 +91,7 @@ const Finance = () => {
             { label: 'OVERDUE', val: '₹0', sub: 'No clients overdue', color: 'var(--accent-primary)' },
             { label: 'NEXT MONTH FORECAST', val: '₹44.20L', sub: '+3.3% MoM', color: 'var(--text-primary)' },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={4} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   style={{ 

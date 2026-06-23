@@ -95,7 +95,7 @@ const TeamOverviewTab = () => {
             { label: 'TOTAL HOURS (MTD)', val: '648h', sub: 'of 800h capacity', pos: '+42h vs last month' },
             { label: 'OPEN TASKS', val: '47', alert: '12 urgent · 35 normal' },
           ].map((kpi, i) => (
-            <Col xs={24} sm={12} lg={6} key={i}>
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <Card className="glassmorphism" bodyStyle={{ padding: '24px' }} style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>{kpi.label}</Text>

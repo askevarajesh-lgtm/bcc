@@ -64,7 +64,7 @@ const Content = () => {
           { label: 'SCHEDULED', val: '6', sub: 'Queued for go-live', colorStart: '#8b5cf6', colorEnd: '#3b82f6', icon: <PenTool size={20}/> },
           { label: 'TOTAL PIPELINE', val: '24', sub: 'All statuses', colorStart: '#0d9488', colorEnd: '#0ea5e9', icon: <FileText size={20}/> }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={6} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <div style={{ position: 'relative', height: '100%', paddingTop: 20 }}>
                 {/* Floating Badge */}

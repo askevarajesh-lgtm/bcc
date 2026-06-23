@@ -62,7 +62,7 @@ const SocialMedia = () => {
           { label: 'FOLLOWERS GROWTH', val: '+1,240', sub: 'This month', color: 'var(--accent-primary)' },
           { label: 'POSTS PUBLISHED', val: '28', sub: 'This month', color: 'var(--accent-danger)' }
         ].map((kpi, i) => (
-          <Col xs={24} sm={12} xl={kpi.label === 'POSTS PUBLISHED' ? 8 : 4} lg={8} style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
                 bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: '100%' }} 
@@ -122,7 +122,7 @@ const SocialMedia = () => {
               { label: 'AVG ENGAGEMENT', val: '4.8%', sub: 'Above industry avg' },
               { label: 'REACH PER POST', val: '18,400', sub: 'Last 30 days' },
             ].map((kpi, i) => (
-              <Col xs={24} md={8} key={i}>
+              <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
                 <div style={{ padding: '0 20px', borderRight: i < 2 ? '1px solid var(--border-color)' : 'none' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>{kpi.label}</Text>
                   <Title level={2} style={{ margin: '8px 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{kpi.val}</Title>
