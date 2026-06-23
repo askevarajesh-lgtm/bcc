@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag } from "antd";
-import { LayoutTemplate, Layers, Search as SearchIcon, CheckCircle, X as CloseIcon } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message } from "antd";
+import { LayoutTemplate, Layers, Search as SearchIcon, CheckCircle, X as CloseIcon, Upload as UploadIcon } from "lucide-react";
 
 const { Title, Text } = Typography;
 
 const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelName }) => {
   const [funnelName, setFunnelName] = useState(initialFunnelName || "");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [categories, setCategories] = useState(["All"]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (initialFunnelName) {
@@ -14,16 +20,80 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
     }
   }, [initialFunnelName]);
 
-  const templates = [
-    { id: 1, name: "Premium Digital", type: "Digital Marketing Agency", bg: "linear-gradient(135deg, #1e293b, #0f172a)" },
-    { id: 2, name: "Growth Spark Media", type: "Digital Marketing Agency", bg: "linear-gradient(135deg, #d97706, #b45309)" },
-    { id: 3, name: "Pixel Reach Agency", type: "Digital Marketing Agency", bg: "linear-gradient(135deg, #334155, #1e293b)" },
-  ];
+  useEffect(() => {
+    if (open) {
+      fetchTemplates();
+    }
+  }, [open]);
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/templates?type=funnel");
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(data.data.templates);
+        const catNames = ["All", ...data.data.categories.map(c => c.name)];
+        setCategories(catNames);
+      }
+    } catch (error) {
+      console.error("Error fetching funnel templates:", error);
+      message.error("Failed to load templates");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleZipUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name.replace(".zip", ""));
+    formData.append("type", "funnel");
+    formData.append("category", "Custom Uploads");
+
+    try {
+      message.loading({ content: 'Uploading funnel template...', key: 'upload' });
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/templates/upload", {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success({ content: 'Template uploaded successfully', key: 'upload' });
+        await fetchTemplates();
+        if (data.data && data.data._id) {
+          setSelectedTemplate(data.data._id);
+          setSelectedCategory("All");
+        }
+      } else {
+        message.error({ content: data.error || 'Failed to upload', key: 'upload' });
+      }
+    } catch (error) {
+      message.error({ content: 'Error uploading template', key: 'upload' });
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const handleCreate = () => {
     onCreate({ 
       name: funnelName, 
-      template: selectedTemplate ? templates.find(t => t.id === selectedTemplate)?.name : null,
+      template: selectedTemplate ? templates.find(t => t._id === selectedTemplate)?.name : null,
       type: "template"
     });
     setSelectedTemplate(null);
@@ -47,23 +117,40 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
             <LayoutTemplate size={20} color="var(--accent-secondary)" /> Template Library
           </Title>
           
-          <div style={{ background: "rgba(13, 148, 136, 0.1)", color: "var(--accent-secondary)", padding: "10px 16px", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontWeight: 600 }}>
+          <div 
+            onClick={() => setSelectedCategory("All")}
+            style={{ background: selectedCategory === "All" ? "rgba(13, 148, 136, 0.1)" : "transparent", color: selectedCategory === "All" ? "var(--accent-secondary)" : "var(--text-primary)", padding: "10px 16px", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontWeight: 600, cursor: "pointer" }}
+          >
             <span>All Templates</span>
-            <Tag style={{ margin: 0, borderRadius: 12, background: "rgba(13, 148, 136, 0.2)", border: "none", color: "var(--accent-secondary)" }}>500</Tag>
+            <Tag style={{ margin: 0, borderRadius: 12, background: selectedCategory === "All" ? "rgba(13, 148, 136, 0.2)" : "var(--bg-tertiary)", border: "none", color: selectedCategory === "All" ? "var(--accent-secondary)" : "var(--text-secondary)" }}>{templates.length}</Tag>
           </div>
           
-          <div style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", color: "var(--text-primary)", marginBottom: 24, cursor: "pointer", fontWeight: 500 }}>
+          <div style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", color: "var(--text-secondary)", marginBottom: 24, cursor: "not-allowed", fontWeight: 500 }}>
             <span>My Templates</span>
-            <Text type="secondary" style={{ fontSize: 12 }}>12</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>0</Text>
           </div>
 
           <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16, display: "block" }}>BROWSE CATEGORIES</Text>
           
           <Space direction="vertical" style={{ width: "100%", flex: 1 }}>
-            {["Digital Marketing Agency", "Real Estate Company", "Hospital / Clinic", "Restaurant / Cafe", "Educational Institute", "IT / Software Company", "Construction Company", "Fashion / Boutique", "Beauty Salon / Spa", "Automobile / Garage"].map(cat => (
-              <div key={cat} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", cursor: "pointer" }}>
-                <span style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: 14 }}>{cat}</span>
-                <span style={{ color: "var(--text-tertiary)", fontSize: 13 }}>50</span>
+            {categories.slice(1).map(cat => (
+              <div 
+                key={cat} 
+                onClick={() => setSelectedCategory(cat)}
+                style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  padding: "10px 12px", 
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  background: selectedCategory === cat ? "rgba(13, 148, 136, 0.05)" : "transparent",
+                  color: selectedCategory === cat ? "var(--accent-secondary)" : "var(--text-secondary)",
+                  fontWeight: selectedCategory === cat ? 700 : 500
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{cat}</span>
+                <span style={{ color: "var(--text-tertiary)", fontSize: 13 }}>{templates.filter(t => t.category === cat).length}</span>
               </div>
             ))}
           </Space>
@@ -82,8 +169,27 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
                 <Text type="secondary">Prebuilt templates & your uploads</Text>
               </div>
               <Space>
-                <Button style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: "var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}>Upload ZIP</Button>
-                <Input placeholder="Search templates..." prefix={<SearchIcon size={16} color="var(--text-tertiary)"/>} style={{ width: 250, borderRadius: 8, height: 40 }} />
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".zip,application/zip" 
+                  onChange={handleZipUpload} 
+                />
+                <Button 
+                  icon={<UploadIcon size={16} />}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: "var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                >
+                  Upload ZIP
+                </Button>
+                <Input 
+                  placeholder="Search templates..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  prefix={<SearchIcon size={16} color="var(--text-tertiary)"/>} 
+                  style={{ width: 250, borderRadius: 8, height: 40 }} 
+                />
               </Space>
             </div>
           </div>
@@ -93,13 +199,13 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
             <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24 }}>System library & your uploads</div>
             
             <Row gutter={[24, 24]}>
-              {templates.map(template => {
-                const isSelected = selectedTemplate === template.id;
+              {filteredTemplates.map(template => {
+                const isSelected = selectedTemplate === template._id;
                 return (
-                  <Col span={8} key={template.id}>
+                  <Col span={8} key={template._id}>
                     <Card 
                       hoverable 
-                      onClick={() => setSelectedTemplate(template.id)}
+                      onClick={() => setSelectedTemplate(template._id)}
                       style={{ 
                         borderRadius: 16, 
                         overflow: "hidden",
@@ -110,13 +216,13 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
                       }}
                       bodyStyle={{ padding: 0 }}
                     >
-                      <div style={{ height: 180, background: template.bg, position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ height: 180, background: template.thumbnailColor || "linear-gradient(135deg, #1e293b, #0f172a)", position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: 20, left: 20, right: 20, height: 24, background: 'rgba(255,255,255,0.15)', borderRadius: 6 }} />
                         <div style={{ position: 'absolute', top: 64, left: 20, right: 20, bottom: 20, background: 'rgba(255,255,255,0.08)', borderRadius: 6 }} />
                       </div>
                       <div style={{ padding: "16px 20px" }}>
                         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: "var(--text-primary)" }}>{template.name}</div>
-                        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: isSelected ? 8 : 0 }}>{template.type}</div>
+                        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: isSelected ? 8 : 0 }}>{template.category}</div>
                         
                         {isSelected && (
                           <div style={{ color: "var(--accent-secondary)", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center" }}>

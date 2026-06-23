@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm } from "antd";
-import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2 } from "lucide-react";
-
+import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message } from "antd";
+import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import WebsiteTemplateLibraryModal from "./WebsiteTemplateLibraryModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+// Removed basic WebsiteBuilderView in favor of GrapesJSBuilder
 
 const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
   const [selectedType, setSelectedType] = useState("ai");
@@ -196,6 +199,81 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
 };
 
 const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
+  const [pages, setPages] = useState(activeWebsite.pages || []);
+  const [newPageTitle, setNewPageTitle] = useState("");
+  const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
+  const [description, setDescription] = useState(activeWebsite.description || "");
+  const [status, setStatus] = useState(activeWebsite.status || "Draft");
+  const navigate = useNavigate();
+
+  const handleAddPage = () => {
+    if (!newPageTitle.trim()) return;
+    const path = `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
+    const newPage = {
+      _id: `temp-${Date.now()}`,
+      key: `temp-${Date.now()}`,
+      title: newPageTitle,
+      path,
+      status: "Draft",
+      isHome: false,
+      layoutJson: { sections: [] },
+      html: "",
+      css: ""
+    };
+    setPages([...pages, newPage]);
+    setNewPageTitle("");
+  };
+
+  const handleDuplicatePage = (pageId) => {
+    const pageToDuplicate = pages.find(p => p._id === pageId || p.key === pageId);
+    if (pageToDuplicate) {
+      const newPage = {
+        ...pageToDuplicate,
+        _id: `temp-${Date.now()}`,
+        key: `temp-${Date.now()}`,
+        title: `${pageToDuplicate.title} Copy`,
+        path: `${pageToDuplicate.path}-copy`,
+        isHome: false
+      };
+      setPages([...pages, newPage]);
+    }
+  };
+
+  const handleDeletePage = (pageId) => {
+    setPages(pages.filter(p => (p._id !== pageId && p.key !== pageId)));
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ name: websiteName, description, status, pages })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Changes saved successfully!");
+        // Update local activeWebsite to reflect new saved pages (backend returns updated pages)
+        if (data.data && data.data.pages) {
+           setPages(data.data.pages);
+        }
+      } else {
+        message.error(data.error || "Failed to save changes");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error saving changes");
+    }
+  };
+
+  const handleSavePage = (updatedPage) => {
+    setPages(pages.map(p => p._id === updatedPage._id ? updatedPage : p));
+  };
+
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => setView("list")}>
@@ -204,16 +282,16 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
         <div>
-          <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>{activeWebsite.name}</Title>
+          <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>{websiteName}</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Manage pages, settings, and tracking for this website.</Text>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200 }}>
+      <div>
         
         {activeWebsite.isNew && (
           <div style={{ marginBottom: 32, padding: "16px 24px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 12, color: "var(--accent-success)", fontWeight: 600, fontSize: 14 }}>
-            Website created successfully. Content was generated from your brief (add OPENAI_API_KEY for full AI generation).
+            Website created successfully.
           </div>
         )}
 
@@ -225,17 +303,17 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
               <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>WEBSITE NAME</div>
-                  <Input size="large" defaultValue={activeWebsite.name} style={{ borderRadius: 8 }} />
+                  <Input size="large" value={websiteName} onChange={e => setWebsiteName(e.target.value)} style={{ borderRadius: 8 }} />
                 </div>
                 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>DESCRIPTION</div>
-                  <TextArea size="large" defaultValue={activeWebsite.description || ""} style={{ borderRadius: 8, minHeight: 80 }} />
+                  <TextArea size="large" value={description} onChange={e => setDescription(e.target.value)} style={{ borderRadius: 8, minHeight: 80 }} />
                 </div>
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>STATUS</div>
-                  <Select size="large" defaultValue="Draft" style={{ width: "100%" }}>
+                  <Select size="large" value={status} onChange={setStatus} style={{ width: "100%" }}>
                     <Option value="Draft">Draft</Option>
                     <Option value="Published">Published</Option>
                   </Select>
@@ -292,18 +370,18 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                   </div>
                 </div>
 
-                <Button type="primary" size="large" block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
-                  Save Website Settings
+                <Button type="primary" size="large" onClick={handleSaveSettings} block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
+                  Save Changes
                 </Button>
                 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Button type="primary" size="large" block style={{ background: "var(--accent-success)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
+                    <Button type="primary" size="large" onClick={() => { setStatus("Published"); handleSaveSettings(); }} block style={{ background: "var(--accent-success)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
                       Publish
                     </Button>
                   </Col>
                   <Col span={12}>
-                    <Button type="primary" size="large" block style={{ background: "var(--accent-warning)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, color: '#fff' }}>
+                    <Button type="primary" size="large" onClick={() => { setStatus("Draft"); handleSaveSettings(); }} block style={{ background: "var(--accent-warning)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, color: '#fff' }}>
                       Revert to Draft
                     </Button>
                   </Col>
@@ -351,72 +429,53 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
               <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}><FileText size={22} color="var(--accent-primary)" /> Pages</div>
-                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 700 }}>{activeWebsite.pages} total</div>
+                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 700 }}>{pages.length} total</div>
                 </div>
                 <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Home page sets global header & footer for all other pages.</div>
                 
                 <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
-                  <Input size="large" placeholder="New page title (e.g. Services)" style={{ flex: 1, borderRadius: 8 }} />
-                  <Button size="large" type="primary" style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
+                  <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
+                  <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
                     Add Page
                   </Button>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {/* Home Page */}
-                  <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: 24, marginBottom: 24 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FileText size={24} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
-                            Home
-                            <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>
-                          </div>
-                          <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>/home</div>
-                        </div>
-                      </div>
-                      <Select size="large" defaultValue="Draft" style={{ width: 120 }}>
-                        <Option value="Draft">Draft</Option>
-                        <Option value="Published">Published</Option>
-                      </Select>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                      <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />}>Edit in Builder</Button>
-                      <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />}>Preview</Button>
-                      <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }}>Duplicate</Button>
-                      <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />}>Delete</Button>
-                    </div>
-                  </div>
-
-                  {/* Contact Page */}
-                  {(activeWebsite.pages >= 2) && (
-                    <div style={{ paddingBottom: 24 }}>
+                  {pages.map((page, index) => (
+                    <div key={page._id || page.key || index} style={{ borderBottom: index < pages.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 12, background: page.isHome ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)', border: page.isHome ? 'none' : '1px solid var(--border-color)', color: page.isHome ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <FileText size={24} />
                           </div>
                           <div>
-                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)' }}>Contact</div>
-                            <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>/contact</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
+                              {page.title}
+                              {page.isHome && <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>}
+                            </div>
+                            <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
                           </div>
                         </div>
-                        <Select size="large" defaultValue="Draft" style={{ width: 120 }}>
+                        <Select 
+                          size="large" 
+                          value={page.status || "Draft"} 
+                          onChange={(val) => {
+                            setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
+                          }}
+                          style={{ width: 120 }}
+                        >
                           <Option value="Draft">Draft</Option>
                           <Option value="Published">Published</Option>
                         </Select>
                       </div>
                       <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                        <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />}>Edit in Builder</Button>
+                        <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>
                         <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />}>Preview</Button>
-                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }}>Duplicate</Button>
-                        <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />}>Delete</Button>
+                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>
+                        {!page.isHome && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </Card>
 
@@ -428,50 +487,137 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
   );
 };
 
-const WebsitesTab = ({ itemVariants }) => {
+const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [viewType, setViewType] = useState("list");
   const [folderView, setFolderView] = useState("home");
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [pendingWebsiteName, setPendingWebsiteName] = useState("");
   
   const [websites, setWebsites] = useState([]);
   const [activeWebsite, setActiveWebsite] = useState(null);
   const [view, setView] = useState("list");
 
   useEffect(() => {
-    const saved = localStorage.getItem("tunepath_websites");
-    if (saved) {
-      try {
-        setWebsites(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse websites");
-      }
-    } else {
-      setWebsites([
-        { key: '1', name: 'Prestige Estates — Main Website', description: 'Luxury real estate developer portfolio', lastUpdated: '2 days ago', pages: 48, isNew: false },
-        { key: '2', name: 'NANA Academy', description: 'Online learning platform for kids', lastUpdated: '1 week ago', pages: 12, isNew: false },
-      ])
+    if (initialAction === 'openTemplates') {
+      setIsTemplateModalOpen(true);
+      if (onActionComplete) onActionComplete();
     }
-  }, []);
+  }, [initialAction, onActionComplete]);
+
+  const fetchWebsites = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/websites", {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const mapped = data.data.map(w => ({
+          key: w._id,
+          name: w.name,
+          description: w.description,
+          lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
+          pages: w.pagesCount || 1,
+          isNew: false
+        }));
+        setWebsites(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to fetch websites", err);
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem("tunepath_websites", JSON.stringify(websites));
-  }, [websites]);
+    fetchWebsites();
+  }, [view]);
 
-  const handleCreateWebsite = (data) => {
-    if (data.type === "blank" || data.type === "ai") {
-      const newWebsite = {
-        key: Date.now().toString(),
-        name: data.name,
-        description: data.description,
-        lastUpdated: "Just now",
-        pages: data.type === "ai" ? 2 : 1, // AI generates home+contact pages
-        isNew: true
-      };
-      setWebsites([...websites, newWebsite]);
+  const handleDeleteWebsite = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Website deleted successfully");
+        fetchWebsites();
+      } else {
+        message.error(data.error || "Failed to delete website");
+      }
+    } catch (err) {
+      message.error("Error deleting website");
+    }
+  };
+
+  const handleCloneWebsite = async (id) => {
+    try {
+      message.loading({ content: 'Cloning website...', key: 'clone' });
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${id}/clone`, {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success({ content: 'Website cloned successfully', key: 'clone' });
+        fetchWebsites();
+      } else {
+        message.error({ content: data.error || "Failed to clone website", key: 'clone' });
+      }
+    } catch (err) {
+      message.error({ content: "Error cloning website", key: 'clone' });
+    }
+  };
+
+  const handleCreateWebsite = async (data) => {
+    if (data.type === "blank" || data.type === "template" || data.type === "ai") {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/websites", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+          },
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description || (data.template ? `Created from ${data.template} template` : ""),
+            type: data.type,
+            templateName: data.template
+          })
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          const newWebsite = {
+            key: resData.data._id,
+            name: resData.data.name,
+            description: resData.data.description,
+            lastUpdated: "Just now",
+            pages: resData.data.pages || [],
+            isNew: true
+          };
+          setWebsites([newWebsite, ...websites]);
+          setIsModalOpen(false);
+          setIsTemplateModalOpen(false);
+          setActiveWebsite(newWebsite);
+          setView("manage");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else if (data.type === "templates") {
+      setPendingWebsiteName(data.name);
       setIsModalOpen(false);
-      setActiveWebsite(newWebsite);
-      setView("manage");
+      setIsTemplateModalOpen(true);
     }
   };
 
@@ -507,19 +653,104 @@ const WebsitesTab = ({ itemVariants }) => {
       title: "ACTIONS",
       key: "actions",
       align: "right",
-      render: (_, r) => (
-        <Space>
-          <span 
-            style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={() => {
-              setActiveWebsite({ ...r, isNew: false });
+      render: (_, r) => {
+        const handleManage = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/websites/${r.key}`, {
+              headers: {
+                "Authorization": token ? `Bearer ${token}` : ""
+              }
+            });
+            const resData = await res.json();
+            if (resData.success) {
+              setActiveWebsite({
+                ...resData.data,
+                key: resData.data._id,
+                pages: resData.data.pages || [],
+                isNew: false
+              });
               setView("manage");
-            }}
-          >
-            Manage <ArrowRight size={14} />
-          </span>
-        </Space>
-      )
+            }
+          } catch (err) {
+            console.error("Error fetching website details", err);
+          }
+        };
+
+        const menuItems = [
+          {
+            key: 'edit',
+            icon: <Edit2 size={16} />,
+            label: 'Edit',
+            onClick: handleManage,
+            style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
+          },
+          {
+            key: 'clone',
+            icon: <Copy size={16} />,
+            label: 'Clone',
+            onClick: () => handleCloneWebsite(r.key),
+            style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
+          },
+          {
+            key: 'folder',
+            icon: <FolderInput size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Move To Folder</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Create a folder first</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'upload',
+            icon: <UploadCloud size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Upload To Website Templates</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Soon</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'share',
+            icon: <Share2 size={16} />,
+            label: (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>Share</span>
+                <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, marginLeft: 12 }}>Soon</span>
+              </div>
+            ),
+            disabled: true,
+            style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
+          },
+          {
+            key: 'delete',
+            icon: <Trash2 size={16} />,
+            label: 'Delete',
+            danger: true,
+            onClick: () => handleDeleteWebsite(r.key),
+            style: { fontWeight: 700, padding: '8px 12px' }
+          }
+        ];
+
+        return (
+          <Space>
+            <Dropdown 
+              menu={{ items: menuItems }} 
+              trigger={['click']} 
+              placement="bottomRight"
+              overlayStyle={{ minWidth: 220 }}
+            >
+              <Button type="text" icon={<MoreVertical size={18} color="var(--text-secondary)" />} style={{ borderRadius: 8 }} />
+            </Dropdown>
+          </Space>
+        );
+      }
     },
   ];
 
@@ -604,6 +835,16 @@ const WebsitesTab = ({ itemVariants }) => {
       <CreateWebsiteModal 
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
+        onCreate={handleCreateWebsite}
+      />
+
+      <WebsiteTemplateLibraryModal 
+        open={isTemplateModalOpen}
+        initialWebsiteName={pendingWebsiteName}
+        onCancel={() => {
+          setIsTemplateModalOpen(false);
+          setIsModalOpen(true);
+        }}
         onCreate={handleCreateWebsite}
       />
     </motion.div>

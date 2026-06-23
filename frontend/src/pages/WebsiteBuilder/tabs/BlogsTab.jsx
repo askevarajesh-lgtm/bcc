@@ -186,64 +186,97 @@ const BlogsTab = ({ itemVariants }) => {
   const [manageSubTab, setManageSubTab] = useState("posts");
 
   useEffect(() => {
-    const savedBlogs = localStorage.getItem("tunepath_blogs");
-    if (savedBlogs) {
+    const fetchBlogs = async () => {
+      if (view !== "list") return;
       try {
-        setBlogs(JSON.parse(savedBlogs));
-      } catch (e) {
-        console.error("Failed to parse blogs from local storage");
-      }
-    } else {
-      setBlogs([
-        {
-          key: '1',
-          name: 'Tech Insights',
-          slug: 'tech-insights',
-          assignedTo: 'Any site / store',
-          posts: 5,
-          categories: 3,
-          publicUrl: '/blog/tech-insights',
-          website: '—',
-          webstore: '—',
-          description: 'Latest news and insights from the tech world.',
-          status: 'active',
-          postsPerPage: 12
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/blogs", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setBlogs(data.data.map(b => ({
+            key: b._id,
+            name: b.name,
+            slug: b.slug,
+            assignedTo: 'Any site / store',
+            posts: b.postsCount || 0,
+            categories: b.categoriesCount || 0,
+            publicUrl: b.publicUrl || `/blog/${b.slug}`,
+            website: b.website || '—',
+            webstore: b.webstore || '—',
+            description: b.description || '',
+            status: b.status || 'active',
+            postsPerPage: b.postsPerPage || 12
+          })));
         }
-      ]);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tunepath_blogs", JSON.stringify(blogs));
-  }, [blogs]);
-
-  const handleCreateBlog = (newBlogData) => {
-    const newBlog = {
-      key: Date.now().toString(),
-      name: newBlogData.name,
-      slug: newBlogData.name.toLowerCase().replace(/\s+/g, '-'),
-      assignedTo: 'Any site / store',
-      posts: 0,
-      categories: 0,
-      publicUrl: `/blog/${newBlogData.name.toLowerCase().replace(/\s+/g, '-')}`,
-      website: newBlogData.website || '—',
-      webstore: newBlogData.webstore || '—',
-      description: newBlogData.description || '',
-      status: newBlogData.status || 'active',
-      postsPerPage: 12
+      } catch (e) {
+        console.error("Failed to fetch blogs from API");
+      }
     };
-    setBlogs([...blogs, newBlog]);
-    setView("list");
+    fetchBlogs();
+  }, [view]);
+
+  const handleCreateBlog = async (newBlogData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/blogs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          ...newBlogData,
+          slug: newBlogData.name.toLowerCase().replace(/\s+/g, '-')
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleUpdateBlog = (updatedData) => {
-    setBlogs(blogs.map(b => b.key === activeBlog.key ? { ...b, ...updatedData } : b));
-    setActiveBlog({ ...activeBlog, ...updatedData });
-    setView("manage");
+  const handleUpdateBlog = async (updatedData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/blogs/${activeBlog.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(updatedData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveBlog({ ...activeBlog, ...updatedData });
+        setView("manage");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteBlog = (key) => {
-    setBlogs(blogs.filter(b => b.key !== key));
+  const handleDeleteBlog = async (key) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/blogs/${key}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBlogs(blogs.filter(b => b.key !== key));
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const renderList = () => {

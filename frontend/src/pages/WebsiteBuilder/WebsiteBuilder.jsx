@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Typography, Row, Col, Card, Button, Select, Table, Tag, Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Globe, Store, FileText, LayoutTemplate, Smartphone, QrCode, MessageCircle, Link2, Plus, ExternalLink, Sparkles, Code, Activity, ChevronDown } from 'lucide-react';
@@ -16,7 +17,9 @@ import DomainsTab from './tabs/DomainsTab';
 const { Title, Text } = Typography;
 
 const WebsiteBuilder = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [websiteInitialAction, setWebsiteInitialAction] = useState(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -47,161 +50,157 @@ const WebsiteBuilder = () => {
     { id: 'domains', label: 'Domains', icon: <Link2 size={16} /> },
   ];
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'funnels': return <FunnelsTab itemVariants={itemVariants} />;
-      case 'websites': return <WebsitesTab itemVariants={itemVariants} />;
-      case 'stores': return <StoresTab itemVariants={itemVariants} />;
-      case 'forms': return <FormsTab itemVariants={itemVariants} />;
-      case 'blogs': return <BlogsTab itemVariants={itemVariants} />;
-      case 'qr-links': return <QRLinksTab itemVariants={itemVariants} />;
-      case 'chat-widgets': return <ChatWidgetsTab itemVariants={itemVariants} />;
-      case 'domains': return <DomainsTab itemVariants={itemVariants} />;
-      case 'overview':
-      default:
-        return (
-          <motion.div variants={itemVariants}>
-            <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-              {[
-                { label: 'SITE HEALTH SCORE', val: '88/100', sub: '▲ +4 this month', alert: '2 critical · 14 warnings', showRing: true, color: 'var(--accent-primary)' },
-                { label: 'MONTHLY VISITORS', val: '48,200', sub: '▲ +15%', alert: 'Organic: 54% · Paid: 26% · Direct: 20%', color: 'var(--accent-info)' },
-                { label: 'CONVERSION RATE', val: '3.8%', sub: '▲ +0.4%', alert: '1,842 conversions this month', color: 'var(--accent-primary)' },
-                { label: 'PAGE SPEED SCORE', val: '91/100', badge: 'Good ✓', alert: 'LCP: 2.1s · CLS: 0.08 · INP: 84ms', color: 'var(--accent-warning)' },
-                { label: 'ACTIVE PAGES', val: '48', sub: '▲ +2 new this month', alert: '12 landing · 6 blog · 30 core', color: 'var(--accent-secondary)' },
-              ].map((kpi, i) => (
-                <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
-                  <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                    <Card 
-                      bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }} 
-                      style={{ 
-                        borderRadius: 12, 
-                        height: '100%',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <div style={{ 
-                        height: 32, 
-                        background: 'var(--bg-tertiary)', 
-                        borderBottom: '1px solid var(--border-color)', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        padding: '0 12px',
-                        gap: 6
-                      }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }} />
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }} />
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }} />
-                        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                          <div style={{ width: '40%', height: 6, background: 'var(--border-color)', borderRadius: 4 }} />
-                        </div>
-                      </div>
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const lastPart = pathParts[pathParts.length - 1];
+  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : 'overview';
 
-                      <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>{kpi.label}</Text>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                          <div>
-                            <Title level={2} style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{kpi.val}</Title>
-                            {kpi.sub && <Text style={{ fontSize: 13, color: kpi.color, display: 'block', fontWeight: 600 }}>{kpi.sub}</Text>}
-                          </div>
-                          
-                          {kpi.showRing && (
-                            <div style={{ 
-                              width: 44, 
-                              height: 44, 
-                              borderRadius: '50%', 
-                              border: '4px solid var(--accent-primary)', 
-                              borderTopColor: 'transparent', 
-                              transform: 'rotate(45deg)' 
-                            }} />
-                          )}
-                          
-                          {kpi.badge && <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 8px', margin: 0 }}>{kpi.badge}</Tag>}
-                        </div>
-                        
-                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 'auto', paddingTop: 16, fontWeight: 500 }}>{kpi.alert}</Text>
-                      </div>
-                    </Card>
-                  </motion.div>
-                </Col>
-              ))}
-            </Row>
+  const handleTabClick = (tabId) => {
+    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const basePath = match ? match[0] : '/workspace/website';
+    navigate(`${basePath}/${tabId}`);
+  };
 
-            <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
-              <Col xs={24} lg={8}>
-                <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                  <Card style={{ borderRadius: 16, border: '2px solid var(--accent-secondary)', background: 'var(--bg-secondary)', height: '100%', boxShadow: '0 8px 24px rgba(13, 148, 136, 0.08)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Sparkles size={22} color="var(--accent-secondary)" /> Generate with AI</Title>
-                    <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 500 }}>Describe the website you want. Our AI builds it in under 60 seconds — full pages, copy, layout, and images.</Text>
-                    <Input.TextArea rows={4} placeholder="e.g. A luxury real estate landing page for Prestige estates with hero, features, gallery, and lead form..." style={{ borderRadius: 12, marginBottom: 20, fontSize: 14, padding: 12 }} />
-                    <Button type="primary" icon={<Sparkles size={18} />} onClick={() => setActiveTab('websites')} style={{ width: '100%', borderRadius: 12, background: 'var(--accent-secondary)', height: 48, marginTop: 'auto', fontWeight: 700, fontSize: 15, border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Site</Button>
-                  </Card>
-                </motion.div>
-              </Col>
-
-              <Col xs={24} lg={8}>
-                <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                  <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><LayoutTemplate size={22} color="var(--accent-info)" /> Start from a Template</Title>
-                    <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>100+ professionally designed templates. Filter by industry and customize everything.</Text>
-                    
-                    <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(59, 130, 246, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => setActiveTab('websites')}>
-                      <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-info)' }}>Browse Templates →</Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              </Col>
-
-              <Col xs={24} lg={8}>
-                <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                  <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Code size={22} color="var(--accent-warning)" /> Import or Upload Code</Title>
-                    <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>Upload HTML/CSS/JS files, paste code, or import from Webflow, Figma, or WordPress.</Text>
-                    
-                    <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(245, 158, 11, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => setActiveTab('websites')}>
-                      <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-warning)' }}>Import Site →</Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              </Col>
-            </Row>
-
-            <motion.div variants={itemVariants}>
+  const renderOverviewContent = () => (
+    <motion.div variants={itemVariants}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+        {[
+          { label: 'SITE HEALTH SCORE', val: '88/100', sub: '▲ +4 this month', alert: '2 critical · 14 warnings', showRing: true, color: 'var(--accent-primary)' },
+          { label: 'MONTHLY VISITORS', val: '48,200', sub: '▲ +15%', alert: 'Organic: 54% · Paid: 26% · Direct: 20%', color: 'var(--accent-info)' },
+          { label: 'CONVERSION RATE', val: '3.8%', sub: '▲ +0.4%', alert: '1,842 conversions this month', color: 'var(--accent-primary)' },
+          { label: 'PAGE SPEED SCORE', val: '91/100', badge: 'Good ✓', alert: 'LCP: 2.1s · CLS: 0.08 · INP: 84ms', color: 'var(--accent-warning)' },
+          { label: 'ACTIVE PAGES', val: '48', sub: '▲ +2 new this month', alert: '12 landing · 6 blog · 30 core', color: 'var(--accent-secondary)' },
+        ].map((kpi, i) => (
+          <Col style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+            <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <Card 
-                title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Activity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Changes across all sites — last 7 days</Text></div>} 
-                extra={<Button type="link" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-secondary)' }}>View Full History →</Button>}
-                className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
+                bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }} 
+                style={{ 
+                  borderRadius: 12, 
+                  height: '100%',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-sm)',
+                  overflow: 'hidden'
+                }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingLeft: 8 }}>
-                  {[
-                    { user: 'Divya Das', action: 'published "Prestige Somerville — Phase 2 launch page"', site: 'prestigeestates.com/somerville-ph2', time: '2 hrs ago', dot: 'var(--accent-primary)' },
-                    { user: 'Arjun Sharma', action: 'edited Homepage hero section', site: 'Main Website', time: '2 days ago', dot: 'var(--accent-info)' },
-                    { user: 'AI Co-pilot', action: 'wrote 14 meta descriptions missing across 14 pages', site: 'Main Website', time: 'Yesterday', dot: 'var(--accent-warning)' },
-                    { user: 'Whitefield landing page', action: 'published — now live', site: 'prestigeestates.com/whitefield', time: 'Yesterday', dot: 'var(--accent-primary)' },
-                    { user: 'Conversion rate improved 0.4%', action: '— A/B test concluded - Variant B wins', site: 'Q2 Campaign page', time: '3 days ago', dot: 'var(--accent-primary)' },
-                  ].map((log, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 20, position: 'relative' }}>
-                      {i !== 4 && <div style={{ position: 'absolute', top: 24, left: 6, width: 2, height: 'calc(100% + 4px)', background: 'var(--border-color)' }} />}
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: log.dot, border: '3px solid var(--bg-secondary)', zIndex: 1, marginTop: 4, boxShadow: `0 0 0 1px ${log.dot}` }} />
-                      <div>
-                        <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{log.user}</strong> <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>{log.action}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                          <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>{log.site}</Tag>
-                          <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{log.time}</Text>
-                        </div>
-                      </div>
+                <div style={{ 
+                  height: 32, 
+                  background: 'var(--bg-tertiary)', 
+                  borderBottom: '1px solid var(--border-color)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0 12px',
+                  gap: 6
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }} />
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }} />
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }} />
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: '40%', height: 6, background: 'var(--border-color)', borderRadius: 4 }} />
+                  </div>
+                </div>
+
+                <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>{kpi.label}</Text>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <div>
+                      <Title level={2} style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{kpi.val}</Title>
+                      {kpi.sub && <Text style={{ fontSize: 13, color: kpi.color, display: 'block', fontWeight: 600 }}>{kpi.sub}</Text>}
                     </div>
-                  ))}
+                    
+                    {kpi.showRing && (
+                      <div style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: '50%', 
+                        border: '4px solid var(--accent-primary)', 
+                        borderTopColor: 'transparent', 
+                        transform: 'rotate(45deg)' 
+                      }} />
+                    )}
+                    
+                    {kpi.badge && <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 8px', margin: 0 }}>{kpi.badge}</Tag>}
+                  </div>
+                  
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 'auto', paddingTop: 16, fontWeight: 500 }}>{kpi.alert}</Text>
                 </div>
               </Card>
             </motion.div>
+          </Col>
+        ))}
+      </Row>
+
+      <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
+        <Col xs={24} lg={8}>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
+            <Card style={{ borderRadius: 16, border: '2px solid var(--accent-secondary)', background: 'var(--bg-secondary)', height: '100%', boxShadow: '0 8px 24px rgba(13, 148, 136, 0.08)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Sparkles size={22} color="var(--accent-secondary)" /> Generate with AI</Title>
+              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 500 }}>Describe the website you want. Our AI builds it in under 60 seconds — full pages, copy, layout, and images.</Text>
+              <Input.TextArea rows={4} placeholder="e.g. A luxury real estate landing page for Prestige estates with hero, features, gallery, and lead form..." style={{ borderRadius: 12, marginBottom: 20, fontSize: 14, padding: 12 }} />
+              <Button type="primary" icon={<Sparkles size={18} />} onClick={() => handleTabClick('websites')} style={{ width: '100%', borderRadius: 12, background: 'var(--accent-secondary)', height: 48, marginTop: 'auto', fontWeight: 700, fontSize: 15, border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Site</Button>
+            </Card>
           </motion.div>
-        );
-    }
-  };
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
+            <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><LayoutTemplate size={22} color="var(--accent-info)" /> Start from a Template</Title>
+              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>100+ professionally designed templates. Filter by industry and customize everything.</Text>
+              
+              <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(59, 130, 246, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => { setWebsiteInitialAction('openTemplates'); handleTabClick('websites'); }}>
+                <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-info)' }}>Browse Templates →</Button>
+              </div>
+            </Card>
+          </motion.div>
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
+            <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Code size={22} color="var(--accent-warning)" /> Import or Upload Code</Title>
+              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>Upload HTML/CSS/JS files, paste code, or import from Webflow, Figma, or WordPress.</Text>
+              
+              <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(245, 158, 11, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => handleTabClick('websites')}>
+                <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-warning)' }}>Import Site →</Button>
+              </div>
+            </Card>
+          </motion.div>
+        </Col>
+      </Row>
+
+      <motion.div variants={itemVariants}>
+        <Card 
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Activity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Changes across all sites — last 7 days</Text></div>} 
+          extra={<Button type="link" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-secondary)' }}>View Full History →</Button>}
+          className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingLeft: 8 }}>
+            {[
+              { user: 'Divya Das', action: 'published "Prestige Somerville — Phase 2 launch page"', site: 'prestigeestates.com/somerville-ph2', time: '2 hrs ago', dot: 'var(--accent-primary)' },
+              { user: 'Arjun Sharma', action: 'edited Homepage hero section', site: 'Main Website', time: '2 days ago', dot: 'var(--accent-info)' },
+              { user: 'AI Co-pilot', action: 'wrote 14 meta descriptions missing across 14 pages', site: 'Main Website', time: 'Yesterday', dot: 'var(--accent-warning)' },
+              { user: 'Whitefield landing page', action: 'published — now live', site: 'prestigeestates.com/whitefield', time: 'Yesterday', dot: 'var(--accent-primary)' },
+              { user: 'Conversion rate improved 0.4%', action: '— A/B test concluded - Variant B wins', site: 'Q2 Campaign page', time: '3 days ago', dot: 'var(--accent-primary)' },
+            ].map((log, i) => (
+              <div key={i} style={{ display: 'flex', gap: 20, position: 'relative' }}>
+                {i !== 4 && <div style={{ position: 'absolute', top: 24, left: 6, width: 2, height: 'calc(100% + 4px)', background: 'var(--border-color)' }} />}
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: log.dot, border: '3px solid var(--bg-secondary)', zIndex: 1, marginTop: 4, boxShadow: `0 0 0 1px ${log.dot}` }} />
+                <div>
+                  <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{log.user}</strong> <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>{log.action}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                    <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>{log.site}</Tag>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{log.time}</Text>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </motion.div>
+    </motion.div>
+  );
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -222,7 +221,7 @@ const WebsiteBuilder = () => {
         {tabs.map((tab) => (
           <div 
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             style={{ 
               padding: '12px 16px', 
               color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -243,20 +242,27 @@ const WebsiteBuilder = () => {
       </motion.div>
 
       {/* Tab Content Area */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial="hidden"
-          animate="visible"
-          exit={{ opacity: 0, y: -10 }}
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0, transition: { duration: 0.2, staggerChildren: 0.05 } }
-          }}
-        >
-          {renderActiveTab()}
-        </motion.div>
-      </AnimatePresence>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0, y: 10 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.2, staggerChildren: 0.05 } }
+        }}
+      >
+        <Routes>
+          <Route path="funnels" element={<FunnelsTab itemVariants={itemVariants} />} />
+          <Route path="websites" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
+          <Route path="stores" element={<StoresTab itemVariants={itemVariants} />} />
+          <Route path="forms" element={<FormsTab itemVariants={itemVariants} />} />
+          <Route path="blogs" element={<BlogsTab itemVariants={itemVariants} />} />
+          <Route path="qr-links" element={<QRLinksTab itemVariants={itemVariants} />} />
+          <Route path="chat-widgets" element={<ChatWidgetsTab itemVariants={itemVariants} />} />
+          <Route path="domains" element={<DomainsTab itemVariants={itemVariants} />} />
+          <Route path="overview" element={renderOverviewContent()} />
+          <Route path="*" element={<Navigate to="overview" replace />} />
+        </Routes>
+      </motion.div>
     </motion.div>
   );
 };

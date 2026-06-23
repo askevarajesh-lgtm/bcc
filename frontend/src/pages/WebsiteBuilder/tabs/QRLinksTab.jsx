@@ -368,65 +368,81 @@ const QRLinksTab = ({ itemVariants }) => {
   const [activeQR, setActiveQR] = useState(null);
 
   useEffect(() => {
-    const savedQRs = localStorage.getItem("tunepath_qrcodes");
-    if (savedQRs) {
+    const fetchQRs = async () => {
+      if (view !== "list") return;
       try {
-        setQrs(JSON.parse(savedQRs));
-      } catch (e) {
-        console.error("Failed to parse qrcodes from local storage");
-      }
-    } else {
-      setQrs([
-        {
-          key: '1',
-          name: 'QR-1781009828',
-          slug: 'qr-1781009828',
-          type: 'Website',
-          scans: 12,
-          scanLink: 'https://jeema.one/q/qr-1781009828',
-          foreground: 'var(--accent-primary)',
-          background: '#ffffff',
-          shape: 'Square'
-        },
-        {
-          key: '2',
-          name: 'QR-1780906178',
-          slug: 'qr-1780906178',
-          type: 'WiFi',
-          scans: 45,
-          scanLink: 'Direct (device action)',
-          foreground: 'var(--accent-primary)',
-          background: '#ffffff',
-          shape: 'Square'
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/qrs", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setQrs(data.data.map(q => ({
+            key: q._id,
+            name: q.name,
+            slug: q.slug,
+            type: q.type,
+            scans: q.scansCount || 0,
+            scanLink: q.customUrl || `https://jeema.one/scan/${q.slug}`,
+            foreground: q.foreground,
+            background: q.background,
+            shape: q.shape,
+            ...q
+          })));
         }
-      ]);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tunepath_qrcodes", JSON.stringify(qrs));
-  }, [qrs]);
-
-  const handleCreateQR = (formData) => {
-    const newQR = {
-      key: Date.now().toString(),
-      name: formData.name,
-      slug: formData.name.toLowerCase(),
-      type: formData.type,
-      scans: 0,
-      scanLink: formData.customUrl || `https://jeema.one/q/${formData.name.toLowerCase()}`,
-      foreground: formData.foreground,
-      background: formData.background,
-      shape: formData.shape
+      } catch (err) {
+        console.error("Failed to fetch QRs", err);
+      }
     };
-    setQrs([newQR, ...qrs]);
-    setActiveQR(newQR);
-    setView("manage");
+    fetchQRs();
+  }, [view]);
+
+  const handleCreateQR = async (formData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/qrs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          type: formData.type,
+          customUrl: formData.customUrl,
+          foreground: formData.foreground,
+          background: formData.background,
+          shape: formData.shape
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        const newQR = { ...resData.data, key: resData.data._id, scans: 0, scanLink: resData.data.customUrl || `https://jeema.one/scan/${resData.data.slug}` };
+        setActiveQR(newQR);
+        setView("manage");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteQR = (key) => {
-    setQrs(qrs.filter(q => q.key !== key));
-    setView("list");
+  const handleDeleteQR = async (key) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/qrs/${key}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setQrs(qrs.filter(q => q.key !== key));
+        setView("list");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const renderList = () => {
