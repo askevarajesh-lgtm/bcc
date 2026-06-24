@@ -1,0 +1,24 @@
+{
+  "templateName": "Newsletter Signup Form",
+  "category": "Marketing",
+  "description": "Allow users to subscribe to your newsletter.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Your Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Your Email",
+      "required": true
+    }
+  ]
+}

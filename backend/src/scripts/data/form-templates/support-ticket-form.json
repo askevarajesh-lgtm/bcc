@@ -1,0 +1,51 @@
+{
+  "templateName": "Support Ticket Form",
+  "category": "Customer Support",
+  "description": "Allow customers to submit support requests.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Email",
+      "label": "Your Email",
+      "placeholder": "Email",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Text Field",
+      "label": "Subject",
+      "placeholder": "Brief description of the issue",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Select",
+      "label": "Category",
+      "placeholder": "Select Category",
+      "required": true,
+      "options": [
+        "Billing",
+        "Technical",
+        "General Inquiry",
+        "Bug Report"
+      ]
+    },
+    {
+      "id": "field-4",
+      "type": "Text Area",
+      "label": "Description",
+      "placeholder": "Detailed explanation",
+      "required": true
+    },
+    {
+      "id": "field-5",
+      "type": "File Upload",
+      "label": "Screenshot",
+      "placeholder": "Upload screenshot",
+      "required": false
+    }
+  ]
+}

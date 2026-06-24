@@ -1,0 +1,38 @@
+{
+  "templateName": "Complaint Form",
+  "category": "Customer Support",
+  "description": "Allow customers to formally submit complaints.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Name",
+      "required": false
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Date Field",
+      "label": "Date of Incident",
+      "placeholder": "Date",
+      "required": false
+    },
+    {
+      "id": "field-4",
+      "type": "Text Area",
+      "label": "Complaint Details",
+      "placeholder": "Describe the issue",
+      "required": true
+    }
+  ]
+}

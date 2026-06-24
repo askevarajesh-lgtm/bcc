@@ -1,0 +1,50 @@
+{
+  "templateName": "Appointment Booking Form",
+  "category": "Services",
+  "description": "Book an appointment with your team.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Your Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Your Email",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Phone",
+      "label": "Phone",
+      "placeholder": "Your Phone",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "Date Field",
+      "label": "Preferred Date",
+      "placeholder": "Select Date",
+      "required": true
+    },
+    {
+      "id": "field-5",
+      "type": "Select",
+      "label": "Service",
+      "placeholder": "Select Service",
+      "required": true,
+      "options": [
+        "Consultation",
+        "Follow-up",
+        "Support"
+      ]
+    }
+  ]
+}

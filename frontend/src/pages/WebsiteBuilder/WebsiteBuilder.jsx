@@ -262,7 +262,7 @@ const WebsiteBuilder = () => {
       >
         <Routes>
           <Route path="funnels" element={<FunnelsTab itemVariants={itemVariants} />} />
-          <Route path="websites" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
+          <Route path="websites/*" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
           <Route path="stores" element={<StoresTab itemVariants={itemVariants} />} />
           <Route path="forms" element={<FormsTab itemVariants={itemVariants} />} />
           <Route path="blogs" element={<BlogsTab itemVariants={itemVariants} />} />

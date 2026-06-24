@@ -34,7 +34,7 @@ const BuilderRouteWrapper = () => {
           setActivePage(pageData.data);
         } else {
           message.error("Failed to load page data.");
-          navigate('/workspace/website');
+          navigate(`/workspace/website/websites/${websiteId}`);
         }
       } catch (err) {
         console.error("Error fetching builder data:", err);
@@ -62,7 +62,7 @@ const BuilderRouteWrapper = () => {
       <GrapesJSBuilder 
         activeWebsite={activeWebsite} 
         activePage={activePage} 
-        setEditingPage={() => navigate('/workspace/website')} 
+        setEditingPage={() => navigate(`/workspace/website/websites/${websiteId}`)} 
         onSave={() => {}} // Save is handled inside GrapesJSBuilder
       />
     </div>

@@ -1,0 +1,36 @@
+{
+  "templateName": "Callback Request Form",
+  "category": "Sales",
+  "description": "Users can request a call back from your team.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Your Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Phone",
+      "label": "Phone Number",
+      "placeholder": "Your Phone",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Select",
+      "label": "Best time to call",
+      "placeholder": "Select Time",
+      "required": false,
+      "options": [
+        "Morning",
+        "Afternoon",
+        "Evening"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+/* Premium Light Theme for GrapesJS */
+
+/* 1. Global Variables Override */
+.gjs-editor-cont {
+  --gjs-primary-color: #ffffff; /* Panels */
+  --gjs-secondary-color: #f8fafc; /* Backgrounds */
+  --gjs-tertiary-color: #e2e8f0; /* Borders */
+  --gjs-quaternary-color: #334155; /* Text */
+  --gjs-font-color: #334155;
+  --gjs-font-color-active: #2563eb; /* Primary Blue Accent */
+  
+  --gjs-main-color: #ffffff;
+  --gjs-color-active: #2563eb;
+  --gjs-color-highlight: rgba(37, 99, 235, 0.1);
+  --gjs-color-warn: #f59e0b;
+  
+  --gjs-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gjs-font-size: 13px;
+}
+
+/* 2. Base Editor Layout & Typography */
+.gjs-editor {
+  font-family: var(--gjs-font-family) !important;
+  background: var(--gjs-secondary-color) !important;
+  color: var(--gjs-font-color) !important;
+}
+
+/* Shift the canvas to the right and sidebar to the left */
+.gjs-cv-canvas {
+  width: calc(100% - 280px) !important;
+  left: 280px !important;
+  top: 0 !important;
+  right: auto !important;
+  background-color: var(--gjs-secondary-color) !important;
+}
+
+/* Scrollbars */
+.gjs-editor ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.gjs-editor ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.gjs-editor ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.gjs-editor ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 3. Top / Left / Right Panels */
+.gjs-pn-views-container {
+  left: 0 !important;
+  right: auto !important;
+  width: 280px !important;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.03) !important;
+  border-right: 1px solid #f1f5f9 !important;
+  border-left: none !important;
+  background: var(--gjs-primary-color) !important;
+  z-index: 5 !important;
+  top: 40px !important;
+  height: calc(100% - 40px) !important;
+}
+
+.gjs-pn-panel {
+  background-color: var(--gjs-primary-color) !important;
+  border-color: var(--gjs-tertiary-color) !important;
+  color: var(--gjs-font-color) !important;
+}
+
+.gjs-pn-commands {
+  width: 100% !important;
+}
+
+.gjs-pn-options {
+  left: 280px !important;
+  right: auto !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.gjs-pn-views {
+  left: 0 !important;
+  right: auto !important;
+  border-bottom: 1px solid var(--gjs-tertiary-color) !important;
+  width: 280px !important;
+  z-index: 10 !important;
+  top: 0 !important;
+}
+
+.gjs-pn-devices-c {
+  left: calc(50% + 140px) !important;
+  transform: translateX(-50%) !important;
+  background: transparent !important;
+}
+
+/* 4. Blocks (Drag & Drop Items) */
+.gjs-blocks-c {
+  padding: 16px;
+  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #ffffff !important;
+}
+
+.gjs-block {
+  background: #ffffff !important;
+  border: 1px solid #f1f5f9 !important;
+  border-radius: 16px !important;
+  padding: 24px 12px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  width: auto !important;
+}
+
+.gjs-block:hover {
+  border-color: var(--gjs-color-active) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1);
+}
+
+.gjs-block-label {
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  margin-top: 10px !important;
+  color: #475569 !important;
+  text-align: center;
+}
+
+.gjs-block svg {
+  width: 28px !important;
+  height: 28px !important;
+  fill: #64748b !important;
+  transition: fill 0.2s;
+}
+
+.gjs-block:hover svg {
+  fill: var(--gjs-color-active) !important;
+}
+
+/* Category Headers */
+.gjs-block-category {
+  border-bottom: none !important;
+  margin-bottom: 8px;
+}
+.gjs-block-category .gjs-title {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+  padding: 16px !important;
+}
+
+/* 5. Style Manager Sectors */
+.gjs-sm-sector {
+  border-bottom: 1px solid var(--gjs-tertiary-color) !important;
+}
+.gjs-sm-sector .gjs-sm-title {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid var(--gjs-tertiary-color) !important;
+  font-weight: 700 !important;
+  color: var(--gjs-font-color) !important;
+  padding: 12px 16px !important;
+}
+
+.gjs-sm-property {
+  padding: 12px 16px !important;
+}
+
+/* Inputs & Selects inside Style Manager */
+.gjs-field {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+.gjs-field input, .gjs-field select {
+  color: #334155 !important;
+  font-family: var(--gjs-font-family) !important;
+  font-size: 12px !important;
+}
+
+/* 6. Buttons & Toolbar Icons */
+.gjs-pn-btn {
+  color: #64748b !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease;
+  margin: 2px !important;
+}
+.gjs-pn-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.gjs-pn-btn.gjs-pn-active {
+  background-color: var(--gjs-color-highlight) !important;
+  color: var(--gjs-color-active) !important;
+  box-shadow: none !important;
+}
+
+/* Canvas Toolbar (The hover toolbar on elements) */
+.gjs-toolbar {
+  background-color: #ffffff !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  padding: 4px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.gjs-toolbar-item {
+  border-radius: 4px !important;
+  margin: 0 2px !important;
+  color: #334155 !important;
+}
+.gjs-toolbar-item:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Hover & Selection Highlights */
+.gjs-cv-canvas .gjs-hovered {
+  outline: 2px solid var(--gjs-color-active) !important;
+  outline-offset: -2px;
+}
+.gjs-cv-canvas .gjs-selected {
+  outline: 2px solid var(--gjs-color-active) !important;
+  outline-offset: -2px;
+}
+
+/* 7. Preview Mode Overrides */
+.is-previewing .gjs-cv-canvas {
+  width: 100% !important;
+  left: 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.is-previewing .gjs-pn-views-container,
+.is-previewing .gjs-pn-views {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.is-previewing .gjs-pn-options {
+  left: auto !important;
+  right: 20px !important;
+  top: 20px !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  gap: 10px;
+}
+
+.is-previewing .gjs-pn-btn {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+  border-radius: 50% !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.is-previewing .gjs-pn-btn:hover {
+  background: #1e293b !important;
+  transform: scale(1.05);
+}

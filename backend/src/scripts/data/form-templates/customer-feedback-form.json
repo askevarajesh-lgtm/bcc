@@ -1,0 +1,44 @@
+{
+  "templateName": "Customer Feedback Form",
+  "category": "Customer Success",
+  "description": "Gather feedback from your customers.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Name",
+      "required": false
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email",
+      "required": false
+    },
+    {
+      "id": "field-3",
+      "type": "Radio Group",
+      "label": "How would you rate our service?",
+      "placeholder": "",
+      "required": true,
+      "options": [
+        "Excellent",
+        "Good",
+        "Average",
+        "Poor"
+      ]
+    },
+    {
+      "id": "field-4",
+      "type": "Text Area",
+      "label": "Comments",
+      "placeholder": "Any additional feedback?",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "templateName": "Service Request Form",
+  "category": "Services",
+  "description": "Request a specific service from your team.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Phone",
+      "label": "Phone",
+      "placeholder": "Phone",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "Select",
+      "label": "Service Type",
+      "placeholder": "Select Service",
+      "required": true,
+      "options": [
+        "Maintenance",
+        "Installation",
+        "Repair"
+      ]
+    },
+    {
+      "id": "field-5",
+      "type": "Text Area",
+      "label": "Additional Details",
+      "placeholder": "Describe what you need",
+      "required": false
+    }
+  ]
+}

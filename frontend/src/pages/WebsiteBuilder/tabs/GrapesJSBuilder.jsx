@@ -1,14 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
+import './grapesjs-theme.css'; // Premium custom theme override
 import webpagePlugin from 'grapesjs-preset-webpage';
 import { Button, message } from 'antd';
 import { ArrowLeft } from 'lucide-react';
+import CustomImagePanel from './CustomImagePanel';
+import MediaStorageModal from './MediaStorageModal';
 
 const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -19,6 +25,16 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       height: '100%',
       width: 'auto',
       storageManager: false, // We'll handle saving manually
+      assetManager: {
+        custom: {
+          open() {
+            setIsMediaModalOpen(true);
+          },
+          close() {
+            setIsMediaModalOpen(false);
+          }
+        }
+      },
       plugins: [webpagePlugin],
       pluginsOpts: {
         'grapesjs-preset-webpage': {
@@ -44,7 +60,64 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
 
     setEditor(e);
 
-    // Hide common HTML template preloaders/spiners inside the canvas
+    // Fetch forms and register them as GrapesJS blocks
+    const loadForms = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/forms", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        
+        if (data.success && Array.isArray(data.data)) {
+          data.data.forEach(form => {
+            const embedUrl = `${window.location.origin}/embed/form/${form._id}`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; min-height:520px; border:0; border-radius:16px;"></iframe>`;
+            
+            e.BlockManager.add(`form-${form._id}`, {
+              label: form.name,
+              category: 'Forms',
+              content: iframeCode,
+              attributes: { class: 'fa fa-wpforms' }, // simple icon representation
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch forms for GrapesJS", err);
+      }
+    };
+
+    // Fetch blogs and register them as GrapesJS blocks
+    const loadBlogs = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/blogs", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        
+        if (data.success && Array.isArray(data.data)) {
+          data.data.forEach(blog => {
+            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; min-height:600px; border:0; border-radius:16px;"></iframe>`;
+            
+            e.BlockManager.add(`blog-${blog._id}`, {
+              label: blog.name,
+              category: 'Blogs',
+              content: iframeCode,
+              attributes: { class: 'fa fa-newspaper-o' }, // FontAwesome newspaper icon
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch blogs for GrapesJS", err);
+      }
+    };
+
+    loadForms();
+    loadBlogs();
+
+    // Hide common HTML template preloaders/spinners inside the canvas
     e.on('load', () => {
       try {
         const doc = e.Canvas.getDocument();
@@ -71,7 +144,48 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       } catch (err) {
         console.error("Error injecting canvas styles", err);
       }
+
+      // Add 'src' to the image component's traits so it's easily editable in the Settings panel
+      try {
+        const domc = e.DomComponents;
+        const imgType = domc.getType('image');
+        if (imgType) {
+          domc.addType('image', {
+            model: {
+              defaults: {
+                traits: [
+                  {
+                    type: 'text',
+                    label: 'Image URL',
+                    name: 'src',
+                    placeholder: 'https://example.com/image.jpg'
+                  },
+                  {
+                    type: 'text',
+                    label: 'Alt Text',
+                    name: 'alt',
+                    placeholder: 'eg. Text here'
+                  }
+                ]
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error updating image traits", err);
+      }
     });
+
+    e.on('component:selected', (component) => {
+      setSelectedComponent(component);
+    });
+    
+    e.on('component:deselected', () => {
+      setSelectedComponent(null);
+    });
+
+    e.on('run:core:preview', () => setIsPreviewing(true));
+    e.on('stop:core:preview', () => setIsPreviewing(false));
 
     return () => {
       e.destroy();
@@ -111,41 +225,76 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Custom Top Bar */}
-      <div style={{ 
+    <div className={`builder-container ${isPreviewing ? 'is-previewing' : ''}`} style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Custom Premium Top Bar */}
+      {!isPreviewing && (
+        <div style={{ 
         height: '60px', 
-        background: '#1a1a1a', 
+        background: '#0f172a', // Deep Navy from reference
+        borderBottom: '1px solid #1e293b',
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
         padding: '0 24px',
-        color: '#fff',
-        flexShrink: 0
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        zIndex: 10
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Button 
             type="text" 
-            style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }} 
+            icon={<ArrowLeft size={16} />} 
             onClick={() => setEditingPage(null)}
+            style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', fontWeight: 600, padding: '4px 8px', borderRadius: 6 }}
           >
-            <ArrowLeft size={16} /> Back
+            Back
           </Button>
-          <div style={{ fontWeight: 600, fontSize: '16px' }}>
-            Jeema Builder: <span style={{ opacity: 0.7 }}>{activePage.title}</span>
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }}></div>
+          <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 15, letterSpacing: 0.3 }}>
+            Jeema Builder: <span style={{ color: '#3b82f6' }}>{activePage.title}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Button type="primary" loading={saving} onClick={handleSave} style={{ background: '#3b82f6', border: 'none', fontWeight: 600 }}>
-            Save
+        
+        <div>
+          <Button 
+            type="primary" 
+            onClick={handleSave} 
+            loading={saving}
+            style={{ background: '#3b82f6', color: '#ffffff', border: 'none', fontWeight: 700, borderRadius: 6, padding: '0 20px', height: 36, boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)' }}
+          >
+            Save Changes
           </Button>
         </div>
       </div>
+      )}
 
       {/* Editor Container */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <div ref={editorRef} style={{ height: '100%' }}></div>
+        
+        {/* Custom Image Panel */}
+        {!isPreviewing && selectedComponent && selectedComponent.is('image') && (
+          <CustomImagePanel 
+            editor={editor}
+            selectedComponent={selectedComponent}
+            onClose={() => editor.select(null)}
+            onOpenMedia={() => setIsMediaModalOpen(true)}
+          />
+        )}
       </div>
+
+      <MediaStorageModal 
+        isOpen={isMediaModalOpen} 
+        onClose={() => setIsMediaModalOpen(false)} 
+        onSelectImage={(url) => {
+          if (selectedComponent && selectedComponent.is('image')) {
+            selectedComponent.addAttributes({ src: url });
+          } else {
+            // If they opened Asset Manager without selecting image (e.g. from top bar), GrapesJS expects asset to be added
+            editor.AssetManager.add(url);
+          }
+          setIsMediaModalOpen(false);
+        }}
+      />
       
       <style dangerouslySetInnerHTML={{__html: `
         .gjs-cv-canvas {

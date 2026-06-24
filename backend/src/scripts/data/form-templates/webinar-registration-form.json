@@ -1,0 +1,38 @@
+{
+  "templateName": "Webinar Registration Form",
+  "category": "Events",
+  "description": "Register attendees for your upcoming webinar.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "First Name",
+      "placeholder": "First Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Text Field",
+      "label": "Last Name",
+      "placeholder": "Last Name",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Email",
+      "label": "Email Address",
+      "placeholder": "Email Address",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "Text Field",
+      "label": "Job Title",
+      "placeholder": "Your Title",
+      "required": false
+    }
+  ]
+}

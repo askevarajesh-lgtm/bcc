@@ -1,0 +1,45 @@
+{
+  "templateName": "Job Application Form",
+  "category": "HR",
+  "description": "Accept applications for open positions.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Full Name",
+      "placeholder": "Full Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email Address",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Phone",
+      "label": "Phone Number",
+      "placeholder": "Phone Number",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "File Upload",
+      "label": "Resume / CV",
+      "placeholder": "Upload File",
+      "required": true
+    },
+    {
+      "id": "field-5",
+      "type": "Text Field",
+      "label": "LinkedIn Profile",
+      "placeholder": "URL",
+      "required": false
+    }
+  ]
+}

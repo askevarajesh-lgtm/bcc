@@ -1,0 +1,43 @@
+{
+  "templateName": "Customer Survey Form",
+  "category": "Customer Success",
+  "description": "In-depth survey to understand customer needs.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Radio Group",
+      "label": "How often do you use our product?",
+      "placeholder": "",
+      "required": true,
+      "options": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Rarely"
+      ]
+    },
+    {
+      "id": "field-2",
+      "type": "Select",
+      "label": "What is your primary goal?",
+      "placeholder": "Select Goal",
+      "required": true,
+      "options": [
+        "Save Time",
+        "Save Money",
+        "Grow Business",
+        "Other"
+      ]
+    },
+    {
+      "id": "field-3",
+      "type": "Text Area",
+      "label": "What feature would you like to see next?",
+      "placeholder": "Describe feature",
+      "required": false
+    }
+  ]
+}

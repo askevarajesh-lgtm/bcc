@@ -5,16 +5,18 @@ const mongoose = require('mongoose');
 // Create Form
 exports.createForm = async (req, res, next) => {
   try {
-    const { name, type } = req.body;
+    const { name, type, fields, settings } = req.body;
     const workspaceId = req.workspaceId;
 
     if (!name) {
       return res.status(400).json({ success: false, error: 'Form name is required' });
     }
 
-    const defaultFields = [];
-    if (type === 'template' || type === 'templates') {
-      defaultFields.push(
+    let initialFields = [];
+    if (fields && Array.isArray(fields) && fields.length > 0) {
+      initialFields = fields;
+    } else if (type === 'template' || type === 'templates') {
+      initialFields.push(
         { label: 'First Name', type: 'text', required: true, placeholder: 'Jane', order: 0 },
         { label: 'Last Name', type: 'text', required: true, placeholder: 'Doe', order: 1 },
         { label: 'Phone', type: 'text', required: true, placeholder: 'Phone', order: 2 },
@@ -26,7 +28,8 @@ exports.createForm = async (req, res, next) => {
       workspaceId,
       name,
       status: 'Published',
-      fields: defaultFields,
+      fields: initialFields,
+      settings: settings || {},
       createdBy: req.user?._id,
       updatedBy: req.user?._id
     });
@@ -70,11 +73,35 @@ exports.getFormDetails = async (req, res, next) => {
   }
 };
 
-// Update Form Structure / Fields
+// Get Public Form Details (for Embed)
+exports.getPublicForm = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    // We only check if the form exists and is not deleted. We do not check workspaceId because this is public.
+    const form = await Form.findOne({ _id: id, isDeleted: false, status: 'Published' });
+    if (!form) {
+      return res.status(404).json({ success: false, error: 'Form not found or not published' });
+    }
+    // Return only necessary public data (exclude sensitive IDs like createdBy if any, though it's relatively safe)
+    res.json({ 
+      success: true, 
+      data: {
+        _id: form._id,
+        name: form.name,
+        fields: form.fields,
+        settings: form.settings
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update Form Structure / Fields / Settings
 exports.updateForm = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, status, fields } = req.body;
+    const { name, status, fields, settings } = req.body;
 
     const form = await Form.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
     if (!form) {
@@ -84,6 +111,9 @@ exports.updateForm = async (req, res, next) => {
     if (name) form.name = name;
     if (status) form.status = status;
     if (fields) form.fields = fields;
+    if (settings) {
+      form.settings = { ...form.settings, ...settings };
+    }
     form.updatedBy = req.user?._id;
 
     const saved = await form.save();
@@ -270,6 +300,16 @@ exports.getFormAnalytics = async (req, res, next) => {
         submissionsPerForm
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteSubmission = async (req, res, next) => {
+  try {
+    const FormSubmission = require('./form-submission.model');
+    await FormSubmission.findByIdAndUpdate(req.params.id, { isDeleted: true });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

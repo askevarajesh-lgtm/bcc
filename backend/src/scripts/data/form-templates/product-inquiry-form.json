@@ -1,0 +1,38 @@
+{
+  "templateName": "Product Inquiry Form",
+  "category": "Sales",
+  "description": "For users asking questions about specific products.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Name",
+      "placeholder": "Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Text Field",
+      "label": "Product Name",
+      "placeholder": "Which product?",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "Text Area",
+      "label": "Your Question",
+      "placeholder": "Ask your question",
+      "required": true
+    }
+  ]
+}

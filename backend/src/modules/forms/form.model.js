@@ -12,6 +12,22 @@ const FormSchema = new mongoose.Schema({
     options: [{ type: String }],
     order: { type: Number, required: true }
   }],
+  settings: {
+    headline: { type: String, default: "" },
+    subHeadline: { type: String, default: "" },
+    accentColor: { type: String, default: "#3b82f6" },
+    submitButtonLabel: { type: String, default: "Submit" },
+    successMessage: { type: String, default: "Thank you — we received your submission." },
+    trackingPixels: {
+      metaPixelId: { type: String, default: "" },
+      googleAnalyticsId: { type: String, default: "" },
+      googleTagManagerId: { type: String, default: "" },
+      tiktokPixelId: { type: String, default: "" },
+      fireMetaLeadEvent: { type: Boolean, default: false }
+    },
+    customHeadCode: { type: String, default: "" },
+    customBodyCode: { type: String, default: "" }
+  },
   isDeleted: { type: Boolean, default: false, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId },
   updatedBy: { type: mongoose.Schema.Types.ObjectId }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message } from "antd";
 import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import WebsiteTemplateLibraryModal from "./WebsiteTemplateLibraryModal";
 
@@ -206,6 +206,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [description, setDescription] = useState(activeWebsite.description || "");
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAddPage = () => {
     if (!newPageTitle.trim()) return;
@@ -277,7 +278,10 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => setView("list")}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => {
+        const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
+        navigate(basePath);
+      }}>
         <ArrowLeft size={16} /> Back to Websites
       </div>
 
@@ -486,7 +490,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                       </div>
                       <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
                         {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
-                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />}>Preview</Button>
+                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
                         {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
                         {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
                       </div>
@@ -515,6 +519,47 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [websites, setWebsites] = useState([]);
   const [activeWebsite, setActiveWebsite] = useState(null);
   const [view, setView] = useState("list");
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const fetchWebsiteDetails = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${id}`, {
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setActiveWebsite({
+          ...resData.data,
+          key: resData.data._id,
+          pages: resData.data.pages || [],
+          isNew: false
+        });
+        setView("manage");
+      } else {
+        // If not found, go back to list
+        const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
+        navigate(basePath, { replace: true });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    const match = location.pathname.match(/\/websites\/([a-zA-Z0-9_-]+)$/);
+    if (match) {
+      const websiteId = match[1];
+      if (!activeWebsite || activeWebsite.key !== websiteId) {
+        fetchWebsiteDetails(websiteId);
+      }
+    } else {
+      setView("list");
+      setActiveWebsite(null);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (initialAction === 'openTemplates') {
@@ -625,8 +670,9 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           setWebsites([newWebsite, ...websites]);
           setIsModalOpen(false);
           setIsTemplateModalOpen(false);
-          setActiveWebsite(newWebsite);
-          setView("manage");
+          // Navigate to the new website to load it properly
+          const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
+          navigate(`${basePath}/${newWebsite.key}`);
         }
       } catch (err) {
         console.error(err);
@@ -671,27 +717,9 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       key: "actions",
       align: "right",
       render: (_, r) => {
-        const handleManage = async () => {
-          try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`/api/websites/${r.key}`, {
-              headers: {
-                "Authorization": token ? `Bearer ${token}` : ""
-              }
-            });
-            const resData = await res.json();
-            if (resData.success) {
-              setActiveWebsite({
-                ...resData.data,
-                key: resData.data._id,
-                pages: resData.data.pages || [],
-                isNew: false
-              });
-              setView("manage");
-            }
-          } catch (err) {
-            console.error("Error fetching website details", err);
-          }
+        const handleManage = () => {
+          const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
+          navigate(`${basePath}/${r.key}`);
         };
 
         const menuItems = [

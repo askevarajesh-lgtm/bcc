@@ -1,0 +1,49 @@
+{
+  "templateName": "Event Registration Form",
+  "category": "Events",
+  "description": "General event registration form.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Full Name",
+      "placeholder": "Full Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email Address",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Select",
+      "label": "Ticket Type",
+      "placeholder": "Select Ticket",
+      "required": true,
+      "options": [
+        "General Admission",
+        "VIP",
+        "Early Bird"
+      ]
+    },
+    {
+      "id": "field-4",
+      "type": "Checkbox Group",
+      "label": "Dietary Restrictions",
+      "placeholder": "",
+      "required": false,
+      "options": [
+        "Vegetarian",
+        "Vegan",
+        "Gluten-Free",
+        "None"
+      ]
+    }
+  ]
+}

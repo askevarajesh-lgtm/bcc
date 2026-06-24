@@ -1,0 +1,51 @@
+{
+  "templateName": "Lead Generation Form",
+  "category": "Marketing",
+  "description": "Capture visitor details for your sales team.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "First Name",
+      "placeholder": "Jane",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Text Field",
+      "label": "Last Name",
+      "placeholder": "Doe",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Email",
+      "label": "Work Email",
+      "placeholder": "jane@company.com",
+      "required": true
+    },
+    {
+      "id": "field-4",
+      "type": "Phone",
+      "label": "Phone Number",
+      "placeholder": "+1 (555) 000-0000",
+      "required": false
+    },
+    {
+      "id": "field-5",
+      "type": "Select",
+      "label": "Company Size",
+      "placeholder": "Select company size",
+      "required": true,
+      "options": [
+        "1-10",
+        "11-50",
+        "51-200",
+        "201+"
+      ]
+    }
+  ]
+}

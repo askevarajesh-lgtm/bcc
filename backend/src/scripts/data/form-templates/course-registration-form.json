@@ -1,0 +1,43 @@
+{
+  "templateName": "Course Registration Form",
+  "category": "Education",
+  "description": "Register students for a course or class.",
+  "thumbnail": "default-thumbnail.jpg",
+  "isDefault": true,
+  "status": "Published",
+  "fields": [
+    {
+      "id": "field-1",
+      "type": "Text Field",
+      "label": "Student Name",
+      "placeholder": "Full Name",
+      "required": true
+    },
+    {
+      "id": "field-2",
+      "type": "Email",
+      "label": "Email",
+      "placeholder": "Email",
+      "required": true
+    },
+    {
+      "id": "field-3",
+      "type": "Select",
+      "label": "Course Selection",
+      "placeholder": "Select Course",
+      "required": true,
+      "options": [
+        "Beginner",
+        "Intermediate",
+        "Advanced"
+      ]
+    },
+    {
+      "id": "field-4",
+      "type": "Date Field",
+      "label": "Start Date",
+      "placeholder": "Preferred Start Date",
+      "required": false
+    }
+  ]
+}

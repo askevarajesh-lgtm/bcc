@@ -23,6 +23,9 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import CRM from './pages/CRM/CRM';
 import WebsiteBuilder from './pages/WebsiteBuilder/WebsiteBuilder';
 import BuilderRouteWrapper from './pages/WebsiteBuilder/tabs/BuilderRouteWrapper';
+import FormEmbedView from './pages/WebsiteBuilder/tabs/FormEmbedView';
+import BlogEmbedView from './pages/WebsiteBuilder/tabs/BlogEmbedView';
+import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
 import Content from './pages/Content/Content';
@@ -141,6 +144,11 @@ const AppRoutes = () => {
           '/user/dashboard'
         } replace />
       ) : <SignIn />} />
+      
+      {/* Public / Embed Routes */}
+      <Route path="/embed/form/:formId" element={<FormEmbedView />} />
+      <Route path="/embed/blog/:blogId" element={<BlogEmbedView />} />
+      <Route path="/preview/website/:websiteId/page/:pageId" element={<WebsitePreviewView />} />
       
       {/* Super Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin']} />}>

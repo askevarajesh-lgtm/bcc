@@ -7,7 +7,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-const CreateBlogView = ({ setView, handleCreateBlog, itemVariants }) => {
+const CreateBlogView = ({ setView, handleCreateBlog, itemVariants, websites, stores }) => {
   const [formData, setFormData] = useState({
     name: "",
     website: "—",
@@ -43,6 +43,9 @@ const CreateBlogView = ({ setView, handleCreateBlog, itemVariants }) => {
               style={{ width: "100%" }}
             >
               <Option value="—">—</Option>
+              {websites.map(w => (
+                <Option key={w._id} value={w._id}>{w.name}</Option>
+              ))}
             </Select>
           </Col>
           <Col span={12}>
@@ -54,6 +57,9 @@ const CreateBlogView = ({ setView, handleCreateBlog, itemVariants }) => {
               style={{ width: "100%" }}
             >
               <Option value="—">—</Option>
+              {stores.map(s => (
+                <Option key={s._id} value={s._id}>{s.name}</Option>
+              ))}
             </Select>
           </Col>
         </Row>
@@ -93,7 +99,7 @@ const CreateBlogView = ({ setView, handleCreateBlog, itemVariants }) => {
   );
 };
 
-const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants }) => {
+const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants, websites, stores }) => {
   const [formData, setFormData] = useState({
     name: activeBlog.name,
     website: activeBlog.website,
@@ -129,6 +135,9 @@ const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants 
               style={{ width: "100%" }}
             >
               <Option value="—">—</Option>
+              {websites.map(w => (
+                <Option key={w._id} value={w._id}>{w.name}</Option>
+              ))}
             </Select>
           </Col>
           <Col span={12}>
@@ -140,6 +149,9 @@ const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants 
               style={{ width: "100%" }}
             >
               <Option value="—">—</Option>
+              {stores.map(s => (
+                <Option key={s._id} value={s._id}>{s.name}</Option>
+              ))}
             </Select>
           </Col>
         </Row>
@@ -178,12 +190,275 @@ const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants 
   );
 };
 
+const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, stores, categories, editData }) => {
+  const [formData, setFormData] = useState(editData ? {
+    title: editData.title || "",
+    categoryId: editData.categories?.[0] || "—",
+    status: editData.status || "draft",
+    websiteId: editData.websiteId || "—",
+    storeId: editData.storeId || "—",
+    excerpt: editData.excerpt || "",
+    metaTitle: editData.metaTitle || "",
+    metaDescription: editData.metaDescription || "",
+    isFeatured: !!editData.isFeatured
+  } : {
+    title: "",
+    categoryId: "—",
+    status: "draft",
+    websiteId: "—",
+    storeId: "—",
+    excerpt: "",
+    metaTitle: "",
+    metaDescription: "",
+    isFeatured: false
+  });
+
+  const isComplete = formData.title && formData.categoryId !== "—" && formData.excerpt && formData.metaTitle && formData.metaDescription;
+
+  return (
+    <motion.div variants={itemVariants} className="builder-view-container">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: '#ea580c', fontWeight: 700 }} onClick={() => setView("manage")}>
+        <ArrowLeft size={16} /> Back to Manage
+      </div>
+      <Title level={3} style={{ marginBottom: 32, color: 'var(--text-primary)', fontWeight: 800 }}>{editData ? "Edit blog post" : "New blog post"}</Title>
+      
+      <Card bodyStyle={{ padding: 32 }} style={{ maxWidth: 800, borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>TITLE</div>
+          <Input 
+            size="large"
+            value={formData.title}
+            onChange={e => setFormData({...formData, title: e.target.value})}
+            style={{ borderRadius: 8 }} 
+          />
+        </div>
+
+        <Row gutter={24} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>CATEGORY</div>
+            <Select 
+              size="large"
+              value={formData.categoryId}
+              onChange={v => setFormData({...formData, categoryId: v})}
+              style={{ width: "100%" }}
+            >
+              <Option value="—">—</Option>
+              {categories.map(c => <Option key={c._id} value={c._id}>{c.name}</Option>)}
+            </Select>
+          </Col>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>STATUS</div>
+            <Select 
+              size="large"
+              value={formData.status}
+              onChange={v => setFormData({...formData, status: v})}
+              style={{ width: "100%" }}
+            >
+              <Option value="draft">draft</Option>
+              <Option value="published">published</Option>
+            </Select>
+          </Col>
+        </Row>
+
+        <Row gutter={24} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEBSITE (OPTIONAL)</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Tag this post for a site; embed via Page builder → Blog.</div>
+            <Select 
+              size="large"
+              value={formData.websiteId}
+              onChange={v => setFormData({...formData, websiteId: v})}
+              style={{ width: "100%" }}
+            >
+              <Option value="—">—</Option>
+              {websites.map(w => <Option key={w._id} value={w._id}>{w.name}</Option>)}
+            </Select>
+          </Col>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEB STORE (OPTIONAL)</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Shows on storefront <code style={{color: '#ea580c'}}>/shop/{"{slug}"}/blog</code>.</div>
+            <Select 
+              size="large"
+              value={formData.storeId}
+              onChange={v => setFormData({...formData, storeId: v})}
+              style={{ width: "100%" }}
+            >
+              <Option value="—">—</Option>
+              {stores.map(s => <Option key={s._id} value={s._id}>{s.name}</Option>)}
+            </Select>
+          </Col>
+        </Row>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
+          <TextArea 
+            size="large"
+            value={formData.excerpt}
+            onChange={e => setFormData({...formData, excerpt: e.target.value})}
+            rows={3} 
+            style={{ borderRadius: 8 }} 
+          />
+        </div>
+
+        <Row gutter={24} style={{ marginBottom: 32 }}>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>META TITLE</div>
+            <Input 
+              size="large"
+              value={formData.metaTitle}
+              onChange={e => setFormData({...formData, metaTitle: e.target.value})}
+              style={{ borderRadius: 8 }} 
+            />
+          </Col>
+          <Col span={12}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>META DESCRIPTION</div>
+            <Input 
+              size="large"
+              value={formData.metaDescription}
+              onChange={e => setFormData({...formData, metaDescription: e.target.value})}
+              style={{ borderRadius: 8 }} 
+            />
+          </Col>
+        </Row>
+
+        <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input 
+            type="checkbox" 
+            checked={formData.isFeatured}
+            onChange={e => setFormData({...formData, isFeatured: e.target.checked})}
+            style={{ width: 16, height: 16, cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Featured post</span>
+        </div>
+
+        {isComplete && (
+          <Button 
+            type="primary" 
+            size="large"
+            style={{ backgroundColor: "#ea580c", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 32px" }}
+            onClick={() => handleCreatePost(formData, editData?._id)}
+          >
+            {editData ? "Update blog post" : "Create blog post"}
+          </Button>
+        )}
+      </Card>
+    </motion.div>
+  );
+};
+
+const CreateCategoryView = ({ setView, handleCreateCategory, itemVariants, editData }) => {
+  const [formData, setFormData] = useState(editData ? {
+    name: editData.name || "",
+    slug: editData.slug || "",
+    description: editData.description || ""
+  } : {
+    name: "",
+    slug: "",
+    description: ""
+  });
+
+  return (
+    <motion.div variants={itemVariants} className="builder-view-container">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: '#ea580c', fontWeight: 700 }} onClick={() => setView("manage")}>
+        <ArrowLeft size={16} /> Back to Manage
+      </div>
+      <Title level={3} style={{ marginBottom: 32, color: 'var(--text-primary)', fontWeight: 800 }}>{editData ? "Edit category" : "New category"}</Title>
+      
+      <Card bodyStyle={{ padding: 32 }} style={{ maxWidth: 800, borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>NAME</div>
+          <Input 
+            size="large"
+            value={formData.name}
+            onChange={e => setFormData({...formData, name: e.target.value})}
+            style={{ borderRadius: 8 }} 
+          />
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>SLUG (OPTIONAL)</div>
+          <Input 
+            size="large"
+            placeholder="auto from name"
+            value={formData.slug}
+            onChange={e => setFormData({...formData, slug: e.target.value})}
+            style={{ borderRadius: 8 }} 
+          />
+        </div>
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>DESCRIPTION</div>
+          <TextArea 
+            size="large"
+            value={formData.description}
+            onChange={e => setFormData({...formData, description: e.target.value})}
+            rows={4} 
+            style={{ borderRadius: 8 }} 
+          />
+        </div>
+        <Button 
+          type="primary" 
+          size="large"
+          style={{ backgroundColor: "#ea580c", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 48px" }}
+          disabled={!formData.name}
+          onClick={() => handleCreateCategory(formData, editData?._id)}
+        >
+          {editData ? "Update" : "Save"}
+        </Button>
+      </Card>
+    </motion.div>
+  );
+};
+
 
 const BlogsTab = ({ itemVariants }) => {
   const [view, setView] = useState("list"); // list, create, manage, settings
   const [blogs, setBlogs] = useState([]);
   const [activeBlog, setActiveBlog] = useState(null);
   const [manageSubTab, setManageSubTab] = useState("posts");
+  const [websites, setWebsites] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [activeBlogPosts, setActiveBlogPosts] = useState([]);
+  const [activeBlogCategories, setActiveBlogCategories] = useState([]);
+  const [editingData, setEditingData] = useState(null);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [webRes, storeRes] = await Promise.all([
+          fetch("/api/websites", { headers: { "Authorization": token ? `Bearer ${token}` : "" } }),
+          fetch("/api/stores", { headers: { "Authorization": token ? `Bearer ${token}` : "" } })
+        ]);
+        const webData = await webRes.json();
+        const storeData = await storeRes.json();
+        if (webData.success) setWebsites(webData.data || []);
+        if (storeData.success) setStores(storeData.data || []);
+      } catch (err) {
+        console.error("Failed to fetch websites or stores", err);
+      }
+    };
+    fetchOptions();
+  }, []);
+
+  useEffect(() => {
+    if (view === "manage" && activeBlog) {
+      const fetchManageData = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const [postsRes, catsRes] = await Promise.all([
+            fetch(`/api/blogs/${activeBlog.key}/posts`, { headers: { "Authorization": token ? `Bearer ${token}` : "" } }),
+            fetch(`/api/blogs/${activeBlog.key}/categories`, { headers: { "Authorization": token ? `Bearer ${token}` : "" } })
+          ]);
+          const pData = await postsRes.json();
+          const cData = await catsRes.json();
+          if (pData.success) setActiveBlogPosts(pData.data);
+          if (cData.success) setActiveBlogCategories(cData.data);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchManageData();
+    }
+  }, [view, activeBlog]);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -238,6 +513,90 @@ const BlogsTab = ({ itemVariants }) => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleCreatePost = async (postData, id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = id ? `/api/blogs/posts/${id}` : `/api/blogs/${activeBlog.key}/posts`;
+      const method = id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          ...postData,
+          categories: postData.categoryId && postData.categoryId !== '—' ? [postData.categoryId] : []
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Fetch fresh posts list to reflect the new creation
+        const postsRes = await fetch(`/api/blogs/${activeBlog.key}/posts`, { headers: { "Authorization": token ? `Bearer ${token}` : "" } });
+        const pData = await postsRes.json();
+        if (pData.success) setActiveBlogPosts(pData.data);
+        
+        // Switch back to posts list
+        setManageSubTab("posts");
+        setView("manage");
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleCreateCategory = async (catData, id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = id ? `/api/blogs/categories/${id}` : `/api/blogs/${activeBlog.key}/categories`;
+      const method = id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(catData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Fetch fresh categories list to reflect the new creation/update
+        const catsRes = await fetch(`/api/blogs/${activeBlog.key}/categories`, { headers: { "Authorization": token ? `Bearer ${token}` : "" } });
+        const cData = await catsRes.json();
+        if (cData.success) setActiveBlogCategories(cData.data);
+
+        setManageSubTab("categories");
+        setView("manage");
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeletePost = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/blogs/posts/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveBlogPosts(prev => prev.filter(p => p._id !== id));
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/blogs/categories/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveBlogCategories(prev => prev.filter(c => c._id !== id));
+      }
+    } catch (err) { console.error(err); }
   };
 
   const handleUpdateBlog = async (updatedData) => {
@@ -410,8 +769,11 @@ const BlogsTab = ({ itemVariants }) => {
               <Button size="large" style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} onClick={() => setView("settings")} icon={<Settings size={16} />}>
                 Settings
               </Button>
-              <Button size="large" type="primary" icon={<Plus size={16} />} style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700 }}>
-                New post
+              <Button size="large" type="primary" icon={<Plus size={16} />} style={{ backgroundColor: "#ea580c", border: "none", borderRadius: 8, fontWeight: 700 }} onClick={() => {
+                setEditingData(null);
+                manageSubTab === 'categories' ? setView("create-category") : setView("create-post");
+              }}>
+                {manageSubTab === 'categories' ? "New category" : "New post"}
               </Button>
             </Space>
           </div>
@@ -420,13 +782,13 @@ const BlogsTab = ({ itemVariants }) => {
             <Col span={8}>
               <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={14} /> POSTS</div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{activeBlog.posts}</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{activeBlogPosts.length}</div>
               </Card>
             </Col>
             <Col span={8}>
               <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><TagIcon size={14} /> CATEGORIES</div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{activeBlog.categories}</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{activeBlogCategories.length}</div>
               </Card>
             </Col>
             <Col span={8}>
@@ -469,12 +831,61 @@ const BlogsTab = ({ itemVariants }) => {
                 Recent posts
               </div>
               <div>
-                {recentPosts.map((post, idx) => (
-                  <div key={idx} style={{ padding: "20px 24px", borderBottom: idx !== recentPosts.length - 1 ? "1px solid var(--border-color)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }} className="hover-bg-primary">
-                    <div style={{ fontWeight: 600, maxWidth: "80%", color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post}</div>
-                    <div style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}><Edit3 size={14} /> Edit</div>
-                  </div>
-                ))}
+                {activeBlogPosts.length === 0 ? (
+                  <div style={{ padding: "40px", textAlign: "center", color: 'var(--text-secondary)' }}>No posts found. Create one!</div>
+                ) : (
+                  activeBlogPosts.map((post, idx) => (
+                    <div key={post._id} style={{ padding: "20px 24px", borderBottom: idx !== activeBlogPosts.length - 1 ? "1px solid var(--border-color)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }} className="hover-bg-primary">
+                      <div>
+                        <div style={{ fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 4 }}>{post.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, display: 'flex', gap: 12 }}>
+                          <span>{post.status.toUpperCase()}</span>
+                          {post.websiteId && <span>Website ID: {post.websiteId}</span>}
+                        </div>
+                      </div>
+                      <Space size="middle" style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => {
+                          setEditingData(post);
+                          setView("create-post");
+                        }}><Edit3 size={14} /> Edit</span>
+                        <Popconfirm title="Delete this post?" onConfirm={() => handleDeletePost(post._id)}>
+                          <span style={{ color: "#ef4444", display: 'flex', alignItems: 'center', gap: 4 }}><Trash2 size={14} /> Delete</span>
+                        </Popconfirm>
+                      </Space>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          )}
+
+          {manageSubTab === "categories" && (
+            <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 32, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+              <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-color)", fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>
+                Categories
+              </div>
+              <div>
+                {activeBlogCategories.length === 0 ? (
+                  <div style={{ padding: "40px", textAlign: "center", color: 'var(--text-secondary)' }}>No categories found. Create one!</div>
+                ) : (
+                  activeBlogCategories.map((cat, idx) => (
+                    <div key={cat._id} style={{ padding: "20px 24px", borderBottom: idx !== activeBlogCategories.length - 1 ? "1px solid var(--border-color)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }} className="hover-bg-primary">
+                      <div>
+                        <div style={{ fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 4 }}>{cat.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>/{cat.slug}</div>
+                      </div>
+                      <Space size="middle" style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => {
+                          setEditingData(cat);
+                          setView("create-category");
+                        }}><Edit3 size={14} /> Edit</span>
+                        <Popconfirm title="Delete this category?" onConfirm={() => handleDeleteCategory(cat._id)}>
+                          <span style={{ color: "#ef4444", display: 'flex', alignItems: 'center', gap: 4 }}><Trash2 size={14} /> Delete</span>
+                        </Popconfirm>
+                      </Space>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           )}
@@ -494,9 +905,11 @@ const BlogsTab = ({ itemVariants }) => {
   return (
     <div style={{ position: "relative" }}>
       {view === "list" && renderList()}
-      {view === "create" && <CreateBlogView setView={setView} handleCreateBlog={handleCreateBlog} itemVariants={itemVariants} />}
+      {view === "create" && <CreateBlogView setView={setView} handleCreateBlog={handleCreateBlog} itemVariants={itemVariants} websites={websites} stores={stores} />}
+      {view === "create-post" && <CreatePostView setView={setView} handleCreatePost={handleCreatePost} itemVariants={itemVariants} websites={websites} stores={stores} categories={activeBlogCategories} editData={editingData} />}
+      {view === "create-category" && <CreateCategoryView setView={setView} handleCreateCategory={handleCreateCategory} itemVariants={itemVariants} editData={editingData} />}
       {view === "manage" && renderManage()}
-      {view === "settings" && <SettingsBlogView activeBlog={activeBlog} setView={setView} handleUpdateBlog={handleUpdateBlog} itemVariants={itemVariants} />}
+      {view === "settings" && <SettingsBlogView activeBlog={activeBlog} setView={setView} handleUpdateBlog={handleUpdateBlog} itemVariants={itemVariants} websites={websites} stores={stores} />}
     </div>
   );
 };

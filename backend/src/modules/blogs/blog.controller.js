@@ -1,5 +1,6 @@
 const Blog = require('./blog.model');
 const BlogPost = require('./blog-post.model');
+const BlogCategory = require('./blog-category.model');
 
 // Create Blog
 exports.createBlog = async (req, res, next) => {
@@ -45,14 +46,8 @@ exports.getBlogs = async (req, res, next) => {
     const data = await Promise.all(blogs.map(async (blog) => {
       const postsCount = await BlogPost.countDocuments({ blogId: blog._id, isDeleted: false });
       
-      // Calculate unique categories count
-      const categoriesResult = await BlogPost.aggregate([
-        { $match: { blogId: blog._id, isDeleted: false } },
-        { $unwind: '$categories' },
-        { $group: { _id: '$categories' } },
-        { $count: 'count' }
-      ]);
-      const categoriesCount = categoriesResult.length > 0 ? categoriesResult[0].count : 0;
+      // Calculate categories count
+      const categoriesCount = await BlogCategory.countDocuments({ blogId: blog._id, isDeleted: false });
 
       return {
         ...blog.toObject(),
@@ -79,6 +74,28 @@ exports.getBlogDetails = async (req, res, next) => {
     }
 
     const posts = await BlogPost.find({ blogId: id, isDeleted: false }).sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      data: {
+        ...blog.toObject(),
+        posts
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get Public Blog Details + Posts
+exports.getPublicBlog = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const blog = await Blog.findOne({ _id: id, isDeleted: false, status: 'active' });
+    if (!blog) {
+      return res.status(404).json({ success: false, error: 'Blog not found' });
+    }
+
+    const posts = await BlogPost.find({ blogId: id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
     res.json({
       success: true,
       data: {
@@ -149,7 +166,7 @@ exports.getPosts = async (req, res, next) => {
 exports.addPost = async (req, res, next) => {
   try {
     const { blogId } = req.params;
-    const { title, content, status, categories } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: 'Post title is required' });
@@ -167,7 +184,13 @@ exports.addPost = async (req, res, next) => {
       slug,
       content: content || "",
       status: status || 'draft',
-      categories: categories || []
+      categories: categories || [],
+      websiteId: websiteId && websiteId !== '—' ? websiteId : null,
+      storeId: storeId && storeId !== '—' ? storeId : null,
+      excerpt: excerpt || "",
+      metaTitle: metaTitle || "",
+      metaDescription: metaDescription || "",
+      isFeatured: !!isFeatured
     });
 
     const saved = await post.save();
@@ -180,7 +203,7 @@ exports.addPost = async (req, res, next) => {
 exports.updatePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const { title, content, status, categories } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
 
     const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
     if (!post) {
@@ -194,6 +217,12 @@ exports.updatePost = async (req, res, next) => {
     if (content !== undefined) post.content = content;
     if (status) post.status = status;
     if (categories) post.categories = categories;
+    if (websiteId !== undefined) post.websiteId = websiteId && websiteId !== '—' ? websiteId : null;
+    if (storeId !== undefined) post.storeId = storeId && storeId !== '—' ? storeId : null;
+    if (excerpt !== undefined) post.excerpt = excerpt;
+    if (metaTitle !== undefined) post.metaTitle = metaTitle;
+    if (metaDescription !== undefined) post.metaDescription = metaDescription;
+    if (isFeatured !== undefined) post.isFeatured = isFeatured;
 
     const saved = await post.save();
     res.json({ success: true, data: saved });
@@ -213,6 +242,83 @@ exports.deletePost = async (req, res, next) => {
     post.isDeleted = true;
     await post.save();
     res.json({ success: true, message: 'Post deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Categories CRUD
+exports.getCategories = async (req, res, next) => {
+  try {
+    const { blogId } = req.params;
+    const categories = await BlogCategory.find({ blogId, isDeleted: false }).sort({ name: 1 });
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.addCategory = async (req, res, next) => {
+  try {
+    const { blogId } = req.params;
+    const { name, slug: customSlug, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Category name is required' });
+    }
+
+    const slug = customSlug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slugExists = await BlogCategory.findOne({ blogId, slug, isDeleted: false });
+    if (slugExists) {
+      return res.status(400).json({ success: false, error: 'A category with that slug already exists' });
+    }
+
+    const category = new BlogCategory({
+      blogId,
+      name,
+      slug,
+      description: description || ""
+    });
+
+    const saved = await category.save();
+    res.status(201).json({ success: true, data: saved });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateCategory = async (req, res, next) => {
+  try {
+    const { categoryId } = req.params;
+    const { name, slug: customSlug, description } = req.body;
+
+    const category = await BlogCategory.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+      return res.status(404).json({ success: false, error: 'Category not found' });
+    }
+
+    if (name) category.name = name;
+    if (customSlug) category.slug = customSlug;
+    if (description !== undefined) category.description = description;
+
+    const saved = await category.save();
+    res.json({ success: true, data: saved });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteCategory = async (req, res, next) => {
+  try {
+    const { categoryId } = req.params;
+    const category = await BlogCategory.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+      return res.status(404).json({ success: false, error: 'Category not found' });
+    }
+
+    category.isDeleted = true;
+    await category.save();
+    res.json({ success: true, message: 'Category deleted' });
   } catch (error) {
     next(error);
   }

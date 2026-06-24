@@ -5,6 +5,7 @@ const websiteRoutes = require('../modules/websites/website.routes');
 const funnelRoutes = require('../modules/funnels/funnel.routes');
 const storeRoutes = require('../modules/stores/store.routes');
 const formRoutes = require('../modules/forms/form.routes');
+const formTemplateRoutes = require('../modules/forms/form-template.routes');
 const blogRoutes = require('../modules/blogs/blog.routes');
 const qrRoutes = require('../modules/qrs/qr.routes');
 const widgetRoutes = require('../modules/widgets/widget.routes');
@@ -20,6 +21,7 @@ const agencyPackageRoutes = require('../modules/agencyPackages/agencyPackage.rou
 const brandRoutes = require('../modules/accounts/brand.routes');
 const departmentRoutes = require('../modules/departments/department.routes');
 const roleRoutes = require('../modules/roles/role.routes');
+const mediaRoutes = require('../modules/media/media.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -46,6 +48,7 @@ router.use('/websites', websiteRoutes);
 router.use('/funnels', funnelRoutes);
 router.use('/stores', storeRoutes);
 router.use('/forms', formRoutes);
+router.use('/form-templates', formTemplateRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/qrs', qrRoutes);
 router.use('/chat-widgets', widgetRoutes);
@@ -59,5 +62,6 @@ router.use('/superadmin', superadminRoutes);
 router.use('/agency-packages', agencyPackageRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/roles', roleRoutes);
+router.use('/media', mediaRoutes);
 
 module.exports = router;
