@@ -3,7 +3,9 @@ const Department = require('./department.model');
 exports.getDepartments = async (req, res, next) => {
   try {
     let queryFilter = {};
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
+    if (req.user.role === 'commander_admin') {
+      queryFilter.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
       queryFilter.brandId = req.user.brandId;
     } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
       queryFilter.agencyId = req.user.agencyId;
@@ -21,6 +23,12 @@ exports.createDepartment = async (req, res, next) => {
     if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       data.brandId = req.user.brandId;
       data.agencyId = req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+      data.agencyId = req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else if (req.user.role === 'commander_admin') {
+      data.adminId = req.user._id;
     }
     const department = await Department.create(data);
     res.status(201).json({ success: true, data: department });

@@ -436,24 +436,24 @@ const PortalSettings = () => {
           </Form.Item>
           
           <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Brand Super Admin User (Optional)</Title>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Brand Super Admin User</Title>
             <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Create an initial super admin login account for this brand.</Text>
             
-            <Form.Item name="email" label="Admin Email">
+            <Form.Item name="email" label="Admin Email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
               <Input type="email" placeholder="admin@brand.com" />
             </Form.Item>
             
-            <Form.Item name="password" label="Initial Password">
+            <Form.Item name="password" label="Initial Password" rules={[{ required: true, message: 'Please enter a password' }]}>
               <Input.Password placeholder="Enter a secure password" />
             </Form.Item>
           </div>
 
           <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Assign Package (Optional)</Title>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Assign Package</Title>
             <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Select a package to assign initial features to this brand.</Text>
             
-            <Form.Item name="packageName" label="Package">
-              <Select placeholder="Select a package" allowClear>
+            <Form.Item name="packageName" label="Package" rules={[{ required: true, message: 'Please select a package' }]}>
+              <Select placeholder="Select a package">
                 {packages.map(pkg => (
                   <Select.Option key={pkg.name} value={pkg.name}>{pkg.name}</Select.Option>
                 ))}

@@ -58,6 +58,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
 
     // Workspace Group
     const workspaceChildren = [];
+    if (feats.includes('settings') || feats.length === 0) workspaceChildren.push({ key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' });
     if (feats.includes('strategy') || feats.length === 0) workspaceChildren.push({ key: '/agency/strategy', icon: getIcon(Target), label: 'Strategy' });
     if (feats.includes('seo') || feats.length === 0) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
     if (feats.includes('content') || feats.length === 0) workspaceChildren.push({ key: '/agency/content', icon: getIcon(PenTool), label: 'Content' });

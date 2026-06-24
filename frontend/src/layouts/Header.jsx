@@ -26,7 +26,7 @@ const Header = () => {
   const getUserDetails = () => {
     switch (role) {
       case 'supreme_super_admin': return { name: 'Supreme Admin', subtitle: 'M1 MOS', initial: 'SA' };
-      case 'admin': return { name: 'Admin', subtitle: 'M1 MOS', initial: 'AD' };
+      case 'commander_admin': return { name: 'Commander Admin', subtitle: 'M1 MOS', initial: 'CA' };
       case 'agency_super_admin': return { name: 'Agency Admin', subtitle: 'Alpha Partners', initial: 'AA' };
       case 'agency_manager': return { name: 'Agency Manager', subtitle: 'Alpha Partners', initial: 'AM' };
       case 'agency_client': return { name: 'Agency Client', subtitle: 'Customer', initial: 'AC' };
@@ -40,7 +40,7 @@ const Header = () => {
   const getDashboardName = () => {
     switch (role) {
       case 'supreme_super_admin': return 'Supreme Super Admin';
-      case 'admin': return 'Admin Dashboard';
+      case 'commander_admin': return 'Commander Admin Dashboard';
       case 'agency_super_admin': return 'Agency Admin';
       case 'agency_manager': return 'Agency Manager';
       case 'agency_client': return 'Agency Client';

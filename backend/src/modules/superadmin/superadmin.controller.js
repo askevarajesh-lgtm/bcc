@@ -1,14 +1,13 @@
-const Agency = require('../accounts/agency.model');
 const User = require('../auth/user.model');
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    const totalCompanies = await Agency.countDocuments();
+    const totalCompanies = await User.countDocuments({ role: { $in: ['commander_admin'] } });
     // Assuming active users are those who logged in recently or just total users for now
     const activeUsers = await User.countDocuments();
     
     // Calculate MRR from agencies
-    const agencies = await Agency.find({}, 'mrr status');
+    const agencies = await User.find({ role: { $in: ['commander_admin'] } }, 'mrr status');
     let mrr = 0;
     let churnedCount = 0;
     

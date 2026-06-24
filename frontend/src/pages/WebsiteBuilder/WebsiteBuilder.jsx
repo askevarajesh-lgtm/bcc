@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { Typography, Row, Col, Card, Button, Select, Table, Tag, Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Globe, Store, FileText, LayoutTemplate, Smartphone, QrCode, MessageCircle, Link2, Plus, ExternalLink, Sparkles, Code, Activity, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Import Tab Components
 import FunnelsTab from './tabs/FunnelsTab';
@@ -52,9 +53,12 @@ const WebsiteBuilder = () => {
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   const lastPart = pathParts[pathParts.length - 1];
-  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : 'overview';
+  const { role } = useAuth();
+  
+  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : (role === 'agency_client' ? 'websites' : 'overview');
 
   const handleTabClick = (tabId) => {
+    if (role === 'agency_client') return; // Prevent tab switching for client
     const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/${tabId}`);
@@ -211,35 +215,41 @@ const WebsiteBuilder = () => {
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with funnels, forms, and domain management built in.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<LayoutGrid size={16} />} style={{ borderRadius: 8, height: 44, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700, padding: '0 24px' }}>Open Site Builder</Button>
-          <Button icon={<ExternalLink size={16} />} style={{ borderRadius: 8, height: 44, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 700, padding: '0 24px' }}>View Live Site</Button>
+          {role !== 'agency_client' && (
+            <>
+              <Button icon={<LayoutGrid size={16} />} style={{ borderRadius: 8, height: 44, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700, padding: '0 24px' }}>Open Site Builder</Button>
+              <Button icon={<ExternalLink size={16} />} style={{ borderRadius: 8, height: 44, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 700, padding: '0 24px' }}>View Live Site</Button>
+            </>
+          )}
         </div>
       </motion.div>
 
       {/* Tabs Navigation */}
-      <motion.div variants={itemVariants} style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
-        {tabs.map((tab) => (
-          <div 
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            style={{ 
-              padding: '12px 16px', 
-              color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent', 
-              fontWeight: activeTab === tab.id ? 800 : 600, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              cursor: 'pointer', 
-              whiteSpace: 'nowrap',
-              marginBottom: -1,
-              transition: 'all 0.2s',
-            }}
-          >
-            {tab.icon} {tab.label}
-          </div>
-        ))}
-      </motion.div>
+      {role !== 'agency_client' && (
+        <motion.div variants={itemVariants} style={{display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
+          {tabs.map((tab) => (
+            <div 
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              style={{ 
+                padding: '12px 16px', 
+                color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent', 
+                fontWeight: activeTab === tab.id ? 800 : 600, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                cursor: 'pointer', 
+                whiteSpace: 'nowrap',
+                marginBottom: -1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {tab.icon} {tab.label}
+            </div>
+          ))}
+        </motion.div>
+      )}
 
       {/* Tab Content Area */}
       <motion.div
@@ -259,8 +269,8 @@ const WebsiteBuilder = () => {
           <Route path="qr-links" element={<QRLinksTab itemVariants={itemVariants} />} />
           <Route path="chat-widgets" element={<ChatWidgetsTab itemVariants={itemVariants} />} />
           <Route path="domains" element={<DomainsTab itemVariants={itemVariants} />} />
-          <Route path="overview" element={renderOverviewContent()} />
-          <Route path="*" element={<Navigate to="overview" replace />} />
+          {role !== 'agency_client' && <Route path="overview" element={renderOverviewContent()} />}
+          <Route path="*" element={<Navigate to={role === 'agency_client' ? 'websites' : 'overview'} replace />} />
         </Routes>
       </motion.div>
     </motion.div>

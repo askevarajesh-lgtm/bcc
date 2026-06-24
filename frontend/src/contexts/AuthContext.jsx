@@ -5,7 +5,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-  // Role can be 'admin', 'agency', 'client', or null
+  // Role can be 'commander_admin', 'agency', 'client', or null
   const [role, setRole] = useState(() => {
     return localStorage.getItem('userRole') || null;
   });
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     
     if (user.role === 'supreme_super_admin') {
       navigate('/superadmin/dashboard');
-    } else if (user.role === 'admin') {
+    } else if (user.role === 'commander_admin') {
       navigate('/dashboard');
     } else if (['agency_super_admin', 'agency_manager'].includes(user.role)) {
       navigate('/agency/overview');

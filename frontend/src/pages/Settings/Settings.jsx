@@ -49,7 +49,7 @@ const SettingsPage = () => {
     }
   };
 
-  const tabItems = [
+  const allTabs = [
     { key: '1', label: <strong style={{ fontWeight: 600 }}>Agency</strong> },
     { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
     { key: '3', label: <strong style={{ fontWeight: 600 }}>Team & Access</strong> },
@@ -61,6 +61,15 @@ const SettingsPage = () => {
       { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> }
     ]),
   ];
+
+  const tabItems = ['agency_manager', 'brand_manager'].includes(role) 
+    ? allTabs.filter(t => t.key === '7')
+    : allTabs;
+
+  // Ensure active tab defaults correctly if restricted
+  if (['agency_manager', 'brand_manager'].includes(role) && activeTab !== '7') {
+    setActiveTab('7');
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>

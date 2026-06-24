@@ -36,12 +36,8 @@ exports.createAgencyUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No agency associated' });
     }
 
-    const { name, email, password, role } = req.body;
-
-    // Verify role is valid for this context
-    if (!['agency_manager', 'agency_super_admin'].includes(role)) {
-      return res.status(400).json({ success: false, message: 'Invalid role selection' });
-    }
+    const { name, email, password } = req.body;
+    const role = 'agency_manager';
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {

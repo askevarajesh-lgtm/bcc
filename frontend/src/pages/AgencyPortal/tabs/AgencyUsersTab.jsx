@@ -39,8 +39,7 @@ const AgencyUsersTab = () => {
       const payload = {
         name: values.name,
         email: values.email,
-        password: values.password,
-        role: values.role
+        password: values.password
       };
 
       const res = await api.post('/agency/users', payload);
@@ -172,12 +171,7 @@ const AgencyUsersTab = () => {
             <Input.Password placeholder="••••••••" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Role</Text>} name="role" initialValue="agency_manager" rules={[{ required: true }]}>
-            <Select size="large">
-              <Option value="agency_manager">Agency Manager</Option>
-              <Option value="agency_super_admin">Agency Super Admin</Option>
-            </Select>
-          </Form.Item>
+
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel</Button>

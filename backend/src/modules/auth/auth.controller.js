@@ -1,5 +1,4 @@
 const User = require('./user.model');
-const Agency = require('../accounts/agency.model');
 const jwt = require('jsonwebtoken');
 
 exports.signin = async (req, res, next) => {
@@ -37,7 +36,7 @@ exports.signin = async (req, res, next) => {
     // If user is an agency manager or super admin, get their package features
     let features = [];
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
-      const agency = await Agency.findById(user.agencyId).populate('plan');
+      const agency = await User.findById(user.agencyId).populate('plan');
       if (agency && agency.plan && agency.plan.features) {
         features = agency.plan.features;
       }

@@ -128,7 +128,7 @@ const SignIn = () => {
 
           <div style={{ background: 'var(--bg-tertiary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--text-secondary)', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8, fontWeight: 500 }}>
-              <li><strong>Admin:</strong> admin@gmail.com</li>
+              <li><strong>Commander Admin:</strong> admin@gmail.com</li>
               <li><strong>Agency:</strong> agency@gmail.com</li>
               <li><strong>Client:</strong> client@gmail.com</li>
             </ul>

@@ -42,7 +42,7 @@ exports.checkOwnership = (resourceType, resourceIdParam) => {
     }
 
     // Admins bypass ownership checks
-    if (['supreme_super_admin', 'admin'].includes(user.role)) {
+    if (['supreme_super_admin', 'commander_admin'].includes(user.role)) {
       return next();
     }
 

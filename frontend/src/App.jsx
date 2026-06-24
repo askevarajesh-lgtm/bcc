@@ -45,6 +45,7 @@ import Profitability from './pages/Profitability/Profitability';
 import NewBusiness from './pages/NewBusiness/NewBusiness';
 import BusinessIntel from './pages/BusinessIntel/BusinessIntel';
 import SettingsPage from './pages/Settings/Settings';
+import ClientSettingsTab from './pages/ClientPortal/tabs/ClientSettingsTab';
 import AIAgents from './pages/AIAgents/AIAgents';
 import AICopilot from './pages/AICopilot/AICopilot';
 import Benchmarks from './pages/Benchmarks/Benchmarks';
@@ -68,9 +69,12 @@ import AgencyUsersTab from './pages/AgencyPortal/tabs/AgencyUsersTab';
 import ClientDashboardTab from './pages/ClientPortal/tabs/DashboardTab';
 import BrandAdminDashboardTab from './pages/ClientPortal/tabs/BrandAdminDashboardTab';
 import BrandManagerDashboardTab from './pages/ClientPortal/tabs/BrandManagerDashboardTab';
+import BrandUsersTab from './pages/ClientPortal/tabs/BrandUsersTab';
+import BillingTab from './pages/ClientPortal/tabs/BillingTab';
 import ClientPerformanceTab from './pages/ClientPortal/tabs/MyPerformanceTab';
 import ClientLeadsTab from './pages/ClientPortal/tabs/LeadsTab';
 import ClientTasksTab from './pages/ClientPortal/tabs/TasksTab';
+import BrandSettingsTab from './pages/ClientPortal/tabs/BrandSettingsTab';
 import ClientStoreTab from './pages/ClientPortal/tabs/StoreTab';
 import ClientBillingTab from './pages/ClientPortal/tabs/BillingTab';
 import ClientSupportTab from './pages/ClientPortal/tabs/SupportTab';
@@ -108,7 +112,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
   
   if (allowedRoles && !allowedRoles.includes(role)) {
     if (['supreme_super_admin', 'superadmin'].includes(role)) return <Navigate to="/superadmin/dashboard" replace />;
-    if (role === 'admin') return <Navigate to="/dashboard" replace />;
+    if (role === 'commander_admin') return <Navigate to="/dashboard" replace />;
     if (role === 'agency_super_admin') return <Navigate to="/agency/admin-overview" replace />;
     if (['agency_manager', 'agency'].includes(role)) return <Navigate to="/agency/overview" replace />;
     if (role === 'brand_super_admin') return <Navigate to="/client/admin-dashboard" replace />;
@@ -128,7 +132,7 @@ const AppRoutes = () => {
       <Route path="/signin" element={role ? (
         <Navigate to={
           ['supreme_super_admin', 'superadmin'].includes(role) ? '/superadmin/dashboard' : 
-          role === 'admin' ? '/dashboard' : 
+          role === 'commander_admin' ? '/dashboard' : 
           role === 'agency_super_admin' ? '/agency/admin-overview' :
           ['agency_manager', 'agency'].includes(role) ? '/agency/overview' : 
           role === 'brand_super_admin' ? '/client/admin-dashboard' :
@@ -151,7 +155,7 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'admin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'commander_admin']} />}>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
@@ -211,7 +215,7 @@ const AppRoutes = () => {
           <Route path="tasks" element={<AgencyTasksTab />} />
           <Route path="billing" element={<AgencyBillingTab />} />
           <Route path="reports" element={<AgencyReportsTab />} />
-          <Route path="settings" element={<AgencySettingsTab />} />
+          <Route path="settings" element={role === 'agency_super_admin' ? <AgencySettingsTab /> : <SettingsPage />} />
           <Route path="users" element={<AgencyUsersTab />} />
           <Route path="support" element={<AgencySupportTab />} />
           
@@ -238,6 +242,8 @@ const AppRoutes = () => {
           } replace />} />
           <Route path="admin-dashboard" element={<BrandAdminDashboardTab />} />
           <Route path="manager-dashboard" element={<BrandManagerDashboardTab />} />
+          <Route path="users" element={<BrandUsersTab />} />
+          <Route path="billing" element={<BillingTab />} />
           
           <Route path="dashboard" element={<ClientDashboardTab />} />
           
@@ -276,7 +282,11 @@ const AppRoutes = () => {
           <Route path="ops/newbusiness" element={<NewBusiness />} />
           <Route path="ops/businessintel" element={<BusinessIntel />} />
 
-          <Route path="settings/company" element={<SettingsPage />} />
+          <Route path="settings/company" element={
+            role === 'brand_super_admin' ? <BrandSettingsTab /> : 
+            role === 'agency_client' ? <ClientSettingsTab /> : 
+            <SettingsPage />
+          } />
           <Route path="settings/marketplace" element={<Marketplace />} />
           <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
           <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
@@ -311,7 +321,7 @@ const AppRoutes = () => {
 
 
       {/* Catch all - Redirect to sign in if no role, otherwise to respective dashboard */}
-      <Route path="*" element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'agency', 'client']} />} />
+      <Route path="*" element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'agency', 'client']} />} />
     </Routes>
   );
 };

@@ -226,13 +226,19 @@ const Companies = () => {
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+            <Form.Item label={<Text style={{ fontWeight: 600 }}>Admin Password</Text>} name="password" rules={[{ required: true }]}>
+              <Input.Password placeholder="Enter admin password" style={{ borderRadius: 8 }} />
+            </Form.Item>
             <Form.Item label={<Text style={{ fontWeight: 600 }}>Subscription Plan</Text>} name="plan" rules={[{ required: true, message: 'Please select a plan' }]}>
               <Select style={{ borderRadius: 8 }} placeholder="Select a plan">
                 {plans.map(p => (
-                  <Option key={p._id} value={p.name.toLowerCase()}>{p.name}</Option>
+                  <Option key={p._id} value={p._id}>{p.name}</Option> // Use p._id instead of name for referencing plan properly in backend
                 ))}
               </Select>
             </Form.Item>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item label={<Text style={{ fontWeight: 600 }}>Status</Text>} name="status" initialValue="active">
               <Select style={{ borderRadius: 8 }}>
                 <Option value="trial">Trial</Option>

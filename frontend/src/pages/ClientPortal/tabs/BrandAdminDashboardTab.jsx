@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Card, Button, Table, Tag, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CreditCard, Users, Zap, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import BubbleCard from '../../../components/BubbleCard';
@@ -7,6 +8,8 @@ import BubbleCard from '../../../components/BubbleCard';
 const { Title, Text } = Typography;
 
 const BrandAdminDashboardTab = () => {
+  const navigate = useNavigate();
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -60,7 +63,7 @@ const BrandAdminDashboardTab = () => {
         </span>
       );
     }},
-    { title: 'Actions', key: 'actions', align: 'right', render: () => <Button type="link" style={{ fontWeight: 600, color: 'var(--accent-secondary)' }}>Manage</Button> }
+    { title: 'Actions', key: 'actions', align: 'right', render: () => <Button type="link" onClick={() => navigate('/client/users')} style={{ fontWeight: 600, color: 'var(--accent-secondary)' }}>Manage</Button> }
   ];
 
   return (
@@ -93,7 +96,7 @@ const BrandAdminDashboardTab = () => {
       <motion.div variants={itemVariants}>
         <Card 
           title={<span style={{ fontWeight: 800, fontSize: 18 }}>Workspace Members</span>}
-          extra={<Button type="primary" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}>+ Invite Member</Button>}
+          extra={<Button type="primary" onClick={() => navigate('/client/users')} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}>+ Create User</Button>}
           className="glassmorphism"
           style={{ borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}
           headStyle={{ borderBottom: '1px solid var(--border-color)', padding: '20px 24px' }}

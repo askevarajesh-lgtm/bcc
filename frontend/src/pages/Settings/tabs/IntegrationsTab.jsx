@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography, Card, Button, Table, Tag, Row, Col, Tooltip } from 'antd';
 import { motion } from 'framer-motion';
 import { Plus, Eye, RefreshCw, Play, Edit2, Trash2, CheckCircle2, AlertTriangle, AlertCircle, Link } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -25,6 +26,7 @@ const SummaryCard = ({ title, value, subtext, subtextColor }) => (
 );
 
 const IntegrationsTab = () => {
+  const { role } = useAuth();
 
   const connections = [
     { id: '1', source: 'Google Analytics 4', category: 'Analytics', status: 'Healthy', clients: 8, lastSync: '2m ago' },
@@ -51,7 +53,7 @@ const IntegrationsTab = () => {
     { title: 'STATUS', dataIndex: 'status', key: 'status', render: s => getStatusTag(s) },
     { title: 'CLIENTS', dataIndex: 'clients', key: 'clients', render: t => <Text style={{ fontWeight: 600 }}>{t}</Text> },
     { title: 'LAST SYNC', dataIndex: 'lastSync', key: 'lastSync', render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{t}</Text> },
-    { title: '', key: 'actions', align: 'right', render: () => <a style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Manage</a> },
+    { title: '', key: 'actions', align: 'right', render: () => (role !== 'agency_client' ? <a style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Manage</a> : null) },
   ];
 
   const apiKeys = [
@@ -69,11 +71,13 @@ const IntegrationsTab = () => {
     { title: 'STATUS', dataIndex: 'status', key: 'status', render: () => <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle2 size={14} style={{ color: 'var(--accent-primary)' }}/> Active</span> },
     { title: 'LAST USED', dataIndex: 'lastUsed', key: 'lastUsed', render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{t}</Text> },
     { title: 'ACTIONS', key: 'actions', align: 'right', render: () => (
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', alignItems: 'center' }}>
-        <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><Eye size={14}/> Reveal</a>
-        <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><RefreshCw size={14}/> Rotate</a>
-        <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><Play size={14}/> Test</a>
-      </div>
+      role !== 'agency_client' ? (
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><Eye size={14}/> Reveal</a>
+          <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><RefreshCw size={14}/> Rotate</a>
+          <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}><Play size={14}/> Test</a>
+        </div>
+      ) : null
     )},
   ];
 
@@ -88,11 +92,13 @@ const IntegrationsTab = () => {
     { title: 'STATUS', dataIndex: 'status', key: 'status', render: () => <Tag style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 700, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--text-primary)' }}><CheckCircle2 size={12} style={{ color: 'var(--accent-primary)', marginRight: 4, verticalAlign: '-2px' }}/> Active</Tag> },
     { title: 'LAST TRIGGERED', dataIndex: 'lastTriggered', key: 'lastTriggered', render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{t}</Text> },
     { title: 'ACTIONS', key: 'actions', align: 'right', render: () => (
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', alignItems: 'center' }}>
-        <a style={{ color: 'var(--text-primary)' }}><Edit2 size={16}/></a>
-        <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}>Test</a>
-        <a style={{ color: 'var(--accent-danger)' }}><Trash2 size={16}/></a>
-      </div>
+      role !== 'agency_client' ? (
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <a style={{ color: 'var(--text-primary)' }}><Edit2 size={16}/></a>
+          <a style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12 }}>Test</a>
+          <a style={{ color: 'var(--accent-danger)' }}><Trash2 size={16}/></a>
+        </div>
+      ) : null
     )},
   ];
 
@@ -122,7 +128,9 @@ const IntegrationsTab = () => {
               <strong style={{ display: 'block', fontSize: 16, color: 'var(--text-primary)', marginBottom: 4 }}>Connections</strong>
               <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>API health monitored every 60 seconds.</Text>
             </div>
-            <Button type="primary" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }} icon={<Link size={16} />}>Connect source</Button>
+            {role !== 'agency_client' && (
+              <Button type="primary" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }} icon={<Link size={16} />}>Connect source</Button>
+            )}
           </div>
           <Table columns={connCols} dataSource={connections} pagination={false} size="middle" rowClassName={() => 'hover-bg'} />
         </div>
@@ -137,9 +145,11 @@ const IntegrationsTab = () => {
             <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Keys used by M1 to power AI features. Keep these secret.</Text>
           </div>
           <Table columns={apiCols} dataSource={apiKeys} pagination={false} size="middle" rowClassName={() => 'hover-bg'} />
-          <div style={{ padding: '16px 32px' }}>
-            <Button style={{ fontWeight: 600, borderRadius: 8 }} icon={<Plus size={16} />}>Add API Key</Button>
-          </div>
+          {role !== 'agency_client' && (
+            <div style={{ padding: '16px 32px' }}>
+              <Button style={{ fontWeight: 600, borderRadius: 8 }} icon={<Plus size={16} />}>Add API Key</Button>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -154,7 +164,9 @@ const IntegrationsTab = () => {
           <Table columns={webhookCols} dataSource={webhooks} pagination={false} size="middle" rowClassName={() => 'hover-bg'} />
           
           <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Button style={{ fontWeight: 600, borderRadius: 8 }} icon={<Plus size={16} />}>Add Webhook</Button>
+            {role !== 'agency_client' ? (
+              <Button style={{ fontWeight: 600, borderRadius: 8 }} icon={<Plus size={16} />}>Add Webhook</Button>
+            ) : <div />}
             
             <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: 16, borderRadius: 8, maxWidth: 300 }}>
               <strong style={{ display: 'block', fontSize: 12, marginBottom: 8, color: 'var(--text-primary)' }}>Available events</strong>

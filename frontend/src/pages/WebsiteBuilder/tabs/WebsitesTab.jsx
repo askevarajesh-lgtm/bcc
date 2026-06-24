@@ -3,6 +3,7 @@ import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Ro
 import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
 import WebsiteTemplateLibraryModal from "./WebsiteTemplateLibraryModal";
 
 const { Title, Text } = Typography;
@@ -198,7 +199,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
   );
 };
 
-const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
+const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [pages, setPages] = useState(activeWebsite.pages || []);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
@@ -303,17 +304,17 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
               <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>WEBSITE NAME</div>
-                  <Input size="large" value={websiteName} onChange={e => setWebsiteName(e.target.value)} style={{ borderRadius: 8 }} />
+                  <Input size="large" value={websiteName} onChange={e => setWebsiteName(e.target.value)} style={{ borderRadius: 8 }} disabled={role === 'agency_client'} />
                 </div>
                 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>DESCRIPTION</div>
-                  <TextArea size="large" value={description} onChange={e => setDescription(e.target.value)} style={{ borderRadius: 8, minHeight: 80 }} />
+                  <TextArea size="large" value={description} onChange={e => setDescription(e.target.value)} style={{ borderRadius: 8, minHeight: 80 }} disabled={role === 'agency_client'} />
                 </div>
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>STATUS</div>
-                  <Select size="large" value={status} onChange={setStatus} style={{ width: "100%" }}>
+                  <Select size="large" value={status} onChange={setStatus} style={{ width: "100%" }} disabled={role === 'agency_client'}>
                     <Option value="Draft">Draft</Option>
                     <Option value="Published">Published</Option>
                   </Select>
@@ -321,16 +322,18 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>FAVICON URL</div>
-                  <Input size="large" placeholder="https://example.com/favicon.png" style={{ borderRadius: 8 }} />
+                  <Input size="large" placeholder="https://example.com/favicon.png" style={{ borderRadius: 8 }} disabled={role === 'agency_client'} />
                 </div>
 
-                <div style={{ marginBottom: 32 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>UPLOAD FAVICON</div>
-                  <div style={{ border: "1px dashed var(--border-color)", borderRadius: 12, padding: "16px", textAlign: 'center', background: "var(--bg-primary)" }}>
-                    <Button size="middle" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>Choose File</Button>
-                    <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>Max 1MB. Recommended 32x32px.</div>
+                {role !== 'agency_client' && (
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>UPLOAD FAVICON</div>
+                    <div style={{ border: "1px dashed var(--border-color)", borderRadius: 12, padding: "16px", textAlign: 'center', background: "var(--bg-primary)" }}>
+                      <Button size="middle" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>Choose File</Button>
+                      <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>Max 1MB. Recommended 32x32px.</div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Tracking Pixels */}
                 <div style={{ border: "1px solid var(--border-color)", borderRadius: 16, padding: 24, marginBottom: 32, background: "var(--bg-primary)" }}>
@@ -340,52 +343,56 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                   <Row gutter={16} style={{ marginBottom: 16 }}>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>META (FB) PIXEL</div>
-                      <Input placeholder="123456789012345" style={{ borderRadius: 6, fontSize: 13 }} />
+                      <Input placeholder="123456789012345" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
                     </Col>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>GA4 ID</div>
-                      <Input placeholder="G-XXXXXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} />
+                      <Input placeholder="G-XXXXXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
                     </Col>
                   </Row>
 
                   <Row gutter={16} style={{ marginBottom: 24 }}>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>GTM ID</div>
-                      <Input placeholder="GTM-XXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} />
+                      <Input placeholder="GTM-XXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
                     </Col>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>TIKTOK PIXEL</div>
-                      <Input placeholder="CXX000000000000X" style={{ borderRadius: 6, fontSize: 13 }} />
+                      <Input placeholder="CXX000000000000X" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
                     </Col>
                   </Row>
 
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM HEAD CODE</div>
-                    <TextArea placeholder="<script>...</script> placed before </head>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} />
+                    <TextArea placeholder="<script>...</script> placed before </head>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} disabled={role === 'agency_client'} />
                   </div>
 
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM BODY CODE</div>
-                    <TextArea placeholder="<noscript>...</noscript> placed after <body>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} />
+                    <TextArea placeholder="<noscript>...</noscript> placed after <body>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} disabled={role === 'agency_client'} />
                   </div>
                 </div>
 
-                <Button type="primary" size="large" onClick={handleSaveSettings} block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
-                  Save Changes
-                </Button>
-                
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Button type="primary" size="large" onClick={() => { setStatus("Published"); handleSaveSettings(); }} block style={{ background: "var(--accent-success)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
-                      Publish
+                {role !== 'agency_client' && (
+                  <>
+                    <Button type="primary" size="large" onClick={handleSaveSettings} block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
+                      Save Changes
                     </Button>
-                  </Col>
-                  <Col span={12}>
-                    <Button type="primary" size="large" onClick={() => { setStatus("Draft"); handleSaveSettings(); }} block style={{ background: "var(--accent-warning)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, color: '#fff' }}>
-                      Revert to Draft
-                    </Button>
-                  </Col>
-                </Row>
+                    
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Button type="primary" size="large" onClick={() => { setStatus("Published"); handleSaveSettings(); }} block style={{ background: "var(--accent-success)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
+                          Publish
+                        </Button>
+                      </Col>
+                      <Col span={12}>
+                        <Button type="primary" size="large" onClick={() => { setStatus("Draft"); handleSaveSettings(); }} block style={{ background: "var(--accent-warning)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, color: '#fff' }}>
+                          Revert to Draft
+                        </Button>
+                      </Col>
+                    </Row>
+                  </>
+                )}
               </Card>
 
               <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
@@ -393,15 +400,19 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                 <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
                   Assign a published chat widget to this property. It also appears in the page builder under Chat.
                 </div>
-                <Select size="large" defaultValue="none" style={{ width: "100%", marginBottom: 16 }}>
+                <Select size="large" defaultValue="none" style={{ width: "100%", marginBottom: 16 }} disabled={role === 'agency_client'}>
                   <Option value="none">— None —</Option>
                 </Select>
-                <Button size="large" type="primary" block style={{ background: "var(--accent-info)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, marginBottom: 16 }}>
-                  Save Widget Assignment
-                </Button>
-                <div style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  + Create new chat widget
-                </div>
+                {role !== 'agency_client' && (
+                  <>
+                    <Button size="large" type="primary" block style={{ background: "var(--accent-info)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, marginBottom: 16 }}>
+                      Save Widget Assignment
+                    </Button>
+                    <div style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      + Create new chat widget
+                    </div>
+                  </>
+                )}
               </Card>
 
               <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
@@ -409,9 +420,11 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                 <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
                   Connect a domain so visitors reach this property without /shop/ or /p/ paths.
                 </div>
-                <Button size="large" type="primary" block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
-                  Connect Domain
-                </Button>
+                {role !== 'agency_client' && (
+                  <Button size="large" type="primary" block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
+                    Connect Domain
+                  </Button>
+                )}
               </Card>
 
             </div>
@@ -433,12 +446,14 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                 </div>
                 <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Home page sets global header & footer for all other pages.</div>
                 
-                <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
-                  <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
-                  <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
-                    Add Page
-                  </Button>
-                </div>
+                {role !== 'agency_client' && (
+                  <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
+                    <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
+                    <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
+                      Add Page
+                    </Button>
+                  </div>
+                )}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {pages.map((page, index) => (
@@ -463,16 +478,17 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
                             setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
                           }}
                           style={{ width: 120 }}
+                          disabled={role === 'agency_client'}
                         >
                           <Option value="Draft">Draft</Option>
                           <Option value="Published">Published</Option>
                         </Select>
                       </div>
                       <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                        <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>
+                        {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
                         <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />}>Preview</Button>
-                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>
-                        {!page.isHome && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
+                        {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
+                        {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
                       </div>
                     </div>
                   ))}
@@ -488,6 +504,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants }) => {
 };
 
 const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
+  const { role } = useAuth();
   const [viewType, setViewType] = useState("list");
   const [folderView, setFolderView] = useState("home");
   const [searchText, setSearchText] = useState("");
@@ -622,7 +639,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   };
 
   if (view === "manage" && activeWebsite) {
-    return <ManageWebsiteView activeWebsite={activeWebsite} setView={setView} itemVariants={itemVariants} />;
+    return <ManageWebsiteView activeWebsite={activeWebsite} setView={setView} itemVariants={itemVariants} role={role} />;
   }
 
   const columns = [
@@ -738,7 +755,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           }
         ];
 
-        return (
+        return role !== 'agency_client' ? (
           <Space>
             <Dropdown 
               menu={{ items: menuItems }} 
@@ -749,7 +766,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
               <Button type="text" icon={<MoreVertical size={18} color="var(--text-secondary)" />} style={{ borderRadius: 8 }} />
             </Dropdown>
           </Space>
-        );
+        ) : <Button type="text" onClick={handleManage} style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>View</Button>;
       }
     },
   ];
@@ -766,24 +783,28 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           </Text>
         </div>
         <Space>
-          <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button>
-          <Button 
-            size="large"
-            icon={<Sparkles size={18} />} 
-            onClick={() => setIsModalOpen(true)}
-            style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
-          >
-            Build with AI <Tag style={{ margin: '0 0 0 8px', background: 'var(--accent-secondary)', color: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', fontSize: 10 }}>BETA</Tag>
-          </Button>
-          <Button 
-            size="large"
-            type="primary" 
-            icon={<Plus size={18} />}
-            onClick={() => setIsModalOpen(true)}
-            style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 800, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
-          >
-            New Website
-          </Button>
+          {role !== 'agency_client' && (
+            <>
+              <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button>
+              <Button 
+                size="large"
+                icon={<Sparkles size={18} />} 
+                onClick={() => setIsModalOpen(true)}
+                style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
+              >
+                Build with AI <Tag style={{ margin: '0 0 0 8px', background: 'var(--accent-secondary)', color: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', fontSize: 10 }}>BETA</Tag>
+              </Button>
+              <Button 
+                size="large"
+                type="primary" 
+                icon={<Plus size={18} />}
+                onClick={() => setIsModalOpen(true)}
+                style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 800, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
+              >
+                New Website
+              </Button>
+            </>
+          )}
         </Space>
       </div>
 

@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { Typography, Row, Col, Input, Button, Tag, Avatar } from 'antd';
 import { motion } from 'framer-motion';
 import { Search, Plus, Calendar, Clock, CheckCircle2, MessageCircle } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import BubbleCard from '../../../components/BubbleCard';
 
 const { Title, Text } = Typography;
 
 const TasksTab = () => {
+  const { role } = useAuth();
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -77,9 +80,11 @@ const TasksTab = () => {
       <div>
         {items.map(task => <TaskCard key={task.id} task={task} />)}
       </div>
-      <Button type="dashed" block style={{ borderRadius: 12, borderColor: 'var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, height: 40 }}>
-        <Plus size={16} style={{ marginRight: 8 }} /> Add Request
-      </Button>
+      {role !== 'agency_client' && (
+        <Button type="dashed" block style={{ borderRadius: 12, borderColor: 'var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, height: 40 }}>
+          <Plus size={16} style={{ marginRight: 8 }} /> Add Request
+        </Button>
+      )}
     </div>
   );
 
@@ -97,25 +102,29 @@ const TasksTab = () => {
             placeholder="Search tasks..." 
             style={{ width: 250, borderRadius: 8, padding: '8px 12px' }} 
           />
-          <Button type="primary" icon={<Plus size={16} />} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}>
-            New Request
-          </Button>
+          {role !== 'agency_client' && (
+            <Button type="primary" icon={<Plus size={16} />} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}>
+              New Request
+            </Button>
+          )}
         </div>
       </motion.div>
 
       <motion.div variants={itemVariants}>
         <BubbleCard bodyStyle={{ padding: 32 }}>
           <Row gutter={24}>
-            <Col xs={24} md={12} lg={6}>
+            <Col xs={24} md={12} lg={role === 'agency_client' ? 8 : 6}>
               <Column title="To Do" count={tasks.todo.length} items={tasks.todo} color="var(--text-secondary)" />
             </Col>
-            <Col xs={24} md={12} lg={6}>
-              <Column title="In Progress" count={tasks.inProgress.length} items={tasks.inProgress} color="var(--accent-warning)" />
-            </Col>
-            <Col xs={24} md={12} lg={6}>
+            {role !== 'agency_client' && (
+              <Col xs={24} md={12} lg={6}>
+                <Column title="In Progress" count={tasks.inProgress.length} items={tasks.inProgress} color="var(--accent-warning)" />
+              </Col>
+            )}
+            <Col xs={24} md={12} lg={role === 'agency_client' ? 8 : 6}>
               <Column title="In Review" count={tasks.inReview.length} items={tasks.inReview} color="#8b5cf6" />
             </Col>
-            <Col xs={24} md={12} lg={6}>
+            <Col xs={24} md={12} lg={role === 'agency_client' ? 8 : 6}>
               <Column title="Done" count={tasks.done.length} items={tasks.done} color="var(--accent-primary)" />
             </Col>
           </Row>

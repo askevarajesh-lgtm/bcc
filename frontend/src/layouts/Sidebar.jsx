@@ -111,7 +111,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/ops/time', icon: getIcon(Clock), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
         // Admins cannot access financial controls
-        ...(role === 'admin' ? [] : [
+        ...(role === 'commander_admin' ? [] : [
           { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
           { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' }
         ]),

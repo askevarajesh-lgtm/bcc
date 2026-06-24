@@ -72,8 +72,8 @@ const Dashboard = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         {[
           { label: 'ACTIVE CLIENTS', val: '12', sub: '+2 this month', type: 'up' },
-          // Hide MRR for admin
-          ...(role === 'admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up' }]),
+          // Hide MRR for commander_admin
+          ...(role === 'commander_admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up' }]),
           { label: 'AVG MOS SCORE', val: '68', sub: '+4 pts', type: 'up', isProgress: true },
           { label: 'SLA COMPLIANCE', val: '94%', sub: '-2% vs last month', type: 'down' },
           { label: 'OPEN ESCALATIONS', val: '3', sub: 'Needs attention', type: 'alert' }

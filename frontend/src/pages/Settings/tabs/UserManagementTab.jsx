@@ -35,22 +35,17 @@ const UserManagementTab = () => {
   
   // States for data
   const [users, setUsers] = useState([]);
-  const [clients, setClients] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Search states
   const [userSearch, setUserSearch] = useState('');
-  const [clientSearch, setClientSearch] = useState('');
   
   // Modals state
   const [userModal, setUserModal] = useState({ open: false, record: null });
   const [userForm] = Form.useForm();
 
-  const [clientModuleModalOpen, setClientModuleModalOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientModuleValues, setClientModuleValues] = useState({ chatgpt: false, canva: false });
 
   const [deptModal, setDeptModal] = useState({ open: false, record: null });
   const [deptForm] = Form.useForm();
@@ -87,7 +82,6 @@ const UserManagementTab = () => {
       ]);
       const allUsers = usersRes.data?.data || [];
       setUsers(allUsers.filter(u => u.role !== 'agency_client' && u.role !== 'client'));
-      setClients(allUsers.filter(u => u.role === 'agency_client' || u.role === 'client'));
       setDepartments(deptsRes.data?.data || []);
       setRoles(rolesRes.data?.data || []);
     } catch (err) {
@@ -127,12 +121,17 @@ const UserManagementTab = () => {
   const userColumns = [
     { title: <strong style={{color:'var(--text-secondary)'}}>NAME</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
     { title: <strong style={{color:'var(--text-secondary)'}}>EMAIL</strong>, dataIndex: 'email', key: 'email', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE</strong>, dataIndex: 'role', key: 'role', render: role => (
-        <Tag color={getRoleColor(role)} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
-          {role.replace(/_/g, ' ').toUpperCase()}
-        </Tag>
-    )},
-    { title: <strong style={{color:'var(--text-secondary)'}}>COMPANY</strong>, dataIndex: 'companyName', key: 'companyName', render: t => <span style={{fontWeight:500}}>{t}</span> },
+    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE</strong>, key: 'role', render: (_, record) => {
+        let displayRole = record.roleName || record.role;
+        return (
+          <Tag color={getRoleColor(record.role)} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
+            {displayRole.replace(/_/g, ' ').toUpperCase()}
+          </Tag>
+        );
+    }},
+    { title: <strong style={{color:'var(--text-secondary)'}}>DEPARTMENT</strong>, key: 'department', render: (_, record) => {
+        return <span style={{fontWeight:500}}>{record.departmentName || '-'}</span>;
+    }},
     { title: <strong style={{color:'var(--text-secondary)'}}>STATUS</strong>, dataIndex: 'isActive', key: 'isActive', render: isActive => (
         <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
           {isActive ? 'ACTIVE' : 'INACTIVE'}
@@ -146,8 +145,14 @@ const UserManagementTab = () => {
           <Button type="text" icon={<LoginOutlined />} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Login as User</Button>
           <Button type="text" icon={<EditOutlined />} onClick={() => {
             setUserModal({ open: true, record });
+            let formRole = record.role;
+            if (record.customRoleId) {
+               const customRole = roles.find(r => r._id === record.customRoleId);
+               if (customRole) formRole = customRole.roleKey;
+            }
             userForm.setFieldsValue({
               ...record,
+              role: formRole,
               status: record.isActive ? 'active' : 'inactive'
             });
           }} style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>Edit</Button>
@@ -159,43 +164,6 @@ const UserManagementTab = () => {
     }
   ];
 
-  // Client Columns
-  const clientColumns = [
-    { title: <strong style={{color:'var(--text-secondary)'}}>NAME</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>EMAIL</strong>, dataIndex: 'email', key: 'email', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE</strong>, dataIndex: 'role', key: 'role', render: role => (
-        <Tag color="default" style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>CLIENT</Tag>
-    )},
-    { title: <strong style={{color:'var(--text-secondary)'}}>CLIENT</strong>, dataIndex: 'companyName', key: 'companyName', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>STATUS</strong>, dataIndex: 'isActive', key: 'isActive', render: isActive => (
-        <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
-          {isActive ? 'ACTIVE' : 'INACTIVE'}
-        </Tag>
-    )},
-    { title: <strong style={{color:'var(--text-secondary)'}}>MODULES</strong>, key: 'modules', render: (_, r) => (
-        <Space size={[0, 8]} wrap>
-          <Tag color={r.modules?.chatgpt ? "green" : "default"} style={{ borderRadius: 6, fontWeight: 600 }}>ChatGPT {r.modules?.chatgpt ? "On" : "Off"}</Tag>
-          <Tag color={r.modules?.canva ? "blue" : "default"} style={{ borderRadius: 6, fontWeight: 600 }}>Canva {r.modules?.canva ? "On" : "Off"}</Tag>
-        </Space>
-    )},
-    {
-      title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>View</Button>
-          <Button type="text" icon={<LoginOutlined />} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Login as Client</Button>
-          <Button type="text" icon={<ApiOutlined />} onClick={() => {
-            setSelectedClient(record);
-            setClientModuleValues(record.modules || {chatgpt: false, canva: false});
-            setClientModuleModalOpen(true);
-          }} style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>Modules</Button>
-          <Button type="text" danger={record.isActive} icon={record.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => handleToggleUserStatus(record, true)}>
-            {record.isActive ? "Inactive" : "Active"}
-          </Button>
-        </Space>
-      )
-    }
-  ];
 
   // Department Columns
   const deptColumns = [
@@ -324,25 +292,11 @@ const UserManagementTab = () => {
     }
   };
 
-  const handleSaveClientModules = async () => {
-    try {
-      await api.put(`/users/${selectedClient._id}`, { modules: clientModuleValues });
-      message.success('Client modules updated');
-      setClientModuleModalOpen(false);
-      fetchData();
-    } catch (err) {
-      message.error('Failed to update client modules');
-    }
-  };
+
 
   const filteredUsers = users.filter(u => 
     (u.name || '').toLowerCase().includes((userSearch || '').toLowerCase()) || 
     (u.email || '').toLowerCase().includes((userSearch || '').toLowerCase())
-  );
-
-  const filteredClients = clients.filter(c => 
-    (c.name || '').toLowerCase().includes((clientSearch || '').toLowerCase()) || 
-    (c.email || '').toLowerCase().includes((clientSearch || '').toLowerCase())
   );
 
   return (
@@ -350,7 +304,7 @@ const UserManagementTab = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <Title level={3} style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900 }}>User Management</Title>
-          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Manage users, clients, departments, and roles.</Text>
+          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Manage users, departments, and roles.</Text>
         </div>
         {activeTab === 'user' && (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { setUserModal({ open: true, record: null }); userForm.resetFields(); userForm.setFieldsValue({ status: 'active', role: 'developer' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
@@ -387,33 +341,6 @@ const UserManagementTab = () => {
                   <Table 
                     columns={userColumns} 
                     dataSource={filteredUsers} 
-                    rowKey="_id" 
-                    pagination={{ pageSize: 10 }} 
-                    style={{ padding: 24 }}
-                    rowClassName={() => 'hover-bg'}
-                    scroll={{ x: 'max-content' }}
-                    loading={loading}
-                  />
-                </div>
-              )
-            },
-            {
-              key: 'client',
-              label: <strong style={{ fontWeight: 600 }}>Client</strong>,
-              children: (
-                <div>
-                  <div style={{ padding: '24px 24px 0 24px' }}>
-                    <Input 
-                      placeholder="Search client users by name or email..." 
-                      value={clientSearch}
-                      onChange={e => setClientSearch(e.target.value)}
-                      prefix={<Search size={16} color="var(--text-tertiary)" />}
-                      style={{ borderRadius: 10, maxWidth: 400, height: 44, fontWeight: 500 }}
-                    />
-                  </div>
-                  <Table 
-                    columns={clientColumns} 
-                    dataSource={filteredClients} 
                     rowKey="_id" 
                     pagination={{ pageSize: 10 }} 
                     style={{ padding: 24 }}
@@ -506,13 +433,14 @@ const UserManagementTab = () => {
               <Input.Password size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
             </Form.Item>
           )}
-          <Form.Item name="companyName" label={<strong style={{ color: 'var(--text-secondary)' }}>Company Name</strong>} rules={[{ required: true }]}>
-            <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+          <Form.Item name="departmentId" label={<strong style={{ color: 'var(--text-secondary)' }}>Department</strong>} rules={[{ required: true }]}>
+            <Select size="large" placeholder="Select Department">
+              {departments.map(d => <Option key={d._id} value={d._id}>{d.name}</Option>)}
+            </Select>
           </Form.Item>
           <Form.Item name="role" label={<strong style={{ color: 'var(--text-secondary)' }}>Role</strong>} rules={[{ required: true }]}>
             <Select size="large">
               {roles.map(r => <Option key={r._id} value={r.roleKey}>{r.roleName}</Option>)}
-              <Option value="client">Client</Option>
             </Select>
           </Form.Item>
           <Form.Item name="status" label={<strong style={{ color: 'var(--text-secondary)' }}>Status</strong>} rules={[{ required: true }]}>
@@ -579,36 +507,7 @@ const UserManagementTab = () => {
         </Form>
       </Modal>
 
-      <Modal
-        open={clientModuleModalOpen}
-        title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Client Panel Modules - {selectedClient?.companyName}</div>}
-        onCancel={() => setClientModuleModalOpen(false)}
-        onOk={handleSaveClientModules}
-        okText="Save Changes"
-        className="glassmorphism-modal"
-        okButtonProps={{ style: { background: 'var(--accent-info)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
-        cancelButtonProps={{ style: { borderRadius: 8, fontWeight: 600, background: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' } }}
-      >
-        <div style={{ display: "grid", gap: 16, marginTop: 24 }}>
-          <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-            Control which client-only integrations are visible inside this client's panel. Disabled modules will stay hidden from the client panel UI.
-          </Text>
 
-          {["chatgpt", "canva"].map(moduleKey => (
-            <div key={moduleKey} style={{ border: "1px solid var(--border-color)", background: 'var(--bg-tertiary)', borderRadius: 16, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: 'var(--shadow-sm)' }}>
-              <div>
-                <strong style={{ display: "block", marginBottom: 4, color: 'var(--text-primary)', fontSize: 15 }}>
-                  {moduleKey === "chatgpt" ? "ChatGPT UI" : "Canva UI"}
-                </strong>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  {moduleKey === "chatgpt" ? "Shows the AI chat workspace in the client panel." : "Shows the Canva workspace entry in the client panel."}
-                </Text>
-              </div>
-              <Switch checked={clientModuleValues[moduleKey]} onChange={checked => setClientModuleValues(prev => ({ ...prev, [moduleKey]: checked }))} style={{ background: clientModuleValues[moduleKey] ? 'var(--accent-info)' : undefined }} />
-            </div>
-          ))}
-        </div>
-      </Modal>
 
       <Modal
         title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Module Permission Matrix <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>— {roles.find(r => r._id === permissionRoleId)?.roleName}</span></div>}

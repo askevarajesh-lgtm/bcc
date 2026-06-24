@@ -188,7 +188,7 @@ const Admins = () => {
               <Select defaultValue="all" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Roles</Option>
                 <Option value="supreme_super_admin">Supreme Admin</Option>
-                <Option value="admin">Admin</Option>
+                <Option value="commander_admin">Commander Admin</Option>
               </Select>
               <Select defaultValue="active" style={{ width: 140, height: 40 }} className="custom-select">
                 <Option value="all">All Status</Option>
@@ -238,10 +238,10 @@ const Admins = () => {
             </Select>
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>System Role</Text>} name="role" initialValue="admin">
-            <Select style={{ borderRadius: 8 }}>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>System Role</Text>} name="role" initialValue="commander_admin">
+            <Select size="large">
               <Option value="supreme_super_admin">Supreme Super Admin</Option>
-              <Option value="admin">Admin</Option>
+              <Option value="commander_admin">Commander Admin</Option>
             </Select>
           </Form.Item>
 

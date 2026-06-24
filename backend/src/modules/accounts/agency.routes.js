@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const agencyController = require('./agency.controller');
+const authMiddleware = require('../../middlewares/authMiddleware');
+
+router.use(authMiddleware);
 
 router.route('/')
   .get(agencyController.getAgencies)

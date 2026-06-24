@@ -56,13 +56,41 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     { 
       key: role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard', 
       icon: getIcon(LayoutDashboard), 
-      label: 'Command Center', 
+      label: role === 'agency_client' ? 'Dashboard' : 'Command Center', 
       ...(['brand_super_admin', 'brand_manager'].includes(role) ? {} : { featureId: 'dashboard' }) 
     },
   ];
 
-  if (['brand_super_admin', 'brand_manager'].includes(role)) {
-    // Brand Admins/Managers see the exact same modules as the Main Admin panel, but prefixed with /client/
+  if (role === 'brand_super_admin') {
+    allMenuItems.push(
+      { type: 'divider' },
+      {
+        key: 'clients',
+        label: collapsed ? 'CLI' : 'CLIENTS',
+        children: [
+          { key: '/client/users', icon: getIcon(Users), label: 'Users' },
+          { key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' },
+        ],
+      },
+      { type: 'divider' },
+      {
+        key: 'intelligence',
+        label: collapsed ? 'INT' : 'INTELLIGENCE',
+        children: [
+          { key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
+        ],
+      },
+      { type: 'divider' },
+      {
+        key: 'settings',
+        label: collapsed ? 'SET' : 'SETTINGS',
+        children: [
+          { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
+        ],
+      }
+    );
+  } else if (role === 'brand_manager') {
+    // Brand Managers see the exact same modules as the Main Admin panel, but prefixed with /client/
     // TODO (PHASE 2): Re-enable feature-based filtering (`featureId`) based on the brand's active package/subscription.
     // Currently, all modules are visible, but in Phase 2, this list should be filtered by enabled features.
     allMenuItems.push(
@@ -73,9 +101,6 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         children: [
           // Accounts excluded
           { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3⚠', 'alert') },
-          ...(role === 'brand_manager' ? [] : [
-            { key: '/client/clients/portal', icon: getIcon(Monitor), label: 'Portal Settings' }
-          ]),
         ],
       },
       { type: 'divider' },
@@ -131,6 +156,23 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         children: [
           { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
           { key: '/client/settings/marketplace', icon: getIcon(Store), label: 'Master Item' },
+        ],
+      }
+    );
+  } else if (role === 'agency_client') {
+    // Agency Client Panel Menu
+    allMenuItems.push(
+      { key: '/client/leads', icon: getIcon(Users), label: 'Leads', featureId: 'leads' },
+      { key: '/client/website', icon: getIcon(Globe), label: 'Website', featureId: 'website' },
+      { key: '/client/tasks', icon: getIcon(CheckSquare), label: 'Tasks', featureId: 'tasks' },
+      { key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing', featureId: 'billing' },
+      { key: '/client/support', icon: getIcon(HelpCircle), label: 'Support', featureId: 'support' },
+      { type: 'divider' },
+      {
+        key: 'settings',
+        label: collapsed ? 'SET' : 'SETTINGS',
+        children: [
+          { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' }
         ],
       }
     );
