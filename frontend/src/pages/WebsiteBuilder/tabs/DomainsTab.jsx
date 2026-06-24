@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Table, Typography, Space, Tag, Card, Select, Row, Col, Divider, Popconfirm } from "antd";
+import { Button, Input, Table, Typography, Space, Tag, Card, Select, Row, Col, Divider, Popconfirm, message } from "antd";
 import { Plus, Search, Globe, ArrowRight, ArrowLeft, Info, Server, Activity, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -9,15 +9,89 @@ const { Option } = Select;
 const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
   const [formData, setFormData] = useState({
     propertyType: "Website",
-    property: "Website — JEEMA Digital",
+    property: "",
     customDomain: ""
   });
 
+  const [websites, setWebsites] = useState([]);
+  const [funnels, setFunnels] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  const error = formData.customDomain.includes("jeema.one") 
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+        const [webRes, funRes, storeRes] = await Promise.all([
+          fetch("/api/websites", { headers }),
+          fetch("/api/funnels", { headers }),
+          fetch("/api/stores", { headers })
+        ]);
+        const [webData, funData, storeData] = await Promise.all([
+          webRes.json(),
+          funRes.json(),
+          storeRes.json()
+        ]);
+
+        const webs = webData.success ? webData.data : [];
+        const funs = funData.success ? funData.data : [];
+        const sts = storeData.success ? storeData.data : [];
+
+        setWebsites(webs);
+        setFunnels(funs);
+        setStores(sts);
+
+        // Auto-select the first website if available
+        if (webs.length > 0) {
+          setFormData(prev => ({ ...prev, property: webs[0]._id }));
+        }
+      } catch (err) {
+        console.error("Error loading properties for domain connection", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  const handlePropertyTypeChange = (type) => {
+    let defaultPropId = "";
+    if (type === "Website" && websites.length > 0) {
+      defaultPropId = websites[0]._id;
+    } else if (type === "Funnel" && funnels.length > 0) {
+      defaultPropId = funnels[0]._id;
+    } else if (type === "Store" && stores.length > 0) {
+      defaultPropId = stores[0]._id;
+    }
+    setFormData({
+      ...formData,
+      propertyType: type,
+      property: defaultPropId
+    });
+  };
+
+  const getPropertyOptions = () => {
+    if (formData.propertyType === "Website") {
+      return websites.map(w => <Option key={w._id} value={w._id}>{w.name}</Option>);
+    } else if (formData.propertyType === "Funnel") {
+      return funnels.map(f => <Option key={f._id} value={f._id}>{f.name}</Option>);
+    } else if (formData.propertyType === "Store") {
+      return stores.map(s => <Option key={s._id} value={s._id}>{s.storeName}</Option>);
+    }
+    return [];
+  };
+
+  const error = formData.customDomain.includes("m1growth.com") 
     ? "That hostname is reserved for this application." 
     : null;
+
+  const currentPropertiesLength = 
+    formData.propertyType === "Website" ? websites.length :
+    formData.propertyType === "Funnel" ? funnels.length :
+    formData.propertyType === "Store" ? stores.length : 0;
 
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
@@ -28,7 +102,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
         <div>
           <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>Connect Domain</Title>
-          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Point DNS to Jeema, then verify ownership.</Text>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Point DNS to Bcc Crm, then verify ownership.</Text>
         </div>
       </div>
 
@@ -40,13 +114,13 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
           </div>
         )}
 
-        <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, marginBottom: 32, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
+        <Card loading={loading} bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, marginBottom: 32, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>PROPERTY TYPE</div>
             <Select 
               size="large"
               value={formData.propertyType}
-              onChange={v => setFormData({...formData, propertyType: v})}
+              onChange={handlePropertyTypeChange}
               style={{ width: "100%" }}
             >
               <Option value="Website">Website</Option>
@@ -59,11 +133,13 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
             <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>PROPERTY</div>
             <Select 
               size="large"
-              value={formData.property}
+              value={formData.property || undefined}
+              placeholder={currentPropertiesLength === 0 ? `No active ${formData.propertyType}s found` : `Select a ${formData.propertyType}`}
               onChange={v => setFormData({...formData, property: v})}
               style={{ width: "100%" }}
+              disabled={currentPropertiesLength === 0}
             >
-              <Option value="Website — JEEMA Digital">Website — JEEMA Digital</Option>
+              {getPropertyOptions()}
             </Select>
           </div>
 
@@ -86,7 +162,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
           type="primary" 
           size="large"
           block 
-          disabled={!formData.customDomain || (error && hasInteracted)}
+          disabled={!formData.customDomain || !formData.property || (error && hasInteracted)}
           style={{ height: 56, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 16, boxShadow: 'var(--shadow-md)' }}
           onClick={() => handleConnectDomain(formData)}
         >
@@ -97,7 +173,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
   );
 };
 
-const ManageDomainView = ({ activeDomain, setView, handleDisconnect, itemVariants }) => {
+const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerifyDNS, verifying, itemVariants }) => {
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => setView("list")}>
@@ -134,7 +210,7 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, itemVariant
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>Target</span>
-                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>jeema.one</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>m1growth.com</span>
               </div>
             </div>
 
@@ -147,16 +223,24 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, itemVariant
               </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>HOST</div>
-                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>_jeema-verify.{activeDomain.domain}</div>
+                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>_m1growth-verify.{activeDomain.domain}</div>
               </div>
               <div>
                 <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>VALUE</div>
-                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>eacyp23w0fqcdawoegpqgxaqulpmrvnvxflglsjasquwdxot</div>
+                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>{activeDomain.txtVerificationToken}</div>
               </div>
             </div>
 
-            <Button type="primary" size="large" block style={{ height: 56, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 16 }}>
-              Verify DNS & Activate
+            <Button 
+              type="primary" 
+              size="large" 
+              block 
+              loading={verifying}
+              disabled={activeDomain.status === "Connected"}
+              onClick={() => handleVerifyDNS(activeDomain.key)}
+              style={{ height: 56, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 16 }}
+            >
+              {activeDomain.status === "Connected" ? "Domain Connected & Active" : "Verify DNS & Activate"}
             </Button>
           </Card>
         </Col>
@@ -183,6 +267,7 @@ const DomainsTab = ({ itemVariants }) => {
   const [domains, setDomains] = useState([]);
   const [activeDomain, setActiveDomain] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const fetchDomains = async () => {
@@ -197,7 +282,7 @@ const DomainsTab = ({ itemVariants }) => {
           setDomains(data.data.map(d => ({
             key: d._id,
             domain: d.customDomain,
-            connectedTo: `${d.propertyType} · JEEMA Digital`,
+            connectedTo: d.connectedTo || `${d.propertyType} · Bcc Crm`,
             status: d.status || 'Pending',
             ...d
           })));
@@ -220,16 +305,20 @@ const DomainsTab = ({ itemVariants }) => {
         },
         body: JSON.stringify({
           propertyType: data.propertyType,
-          propertyId: null, // Assuming property selection maps to an ID
+          property: data.property,
           customDomain: data.customDomain
         })
       });
       const resData = await res.json();
       if (resData.success) {
+        message.success("Domain connected successfully!");
         setView("list");
+      } else {
+        message.error(resData.error || "Failed to connect domain");
       }
     } catch (err) {
       console.error(err);
+      message.error("An error occurred. Please try again.");
     }
   };
 
@@ -245,10 +334,40 @@ const DomainsTab = ({ itemVariants }) => {
       const data = await res.json();
       if (data.success) {
         setDomains(domains.filter(d => d.key !== key));
+        message.success("Domain disconnected successfully.");
         setView("list");
+      } else {
+        message.error(data.error || "Failed to disconnect domain");
       }
     } catch (err) {
       console.error(err);
+      message.error("An error occurred. Please try again.");
+    }
+  };
+
+  const handleVerifyDNS = async (domainId) => {
+    setVerifying(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/domains/${domainId}/verify`, {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Domain verified and connected successfully!");
+        setDomains(prev => prev.map(d => d.key === domainId ? { ...d, status: 'Connected' } : d));
+        setActiveDomain(prev => prev ? { ...prev, status: 'Connected' } : null);
+      } else {
+        message.error(data.error || "DNS verification failed. Please check records and try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("An error occurred during verification.");
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -359,7 +478,7 @@ const DomainsTab = ({ itemVariants }) => {
     <div style={{ position: "relative" }}>
       {view === "list" && renderList()}
       {view === "connect" && <ConnectDomainView setView={setView} handleConnectDomain={handleConnectDomain} itemVariants={itemVariants} />}
-      {view === "manage" && activeDomain && <ManageDomainView activeDomain={activeDomain} setView={setView} handleDisconnect={handleDisconnect} itemVariants={itemVariants} />}
+      {view === "manage" && activeDomain && <ManageDomainView activeDomain={activeDomain} setView={setView} handleDisconnect={handleDisconnect} handleVerifyDNS={handleVerifyDNS} verifying={verifying} itemVariants={itemVariants} />}
     </div>
   );
 };

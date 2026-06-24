@@ -108,6 +108,28 @@ exports.getPublicBlog = async (req, res, next) => {
   }
 };
 
+// Get Public Blog Details + Posts by Slug
+exports.getPublicBlogBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const blog = await Blog.findOne({ slug, isDeleted: false, status: 'active' });
+    if (!blog) {
+      return res.status(404).json({ success: false, error: 'Blog not found' });
+    }
+
+    const posts = await BlogPost.find({ blogId: blog._id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      data: {
+        ...blog.toObject(),
+        posts
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Update Blog Settings
 exports.updateBlog = async (req, res, next) => {
   try {

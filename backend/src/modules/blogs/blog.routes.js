@@ -5,6 +5,7 @@ const authMiddleware = require('../../middlewares/authMiddleware');
 
 // Public Blog Endpoint
 router.get('/:id/public', blogController.getPublicBlog);
+router.get('/slug/:slug/public', blogController.getPublicBlogBySlug);
 
 router.use(authMiddleware);
 

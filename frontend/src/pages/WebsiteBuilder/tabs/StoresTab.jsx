@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Button, Table, Typography, Space, Popconfirm, Select, Card, Input, Row, Col, Checkbox, Tag } from "antd";
+import { Button, Table, Typography, Space, Popconfirm, Select, Card, Input, Row, Col, Checkbox, Tag, message } from "antd";
 import { Plus, Trash2, Store, ShoppingBag, LayoutGrid, Users, Tag as TagIcon, LayoutTemplate, Truck, Settings, CreditCard, Mail, Search, ExternalLink, Activity, ArrowRight, Eye, Edit3, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate, useLocation } from "react-router-dom";
 import CreateStoreModal from "./CreateStoreModal";
 import StoreTemplateLibraryModal from "./StoreTemplateLibraryModal";
 
@@ -11,6 +12,62 @@ const { TextArea } = Input;
 
 const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
   const [activeSubTab, setActiveSubTab] = useState("home");
+  const [chatWidgets, setChatWidgets] = useState([]);
+  const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeStore.chatWidgetId || "none");
+  const [savingWidget, setSavingWidget] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const fetchWidgets = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/chat-widgets", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setChatWidgets(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch widgets", err);
+      }
+    };
+    fetchWidgets();
+  }, []);
+
+  const handleSaveWidgetAssignment = async () => {
+    try {
+      setSavingWidget(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/stores/${activeStore.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ chatWidgetId: selectedChatWidgetId === "none" ? null : selectedChatWidgetId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Chat widget assigned successfully!");
+        activeStore.chatWidgetId = selectedChatWidgetId === "none" ? null : selectedChatWidgetId;
+      } else {
+        message.error(data.error || "Failed to save widget assignment");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error saving widget assignment");
+    } finally {
+      setSavingWidget(false);
+    }
+  };
+
+  const handleCreateNewChatWidgetClick = () => {
+    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const basePath = match ? match[0] : '/workspace/website';
+    navigate(`${basePath}/chat-widgets`);
+  };
 
   const renderHome = () => (
     <motion.div variants={itemVariants} className="store-manage-content">
@@ -23,13 +80,31 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
               <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
                 Assign a published chat widget to this property. It also appears in the page builder under Chat.
               </div>
-              <Select defaultValue="none" style={{ width: "100%", marginBottom: 16, height: 44 }}>
+              <Select 
+                value={selectedChatWidgetId || "none"} 
+                onChange={setSelectedChatWidgetId}
+                style={{ width: "100%", marginBottom: 16, height: 44 }}
+              >
                 <Option value="none">— None —</Option>
+                {chatWidgets.map(w => (
+                  <Option key={w._id} value={w._id}>
+                    {w.name} {w.status === 'Draft' ? '(Draft)' : ''}
+                  </Option>
+                ))}
               </Select>
-              <Button type="primary" block style={{ background: "var(--accent-info)", border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 12 }}>
+              <Button 
+                type="primary" 
+                block 
+                loading={savingWidget}
+                onClick={handleSaveWidgetAssignment}
+                style={{ background: "var(--accent-info)", border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 12 }}
+              >
                 Save chat widget
               </Button>
-              <div style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <div 
+                onClick={handleCreateNewChatWidgetClick}
+                style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
                 + Create new chat widget
               </div>
             </Card>
@@ -97,7 +172,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
             <Col span={7}>
               <Card bodyStyle={{ padding: 24, height: "100%", display: "flex", flexDirection: "column" }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <div style={{ fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)', fontSize: 16 }}>Storefront</div>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 500 }}>https://jeema.one/shop/{activeStore.slug}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 500 }}>https://m1growth.com/shop/{activeStore.slug}</div>
                 <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16, fontWeight: 500 }}>Set store to <strong>Active</strong> in General so customers can checkout.</div>
                 
                 <Space direction="vertical" style={{ width: "100%", marginTop: "auto" }}>
@@ -264,7 +339,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
         <Col span={8}>
           <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', height: '100%' }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>AWAITING FULFILLMENT</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: "var(--accent-warning)" }}>0</div>
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-warning)' }}>0</div>
           </Card>
         </Col>
       </Row>
@@ -534,7 +609,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
       <div style={{ width: "100%", maxWidth: 800 }}>
         
         <div style={{ padding: "20px 24px", borderRadius: 12, fontSize: 14, marginBottom: 24, background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--accent-primary)', fontWeight: 500, lineHeight: 1.6 }}>
-          Payment credentials for this store's sub-account: <strong style={{ fontWeight: 800 }}>Jeema Agency</strong>. Configure gateways under <strong style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 800 }}>Settings — Payment gateways</strong> (while this sub-account is selected in the sidebar). This page only picks which enabled gateway this store uses at checkout.
+          Payment credentials for this store's sub-account: <strong style={{ fontWeight: 800 }}>M1 Growth platform Agency</strong>. Configure gateways under <strong style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 800 }}>Settings — Payment gateways</strong> (while this sub-account is selected in the sidebar). This page only picks which enabled gateway this store uses at checkout.
         </div>
 
         <div style={{ padding: "20px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, marginBottom: 32, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: 'var(--accent-warning)', lineHeight: 1.6 }}>

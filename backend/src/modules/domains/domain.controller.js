@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Domain = require('./domain.model');
 const Website = require('../websites/website.model');
 const { Funnel } = require('../funnels/funnel.model');
@@ -18,7 +19,7 @@ exports.connectDomain = async (req, res, next) => {
     const domainName = customDomain.trim().toLowerCase();
 
     // Reserved hostname check
-    if (domainName.includes('jeema.one')) {
+    if (domainName.includes('m1growth.com')) {
       return res.status(400).json({ success: false, error: 'That hostname is reserved for this application.' });
     }
 
@@ -186,7 +187,7 @@ exports.verifyDNS = async (req, res, next) => {
     try {
       // 1. Perform CNAME lookup verification
       const cnameRecords = await dns.resolveCname(domain.domain);
-      if (cnameRecords.includes('jeema.one')) {
+      if (cnameRecords.includes('m1growth.com')) {
         isVerified = true;
       }
     } catch (e) {
@@ -196,7 +197,7 @@ exports.verifyDNS = async (req, res, next) => {
     if (!isVerified) {
       try {
         // 2. Perform TXT verification lookup
-        const host = `_jeema-verify.${domain.domain}`;
+        const host = `_m1growth-verify.${domain.domain}`;
         const txtRecordsList = await dns.resolveTxt(host);
         // txtRecordsList is array of arrays: [['token...']]
         for (const recordArr of txtRecordsList) {

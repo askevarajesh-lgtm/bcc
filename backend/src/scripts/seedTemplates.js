@@ -5,7 +5,7 @@ const Template = require('../models/Template');
 // Load environment variables from .env file
 dotenv.config({ path: __dirname + '/../../.env' });
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/jeema_db";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/m1growth_db";
 
 const websiteTemplates = [
   { name: "Premium Digital", category: "Digital Marketing Agency", type: "website", thumbnailColor: "var(--accent-primary)", featuresCount: 1 },

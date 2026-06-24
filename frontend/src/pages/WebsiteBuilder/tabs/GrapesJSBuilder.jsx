@@ -1,20 +1,137 @@
-import React, { useEffect, useRef, useState } from 'react';
-import grapesjs from 'grapesjs';
-import 'grapesjs/dist/css/grapes.min.css';
-import './grapesjs-theme.css'; // Premium custom theme override
-import webpagePlugin from 'grapesjs-preset-webpage';
-import { Button, message } from 'antd';
-import { ArrowLeft } from 'lucide-react';
-import CustomImagePanel from './CustomImagePanel';
-import MediaStorageModal from './MediaStorageModal';
+import React, { useEffect, useRef, useState } from "react";
+import grapesjs from "grapesjs";
+import "grapesjs/dist/css/grapes.min.css";
+import "./grapesjs-theme.css"; // Premium custom theme override
+import webpagePlugin from "grapesjs-preset-webpage";
+import { Button, message, Modal, Select } from "antd";
+const { Option } = Select;
+import { ArrowLeft } from "lucide-react";
+import CustomImagePanel from "./CustomImagePanel";
+import MediaStorageModal from "./MediaStorageModal";
 
-const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) => {
+const getWidgetHtmlOnly = (widget) => {
+  if (!widget) return "";
+  const positionCss =
+    widget.launcherPosition === "Bottom left"
+      ? "left: 24px !important; right: auto !important;"
+      : "right: 24px !important; left: auto !important;";
+
+  const bottomOffset =
+    widget.launcherPosition === "Bottom left" ? "30px" : "90px";
+
+  const channelsHtml = (widget.channels || [])
+    .map((ch) => {
+      let icon = "";
+      let link = "#";
+      let label = ch;
+      let clickHandler = "";
+
+      if (ch === "WhatsApp") {
+        icon = `<svg style="width:20px !important;height:20px !important;fill:currentColor !important;" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.864.002-2.637-1.019-5.117-2.875-6.974C16.592 1.91 14.121.889 11.5.888c-5.441 0-9.865 4.424-9.869 9.869-.001 1.755.464 3.468 1.346 4.985L1.929 20.91l5.447-1.43c1.554.847 3.11 1.274 4.83 1.274zm9.467-6.807c-.242-.12-.1.43-.88-.413l-.95-.475c-.2-.1-.4-.1-.5.1l-.4.5c-.1.1-.2.1-.4 0-1.05-.5-1.75-1.2-2.1-1.8-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2 0-.3l-.9-2.15c-.1-.2-.2-.2-.4-.2h-.3c-.2 0-.5.1-.7.3-.6.6-.9 1.4-.9 2.2 0 1.6 1.05 3.1 1.2 3.3.15.2 2.1 3.2 5.1 4.5.7.3 1.25.5 1.7.6.7.2 1.35.15 1.85.1.55-.05 1.7-.7 1.95-1.35.25-.65.25-1.2.15-1.35-.1-.2-.3-.3-.75-.45z"/></svg>`;
+        link = `https://wa.me/${(widget.whatsappPhone || "").replace(/[^0-9]/g, "")}`;
+      } else if (ch === "Email") {
+        icon = `<svg style="width:20px !important;height:20px !important;fill:none !important;stroke:currentColor !important;stroke-width:2 !important;" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>`;
+        link = `mailto:${widget.supportEmail || ""}`;
+      } else if (ch === "SMS") {
+        icon = `<svg style="width:20px !important;height:20px !important;fill:none !important;stroke:currentColor !important;stroke-width:2 !important;" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+        link = `sms:${widget.whatsappPhone || ""}`;
+      } else if (ch === "Live chat") {
+        icon = `<svg style="width:20px !important;height:20px !important;fill:none !important;stroke:currentColor !important;stroke-width:2 !important;" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+        clickHandler = `onclick="openLiveChatPopup()"`;
+      } else {
+        icon = `<svg style="width:20px !important;height:20px !important;fill:none !important;stroke:currentColor !important;stroke-width:2 !important;" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+      }
+
+      return `
+      <a href="${link}" ${clickHandler} target="_blank" style="display:flex !important;align-items:center !important;gap:14px !important;padding:14px 18px !important;background:#ffffff !important;border:1px solid #e2e8f0 !important;border-radius:12px !important;color:#1e293b !important;text-decoration:none !important;font-weight:600 !important;font-size:14px !important;transition:all 0.2s !important;font-family:'Inter',sans-serif !important;box-sizing:border-box !important;text-transform:none !important;letter-spacing:normal !important;line-height:1.2 !important;width:100% !important;text-align:left !important;box-shadow:0 1px 3px rgba(0,0,0,0.02) !important;" onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e2e8f0';">
+        <span style="color:${widget.brandColor || "#3b82f6"} !important; display:flex !important; align-items:center !important; justify-content:center !important; flex-shrink:0 !important;">${icon}</span>
+        <span style="color:#1e293b !important; font-family:'Inter',sans-serif !important; font-size:14px !important; font-weight:600 !important;">${label}</span>
+      </a>
+    `;
+    })
+    .join("");
+
+  return `
+    <div id="bcc-chat-widget" style="font-family:'Inter', sans-serif !important; position:fixed !important; bottom:${bottomOffset} !important; ${positionCss} z-index:999999 !important; display:block !important; margin:0 !important; padding:0 !important; box-sizing:border-box !important; border:none !important; background:none !important;">
+      <!-- Launcher (DIV-based to prevent template button overrides) -->
+      <div onclick="toggleBccChat()" style="background:${widget.brandColor || "#3b82f6"} !important; color:#ffffff !important; border:none !important; border-radius:50px !important; padding:14px 24px !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:10px !important; cursor:pointer !important; box-shadow:0 10px 25px -5px rgba(0,0,0,0.2) !important; font-weight:700 !important; font-size:15px !important; transition:all 0.3s !important; z-index:999999 !important; outline:none !important; width:auto !important; height:auto !important; min-width:unset !important; min-height:unset !important; max-width:none !important; max-height:none !important; line-height:1.2 !important; text-transform:none !important; letter-spacing:normal !important; font-family:'Inter', sans-serif !important; margin:0 !important; box-sizing:border-box !important;" onmouseover="this.style.transform='scale(1.05) translateY(-2px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
+        <svg style="width:24px !important;height:24px !important;fill:currentColor !important;display:inline-block !important;vertical-align:middle !important;margin:0 !important;padding:0 !important;flex-shrink:0 !important;" viewBox="0 0 24 24">
+          <path d="M12 2C6.477 2 2 6.13 2 11.23c0 2.946 1.487 5.576 3.82 7.377a.75.75 0 01.246.685l-.758 3.51a.75.75 0 001.077.787l4.032-2.128a.75.75 0 01.62-.057c.928.326 1.93.504 2.963.504 5.523 0 10-4.13 10-9.23C22 6.13 17.523 2 12 2zm0 15c-.886 0-1.745-.148-2.544-.43a2.25 2.25 0 00-1.859.17l-2.48 1.309.467-2.164a2.25 2.25 0 00-.737-2.057C3.376 12.63 2.5 10.984 2.5 9.23 2.5 5.503 6.74 2.5 12 2.5s9.5 3.003 9.5 6.73c0 3.727-4.24 6.77-9.5 6.77z"/>
+        </svg>
+        <span style="font-family:'Inter', sans-serif !important; font-size:15px !important; font-weight:700 !important; color:#ffffff !important; text-transform:none !important; letter-spacing:normal !important; line-height:1.2 !important; display:inline-block !important; margin:0 !important; padding:0 !important;">${widget.launcherLabel || "Chat"}</span>
+      </div>
+
+      <!-- Chat Window -->
+      <div id="bcc-chat-window" style="display:none !important; position:absolute !important; bottom:70px !important; ${widget.launcherPosition === "Bottom left" ? "left: 0 !important;" : "right: 0 !important;"} width:360px !important; background:#ffffff !important; border-radius:20px !important; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.04) !important; border:1px solid #e2e8f0 !important; overflow:hidden !important; transition:all 0.3s ease !important; transform:translateY(10px) !important; opacity:0 !important; z-index:9999999 !important; font-family:'Inter', sans-serif !important; box-sizing:border-box !important;">
+        <!-- Header -->
+        <div style="background:${widget.brandColor || "#3b82f6"} !important; color:#ffffff !important; padding:24px 20px 20px 20px !important; position:relative !important; box-sizing:border-box !important; border-top-left-radius:20px !important; border-top-right-radius:20px !important; display:block !important; text-align:left !important;">
+          <div style="display:flex !important; align-items:center !important; gap:12px !important; margin-bottom:8px !important;">
+            <!-- Avatar with online indicator -->
+            <div style="position:relative !important; width:40px !important; height:40px !important; background:rgba(255,255,255,0.2) !important; border-radius:50% !important; display:flex !important; align-items:center !important; justify-content:center !important; font-weight:700 !important; color:#ffffff !important; font-size:18px !important; border: 2px solid rgba(255,255,255,0.4) !important; font-family:'Inter',sans-serif !important; box-sizing:border-box !important;">
+              ${widget.name.charAt(0).toUpperCase()}
+              <span style="position:absolute !important; bottom:0 !important; right:0 !important; width:10px !important; height:10px !important; background:#22c55e !important; border:2px solid ${widget.brandColor || "#3b82f6"} !important; border-radius:50% !important;"></span>
+            </div>
+            <div style="display:block !important;">
+              <div style="font-weight:700 !important; font-size:16px !important; color:#ffffff !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin:0 !important;">${widget.name}</div>
+              <div style="font-size:12px !important; color:rgba(255,255,255,0.85) !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin-top:2px !important; font-weight:500 !important;">Online · Support Team</div>
+            </div>
+          </div>
+          <div style="font-size:13px !important; color:rgba(255,255,255,0.95) !important; font-family:'Inter',sans-serif !important; line-height:1.4 !important; font-weight:400 !important; margin-top:12px !important;">
+            ${widget.greeting || "Hi! How can we help you today?"}
+          </div>
+          <div onclick="toggleBccChat()" style="position:absolute !important; top:20px !important; right:20px !important; background:transparent !important; border:none !important; color:#ffffff !important; font-size:22px !important; cursor:pointer !important; opacity:0.8 !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important; line-height:1 !important;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">×</div>
+        </div>
+
+        <!-- Channels list -->
+        <div style="padding:20px !important; display:flex !important; flex-direction:column !important; gap:10px !important; max-height:300px !important; overflow-y:auto !important; box-sizing:border-box !important; background:#ffffff !important;">
+          ${channelsHtml}
+        </div>
+
+        <!-- Branding footer -->
+        <div style="padding:12px 20px !important; text-align:center !important; font-size:11px !important; color:#94a3b8 !important; border-top:1px solid #f1f5f9 !important; background:#fafafa !important; font-family:'Inter',sans-serif !important; font-weight:500 !important; display:block !important; line-height:1.2 !important; box-sizing:border-box !important;">
+          Powered by Bcc Crm
+        </div>
+
+        <!-- Live Chat Sub-view (Initially Hidden) -->
+        <div id="bcc-live-chat-panel" style="display:none !important; position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; background:#ffffff !important; flex-direction:column !important; z-index:100 !important; box-sizing:border-box !important;">
+          <div style="background:${widget.brandColor || "#3b82f6"} !important; color:#ffffff !important; padding:16px !important; display:flex !important; align-items:center !important; gap:12px !important; box-sizing:border-box !important;">
+            <div onclick="closeLiveChatPopup()" style="background:transparent !important; border:none !important; color:#ffffff !important; font-size:20px !important; cursor:pointer !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important;">←</div>
+            <div style="font-weight:700 !important; font-size:15px !important; font-family:'Inter',sans-serif !important; color:#ffffff !important; text-transform:none !important;">Live Chat</div>
+          </div>
+          <div id="bcc-chat-messages" style="flex:1 !important; padding:16px !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; gap:12px !important; background:#f8fafc !important; font-size:13px !important; box-sizing:border-box !important;">
+            <div style="background:#ffffff !important; border:1px solid #e2e8f0 !important; padding:10px 14px !important; border-radius:12px !important; max-width:85% !important; align-self:flex-start !important; color:#1e293b !important; line-height:1.4 !important; font-family:'Inter',sans-serif !important; text-align:left !important; box-sizing:border-box !important;">
+              ${widget.greeting || "Hello! How can we help you?"}
+            </div>
+          </div>
+          <div style="padding:12px !important; border-top:1px solid #e2e8f0 !important; display:flex !important; gap:8px !important; box-sizing:border-box !important; background:#ffffff !important;">
+            <input id="bcc-chat-input" type="text" placeholder="Type a message..." style="flex:1 !important; padding:8px 12px !important; border:1px solid #cbd5e1 !important; border-radius:8px !important; font-size:13px !important; outline:none !important; font-family:'Inter',sans-serif !important; background:#ffffff !important; color:#1e293b !important; box-sizing:border-box !important; height:auto !important;" onkeypress="handleBccChatKey(event)" />
+            <div onclick="sendBccChatMessage()" style="background:${widget.brandColor || "#3b82f6"} !important; color:#ffffff !important; border:none !important; border-radius:8px !important; padding:10px 16px !important; cursor:pointer !important; font-weight:700 !important; font-size:13px !important; outline:none !important; font-family:'Inter',sans-serif !important; height:38px !important; box-sizing:border-box !important; display:flex !important; align-items:center !important; justify-content:center !important;">Send</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const GrapesJSBuilder = ({
+  activeWebsite,
+  activePage,
+  setEditingPage,
+  onSave,
+}) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [chatWidgets, setChatWidgets] = useState([]);
+  const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(
+    activeWebsite.chatWidgetId || "none",
+  );
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [savingWidget, setSavingWidget] = useState(false);
+  const [assignedWidget, setAssignedWidget] = useState(null);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -22,8 +139,8 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
     const e = grapesjs.init({
       container: editorRef.current,
       fromElement: true,
-      height: '100%',
-      width: 'auto',
+      height: "100%",
+      width: "auto",
       storageManager: false, // We'll handle saving manually
       assetManager: {
         custom: {
@@ -32,30 +149,32 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
           },
           close() {
             setIsMediaModalOpen(false);
-          }
-        }
+          },
+        },
       },
       plugins: [webpagePlugin],
       pluginsOpts: {
-        'grapesjs-preset-webpage': {
+        "grapesjs-preset-webpage": {
           // options for the preset
-        }
+        },
       },
       canvas: {
         styles: [
           // Basic reset or custom styles
-          'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap'
+          "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
         ],
-      }
+      },
     });
 
     // Load initial HTML/CSS if it exists
     if (activePage.html || activePage.css) {
-      e.setComponents(activePage.html || '');
-      e.setStyle(activePage.css || '');
+      e.setComponents(activePage.html || "");
+      e.setStyle(activePage.css || "");
     } else {
       // Default empty template
-      e.setComponents('<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Welcome to Jeema Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>');
+      e.setComponents(
+        '<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>',
+      );
     }
 
     setEditor(e);
@@ -65,20 +184,20 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       try {
         const token = localStorage.getItem("token");
         const res = await fetch("/api/forms", {
-          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
         });
         const data = await res.json();
-        
+
         if (data.success && Array.isArray(data.data)) {
-          data.data.forEach(form => {
+          data.data.forEach((form) => {
             const embedUrl = `${window.location.origin}/embed/form/${form._id}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; min-height:520px; border:0; border-radius:16px;"></iframe>`;
-            
+
             e.BlockManager.add(`form-${form._id}`, {
               label: form.name,
-              category: 'Forms',
+              category: "Forms",
               content: iframeCode,
-              attributes: { class: 'fa fa-wpforms' }, // simple icon representation
+              attributes: { class: "fa fa-wpforms" }, // simple icon representation
             });
           });
         }
@@ -92,20 +211,20 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       try {
         const token = localStorage.getItem("token");
         const res = await fetch("/api/blogs", {
-          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
         });
         const data = await res.json();
-        
+
         if (data.success && Array.isArray(data.data)) {
-          data.data.forEach(blog => {
+          data.data.forEach((blog) => {
             const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; min-height:600px; border:0; border-radius:16px;"></iframe>`;
-            
+
             e.BlockManager.add(`blog-${blog._id}`, {
               label: blog.name,
-              category: 'Blogs',
+              category: "Blogs",
               content: iframeCode,
-              attributes: { class: 'fa fa-newspaper-o' }, // FontAwesome newspaper icon
+              attributes: { class: "fa fa-newspaper-o" }, // FontAwesome newspaper icon
             });
           });
         }
@@ -114,15 +233,43 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       }
     };
 
+    // Fetch QR links and register them as GrapesJS blocks
+    const loadQRs = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/qrs", {
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+        });
+        const data = await res.json();
+
+        if (data.success && Array.isArray(data.data)) {
+          data.data.forEach((qr) => {
+            const embedUrl = `${window.location.origin}/embed/qr/${qr._id}`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${qr.name}" style="width:220px; height:240px; border:0; border-radius:16px; overflow:hidden;" scrolling="no"></iframe>`;
+
+            e.BlockManager.add(`qr-${qr._id}`, {
+              label: qr.name,
+              category: "QR Links",
+              content: iframeCode,
+              attributes: { class: "fa fa-qrcode" },
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch QRs for GrapesJS", err);
+      }
+    };
+
     loadForms();
     loadBlogs();
+    loadQRs();
 
     // Hide common HTML template preloaders/spinners inside the canvas
-    e.on('load', () => {
+    e.on("load", () => {
       try {
         const doc = e.Canvas.getDocument();
         if (doc) {
-          const style = doc.createElement('style');
+          const style = doc.createElement("style");
           style.innerHTML = `
             /* Hide preloaders in builder so they don't block the canvas */
             #spinner, #preloader, .preloader, .loader-wrapper, .loader {
@@ -148,27 +295,27 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       // Add 'src' to the image component's traits so it's easily editable in the Settings panel
       try {
         const domc = e.DomComponents;
-        const imgType = domc.getType('image');
+        const imgType = domc.getType("image");
         if (imgType) {
-          domc.addType('image', {
+          domc.addType("image", {
             model: {
               defaults: {
                 traits: [
                   {
-                    type: 'text',
-                    label: 'Image URL',
-                    name: 'src',
-                    placeholder: 'https://example.com/image.jpg'
+                    type: "text",
+                    label: "Image URL",
+                    name: "src",
+                    placeholder: "https://example.com/image.jpg",
                   },
                   {
-                    type: 'text',
-                    label: 'Alt Text',
-                    name: 'alt',
-                    placeholder: 'eg. Text here'
-                  }
-                ]
-              }
-            }
+                    type: "text",
+                    label: "Alt Text",
+                    name: "alt",
+                    placeholder: "eg. Text here",
+                  },
+                ],
+              },
+            },
           });
         }
       } catch (err) {
@@ -176,117 +323,341 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
       }
     });
 
-    e.on('component:selected', (component) => {
+    e.on("component:selected", (component) => {
       setSelectedComponent(component);
     });
-    
-    e.on('component:deselected', () => {
+
+    e.on("component:deselected", () => {
       setSelectedComponent(null);
     });
 
-    e.on('run:core:preview', () => setIsPreviewing(true));
-    e.on('stop:core:preview', () => setIsPreviewing(false));
+    e.on("run:core:preview", () => setIsPreviewing(true));
+    e.on("stop:core:preview", () => setIsPreviewing(false));
 
     return () => {
       e.destroy();
     };
   }, [activePage.html, activePage.css]);
 
-  const handleSave = async () => {
-    if (!editor) return;
-    
-    const html = editor.getHtml();
-    const css = editor.getCss();
-    
-    try {
-      setSaving(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${activePage._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify({ html, css })
+  useEffect(() => {
+    const fetchWidgets = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/chat-widgets", {
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setChatWidgets(data.data);
+          const current = data.data.find(
+            (w) => w._id === activeWebsite.chatWidgetId,
+          );
+          if (current) {
+            setAssignedWidget(current);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch widgets", err);
+      }
+    };
+    fetchWidgets();
+  }, [activeWebsite.chatWidgetId]);
+
+  const injectChatWidgetToCanvas = (editorInstance, widget) => {
+    if (!editorInstance) return;
+    const doc = editorInstance.Canvas.getDocument();
+    if (!doc) return;
+
+    // Remove existing if any
+    const existing = doc.getElementById("bcc-chat-widget");
+    if (existing) existing.remove();
+    const existingScript = doc.getElementById("bcc-chat-widget-script");
+    if (existingScript) existingScript.remove();
+    const existingContainer = doc.getElementById("bcc-chat-widget-container");
+    if (existingContainer) existingContainer.remove();
+
+    if (!widget) return;
+
+    // Inject Inter font into canvas head if not already there
+    if (
+      !doc.querySelector('link[href*="fonts.googleapis.com/css2?family=Inter"]')
+    ) {
+      const fontLink = doc.createElement("link");
+      fontLink.href =
+        "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap";
+      fontLink.rel = "stylesheet";
+      doc.head.appendChild(fontLink);
+    }
+
+    // Add Widget HTML
+    const widgetHtml = getWidgetHtmlOnly(widget);
+    const container = doc.createElement("div");
+    container.id = "bcc-chat-widget-container";
+    container.innerHTML = widgetHtml;
+    doc.body.appendChild(container);
+
+    // Add Widget Script
+    const scriptEl = doc.createElement("script");
+    scriptEl.id = "bcc-chat-widget-script";
+    scriptEl.textContent = `
+      function toggleBccChat() {
+        const win = document.getElementById('bcc-chat-window');
+        if (!win) return;
+        if (win.style.display === 'none' || win.style.display === '') {
+          win.style.display = 'block';
+          setTimeout(() => {
+            win.style.transform = 'translateY(0)';
+            win.style.opacity = '1';
+          }, 10);
+        } else {
+          win.style.transform = 'translateY(10px)';
+          win.style.opacity = '0';
+          setTimeout(() => {
+            win.style.display = 'none';
+          }, 300);
+        }
+      }
+
+      function openLiveChatPopup() {
+        document.getElementById('bcc-live-chat-panel').style.display = 'flex';
+      }
+
+      function closeLiveChatPopup() {
+        document.getElementById('bcc-live-chat-panel').style.display = 'none';
+      }
+
+      function handleBccChatKey(e) {
+        if (e.key === 'Enter') {
+          sendBccChatMessage();
+        }
+      }
+
+      function sendBccChatMessage() {
+        const inp = document.getElementById('bcc-chat-input');
+        const text = inp.value.trim();
+        if (!text) return;
+        
+        inp.value = '';
+        const msgs = document.getElementById('bcc-chat-messages');
+        
+        // User message
+        const userDiv = document.createElement('div');
+        userDiv.style.cssText = 'background:${widget.brandColor || "#3b82f6"}; color:#fff; padding:10px 14px; border-radius:12px; max-width:85%; align-self:flex-end; line-height:1.4; font-family:"Inter",sans-serif;';
+        userDiv.textContent = text;
+        msgs.appendChild(userDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        // Mock bot reply after 1s
+        setTimeout(() => {
+          const botDiv = document.createElement('div');
+          botDiv.style.cssText = 'background:#fff; border:1px solid #e2e8f0; padding:10px 14px; border-radius:12px; max-width:85%; align-self:flex-start; color:#1e293b; line-height:1.4; font-family:"Inter",sans-serif;';
+          botDiv.textContent = "Thanks for your message! Our team will get back to you shortly.";
+          msgs.appendChild(botDiv);
+          msgs.scrollTop = msgs.scrollHeight;
+        }, 1000);
+      }
+    `;
+    doc.body.appendChild(scriptEl);
+  };
+
+  useEffect(() => {
+    if (editor) {
+      injectChatWidgetToCanvas(editor, assignedWidget);
+      // Re-inject on load
+      editor.on("load", () => {
+        injectChatWidgetToCanvas(editor, assignedWidget);
       });
+    }
+  }, [editor, assignedWidget]);
+
+  const handleSaveWidgetAssignment = async () => {
+    try {
+      setSavingWidget(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `/api/websites/${activeWebsite.key || activeWebsite._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            chatWidgetId:
+              selectedChatWidgetId === "none" ? null : selectedChatWidgetId,
+          }),
+        },
+      );
       const data = await res.json();
       if (data.success) {
-        message.success('Page saved successfully!');
-        onSave(data.data);
+        message.success("Chat widget assigned successfully!");
+        activeWebsite.chatWidgetId =
+          selectedChatWidgetId === "none" ? null : selectedChatWidgetId;
+        const currentWidget = chatWidgets.find(
+          (w) => w._id === selectedChatWidgetId,
+        );
+        setAssignedWidget(currentWidget || null);
+        setIsChatModalOpen(false);
       } else {
-        message.error(data.error || 'Failed to save page');
+        message.error(data.error || "Failed to save widget assignment");
       }
     } catch (err) {
       console.error(err);
-      message.error('An error occurred while saving');
+      message.error("Error saving widget assignment");
+    } finally {
+      setSavingWidget(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!editor) return;
+
+    const html = editor.getHtml();
+    const css = editor.getCss();
+
+    try {
+      setSaving(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `/api/websites/${activeWebsite.key}/pages/${activePage._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({ html, css }),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        message.success("Page saved successfully!");
+        onSave(data.data);
+      } else {
+        message.error(data.error || "Failed to save page");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("An error occurred while saving");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className={`builder-container ${isPreviewing ? 'is-previewing' : ''}`} style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      className={`builder-container ${isPreviewing ? "is-previewing" : ""}`}
+      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
+    >
       {/* Custom Premium Top Bar */}
       {!isPreviewing && (
-        <div style={{ 
-        height: '60px', 
-        background: '#0f172a', // Deep Navy from reference
-        borderBottom: '1px solid #1e293b',
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        padding: '0 24px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        zIndex: 10
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Button 
-            type="text" 
-            icon={<ArrowLeft size={16} />} 
-            onClick={() => setEditingPage(null)}
-            style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', fontWeight: 600, padding: '4px 8px', borderRadius: 6 }}
-          >
-            Back
-          </Button>
-          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }}></div>
-          <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: 15, letterSpacing: 0.3 }}>
-            Jeema Builder: <span style={{ color: '#3b82f6' }}>{activePage.title}</span>
+        <div
+          style={{
+            height: "60px",
+            background: "#0f172a", // Deep Navy from reference
+            borderBottom: "1px solid #1e293b",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 24px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            zIndex: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Button
+              type="text"
+              icon={<ArrowLeft size={16} />}
+              onClick={() => setEditingPage(null)}
+              style={{
+                color: "#cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                fontWeight: 600,
+                padding: "4px 8px",
+                borderRadius: 6,
+              }}
+            >
+              Back
+            </Button>
+            <div
+              style={{
+                width: 1,
+                height: 24,
+                background: "rgba(255,255,255,0.1)",
+              }}
+            ></div>
+            <div
+              style={{
+                fontWeight: 800,
+                color: "#f8fafc",
+                fontSize: 15,
+                letterSpacing: 0.3,
+              }}
+            >
+              M1 Growth platform Builder:{" "}
+              <span style={{ color: "#3b82f6" }}>{activePage.title}</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Button
+              type="default"
+              onClick={() => setIsChatModalOpen(true)}
+              style={{
+                background: "#1e293b",
+                color: "#cbd5e1",
+                borderColor: "#334155",
+                fontWeight: 600,
+                borderRadius: 6,
+                height: 36,
+              }}
+            >
+              Chat Widget
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSave}
+              loading={saving}
+              style={{
+                background: "#3b82f6",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 700,
+                borderRadius: 6,
+                padding: "0 20px",
+                height: 36,
+                boxShadow: "0 2px 4px rgba(59, 130, 246, 0.3)",
+              }}
+            >
+              Save Changes
+            </Button>
           </div>
         </div>
-        
-        <div>
-          <Button 
-            type="primary" 
-            onClick={handleSave} 
-            loading={saving}
-            style={{ background: '#3b82f6', color: '#ffffff', border: 'none', fontWeight: 700, borderRadius: 6, padding: '0 20px', height: 36, boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)' }}
-          >
-            Save Changes
-          </Button>
-        </div>
-      </div>
       )}
 
       {/* Editor Container */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        <div ref={editorRef} style={{ height: '100%' }}></div>
-        
+      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <div ref={editorRef} style={{ height: "100%" }}></div>
+
         {/* Custom Image Panel */}
-        {!isPreviewing && selectedComponent && selectedComponent.is('image') && (
-          <CustomImagePanel 
-            editor={editor}
-            selectedComponent={selectedComponent}
-            onClose={() => editor.select(null)}
-            onOpenMedia={() => setIsMediaModalOpen(true)}
-          />
-        )}
+        {!isPreviewing &&
+          selectedComponent &&
+          selectedComponent.is("image") && (
+            <CustomImagePanel
+              editor={editor}
+              selectedComponent={selectedComponent}
+              onClose={() => editor.select(null)}
+              onOpenMedia={() => setIsMediaModalOpen(true)}
+            />
+          )}
       </div>
 
-      <MediaStorageModal 
-        isOpen={isMediaModalOpen} 
-        onClose={() => setIsMediaModalOpen(false)} 
+      <MediaStorageModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
         onSelectImage={(url) => {
-          if (selectedComponent && selectedComponent.is('image')) {
+          if (selectedComponent && selectedComponent.is("image")) {
             selectedComponent.addAttributes({ src: url });
           } else {
             // If they opened Asset Manager without selecting image (e.g. from top bar), GrapesJS expects asset to be added
@@ -295,8 +666,101 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
           setIsMediaModalOpen(false);
         }}
       />
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <Modal
+        title={
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 18,
+              color: "var(--text-primary)",
+            }}
+          >
+            Chat Widget Assignment
+          </div>
+        }
+        open={isChatModalOpen}
+        onCancel={() => setIsChatModalOpen(false)}
+        footer={[
+          <Button
+            key="back"
+            onClick={() => setIsChatModalOpen(false)}
+            style={{ borderRadius: 8, fontWeight: 600 }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={savingWidget}
+            onClick={handleSaveWidgetAssignment}
+            style={{
+              background: "var(--accent-primary)",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 700,
+            }}
+          >
+            Save Assignment
+          </Button>,
+        ]}
+        bodyStyle={{ padding: "24px 0 8px" }}
+      >
+        <div style={{ padding: "0 24px" }}>
+          <div
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: 14,
+              marginBottom: 16,
+              fontWeight: 500,
+            }}
+          >
+            Assign a chat widget to float on all pages of this website. Visitors
+            will be able to engage with the channels configured in the widget.
+          </div>
+          <div
+            style={{
+              fontWeight: 700,
+              marginBottom: 8,
+              fontSize: 13,
+              color: "var(--text-primary)",
+            }}
+          >
+            Select Chat Widget
+          </div>
+          <Select
+            value={selectedChatWidgetId || "none"}
+            onChange={setSelectedChatWidgetId}
+            style={{ width: "100%", marginBottom: 16 }}
+            size="large"
+          >
+            <Option value="none">— None —</Option>
+            {chatWidgets.map((w) => (
+              <Option key={w._id} value={w._id}>
+                {w.name} {w.status === "Draft" ? "(Draft)" : ""}
+              </Option>
+            ))}
+          </Select>
+          <div
+            onClick={() => {
+              setIsChatModalOpen(false);
+              setEditingPage(null); // Go back to website detail view
+            }}
+            style={{
+              color: "var(--accent-info)",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
+            Manage chat widgets in website dashboard →
+          </div>
+        </div>
+      </Modal>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .gjs-cv-canvas {
           top: 0;
           width: 100%;
@@ -306,7 +770,9 @@ const GrapesJSBuilder = ({ activeWebsite, activePage, setEditingPage, onSave }) 
         .gjs-editor {
           height: 100% !important;
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 };

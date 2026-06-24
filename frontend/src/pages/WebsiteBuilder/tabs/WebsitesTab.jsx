@@ -205,8 +205,62 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
   const [description, setDescription] = useState(activeWebsite.description || "");
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
+  const [chatWidgets, setChatWidgets] = useState([]);
+  const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
+  const [savingWidget, setSavingWidget] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchWidgets = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/chat-widgets", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setChatWidgets(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch widgets", err);
+      }
+    };
+    fetchWidgets();
+  }, []);
+
+  const handleSaveWidgetAssignment = async () => {
+    try {
+      setSavingWidget(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ chatWidgetId: selectedChatWidgetId === "none" ? null : selectedChatWidgetId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Chat widget assigned successfully!");
+        activeWebsite.chatWidgetId = selectedChatWidgetId === "none" ? null : selectedChatWidgetId;
+      } else {
+        message.error(data.error || "Failed to save widget assignment");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error saving widget assignment");
+    } finally {
+      setSavingWidget(false);
+    }
+  };
+
+  const handleCreateNewChatWidgetClick = () => {
+    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const basePath = match ? match[0] : '/workspace/website';
+    navigate(`${basePath}/chat-widgets`);
+  };
 
   const handleAddPage = () => {
     if (!newPageTitle.trim()) return;
@@ -404,15 +458,36 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                 <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
                   Assign a published chat widget to this property. It also appears in the page builder under Chat.
                 </div>
-                <Select size="large" defaultValue="none" style={{ width: "100%", marginBottom: 16 }} disabled={role === 'agency_client'}>
+                <Select 
+                  size="large" 
+                  value={selectedChatWidgetId || "none"} 
+                  onChange={setSelectedChatWidgetId}
+                  style={{ width: "100%", marginBottom: 16 }} 
+                  disabled={role === 'agency_client'}
+                >
                   <Option value="none">— None —</Option>
+                  {chatWidgets.map(w => (
+                    <Option key={w._id} value={w._id}>
+                      {w.name} {w.status === 'Draft' ? '(Draft)' : ''}
+                    </Option>
+                  ))}
                 </Select>
                 {role !== 'agency_client' && (
                   <>
-                    <Button size="large" type="primary" block style={{ background: "var(--accent-info)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, marginBottom: 16 }}>
+                    <Button 
+                      size="large" 
+                      type="primary" 
+                      block 
+                      loading={savingWidget}
+                      onClick={handleSaveWidgetAssignment}
+                      style={{ background: "var(--accent-info)", border: "none", borderRadius: 12, fontWeight: 700, height: 48, marginBottom: 16 }}
+                    >
                       Save Widget Assignment
                     </Button>
-                    <div style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    <div 
+                      onClick={handleCreateNewChatWidgetClick}
+                      style={{ textAlign: "center", color: "var(--accent-info)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                    >
                       + Create new chat widget
                     </div>
                   </>

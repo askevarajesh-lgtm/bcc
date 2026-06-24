@@ -25,6 +25,8 @@ import WebsiteBuilder from './pages/WebsiteBuilder/WebsiteBuilder';
 import BuilderRouteWrapper from './pages/WebsiteBuilder/tabs/BuilderRouteWrapper';
 import FormEmbedView from './pages/WebsiteBuilder/tabs/FormEmbedView';
 import BlogEmbedView from './pages/WebsiteBuilder/tabs/BlogEmbedView';
+import BlogPostEmbedView from './pages/WebsiteBuilder/tabs/BlogPostEmbedView';
+import QREmbedView from './pages/WebsiteBuilder/tabs/QREmbedView';
 import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
@@ -148,6 +150,9 @@ const AppRoutes = () => {
       {/* Public / Embed Routes */}
       <Route path="/embed/form/:formId" element={<FormEmbedView />} />
       <Route path="/embed/blog/:blogId" element={<BlogEmbedView />} />
+      <Route path="/embed/qr/:qrId" element={<QREmbedView />} />
+      <Route path="/blog/:blogSlug" element={<BlogEmbedView />} />
+      <Route path="/blog/:blogSlug/:postSlug" element={<BlogPostEmbedView />} />
       <Route path="/preview/website/:websiteId/page/:pageId" element={<WebsitePreviewView />} />
       
       {/* Super Admin Routes */}

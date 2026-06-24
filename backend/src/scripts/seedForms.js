@@ -7,7 +7,7 @@ const FormTemplate = require('../modules/forms/form-template.model');
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/jeema_db";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/m1growth_db";
 
 async function seed() {
   try {

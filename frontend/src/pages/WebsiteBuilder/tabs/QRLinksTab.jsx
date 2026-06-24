@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Divider } from "antd";
+import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Divider, message } from "antd";
 import { Plus, Trash2, Link2, MessageSquare, Phone, Mail, CreditCard, FormInput, User, FileText, Wifi, QrCode, ArrowRight, ArrowLeft } from "lucide-react";
-
 import { motion } from "framer-motion";
+import QRCode from "qrcode";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -26,16 +26,94 @@ const qrTypes = [
   { id: 'WiFi', icon: <Wifi size={24} /> }
 ];
 
-const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
+const resolveColor = (color) => {
+  if (!color) return '#3b82f6';
+  if (color === 'var(--accent-primary)') return '#3b82f6';
+  if (color.startsWith('#')) return color;
+  return '#3b82f6';
+};
+
+const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funnels = [], websites = [] }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: `QR-${Math.floor(Date.now() / 1000)}`,
     type: 'Website',
     customUrl: '',
+    phone: '',
+    smsMessage: '',
+    email: '',
+    emailSubject: '',
+    emailBody: '',
+    waMessage: '',
+    wifiSsid: '',
+    wifiPassword: '',
+    wifiEncryption: 'WPA',
+    vcardFirstName: '',
+    vcardLastName: '',
+    vcardOrg: '',
+    vcardPhone: '',
+    vcardEmail: '',
+    vcardUrl: '',
     foreground: 'var(--accent-primary)',
     background: '#ffffff',
     shape: 'Square'
   });
+  const [previewQrUrl, setPreviewQrUrl] = useState("");
+
+  const getScanLink = () => {
+    const { 
+      type, customUrl, phone, smsMessage, email, emailSubject, emailBody, 
+      waMessage, wifiSsid, wifiPassword, wifiEncryption, 
+      vcardFirstName, vcardLastName, vcardOrg, vcardPhone, vcardEmail, vcardUrl 
+    } = formData;
+
+    switch (type) {
+      case 'Website':
+      case 'Review Link':
+      case 'Payment':
+      case 'File':
+        return customUrl || "https://yoursite.com";
+      case 'Call':
+        return phone ? `tel:${phone}` : "tel:";
+      case 'WhatsApp':
+        return phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}${waMessage ? `?text=${encodeURIComponent(waMessage)}` : ''}` : "https://wa.me/";
+      case 'SMS':
+        return phone ? `sms:${phone}${smsMessage ? `?body=${encodeURIComponent(smsMessage)}` : ''}` : "sms:";
+      case 'Email':
+        return email ? `mailto:${email}?subject=${encodeURIComponent(emailSubject || '')}&body=${encodeURIComponent(emailBody || '')}` : "mailto:";
+      case 'WiFi':
+        return `WIFI:S:${wifiSsid || ''};T:${wifiEncryption || 'WPA'};P:${wifiPassword || ''};;`;
+      case 'Digital VCard':
+      case 'Personal Profile':
+      case 'Business Profile':
+        return `BEGIN:VCARD\nVERSION:3.0\nN:${vcardLastName || ''};${vcardFirstName || ''};;;\nFN:${vcardFirstName || ''} ${vcardLastName || ''}\nORG:${vcardOrg || ''}\nTEL:${vcardPhone || ''}\nEMAIL:${vcardEmail || ''}\nURL:${vcardUrl || ''}\nEND:VCARD`;
+      case 'Form':
+      case 'Survey':
+      case 'Quiz':
+        return customUrl || "https://yoursite.com";
+      case 'Funnel':
+        return customUrl || "https://yoursite.com";
+      default:
+        return customUrl || "https://yoursite.com";
+    }
+  };
+
+  useEffect(() => {
+    const text = getScanLink();
+    const fg = resolveColor(formData.foreground);
+    const bg = resolveColor(formData.background);
+    
+    QRCode.toDataURL(text, {
+      width: 160,
+      margin: 1,
+      color: {
+        dark: fg,
+        light: bg
+      }
+    })
+      .then(url => setPreviewQrUrl(url))
+      .catch(err => console.error(err));
+  }, [formData]);
 
   const renderStepper = () => (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 40 }}>
@@ -56,12 +134,24 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
     </div>
   );
 
-  const renderPhoneMockup = (content) => (
+  const renderPhoneMockup = () => (
     <div style={{ padding: 24, display: "flex", justifyContent: "center", alignItems: "center", borderRadius: "0 16px 16px 0", height: "100%", background: 'var(--bg-primary)' }}>
       <div style={{ width: 300, height: 600, border: '8px solid var(--border-color)', borderRadius: 40, position: 'relative', background: 'var(--bg-secondary)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ width: 120, height: 24, background: 'var(--border-color)', position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}></div>
         <div style={{ padding: 40, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          {content}
+          <div style={{ textAlign: 'center', width: '100%' }}>
+            <div style={{ background: resolveColor(formData.background), padding: 24, borderRadius: formData.shape === 'Rounded' ? 32 : 16, boxShadow: 'var(--shadow-sm)', marginBottom: 24, display: 'inline-block' }}>
+              {previewQrUrl ? (
+                <img src={previewQrUrl} alt="QR Preview" style={{ width: 120, height: 120, display: 'block' }} />
+              ) : (
+                <QrCode size={120} color="var(--accent-primary)" />
+              )}
+            </div>
+            <div style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 18 }}>{formData.type}</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 8, wordBreak: 'break-all', maxLines: 3, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {getScanLink()}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -106,59 +196,324 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
             ))}
           </Row>
         </div>
-        <div style={{ marginTop: 24, fontSize: 13, color: "var(--text-tertiary)", fontWeight: 500 }}>
-          Best for business cards, flyers, and general traffic to your site.
-        </div>
       </Col>
       <Col span={8}>
-        {renderPhoneMockup(
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ background: 'var(--bg-primary)', padding: 24, borderRadius: 24, boxShadow: 'var(--shadow-sm)', marginBottom: 24 }}>
-              <QrCode size={120} color="var(--accent-primary)" />
-            </div>
-            <div style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 18 }}>{formData.type}</div>
-          </div>
-        )}
+        {renderPhoneMockup()}
       </Col>
     </Row>
   );
+
+  const renderStep2Form = () => {
+    const { type } = formData;
+
+    if (['Website', 'Review Link', 'Payment', 'File'].includes(type)) {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>{type} Settings</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Enter the target URL where scanning users will be redirected.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Select Destination Type</div>
+            <Select 
+              size="large" 
+              value={formData.customUrl.startsWith(window.location.origin) ? "workspace" : "custom"} 
+              style={{ width: "100%" }}
+              onChange={(val) => {
+                if (val === 'custom') setFormData({...formData, customUrl: ''});
+              }}
+            >
+              <Option value="custom">Custom External URL</Option>
+              <Option value="workspace">Existing Website</Option>
+            </Select>
+          </div>
+          {formData.customUrl.startsWith(window.location.origin) || websites.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Select Website</div>
+              <Select 
+                size="large" 
+                style={{ width: "100%" }}
+                placeholder="Choose website..."
+                onChange={(val) => setFormData({...formData, customUrl: val})}
+              >
+                {websites.map(w => (
+                  <Option key={w._id} value={`${window.location.origin}/preview/website/${w._id}/page/home`}>{w.name}</Option>
+                ))}
+              </Select>
+            </div>
+          )}
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Target URL</div>
+            <Input 
+              size="large"
+              placeholder="https://yoursite.com/offer" 
+              value={formData.customUrl}
+              onChange={e => setFormData({...formData, customUrl: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'Form' || type === 'Survey' || type === 'Quiz') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>{type} Integration</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Select a MERN Form, Survey, or Quiz to generate a scannable link for.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Select Form</div>
+            <Select 
+              size="large" 
+              style={{ width: "100%" }}
+              placeholder="Choose a Form/Survey/Quiz"
+              onChange={(val) => setFormData({...formData, customUrl: `${window.location.origin}/embed/form/${val}`})}
+            >
+              {forms.map(f => (
+                <Option key={f._id} value={f._id}>{f.name}</Option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Computed Embed URL</div>
+            <Input size="large" value={formData.customUrl} readOnly style={{ borderRadius: 8, background: 'var(--bg-secondary)' }} />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'Funnel') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>Funnel Integration</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Select a published sales funnel from your workspace.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Select Funnel</div>
+            <Select 
+              size="large" 
+              style={{ width: "100%" }}
+              placeholder="Choose a funnel"
+              onChange={(val) => setFormData({...formData, customUrl: `${window.location.origin}/funnel/${val}`})}
+            >
+              {funnels.map(f => (
+                <Option key={f._id} value={f._id}>{f.name}</Option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Computed Funnel URL</div>
+            <Input size="large" value={formData.customUrl} readOnly style={{ borderRadius: 8, background: 'var(--bg-secondary)' }} />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'Call') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>Call Setup</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan triggers a direct phone call request.</Text>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
+            <Input 
+              size="large"
+              placeholder="+1234567890" 
+              value={formData.phone}
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'SMS') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>SMS Setup</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan drafts an SMS message to a specific number.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
+            <Input 
+              size="large"
+              placeholder="+1234567890" 
+              value={formData.phone}
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Message</div>
+            <Input.TextArea 
+              rows={4}
+              placeholder="Enter pre-filled draft text..." 
+              value={formData.smsMessage}
+              onChange={e => setFormData({...formData, smsMessage: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'WhatsApp') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>WhatsApp Action</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan opens WhatsApp chat with custom pre-filled message.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number (Include Country Code)</div>
+            <Input 
+              size="large"
+              placeholder="e.g. 15551234567" 
+              value={formData.phone}
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Pre-filled Message</div>
+            <Input.TextArea 
+              rows={4}
+              placeholder="Hello! I scanned your QR code and wanted to connect..." 
+              value={formData.waMessage}
+              onChange={e => setFormData({...formData, waMessage: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'Email') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>Email Generator</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan opens default mail app with pre-filled content.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Target Email Address</div>
+            <Input 
+              size="large"
+              placeholder="info@yourcompany.com" 
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Subject Line</div>
+            <Input 
+              size="large"
+              placeholder="e.g. Partnership Inquiry" 
+              value={formData.emailSubject}
+              onChange={e => setFormData({...formData, emailSubject: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Body Message</div>
+            <Input.TextArea 
+              rows={4}
+              placeholder="Draft your email body..." 
+              value={formData.emailBody}
+              onChange={e => setFormData({...formData, emailBody: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'WiFi') {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>WiFi Settings</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan connects users directly to your local wireless network.</Text>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Network Name (SSID)</div>
+            <Input 
+              size="large"
+              placeholder="MyHomeWifi" 
+              value={formData.wifiSsid}
+              onChange={e => setFormData({...formData, wifiSsid: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Network Password</div>
+            <Input.Password 
+              size="large"
+              placeholder="WirelessPassword" 
+              value={formData.wifiPassword}
+              onChange={e => setFormData({...formData, wifiPassword: e.target.value})}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Security Encryption</div>
+            <Select 
+              size="large" 
+              value={formData.wifiEncryption} 
+              style={{ width: "100%" }}
+              onChange={(val) => setFormData({...formData, wifiEncryption: val})}
+            >
+              <Option value="WPA">WPA / WPA2 (Recommended)</Option>
+              <Option value="WEP">WEP</Option>
+              <Option value="nopass">None (Open Network)</Option>
+            </Select>
+          </div>
+        </div>
+      );
+    }
+
+    if (['Digital VCard', 'Personal Profile', 'Business Profile'].includes(type)) {
+      return (
+        <div>
+          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>VCard / Profile Setup</Title>
+          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan downloads contact card (.vcf) directly to mobile contact list.</Text>
+          <Row gutter={16}>
+            <Col span={12}>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>First Name</div>
+                <Input size="large" value={formData.vcardFirstName} onChange={e => setFormData({...formData, vcardFirstName: e.target.value})} style={{ borderRadius: 8 }} />
+              </div>
+            </Col>
+            <Col span={12}>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Last Name</div>
+                <Input size="large" value={formData.vcardLastName} onChange={e => setFormData({...formData, vcardLastName: e.target.value})} style={{ borderRadius: 8 }} />
+              </div>
+            </Col>
+          </Row>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Organization / Company</div>
+            <Input size="large" value={formData.vcardOrg} onChange={e => setFormData({...formData, vcardOrg: e.target.value})} style={{ borderRadius: 8 }} />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
+            <Input size="large" value={formData.vcardPhone} onChange={e => setFormData({...formData, vcardPhone: e.target.value})} style={{ borderRadius: 8 }} />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Email Address</div>
+            <Input size="large" value={formData.vcardEmail} onChange={e => setFormData({...formData, vcardEmail: e.target.value})} style={{ borderRadius: 8 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Website URL</div>
+            <Input size="large" value={formData.vcardUrl} onChange={e => setFormData({...formData, vcardUrl: e.target.value})} style={{ borderRadius: 8 }} />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const renderStep2 = () => (
     <Row>
       <Col span={16} style={{ padding: 40 }}>
         {renderStepper()}
-        <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>Website settings</Title>
-        <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Best for business cards, flyers, and general traffic to your site.</Text>
-        
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Link to website</div>
-          <Select size="large" defaultValue="custom" style={{ width: "100%" }}>
-            <Option value="custom">— Or use custom URL below —</Option>
-          </Select>
-          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8, fontWeight: 500 }}>Opens the website home page. Connect a custom domain in Sites for your live URL.</div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Custom URL</div>
-          <Input 
-            size="large"
-            placeholder="https://yoursite.com/offer" 
-            value={formData.customUrl}
-            onChange={e => setFormData({...formData, customUrl: e.target.value})}
-            style={{ borderRadius: 8 }}
-          />
-        </div>
+        {renderStep2Form()}
       </Col>
       <Col span={8}>
-        {renderPhoneMockup(
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ background: 'var(--bg-primary)', padding: 24, borderRadius: 24, boxShadow: 'var(--shadow-sm)', marginBottom: 24 }}>
-              <QrCode size={120} color="var(--accent-primary)" />
-            </div>
-            <div style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 18 }}>{formData.type}</div>
-            <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 8, wordBreak: 'break-all' }}>{formData.customUrl || "https://yoursite.com/offer"}</div>
-          </div>
-        )}
+        {renderPhoneMockup()}
       </Col>
     </Row>
   );
@@ -179,7 +534,7 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
           <Col span={12}>
             <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>FOREGROUND</div>
             <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 44, height: 44, background: formData.foreground, borderRadius: 8, border: "1px solid var(--border-color)" }}></div>
+              <div style={{ width: 44, height: 44, background: resolveColor(formData.foreground), borderRadius: 8, border: "1px solid var(--border-color)" }}></div>
               <Input 
                 size="large"
                 value={formData.foreground} 
@@ -191,7 +546,7 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
           <Col span={12}>
             <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>BACKGROUND</div>
             <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 44, height: 44, background: formData.background, borderRadius: 8, border: "1px solid var(--border-color)" }}></div>
+              <div style={{ width: 44, height: 44, background: resolveColor(formData.background), borderRadius: 8, border: "1px solid var(--border-color)" }}></div>
               <Input 
                 size="large"
                 value={formData.background} 
@@ -231,16 +586,9 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
             Rounded
           </Button>
         </div>
-
       </Col>
       <Col span={8}>
-        {renderPhoneMockup(
-          <div style={{ display: "flex", justifyContent: 'center' }}>
-            <div style={{ background: formData.background, padding: 32, borderRadius: formData.shape === 'Rounded' ? 32 : 16, boxShadow: 'var(--shadow-md)' }}>
-              <QrCode size={160} color={formData.foreground === 'var(--accent-primary)' ? '#3b82f6' : formData.foreground} />
-            </div>
-          </div>
-        )}
+        {renderPhoneMockup()}
       </Col>
     </Row>
   );
@@ -279,7 +627,7 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
             style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}
             onClick={() => {
               if (step < 3) setStep(step + 1);
-              else handleCreateQR(formData);
+              else handleCreateQR({...formData, customUrl: getScanLink()});
             }}
           >
             {step === 3 ? "Create QR Code" : "Next"}
@@ -291,6 +639,52 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants }) => {
 };
 
 const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
+  const [qrUrl, setQrUrl] = useState("");
+  const [svgContent, setSvgContent] = useState("");
+
+  const trackingUrl = activeQR.scanLink;
+
+  useEffect(() => {
+    const fg = resolveColor(activeQR.foreground);
+    const bg = resolveColor(activeQR.background);
+    
+    QRCode.toDataURL(trackingUrl, {
+      width: 300,
+      margin: 1,
+      color: {
+        dark: fg,
+        light: bg
+      }
+    })
+      .then(url => setQrUrl(url))
+      .catch(err => console.error(err));
+
+    QRCode.toString(trackingUrl, {
+      type: 'svg',
+      margin: 1,
+      color: {
+        dark: fg,
+        light: bg
+      }
+    })
+      .then(svg => setSvgContent(svg))
+      .catch(err => console.error(err));
+  }, [activeQR]);
+
+  const handleDownloadSVG = () => {
+    if (!svgContent) return;
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeQR.slug || 'qrcode'}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    message.success("QR Code SVG downloaded successfully!");
+  };
+
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => setView("list")}>
@@ -315,13 +709,17 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
         <Col span={10}>
           <Card style={{ borderRadius: 24, textAlign: "center", border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} bodyStyle={{ padding: 40 }}>
             <div style={{ marginBottom: 40, display: "flex", justifyContent: "center" }}>
-               <div style={{ background: activeQR.background, padding: 32, borderRadius: activeQR.shape === 'Rounded' ? 32 : 16, boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
-                 <QrCode size={200} color={activeQR.foreground === 'var(--accent-primary)' ? '#3b82f6' : activeQR.foreground} />
+               <div style={{ background: resolveColor(activeQR.background), padding: 32, borderRadius: activeQR.shape === 'Rounded' ? 32 : 16, boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
+                 {qrUrl ? (
+                   <img src={qrUrl} alt="QR Code" style={{ width: 200, height: 200, display: 'block' }} />
+                 ) : (
+                   <QrCode size={200} color={activeQR.foreground === 'var(--accent-primary)' ? '#3b82f6' : activeQR.foreground} />
+                 )}
                </div>
             </div>
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <Button size="large" type="primary" block style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Download SVG</Button>
-              <Button size="large" block style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Open scan URL</Button>
+              <Button size="large" type="primary" block onClick={handleDownloadSVG} style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Download SVG</Button>
+              <Button size="large" block onClick={() => window.open(trackingUrl, '_blank')} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Open scan URL</Button>
             </Space>
           </Card>
         </Col>
@@ -336,7 +734,11 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
             
             <div style={{ marginBottom: 24, background: 'var(--bg-primary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", marginBottom: 4 }}>ABOUT</div>
-              <div style={{ color: "var(--text-secondary)", fontWeight: 500, lineHeight: 1.5 }}>Open a custom link or the home page of a Jeema website you published.</div>
+              <div style={{ color: "var(--text-secondary)", fontWeight: 500, lineHeight: 1.5 }}>
+                {['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type)
+                  ? "Dynamic trackable redirection scan flow."
+                  : "Static scan action, executing standard local handset commands."}
+              </div>
             </div>
 
             <div style={{ marginBottom: 24, background: 'var(--bg-primary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
@@ -346,7 +748,9 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
 
             <div style={{ background: 'var(--bg-primary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", marginBottom: 4 }}>TRACKING</div>
-              <div style={{ fontWeight: 800, color: 'var(--accent-success)' }}>Scan analytics enabled</div>
+              <div style={{ fontWeight: 800, color: ['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? 'var(--accent-success)' : 'var(--text-secondary)' }}>
+                {['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? "Scan analytics enabled" : "Analytics not supported for static QR codes"}
+              </div>
             </div>
           </Card>
 
@@ -361,11 +765,14 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
   );
 };
 
-
 const QRLinksTab = ({ itemVariants }) => {
-  const [view, setView] = useState("list"); // list, create, manage
+  const [view, setView] = useState("list"); 
   const [qrs, setQrs] = useState([]);
   const [activeQR, setActiveQR] = useState(null);
+  
+  const [forms, setForms] = useState([]);
+  const [funnels, setFunnels] = useState([]);
+  const [websites, setWebsites] = useState([]);
 
   useEffect(() => {
     const fetchQRs = async () => {
@@ -382,8 +789,8 @@ const QRLinksTab = ({ itemVariants }) => {
             name: q.name,
             slug: q.slug,
             type: q.type,
-            scans: q.scansCount || 0,
-            scanLink: q.customUrl || `https://jeema.one/scan/${q.slug}`,
+            scans: q.scans || 0,
+            scanLink: q.scanLink,
             foreground: q.foreground,
             background: q.background,
             shape: q.shape,
@@ -394,7 +801,31 @@ const QRLinksTab = ({ itemVariants }) => {
         console.error("Failed to fetch QRs", err);
       }
     };
+
+    const fetchResources = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+        const [formsRes, funnelsRes, websitesRes] = await Promise.all([
+          fetch("/api/forms", { headers }),
+          fetch("/api/funnels", { headers }),
+          fetch("/api/websites", { headers })
+        ]);
+        const [formsData, funnelsData, websitesData] = await Promise.all([
+          formsRes.json(),
+          funnelsRes.json(),
+          websitesRes.json()
+        ]);
+        if (formsData.success) setForms(formsData.data);
+        if (funnelsData.success) setFunnels(funnelsData.data);
+        if (websitesData.success) setWebsites(websitesData.data);
+      } catch (err) {
+        console.error("Failed to fetch resources", err);
+      }
+    };
+
     fetchQRs();
+    fetchResources();
   }, [view]);
 
   const handleCreateQR = async (formData) => {
@@ -417,12 +848,16 @@ const QRLinksTab = ({ itemVariants }) => {
       });
       const resData = await res.json();
       if (resData.success) {
-        const newQR = { ...resData.data, key: resData.data._id, scans: 0, scanLink: resData.data.customUrl || `https://jeema.one/scan/${resData.data.slug}` };
+        const newQR = { ...resData.data, key: resData.data._id, scans: 0, scanLink: resData.data.scanLink };
         setActiveQR(newQR);
         setView("manage");
+        message.success("QR Code generated successfully!");
+      } else {
+        message.error(resData.error || "Failed to create QR code");
       }
     } catch (err) {
       console.error(err);
+      message.error("Failed to create QR code");
     }
   };
 
@@ -439,6 +874,7 @@ const QRLinksTab = ({ itemVariants }) => {
       if (data.success) {
         setQrs(qrs.filter(q => q.key !== key));
         setView("list");
+        message.success("QR Code deleted successfully!");
       }
     } catch (err) {
       console.error(err);
@@ -471,7 +907,7 @@ const QRLinksTab = ({ itemVariants }) => {
         render: (text) => <Text strong style={{ color: 'var(--text-primary)' }}>{text}</Text>
       },
       {
-        title: "SCAN LINK",
+        title: "DESTINATION",
         dataIndex: "scanLink",
         key: "scanLink",
         render: (text) => <Text type="secondary" style={{ fontWeight: 500 }}>{text}</Text>
@@ -481,15 +917,29 @@ const QRLinksTab = ({ itemVariants }) => {
         key: "actions",
         align: "right",
         render: (_, record) => (
-          <span 
-            style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={() => {
-              setActiveQR(record);
-              setView("manage");
-            }}
-          >
-            Manage <ArrowRight size={14} />
-          </span>
+          <Space size="middle">
+            <span 
+              style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              onClick={() => {
+                setActiveQR(record);
+                setView("manage");
+              }}
+            >
+              Manage <ArrowRight size={14} />
+            </span>
+            <Popconfirm 
+              title="Are you sure you want to delete this QR code?" 
+              onConfirm={() => handleDeleteQR(record.key)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <span 
+                style={{ color: "var(--accent-danger)", fontWeight: 700, cursor: "pointer", display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <Trash2 size={14} /> Delete
+              </span>
+            </Popconfirm>
+          </Space>
         )
       },
     ];
@@ -545,7 +995,7 @@ const QRLinksTab = ({ itemVariants }) => {
   return (
     <div style={{ position: "relative" }}>
       {view === "list" && renderList()}
-      {view === "create" && <CreateQRView setView={setView} handleCreateQR={handleCreateQR} itemVariants={itemVariants} />}
+      {view === "create" && <CreateQRView setView={setView} handleCreateQR={handleCreateQR} itemVariants={itemVariants} forms={forms} funnels={funnels} websites={websites} />}
       {view === "manage" && <ManageQRView activeQR={activeQR} setView={setView} handleDeleteQR={handleDeleteQR} itemVariants={itemVariants} />}
     </div>
   );

@@ -17,7 +17,7 @@ exports.createQR = async (req, res, next) => {
     }
 
     // Default destination link
-    const scanLink = customUrl || `https://jeema.one/q/${slug}`;
+    const scanLink = customUrl || `https://m1growth.com/q/${slug}`;
 
     const qrLink = new QRLink({
       workspaceId,
@@ -90,6 +90,20 @@ exports.deleteQR = async (req, res, next) => {
   }
 };
 
+// Public QR Details
+exports.getPublicQR = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const qr = await QRLink.findOne({ _id: id, isDeleted: false });
+    if (!qr) {
+      return res.status(404).json({ success: false, error: 'QR code not found' });
+    }
+    res.json({ success: true, data: qr });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Public QR Redirection Handler
 exports.redirectScan = async (req, res, next) => {
   try {
@@ -106,7 +120,7 @@ exports.redirectScan = async (req, res, next) => {
 
     // Verify scanLink prefix and redirect
     let destination = qr.scanLink;
-    if (!/^https?:\/\//i.test(destination)) {
+    if (!/^[a-z0-9+.-]+:/i.test(destination)) {
       destination = 'https://' + destination;
     }
 

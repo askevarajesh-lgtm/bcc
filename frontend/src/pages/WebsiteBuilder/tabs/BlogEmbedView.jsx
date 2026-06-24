@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Typography, Result, Spin, Card, Row, Col, Tag } from "antd";
+import { Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
 import { Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
 const { Title, Text, Paragraph } = Typography;
 
 const BlogEmbedView = () => {
-  const { blogId } = useParams();
+  const { blogId, blogSlug } = useParams();
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBlog();
-  }, [blogId]);
+  }, [blogId, blogSlug]);
 
   const fetchBlog = async () => {
     try {
-      const res = await fetch(`/api/blogs/${blogId}/public`);
+      const url = blogId ? `/api/blogs/${blogId}/public` : `/api/blogs/slug/${blogSlug}/public`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success && data.data) {
         setBlogData(data.data);
@@ -50,6 +51,8 @@ const BlogEmbedView = () => {
   }
 
   const { name, description, posts = [] } = blogData;
+  const isEmbed = !!blogId;
+  const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: "inherit" }}>
@@ -70,44 +73,60 @@ const BlogEmbedView = () => {
           <Text type="secondary">Check back later for updates!</Text>
         </div>
       ) : (
-        <Row gutter={[32, 32]}>
-          {posts.map(post => (
-            <Col xs={24} md={12} lg={8} key={post._id}>
-              <Card 
-                hoverable 
-                style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
-                bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
-              >
-                {post.categories && post.categories.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    {post.categories.map((cat, idx) => (
-                      <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
-                    ))}
-                  </div>
-                )}
-                <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
-                  <a href={`/blog/${blogData.slug}/${post.slug}`} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
-                    {post.title}
-                  </a>
-                </Title>
-                
-                <Paragraph style={{ color: '#475569', fontSize: 15, flex: 1, marginBottom: 24 }} ellipsis={{ rows: 3 }}>
-                  {/* Extract plain text from HTML content or use description if available */}
-                  {post.content ? post.content.replace(/<[^>]+>/g, '') : "Read the full post for more details."}
-                </Paragraph>
+        <>
+          <Row gutter={[32, 32]}>
+            {displayedPosts.map(post => (
+              <Col xs={24} md={12} lg={8} key={post._id}>
+                <Card 
+                  hoverable 
+                  style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                  bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
+                >
+                  {post.categories && post.categories.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      {post.categories.map((cat, idx) => (
+                        <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
+                      ))}
+                    </div>
+                  )}
+                  <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
+                    <a href={`/blog/${blogData.slug}/${post.slug}`} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
+                      {post.title}
+                    </a>
+                  </Title>
+                  
+                  <Paragraph style={{ color: '#475569', fontSize: 15, flex: 1, marginBottom: 24 }} ellipsis={{ rows: 3 }}>
+                    {/* Extract plain text from HTML content or use description if available */}
+                    {post.content ? post.content.replace(/<[^>]+>/g, '') : "Read the full post for more details."}
+                  </Paragraph>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <User size={14} /> Admin
-                  </span>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <User size={14} /> Admin
+                    </span>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+
+          {isEmbed && posts.length >= 3 && (
+            <div style={{ textAlign: "center", marginTop: 40 }}>
+              <Button 
+                type="primary" 
+                size="large" 
+                href={`/blog/${blogData.slug}`} 
+                target="_parent"
+                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)' }}
+              >
+                View More
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

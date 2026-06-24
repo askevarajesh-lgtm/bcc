@@ -5,6 +5,7 @@ const authMiddleware = require('../../middlewares/authMiddleware');
 
 // Public Scan Redirection Path (mounted at app level)
 router.get('/scan/:slug', qrController.redirectScan);
+router.get('/:id/public', qrController.getPublicQR);
 
 // Authenticated QR Code administration CRUD
 router.use(authMiddleware);

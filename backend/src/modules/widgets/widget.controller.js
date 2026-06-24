@@ -123,3 +123,17 @@ exports.deleteWidget = async (req, res, next) => {
     next(error);
   }
 };
+
+// Get Public Widget Details (no auth required)
+exports.getPublicWidgetDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const widget = await ChatWidget.findOne({ _id: id, isDeleted: false });
+    if (!widget) {
+      return res.status(404).json({ success: false, error: 'Widget not found' });
+    }
+    res.json({ success: true, data: widget });
+  } catch (error) {
+    next(error);
+  }
+};

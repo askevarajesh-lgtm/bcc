@@ -3,6 +3,9 @@ const router = express.Router();
 const widgetController = require('./widget.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
+// Public Widget Details
+router.get('/:id/public', widgetController.getPublicWidgetDetails);
+
 router.use(authMiddleware);
 
 router.get('/', widgetController.getWidgets);
