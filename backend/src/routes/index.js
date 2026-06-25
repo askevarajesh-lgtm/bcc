@@ -25,6 +25,7 @@ const mediaRoutes = require('../modules/media/media.routes');
 const taskRoutes = require('../modules/tasks/task.routes');
 const coordinatorTaskRoutes = require('../modules/tasks/coordinatorTask.routes');
 const projectRoutes = require('../modules/projects/project.routes');
+const campaignScheduledRoutes = require('../modules/campaign-scheduled/campaignScheduled.routes');
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
@@ -74,6 +75,7 @@ router.use('/media', mediaRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/coordinator-tasks', coordinatorTaskRoutes);
 router.use('/projects', projectRoutes);
+router.use('/campaign-scheduled', campaignScheduledRoutes);
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);

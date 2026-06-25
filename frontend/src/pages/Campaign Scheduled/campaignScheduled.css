@@ -1,0 +1,999 @@
+.campaign-scheduler-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 120px);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 35%);
+}
+
+.campaign-scheduler-shell.ant-card {
+  border-radius: 14px;
+  border: 1px solid var(--ant-color-border-secondary);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  background: hsl(var(--card));
+}
+
+.campaign-scheduler-shell .ant-card-body {
+  padding: 12px;
+}
+
+.campaign-scheduler-sidebar {
+  flex: 0 0 240px;
+  width: 240px;
+  border-right: 1px solid var(--ant-color-border-secondary);
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  padding: 18px 14px;
+}
+
+.campaign-scheduler-main {
+  flex: 1 1 auto;
+  padding: 22px;
+  min-width: 0;
+  background: transparent;
+}
+
+.campaign-scheduler-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  gap: 12px;
+}
+
+.campaign-scheduler-surface {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(2, 6, 23, 0.04);
+}
+
+.campaign-scheduler-sidebar-inner {
+  position: sticky;
+  top: 8px;
+}
+
+.campaign-scheduler-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.campaign-scheduler-menu .ant-menu-item {
+  border-radius: 10px;
+  margin-inline: 0;
+  margin-block: 4px;
+  font-weight: 500;
+}
+
+.campaign-scheduler-menu .ant-menu-item-selected {
+  box-shadow: 0 6px 14px rgba(22, 119, 255, 0.18);
+}
+
+.campaign-scheduler-menu.ant-menu-inline {
+  width: 100%;
+}
+
+.campaign-scheduler-actions .ant-btn {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.campaign-scheduler-empty .ant-card-body {
+  padding: 36px 24px;
+}
+
+.campaign-scheduler-empty-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1677ff;
+  background: rgba(22, 119, 255, 0.08);
+  font-size: 22px;
+}
+
+.campaign-scheduler-status-card {
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.08) 0%, rgba(22, 119, 255, 0.08) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.18);
+  border-radius: 10px;
+}
+
+.campaign-scheduler-metric-card {
+  border-radius: 14px;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(145deg, #ffffff 0%, #f9fbff 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.campaign-scheduler-metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #9cb7ff 0%, #7da0ff 100%);
+}
+
+.campaign-scheduler-metric-card .ant-card-body {
+  padding: 16px 18px;
+}
+
+.campaign-scheduler-metric-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.campaign-scheduler-metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: #e9efff;
+  color: #335dff;
+}
+
+.campaign-scheduler-metric-title.ant-typography {
+  margin: 0;
+  color: #5f6b7d;
+  font-weight: 600;
+}
+
+.campaign-scheduler-metric-value.ant-typography {
+  margin: 0 0 2px !important;
+  font-size: 34px !important;
+  line-height: 1.1 !important;
+  color: #111827 !important;
+}
+
+.campaign-scheduler-metric-meta.ant-typography {
+  color: #7a8597;
+  font-size: 12px;
+}
+
+.campaign-scheduler-metric-card-neutral::before {
+  background: linear-gradient(90deg, #6b7b93 0%, #8fa0b9 100%);
+}
+
+.campaign-scheduler-metric-card-info::before {
+  background: linear-gradient(90deg, #2c64ff 0%, #5b8bff 100%);
+}
+
+.campaign-scheduler-metric-card-success::before {
+  background: linear-gradient(90deg, #1faa78 0%, #3ecf98 100%);
+}
+
+.campaign-scheduler-metric-card-info .campaign-scheduler-metric-icon {
+  background: #e8f0ff;
+  color: #2c64ff;
+}
+
+.campaign-scheduler-metric-card-success .campaign-scheduler-metric-icon {
+  background: #e8faf2;
+  color: #14996a;
+}
+
+.campaign-scheduler-campaign-card {
+  overflow: hidden;
+}
+
+.campaign-scheduler-inner-post-card {
+  border-radius: 10px;
+  border: 1px solid var(--ant-color-border-secondary);
+  transition: all 0.2s ease;
+}
+
+.campaign-scheduler-inner-post-card:hover {
+  transform: translateY(-2px);
+  border-color: #1677ff;
+  box-shadow: 0 8px 14px rgba(22, 119, 255, 0.14);
+}
+
+.campaign-scheduler-account-card {
+  min-height: 120px;
+}
+
+.campaign-scheduler-account-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+}
+
+.campaign-scheduler-account-logo-facebook {
+  background: #1877f2;
+}
+
+.campaign-scheduler-account-logo-instagram {
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+
+.campaign-scheduler-account-logo-linkedin {
+  background: #0a66c2;
+}
+
+.campaign-scheduler-account-logo-youtube {
+  background: #ff0000;
+}
+
+.campaign-scheduler-account-logo-google_business {
+  background: #4285f4;
+}
+
+.campaign-scheduler-account-logo-pinterest {
+  background: #E60023;
+}
+
+.campaign-scheduler-account-name {
+  color: var(--ant-color-text-secondary);
+}
+
+.campaign-scheduler-calendar-card .ant-picker-calendar {
+  background: transparent;
+}
+
+.campaign-scheduler-calendar-card .ant-picker-calendar-date-content {
+  min-height: 72px;
+}
+
+.campaign-scheduler-surface .ant-table-wrapper .ant-table {
+  border-radius: 10px;
+}
+
+.campaign-scheduler-view-modal .ant-modal-content {
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.campaign-scheduler-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.campaign-scheduler-view-kicker.ant-typography {
+  color: #6b7280;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.campaign-scheduler-view-title {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+  color: #111827;
+}
+
+.campaign-scheduler-view-card {
+  border: 1px solid #e5eaf2;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff 0%, #f9fbff 100%);
+  padding: 14px;
+}
+
+.campaign-scheduler-view-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campaign-scheduler-view-label.ant-typography {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.campaign-scheduler-view-value.ant-typography {
+  color: #111827;
+  margin: 0;
+  font-size: 14px;
+}
+
+.campaign-scheduler-view-caption.ant-typography {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed #dbe3ef;
+}
+
+.campaign-scheduler-view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.campaign-logs-summary-card .ant-card-body {
+  padding: 12px 14px;
+}
+
+.campaign-log-row .ant-card-body {
+  padding: 14px;
+}
+
+.campaign-logs-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.campaign-logs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.campaign-logs-search {
+  width: 340px;
+}
+
+.campaign-logs-summary-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+}
+
+.campaign-logs-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.campaign-logs-summary-item {
+  border: 1px solid #e6ebf5;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+}
+
+.campaign-logs-summary-item .ant-typography h4 {
+  margin: 0;
+}
+
+.campaign-logs-summary-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #edf3ff;
+  color: #3363ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.campaign-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.campaign-log-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.campaign-log-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px rgba(26, 50, 90, 0.08);
+}
+
+.campaign-log-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.campaign-log-single-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.campaign-log-left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.campaign-log-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.campaign-log-date.ant-typography {
+  color: #66758f;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.campaign-log-id.ant-typography {
+  color: #8a96ab;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.campaign-log-caption.ant-typography {
+  margin: 0 0 6px !important;
+  color: #111827;
+  font-size: 20px;
+}
+
+.campaign-log-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.campaign-log-platform-tag {
+  border-radius: 999px;
+  padding-inline: 8px;
+  background: #f3f6fc;
+  border-color: #e2e8f4;
+  line-height: 18px;
+  font-size: 12px;
+}
+
+.campaign-log-metric-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f4;
+  flex: 0 0 auto;
+}
+
+.campaign-log-metric-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+.campaign-log-metric-stat:not(:last-child) {
+  border-right: 1px solid #e2e8f4;
+}
+
+.campaign-log-metric-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.campaign-log-metric-info .ant-typography-strong {
+  font-size: 16px;
+  color: #111827;
+}
+
+.metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.campaign-log-metric-icon-small {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.campaign-log-metric-icon-small.like {
+  background: #edf6ff;
+  color: #1677ff;
+}
+
+.campaign-log-metric-icon-small.comment {
+  background: #eef9f3;
+  color: #1f9d62;
+}
+
+.campaign-log-metric-icon-small.share {
+  background: #f5f3ff;
+  color: #7a57ff;
+}
+
+/* Dark mode */
+.dark .campaign-scheduler-layout {
+  border-color: hsl(var(--border));
+  background: linear-gradient(180deg, hsl(222 42% 12%) 0%, hsl(222 38% 11%) 40%);
+}
+
+.dark .campaign-scheduler-shell.ant-card {
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+.dark .campaign-scheduler-sidebar {
+  border-right-color: hsl(var(--border));
+  background: linear-gradient(180deg, hsl(222 35% 14%) 0%, hsl(222 32% 12%) 100%);
+}
+
+.dark .campaign-scheduler-menu.ant-menu {
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-scheduler-menu .ant-menu-item {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-scheduler-menu .ant-menu-item:hover {
+  color: hsl(var(--foreground));
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .campaign-scheduler-menu .ant-menu-item-selected {
+  color: #fff;
+  background: linear-gradient(135deg, #1677ff, #0958d9);
+  box-shadow: 0 8px 18px rgba(22, 119, 255, 0.35);
+}
+
+.dark .campaign-scheduler-surface {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.dark .campaign-scheduler-empty-icon {
+  color: #69b1ff;
+  background: rgba(105, 177, 255, 0.16);
+}
+
+.dark .campaign-scheduler-status-card {
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.14) 0%, rgba(22, 119, 255, 0.2) 100%);
+  border-color: rgba(145, 202, 255, 0.25);
+}
+
+.dark .campaign-scheduler-metric-card {
+  border-color: hsl(var(--border));
+  background: linear-gradient(145deg, hsl(223 29% 15%) 0%, hsl(223 24% 13%) 100%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.dark .campaign-scheduler-metric-title.ant-typography {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-scheduler-metric-value.ant-typography {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .campaign-scheduler-metric-meta.ant-typography {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-scheduler-metric-icon {
+  background: rgba(105, 177, 255, 0.18);
+  color: #91caff;
+}
+
+.dark .campaign-scheduler-metric-card-success .campaign-scheduler-metric-icon {
+  background: rgba(54, 207, 152, 0.2);
+  color: #66f0bf;
+}
+
+.dark .campaign-scheduler-inner-post-card {
+  border-color: hsl(var(--border));
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dark .campaign-scheduler-inner-post-card:hover {
+  border-color: #69b1ff;
+  box-shadow: 0 10px 18px rgba(22, 119, 255, 0.22);
+}
+
+.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-thead>tr>th {
+  background: rgba(255, 255, 255, 0.04);
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-tbody>tr>td {
+  border-bottom-color: hsl(var(--border));
+}
+
+.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-row:hover>td {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.dark .campaign-scheduler-actions .ant-btn-default {
+  background: hsl(222 26% 16%);
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-scheduler-actions .ant-btn-default:hover {
+  background: hsl(222 26% 20%);
+  border-color: #1677ff;
+  color: #91caff;
+}
+
+.dark .campaign-scheduler-view-modal .ant-modal-content {
+  background: hsl(var(--card));
+}
+
+.dark .campaign-scheduler-view-kicker.ant-typography,
+.dark .campaign-scheduler-view-label.ant-typography {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-scheduler-view-title,
+.dark .campaign-scheduler-view-value.ant-typography {
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-scheduler-view-card {
+  background: linear-gradient(145deg, hsl(223 29% 15%) 0%, hsl(223 24% 13%) 100%);
+  border-color: hsl(var(--border));
+}
+
+.dark .campaign-log-metric-item {
+  border-color: hsl(var(--border));
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dark .campaign-logs-summary-card {
+  background: linear-gradient(145deg, hsl(223 28% 15%) 0%, hsl(223 24% 13%) 100%);
+}
+
+.dark .campaign-logs-summary-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: hsl(var(--border));
+}
+
+.dark .campaign-logs-summary-icon {
+  background: rgba(105, 177, 255, 0.15);
+  color: #91caff;
+}
+
+.dark .campaign-log-id.ant-typography,
+.dark .campaign-log-date.ant-typography {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-log-caption.ant-typography {
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-log-platform-tag {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .campaign-log-metric-group {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: hsl(var(--border));
+}
+
+.dark .campaign-log-metric-stat:not(:last-child) {
+  border-right-color: hsl(var(--border));
+}
+
+.dark .campaign-log-metric-info .ant-typography-strong {
+  color: hsl(var(--foreground));
+}
+
+.dark .metric-label {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .campaign-log-metric-icon-small.like {
+  background: rgba(105, 177, 255, 0.16);
+  color: #91caff;
+}
+
+.dark .campaign-log-metric-icon-small.comment {
+  background: rgba(102, 240, 191, 0.16);
+  color: #66f0bf;
+}
+
+.dark .campaign-log-metric-icon-small.share {
+  background: rgba(154, 140, 255, 0.18);
+  color: #b8a7ff;
+}
+
+.dark .campaign-scheduler-view-caption.ant-typography {
+  border-bottom-color: hsl(var(--border));
+}
+
+@media (max-width: 1200px) {
+  .campaign-scheduler-sidebar {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .campaign-log-single-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .campaign-log-metric-group {
+    align-self: stretch;
+    width: 100%;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .campaign-log-metric-stat {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .campaign-log-caption.ant-typography {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 992px) {
+  .campaign-scheduler-layout {
+    flex-direction: column;
+  }
+
+  .campaign-scheduler-sidebar {
+    width: 100%;
+    flex-basis: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+    padding: 12px;
+  }
+
+  .campaign-scheduler-sidebar-inner {
+    position: static;
+  }
+
+  .campaign-scheduler-menu.ant-menu {
+    border-bottom: 1px solid var(--ant-color-border-secondary) !important;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .campaign-scheduler-menu .ant-menu-item {
+    margin: 0 !important;
+    flex: 0 0 auto;
+  }
+
+  .campaign-scheduler-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .campaign-scheduler-actions {
+    width: 100%;
+  }
+
+  .campaign-scheduler-actions .ant-btn {
+    width: 100%;
+  }
+
+  .campaign-scheduler-view-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-log-metric-group {
+    flex-direction: row;
+    padding: 10px;
+  }
+
+  .campaign-logs-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .campaign-logs-search {
+    width: 100%;
+  }
+
+  .campaign-logs-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .campaign-log-metric-group {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .campaign-log-metric-stat:not(:last-child) {
+    border-right: 0;
+    border-bottom: 1px solid #e2e8f4;
+  }
+
+  .dark .campaign-log-metric-stat:not(:last-child) {
+    border-bottom-color: hsl(var(--border));
+  }
+}
+
+/* Post Preview Styles */
+.post-preview-container {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-preview-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.post-preview-header {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.post-preview-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.post-preview-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.post-preview-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.post-preview-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.post-preview-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.post-preview-media img,
+.post-preview-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-preview-caption {
+  padding: 12px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.post-preview-footer {
+  padding: 12px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 16px;
+  color: #94a3b8;
+  font-size: 18px;
+}
+
+.dark .post-preview-container {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+.dark .post-preview-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .post-preview-avatar {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.dark .post-preview-username {
+  color: #f1f5f9;
+}
+
+.dark .post-preview-caption {
+  color: #cbd5e1;
+}
+
+.dark .post-preview-footer {
+  border-top-color: #334155;
+}
+
+/* Instagram Connect Modal */
+.instagram-connect-modal .ant-modal-content {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.instagram-choice-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #e2e8f0;
+}
+
+.instagram-choice-card:hover {
+  border-color: #1677ff;
+  box-shadow: 0 12px 24px rgba(22, 119, 255, 0.1);
+  transform: translateY(-4px);
+}
+
+.instagram-choice-icon-wrap {
+  box-shadow: 0 8px 16px rgba(188, 24, 136, 0.2);
+}
+
+.dark .instagram-choice-card {
+  background: hsl(223 29% 15%);
+  border-color: hsl(var(--border));
+}
+
+.dark .instagram-choice-card:hover {
+  border-color: #1677ff;
+}
+
+.dark .instagram-choice-card .ant-typography-secondary {
+  color: hsl(var(--muted-foreground));
+}

@@ -32,7 +32,7 @@ import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
 import Content from './pages/Content/Content';
 import Creative from './pages/Creative/Creative';
-import SocialMedia from './pages/SocialMedia/SocialMedia';
+import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
 import PerformanceAds from './pages/PerformanceAds/PerformanceAds';
 import Accounts from './pages/Accounts/Accounts';
 import SLA from './pages/SLA/SLA';
@@ -192,7 +192,7 @@ const AppRoutes = () => {
           <Route path="workspace/seo" element={<SEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<Creative />} />
-          <Route path="workspace/social" element={<SocialMedia />} />
+          <Route path="workspace/social" element={<CampaignScheduledPage />} />
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
           <Route path="workspace/automation" element={<Automation />} />
@@ -262,7 +262,7 @@ const AppRoutes = () => {
           <Route path="seo" element={<SEO />} />
           <Route path="content" element={<Content />} />
           <Route path="ai-studio" element={<Creative />} />
-          <Route path="social-media" element={<SocialMedia />} />
+          <Route path="social-media" element={<CampaignScheduledPage />} />
           <Route path="performance-ads" element={<PerformanceAds />} />
           <Route path="crm" element={<CRM />} />
           <Route path="automation" element={<Automation />} />
@@ -308,7 +308,7 @@ const AppRoutes = () => {
           <Route path="workspace/seo" element={<SEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<Creative />} />
-          <Route path="workspace/social" element={<SocialMedia />} />
+          <Route path="workspace/social" element={<CampaignScheduledPage />} />
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
           <Route path="workspace/automation" element={<Automation />} />

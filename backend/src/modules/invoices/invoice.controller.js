@@ -69,10 +69,10 @@ exports.getInvoices = async (req, res, next) => {
 
     if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
-      queryFilter.brandId = req.user.brandId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
-      queryFilter.agencyId = req.user.agencyId;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      queryFilter.brandId = req.user.brandId || req.user._id;
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+      queryFilter.agencyId = req.user.agencyId || req.user._id;
     }
 
     const total = await Invoice.countDocuments(queryFilter);

@@ -61,7 +61,7 @@ const taskSchema = new mongoose.Schema(
     // Company References
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ClientCompany",
+      ref: "User",
       required: false,
     },
     taskType: {
@@ -71,7 +71,7 @@ const taskSchema = new mongoose.Schema(
     },
     tenantCompanyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "User",
       required: true,
     },
 
@@ -234,7 +234,7 @@ const taskSchema = new mongoose.Schema(
     // Legacy fields (for backward compatibility during migration)
     clientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ClientCompany",
+      ref: "User",
       default: null,
     },
     plannerId: {

@@ -13,14 +13,14 @@ const projectSchema = new mongoose.Schema(
     },
     clientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ClientCompany",
+      ref: "User",
       required: true,
-      comment: "Client (ClientCompany) - Clients are the companies you add",
+      comment: "Client (User) - Clients are the companies you add",
     },
     // Reference to the tenant company (organization)
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "User",
       required: true,
     },
     createdBy: {
