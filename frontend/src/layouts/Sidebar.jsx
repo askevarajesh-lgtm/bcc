@@ -82,6 +82,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
         { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142', 'default') },
         { key: '/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
+        { key: '/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
+        { key: '/workspace/invoices', icon: getIcon(DollarSign), label: 'Invoices' },
+        { key: '/workspace/projects', icon: getIcon(Library), label: 'Projects' },
         { key: '/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
         { key: '/workspace/website', icon: getIcon(Globe), label: 'Websites' },
       ],
@@ -125,7 +128,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'SET' : 'SETTINGS',
       children: [
         { key: '/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
-        { key: '/settings/marketplace', icon: getIcon(Store), label: 'Master Item' },
+        { key: '/workspace/master-items', icon: getIcon(Store), label: 'Master Item' },
       ],
     },
   ];

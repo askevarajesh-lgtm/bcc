@@ -39,7 +39,17 @@ import SLA from './pages/SLA/SLA';
 import PortalSettings from './pages/PortalSettings/PortalSettings';
 import Analytics from './pages/Analytics/Analytics';
 import Automation from './pages/Automation/Automation';
-import Tasks from './pages/Tasks/Tasks';
+import TasksPage from './pages/Tasks/TasksPage';
+import TaskForm from './pages/Tasks/TaskForm';
+import ProjectList from './pages/projects/ProjectList';
+import ProjectForm from './pages/projects/ProjectForm';
+import ProjectDetail from './pages/projects/ProjectDetail';
+import MasterItemsList from './pages/MasterItems/MasterItemsList';
+import MasterItemForm from './pages/MasterItems/MasterItemForm';
+import ProposalsList from './pages/Proposals/ProposalsList';
+import ProposalForm from './pages/Proposals/ProposalForm';
+import InvoicesList from './pages/Invoices/InvoicesList';
+
 import Reports from './pages/Reports/Reports';
 import Teams from './pages/Teams/Teams';
 import TimeTracking from './pages/TimeTracking/TimeTracking';
@@ -185,7 +195,18 @@ const AppRoutes = () => {
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
           <Route path="workspace/automation" element={<Automation />} />
-          <Route path="workspace/tasks" element={<Tasks />} />
+          <Route path="workspace/tasks" element={<TasksPage />} />
+          <Route path="workspace/tasks/new" element={<TaskForm />} />
+          <Route path="workspace/projects" element={<ProjectList />} />
+          <Route path="workspace/projects/new" element={<ProjectForm />} />
+          <Route path="workspace/projects/:id" element={<ProjectDetail />} />
+          <Route path="workspace/master-items" element={<MasterItemsList />} />
+          <Route path="workspace/master-items/new" element={<MasterItemForm />} />
+          <Route path="workspace/master-items/:id" element={<MasterItemForm />} />
+          <Route path="workspace/proposals" element={<ProposalsList />} />
+          <Route path="workspace/proposals/new" element={<ProposalForm />} />
+          <Route path="workspace/proposals/:id" element={<ProposalForm />} />
+          <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
 
@@ -242,6 +263,13 @@ const AppRoutes = () => {
           <Route path="performance-ads" element={<PerformanceAds />} />
           <Route path="crm" element={<CRM />} />
           <Route path="automation" element={<Automation />} />
+          <Route path="master-items" element={<MasterItemsList />} />
+          <Route path="master-items/new" element={<MasterItemForm />} />
+          <Route path="master-items/:id" element={<MasterItemForm />} />
+          <Route path="proposals" element={<ProposalsList />} />
+          <Route path="proposals/new" element={<ProposalForm />} />
+          <Route path="proposals/:id" element={<ProposalForm />} />
+          <Route path="invoices" element={<InvoicesList />} />
         </Route>
       </Route>
 
@@ -274,7 +302,7 @@ const AppRoutes = () => {
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
           <Route path="workspace/automation" element={<Automation />} />
-          <Route path="workspace/tasks" element={<Tasks />} />
+          <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
 
@@ -326,7 +354,7 @@ const AppRoutes = () => {
         <Route element={<UserLayout />}>
           <Route index element={<Navigate to="/user/dashboard" replace />} />
           <Route path="dashboard" element={<UserDashboardTab />} />
-          <Route path="tasks" element={<Tasks />} />
+          <Route path="tasks" element={<TasksPage />} />
           <Route path="settings" element={<UserSettingsTab />} />
         </Route>
       </Route>

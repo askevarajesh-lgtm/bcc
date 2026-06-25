@@ -22,6 +22,14 @@ const brandRoutes = require('../modules/accounts/brand.routes');
 const departmentRoutes = require('../modules/departments/department.routes');
 const roleRoutes = require('../modules/roles/role.routes');
 const mediaRoutes = require('../modules/media/media.routes');
+const taskRoutes = require('../modules/tasks/task.routes');
+const coordinatorTaskRoutes = require('../modules/tasks/coordinatorTask.routes');
+const projectRoutes = require('../modules/projects/project.routes');
+
+// CRM Workflow Routes
+const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
+const proposalRoutes = require('../modules/proposals/proposal.routes');
+const invoiceRoutes = require('../modules/invoices/invoice.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -63,5 +71,13 @@ router.use('/agency-packages', agencyPackageRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/roles', roleRoutes);
 router.use('/media', mediaRoutes);
+router.use('/tasks', taskRoutes);
+router.use('/coordinator-tasks', coordinatorTaskRoutes);
+router.use('/projects', projectRoutes);
+
+// CRM Workflow Mounts
+router.use('/master-items', masterItemRoutes);
+router.use('/proposals', proposalRoutes);
+router.use('/invoices', invoiceRoutes);
 
 module.exports = router;
