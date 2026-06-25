@@ -12,4 +12,41 @@ module.exports = {
     hasNextPage: page < Math.ceil(total / limit),
     hasPrevPage: page > 1,
   }),
+  buildQuery: (query, config) => {
+    const filters = { ...config.additionalFilters };
+    if (query.search && config.searchFields && config.searchFields.length > 0) {
+      filters.$or = config.searchFields.map(field => ({ [field]: { $regex: query.search, $options: 'i' } }));
+    }
+    const sortField = query.sortBy || config.defaultSortField || 'createdAt';
+    const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
+    return { filters, sort, page: query.page, limit: query.limit };
+  },
+  executePaginatedQuery: async (Model, queryOptions, populateOptions = []) => {
+    const page = parseInt(queryOptions.page) || 1;
+    const limit = parseInt(queryOptions.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    let query = Model.find(queryOptions.filters).sort(queryOptions.sort).skip(skip).limit(limit);
+    if (populateOptions.length > 0) {
+      populateOptions.forEach(pop => {
+        query = query.populate(pop);
+      });
+    }
+
+    const data = await query.exec();
+    const total = await Model.countDocuments(queryOptions.filters);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      }
+    };
+  }
 };

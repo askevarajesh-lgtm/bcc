@@ -127,7 +127,7 @@ const BrandSettingsTab = () => {
   );
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5 }}>ADMINISTRATION</Text>
         <Title level={2} style={{ margin: '4px 0 8px 0', fontWeight: 800 }}>Brand Settings</Title>

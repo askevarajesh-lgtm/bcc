@@ -87,7 +87,7 @@ const BillingTab = () => {
   ];
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 4 }}>BILLING & INVOICES</Text>

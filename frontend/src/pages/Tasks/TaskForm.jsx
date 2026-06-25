@@ -60,9 +60,20 @@ const TaskForm = () => {
     setShouldApplyWebsiteDefaultCompany,
   ] = useState(false);
 
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency/workspace";
+    return "/workspace";
+  };
+
   // Get current user for role-based restrictions
   const { user: currentUser } = useAuth();
   const userRole = currentUser?.role;
+  const taskTarget = location.state?.taskTarget || "client";
+  const hideCompanyProject = 
+    userRole === 'commander_admin' || 
+    userRole === 'brand_manager' || 
+    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own');
 
   // Roles that should see all projects
   const rolesWithFullAccess = [
@@ -85,14 +96,14 @@ const TaskForm = () => {
   useEffect(() => {
     if (isRestricted) {
       message.error("You do not have permission to perform this action");
-      navigate("/workspace/tasks");
+      navigate(`${getBaseRoute()}/tasks`);
     }
   }, [isRestricted, navigate]);
 
   useEffect(() => {
     if (isEdit && !canEditTaskDetails) {
       message.error("Task detail editing is not allowed for your role");
-      navigate("/workspace/tasks");
+      navigate(`${getBaseRoute()}/tasks`);
     }
   }, [isEdit, canEditTaskDetails, navigate]);
 
@@ -780,6 +791,7 @@ const TaskForm = () => {
         dueDate: dueDate ? dueDate.format("YYYY-MM-DD") : null,
         watchers: values.watchers || [],
         status: values.status || location.state?.initialStatus || "created",
+        taskType: taskTarget,
       };
       if ((values.status || taskData.status) === "hold") {
         taskData.holdReason = values.holdReason || "";
@@ -819,9 +831,9 @@ const TaskForm = () => {
       );
 
       if (isNewlyCompleted && isAssignedToMe) {
-        navigate("/workspace/tasks", { state: { triggerCelebration: true } });
+        navigate(`${getBaseRoute()}/tasks`, { state: { triggerCelebration: true } });
       } else {
-        navigate("/workspace/tasks");
+        navigate(`${getBaseRoute()}/tasks`);
       }
     } catch (error) {
       message.error(error?.data?.message || "Operation failed");
@@ -847,7 +859,7 @@ const TaskForm = () => {
           gap: 16,
         }}
       >
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/workspace/tasks")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`${getBaseRoute()}/tasks`)}>
           Back
         </Button>
         <h1 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>
@@ -992,10 +1004,12 @@ const TaskForm = () => {
           </Row>
 
           <Row gutter={16}>
-            <Col xs={24} md={8}>
-              <Form.Item
-                label="Company"
-                name="companyId"
+            {!hideCompanyProject && (
+              <>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    label="Company"
+                    name="companyId"
                 rules={[{ required: true, message: "Please select a company" }]}
                 tooltip={
                   selectedProject
@@ -1100,9 +1114,11 @@ const TaskForm = () => {
                         })
                       : null;
                   })()}
-                </Select>
-              </Form.Item>
-            </Col>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </>
+            )}
 
             <Form.Item
               noStyle
@@ -1503,7 +1519,7 @@ const TaskForm = () => {
               >
                 {isEdit ? "Update Task" : "Create Task"}
               </Button>
-              <Button onClick={() => navigate("/workspace/tasks")}>Cancel</Button>
+              <Button onClick={() => navigate(`${getBaseRoute()}/tasks`)}>Cancel</Button>
             </Space>
           </Form.Item>
         </Form>

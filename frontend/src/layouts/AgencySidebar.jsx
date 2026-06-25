@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, Users, CreditCard, Shield, FileText, Settings, 
   TrendingUp, HelpCircle, Activity, Layout as LayoutIcon, Target, Search, PenTool, 
-  Cpu, Share2, Megaphone, Inbox, Zap, CheckSquare 
+  Cpu, Share2, Megaphone, Inbox, Zap, CheckSquare, Library, Store 
 } from 'lucide-react';
 
 const { Sider } = Layout;
@@ -65,9 +65,17 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     if (feats.includes('aistudio') || feats.length === 0) workspaceChildren.push({ key: '/agency/ai-studio', icon: getIcon(Cpu), label: 'AI Studio' });
     if (feats.includes('social') || feats.length === 0) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
     if (feats.includes('ads') || feats.length === 0) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
-    if (feats.includes('crm') || feats.length === 0) workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
+    const hasAgencyFullAccess = ['agency_manager', 'agency_super_admin'].includes(role);
+    
+    if (feats.includes('crm') || feats.length === 0 || hasAgencyFullAccess) {
+      workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
+      workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
+      workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
+      workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
+      workspaceChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
+    }
     if (feats.includes('automation') || feats.length === 0) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
-    if (feats.includes('tasks') || feats.length === 0) workspaceChildren.push({ key: '/agency/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
 
     if (workspaceChildren.length > 0) {
       menuItems.push({

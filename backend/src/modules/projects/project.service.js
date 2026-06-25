@@ -725,32 +725,23 @@ const resolveProjectListQueryOptions = async (
   userId = null,
 ) => {
   const q = { ...reqQuery };
-  let clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
-
+  let clientIdFilter = null;
+  
   if (userRole === "client" && userId) {
-    const User = require("./shimUserModel");
-    const clientUser = await User.findById(userId).select("clientId");
-    if (clientUser && clientUser.clientId) {
-      clientCompanyIds = [clientUser.clientId];
-    } else {
-      clientCompanyIds = [];
-    }
+    clientIdFilter = userId;
   }
-
+  
   if (
     userRole &&
     ["salesperson", "sales_executive"].includes(userRole) &&
     userId
   ) {
-    const User = require("./shimUserModel");
+    const User = require("../auth/user.model");
     const user = await User.findById(userId).select("assignedClients");
     if (user && user.assignedClients && user.assignedClients.length > 0) {
-      clientCompanyIds = clientCompanyIds.filter((id) =>
-        user.assignedClients.some((ac) => ac.toString() === id.toString()),
-      );
-      if (clientCompanyIds.length === 0) {
-        return { ok: false };
-      }
+      clientIdFilter = { $in: user.assignedClients };
+    } else {
+      return { ok: false };
     }
   }
 
@@ -772,7 +763,6 @@ const resolveProjectListQueryOptions = async (
       return { ok: false };
     }
     const masterItems = await Service.find({
-      companyId: tenantCompanyId,
       name: rawItemName,
     }).select("_id");
 
@@ -790,8 +780,7 @@ const resolveProjectListQueryOptions = async (
     defaultSortField: "createdAt",
     defaultSortOrder: "desc",
     additionalFilters: {
-      companyId: tenantCompanyId,
-      clientId: { $in: clientCompanyIds },
+      ...(clientIdFilter && { clientId: clientIdFilter }),
       ...(q.status && { status: q.status }),
       ...(q.companyId && { clientId: q.companyId }),
       ...(masterItemIdFilter && { masterItemId: masterItemIdFilter }),
@@ -816,6 +805,7 @@ const getAllProjects = async (
     userRole,
     userId,
   );
+  console.log(resolved,"----------------")
   if (!resolved.ok) {
     return {
       data: [],

@@ -1,5 +1,46 @@
 const Invoice = require('./invoice.model');
 
+// Create Invoice
+exports.createInvoice = async (req, res, next) => {
+  try {
+    const data = { ...req.body };
+    data.createdBy = req.user._id;
+
+    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      data.brandId = req.user.brandId;
+      data.agencyId = req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+      data.agencyId = req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else if (req.user.role === 'commander_admin') {
+      data.adminId = req.user._id;
+    }
+
+    const invoice = await Invoice.create(data);
+    res.status(201).json({ success: true, data: invoice });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update Invoice
+exports.updateInvoice = async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false });
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    req.body.updatedBy = req.user._id;
+
+    const updatedInvoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    res.status(200).json({ success: true, data: updatedInvoice });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get All Invoices
 exports.getInvoices = async (req, res, next) => {
   try {
@@ -19,6 +60,12 @@ exports.getInvoices = async (req, res, next) => {
     if (req.query.invoiceStatus) {
       queryFilter.invoiceStatus = req.query.invoiceStatus;
     }
+    if (req.query.clientId) {
+      queryFilter.clientId = req.query.clientId;
+    }
+    if (req.query.companyId) {
+      queryFilter.clientId = req.query.companyId;
+    }
 
     if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
@@ -31,7 +78,14 @@ exports.getInvoices = async (req, res, next) => {
     const total = await Invoice.countDocuments(queryFilter);
     const invoices = await Invoice.find(queryFilter)
       .populate('clientId', 'name email')
-      .populate('proposalId', 'proposalNumber name')
+      .populate({
+        path: 'proposalId',
+        select: 'proposalNumber name masterItems',
+        populate: {
+          path: 'masterItems',
+          select: 'name price description status categories'
+        }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

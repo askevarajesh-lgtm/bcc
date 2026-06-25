@@ -14,7 +14,8 @@ router.use(tenantMiddleware);
 const createTaskValidation = [
   body("title").notEmpty().withMessage("Task title is required"),
   body("department").notEmpty().withMessage("Department is required"),
-  body("companyId").notEmpty().withMessage("Company ID is required"),
+  body("companyId").optional(),
+  body("taskType").optional().isIn(['client', 'own_brand']).withMessage("Invalid task type"),
   body("assignedTo").notEmpty().withMessage("Assigned to user is required"),
   body("dueDate").optional(),
 ];

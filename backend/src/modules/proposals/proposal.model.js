@@ -13,7 +13,7 @@ const proposalSchema = new mongoose.Schema({
   },
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ClientCompany',
+    ref: 'User',
     required: true
   },
   masterItems: [{
@@ -84,12 +84,11 @@ proposalSchema.index({ clientId: 1, adminId: 1, agencyId: 1, brandId: 1 });
 proposalSchema.index({ status: 1 });
 
 // Auto-generate proposal number
-proposalSchema.pre('validate', async function(next) {
+proposalSchema.pre('validate', async function() {
   if (!this.proposalNumber) {
     const count = await this.constructor.countDocuments();
     this.proposalNumber = `PROP-${Date.now()}-${count + 1}`;
   }
-  next();
 });
 
 module.exports = mongoose.model('Proposal', proposalSchema);

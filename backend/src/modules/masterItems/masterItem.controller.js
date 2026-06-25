@@ -47,10 +47,7 @@ exports.getMasterItems = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     if (req.query.search) {
-      queryFilter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { itemCode: { $regex: req.query.search, $options: 'i' } }
-      ];
+      queryFilter.name = { $regex: req.query.search, $options: 'i' };
     }
     if (req.query.status) {
       queryFilter.status = req.query.status;

@@ -6,10 +6,12 @@ const authMiddleware = require('../../middlewares/authMiddleware');
 router.use(authMiddleware);
 
 router.route('/')
+  .post(invoiceController.createInvoice)
   .get(invoiceController.getInvoices);
 
 router.route('/:id')
-  .get(invoiceController.getInvoice);
+  .get(invoiceController.getInvoice)
+  .put(invoiceController.updateInvoice);
 
 router.post('/:id/payment', invoiceController.updatePayment);
 router.get('/:id/pdf', invoiceController.generatePDF);

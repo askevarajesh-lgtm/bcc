@@ -62,4 +62,4 @@ const createMutationHook = (endpointFn) => {
   };
 };
 
-export const useGetCompaniesDropdownQuery = createQueryHook((params) => ({ url: '/brands/dropdown', params }));
+export const useGetCompaniesDropdownQuery = createQueryHook((params) => ({ url: '/brands', params }));

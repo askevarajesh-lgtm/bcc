@@ -91,7 +91,7 @@ const Benchmarks = () => {
   ];
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 64 }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ paddingBottom: 64 }}>
       
       {/* Header */}
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40, flexWrap: 'wrap', gap: 24 }}>

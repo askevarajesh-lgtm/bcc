@@ -115,6 +115,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
           { key: '/client/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },
           { key: '/client/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
           { key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142', 'default') },
+          { key: '/client/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
+          { key: '/client/workspace/invoices', icon: getIcon(DollarSign), label: 'Invoices' },
+          { key: '/client/workspace/projects', icon: getIcon(Library), label: 'Projects' },
           { key: '/client/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
           { key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
           { key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites' },
@@ -155,7 +158,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         label: collapsed ? 'SET' : 'SETTINGS',
         children: [
           { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
-          { key: '/client/settings/marketplace', icon: getIcon(Store), label: 'Master Item' },
+          { key: '/client/workspace/master-items', icon: getIcon(Store), label: 'Master Item' },
         ],
       }
     );

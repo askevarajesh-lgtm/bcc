@@ -13,7 +13,7 @@ const createQueryHook = (endpointFn) => {
       setIsLoading(true);
       try {
         const route = typeof endpointFn === 'function' ? endpointFn(params) : endpointFn;
-        const config = typeof route === 'object' ? route : { url: route };
+        const config = typeof route === 'object' ? route : { url: route, params };
         const response = await api.request({ method: 'GET', ...config });
         setData(response.data?.data || response.data || []);
       } catch (err) {
@@ -21,7 +21,7 @@ const createQueryHook = (endpointFn) => {
       } finally {
         setIsLoading(false);
       }
-    }, [params, skip]);
+    }, [JSON.stringify(params), skip]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

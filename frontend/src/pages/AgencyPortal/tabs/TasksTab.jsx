@@ -61,7 +61,7 @@ const TasksTab = () => {
   );
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>

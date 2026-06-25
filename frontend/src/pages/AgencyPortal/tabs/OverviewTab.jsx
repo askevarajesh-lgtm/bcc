@@ -75,7 +75,7 @@ const OverviewTab = () => {
   ];
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>

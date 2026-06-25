@@ -26,6 +26,8 @@ import {
   PictureOutlined,
   VideoCameraOutlined,
   TeamOutlined,
+  BankOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useGetDepartmentsDynamicQuery } from "../../api/accessControlApi";
@@ -56,6 +58,12 @@ const TasksPage = () => {
   const { user: user } = useAuth();
   const userRole = user?.role;
   const { hasPermission } = useActionPermissions("/tasks");
+
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency/workspace";
+    return "/workspace";
+  };
 
   // Check permissions for actions
   const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
@@ -105,6 +113,7 @@ const TasksPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastCount, setToastCount] = useState(0);
   const [toastTotal, setToastTotal] = useState(0);
+  const [isTaskTypeModalOpen, setIsTaskTypeModalOpen] = useState(false);
 
   const { data: todayStatsData, refetch: refetchTodayStats } =
     useGetTodayTaskStatsQuery(undefined, {
@@ -225,7 +234,19 @@ const TasksPage = () => {
   };
 
   const handleAddTask = (statusId) => {
-    navigate("/tasks/new", { state: { initialStatus: statusId } });
+    if (['agency_manager', 'agency_super_admin'].includes(userRole)) {
+      setIsTaskTypeModalOpen(true);
+    } else {
+      navigate(`${getBaseRoute()}/tasks/new`, { state: { initialStatus: statusId } });
+    }
+  };
+
+  const handleOpenCreateTask = () => {
+    if (['agency_manager', 'agency_super_admin'].includes(userRole)) {
+      setIsTaskTypeModalOpen(true);
+    } else {
+      navigate(`${getBaseRoute()}/tasks/new`);
+    }
   };
 
   const handleCloseDrawer = () => {
@@ -416,7 +437,7 @@ const TasksPage = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => navigate("/workspace/tasks/new")}
+              onClick={handleOpenCreateTask}
               size={isMobile ? "small" : "default"}
             >
               Create Task
@@ -721,6 +742,67 @@ const TasksPage = () => {
         total={toastTotal}
         onClose={() => setShowToast(false)}
       />
+
+      <Modal
+        title={
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <Title level={4} style={{ margin: 0 }}>Who is this task for?</Title>
+            <Text type="secondary">Select the target of this task</Text>
+          </div>
+        }
+        open={isTaskTypeModalOpen}
+        onCancel={() => setIsTaskTypeModalOpen(false)}
+        footer={null}
+        width={600}
+        centered
+      >
+        <Row gutter={[16, 16]} justify="center">
+          <Col xs={24} sm={12}>
+            <Card
+              hoverable
+              onClick={() => {
+                setIsTaskTypeModalOpen(false);
+                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "client" } });
+              }}
+              style={{
+                textAlign: "center",
+                borderRadius: 12,
+                border: "2px solid transparent",
+                background: isDark ? "#1f1f1f" : "#f8fafc",
+                transition: "all 0.3s ease",
+              }}
+              styles={{ body: { padding: "32px 24px" } }}
+              className="task-type-card"
+            >
+              <BankOutlined style={{ fontSize: 48, color: "#3b82f6", marginBottom: 16 }} />
+              <Title level={4} style={{ margin: 0 }}>Client</Title>
+              <Text type="secondary">Task for a specific client company</Text>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Card
+              hoverable
+              onClick={() => {
+                setIsTaskTypeModalOpen(false);
+                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own" } });
+              }}
+              style={{
+                textAlign: "center",
+                borderRadius: 12,
+                border: "2px solid transparent",
+                background: isDark ? "#1f1f1f" : "#f8fafc",
+                transition: "all 0.3s ease",
+              }}
+              styles={{ body: { padding: "32px 24px" } }}
+              className="task-type-card"
+            >
+              <CrownOutlined style={{ fontSize: 48, color: "#8b5cf6", marginBottom: 16 }} />
+              <Title level={4} style={{ margin: 0 }}>Own Brand</Title>
+              <Text type="secondary">Internal task for your own organization</Text>
+            </Card>
+          </Col>
+        </Row>
+      </Modal>
     </div>
   );
 };

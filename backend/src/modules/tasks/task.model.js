@@ -62,7 +62,12 @@ const taskSchema = new mongoose.Schema(
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ClientCompany",
-      required: true,
+      required: false,
+    },
+    taskType: {
+      type: String,
+      enum: ['client', 'own_brand'],
+      default: 'client',
     },
     tenantCompanyId: {
       type: mongoose.Schema.Types.ObjectId,

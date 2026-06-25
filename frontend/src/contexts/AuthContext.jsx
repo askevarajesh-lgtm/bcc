@@ -10,6 +10,11 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem('userRole') || null;
   });
 
+  const [user, setUser] = useState(() => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
+
   const [features, setFeatures] = useState(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -32,8 +37,10 @@ export const AuthProvider = ({ children }) => {
   }, [role]);
 
   const login = (user) => {
+    setUser(user);
     setRole(user.role);
     setFeatures(user.features || []);
+    localStorage.setItem('user', JSON.stringify(user));
     
     if (user.role === 'supreme_super_admin') {
       navigate('/superadmin/dashboard');
@@ -53,6 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    setUser(null);
     setRole(null);
     setFeatures([]);
     localStorage.removeItem('token');
@@ -61,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ role, features, setFeatures, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, role, features, setFeatures, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

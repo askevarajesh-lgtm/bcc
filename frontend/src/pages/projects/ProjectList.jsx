@@ -30,7 +30,7 @@ import Icon, {
   SyncOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   useGetProjectsQuery,
   useGetProjectListSummaryStatsQuery,
@@ -54,6 +54,14 @@ const { Title } = Typography;
 
 const ProjectList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency";
+    return "/workspace";
+  };
+
   const selectedClientId = null;
   const [filters, setFilters] = useState({
     status: undefined,
@@ -490,7 +498,7 @@ const ProjectList = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate("/workspace/projects/new")}
+            onClick={() => navigate(`${getBaseRoute()}/projects/new`)}
           >
             Create Project
           </Button>
@@ -697,7 +705,7 @@ const ProjectList = () => {
                 )
                   return;
                 if (canView) {
-                  navigate(`/projects/${record._id}/view`);
+                  navigate(`${getBaseRoute()}/projects/${record._id}`);
                 }
               },
               style: { cursor: canView ? "pointer" : "default" },
@@ -755,7 +763,7 @@ const ProjectList = () => {
                   <Button
                     type="link"
                     style={{ padding: 0, height: "auto" }}
-                    onClick={() => navigate(`/projects/${row._id}/view`)}
+                    onClick={() => navigate(`${getBaseRoute()}/projects/${row._id}`)}
                   >
                     {row.name}
                   </Button>

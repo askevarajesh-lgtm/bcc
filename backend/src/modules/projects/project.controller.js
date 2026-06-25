@@ -107,37 +107,71 @@ const getProjectById = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
+    const Task = require('../tasks/task.model');
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return sendValidationError(res, errors.array());
     }
 
-    console.log("[Project Controller] Creating project with data:", {
-      invoiceId: req.body.invoiceId,
-      invoiceItemId: req.body.invoiceItemId,
-      tenantCompanyId: req.companyId,
-      createdByUserId: req.user._id,
-      hasDescription: !!req.body.description,
-      status: req.body.status,
-    });
+    console.log("[Project Controller] Creating project with data:", req.body);
 
-    const project = await projectService.createProject(
-      req.body,
-      req.companyId,
-      req.user._id,
-    );
+    const invoice = await Invoice.findOne({ _id: req.body.invoiceId, isDeleted: false });
+    if (!invoice) return sendError(res, 404, "Invoice not found");
 
-    console.log("[Project Controller] Project created successfully:", {
-      projectId: project._id || project.id,
-      name: project.name,
-      clientId: project.clientId,
-      tenantCompanyId: project.tenantCompanyId,
-    });
+    const proposal = await Proposal.findOne({ _id: invoice.proposalId, isDeleted: false }).populate("masterItems");
+    if (!proposal) return sendError(res, 404, "Associated proposal not found");
 
+    const companyId = req.companyId || invoice.agencyId || invoice.adminId || req.user.brandId || req.user.agencyId;
+
+    const projectData = {
+      ...req.body,
+      clientId: invoice.clientId,
+      companyId: companyId,
+      createdBy: req.user._id,
+      proposalId: invoice.proposalId,
+      masterItemIds: proposal.masterItems.map(item => item._id),
+      billingType: "one-time",
+      invoiceType: "final",
+      invoiceDate: invoice.createdAt
+    };
+
+    const project = await Project.create(projectData);
+
+    const tasksToCreate = [];
+    const startDate = project.startDate || new Date();
+    const dueDate = project.endDate || new Date(new Date().setDate(startDate.getDate() + 7)); // Default 1 week
+
+    for (const item of proposal.masterItems) {
+      if (item.categories && Array.isArray(item.categories)) {
+        for (const category of item.categories) {
+          const count = category.count || 0;
+          for (let i = 0; i < count; i++) {
+            tasksToCreate.push({
+              title: `${item.name} - ${category.name} #${i + 1}`,
+              description: `Auto-generated task from project ${project.name}`,
+              department: "digital-marketing", // Default department
+              projectId: project._id,
+              status: "created",
+              tenantCompanyId: companyId,
+              clientId: project.clientId,
+              assignedBy: req.user._id,
+              startDate,
+              dueDate
+            });
+          }
+        }
+      }
+    }
+
+    if (tasksToCreate.length > 0) {
+      await Task.insertMany(tasksToCreate);
+    }
+
+    console.log("[Project Controller] Project created successfully:", project._id, "with", tasksToCreate.length, "tasks");
     return sendSuccess(res, "Project created successfully", { project });
   } catch (error) {
     console.error("[Project Controller] Error creating project:", error);
-    return sendError(res, 400, error.message);
+    return sendError(res, 500, error.message);
   }
 };
 

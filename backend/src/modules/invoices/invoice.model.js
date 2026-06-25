@@ -13,7 +13,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ClientCompany',
+    ref: 'User',
     required: true
   },
   amount: {
@@ -96,12 +96,11 @@ invoiceSchema.index({ proposalId: 1 });
 invoiceSchema.index({ paymentStatus: 1 });
 
 // Auto-generate invoice number
-invoiceSchema.pre('validate', async function(next) {
+invoiceSchema.pre('validate', async function() {
   if (!this.invoiceNumber) {
     const count = await this.constructor.countDocuments();
     this.invoiceNumber = `INV-${Date.now()}-${count + 1}`;
   }
-  next();
 });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

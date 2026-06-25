@@ -56,6 +56,12 @@ const ProjectForm = () => {
   const isEdit = !!id;
   const fromClient = location.state?.fromClient;
   const fromRenewal = location.state?.fromRenewal;
+
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency";
+    return "/workspace";
+  };
   const [form] = Form.useForm();
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
@@ -88,10 +94,10 @@ const ProjectForm = () => {
   const project = projectData?.data?.project;
   // Handle dropdown response (data?.data?.companies) or paginated response (data?.data?.data)
   const companies =
-    companiesData?.data?.companies || companiesData?.data?.data || [];
+    companiesData?.data?.companies || companiesData?.data?.data || companiesData?.data || [];
   // Handle paginated response (data?.data?.data) or legacy format (data?.data?.invoices)
-  const invoices =
-    invoicesData?.data?.data || invoicesData?.data?.invoices || [];
+  const invoices = Array.isArray(invoicesData) ? invoicesData : 
+    (invoicesData?.data?.data || invoicesData?.data?.invoices || invoicesData?.data || []);
 
   const selectedCompany = React.useMemo(() => {
     return companies.find(
@@ -103,10 +109,10 @@ const ProjectForm = () => {
   // Also exclude cancelled invoices
   const validInvoices = React.useMemo(() => {
     return invoices.filter((inv) => {
-      if (!inv || !inv.status) return false;
-      if (inv.status === "cancelled") return false;
-      return ["created", "draft", "sent", "paid", "overdue"].includes(
-        inv.status,
+      if (!inv || !inv.invoiceStatus) return false;
+      if (inv.invoiceStatus === "Cancelled") return false;
+      return ["Draft", "Sent", "Pending", "Paid"].includes(
+        inv.invoiceStatus,
       );
     });
   }, [invoices]);
@@ -120,7 +126,7 @@ const ProjectForm = () => {
         invoiceStatuses: invoices.map((inv) => ({
           id: inv._id,
           number: inv.invoiceNumber,
-          status: inv.status,
+          status: inv.invoiceStatus,
           clientId: inv.clientId?._id || inv.clientId,
         })),
         validInvoicesCount: validInvoices.length,
@@ -275,10 +281,10 @@ const ProjectForm = () => {
     setSelectedInvoiceItemIndex(itemIndex);
     if (
       invoiceDetails &&
-      invoiceDetails.items &&
-      invoiceDetails.items[itemIndex]
+      invoiceDetails.proposalId?.masterItems &&
+      invoiceDetails.proposalId?.masterItems[itemIndex]
     ) {
-      const item = invoiceDetails.items[itemIndex];
+      const item = invoiceDetails.proposalId.masterItems[itemIndex];
       const service = item.serviceId;
 
       // Auto-populate project name from service with package name if available
@@ -345,7 +351,8 @@ const ProjectForm = () => {
             };
           }),
         };
-        await updateProject({ id, ...projectData }).unwrap();
+        const result = await updateProject({ id, ...projectData });
+        if (result.error) throw result.error;
         message.success("Project updated successfully");
       } else {
         // For create, require invoice
@@ -408,7 +415,8 @@ const ProjectForm = () => {
         };
 
         try {
-          const result = await createProject(projectData).unwrap();
+          const result = await createProject(projectData);
+          if (result.error) throw result.error;
           console.log("Project created successfully:", result);
           message.success("Project created successfully from invoice");
           // Manually refetch projects list to ensure it's updated
@@ -418,7 +426,7 @@ const ProjectForm = () => {
             console.warn("Failed to refetch projects list:", refetchError);
             // Continue anyway - cache invalidation should handle it
           }
-          navigate("/projects");
+          navigate(`${getBaseRoute()}/projects`);
         } catch (createError) {
           console.error("Error creating project:", createError);
           throw createError; // Re-throw to be caught by outer catch
@@ -441,7 +449,7 @@ const ProjectForm = () => {
   // Get selected invoice item details for display
   const selectedInvoiceItem =
     invoiceDetails && selectedInvoiceItemIndex !== null
-      ? invoiceDetails.items[selectedInvoiceItemIndex]
+      ? invoiceDetails.proposalId?.masterItems[selectedInvoiceItemIndex]
       : null;
 
   console.log(
@@ -479,7 +487,7 @@ const ProjectForm = () => {
       >
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/projects")}
+          onClick={() => navigate(`${getBaseRoute()}/projects`)}
         >
           Back
         </Button>
@@ -500,7 +508,7 @@ const ProjectForm = () => {
         {!isEdit && (
           <Alert
             message="Invoice Required"
-            description="Please select a company and then choose an invoice."
+            description="Please select a client and then choose an invoice."
             type="info"
             showIcon
             style={{ marginBottom: 24 }}
@@ -517,12 +525,12 @@ const ProjectForm = () => {
           }}
         >
           <Form.Item
-            label="Company"
+            label="Client"
             name="companyId"
-            rules={[{ required: true, message: "Please select a company" }]}
+            rules={[{ required: true, message: "Please select a client" }]}
           >
             <Select
-              placeholder="Select company"
+              placeholder="Select client"
               loading={isLoadingCompanies}
               showSearch
               disabled={isEdit}
@@ -571,8 +579,8 @@ const ProjectForm = () => {
                     invoices.length === 0
                       ? `No invoices found for this client. Please create an invoice first.`
                       : `Found ${invoices.length} invoice(s) for this client, but none have a valid status for project creation. ` +
-                        `Only invoices with status 'created', 'draft', 'sent', 'paid', or 'overdue' can generate projects. ` +
-                        `Current invoice statuses: ${[...new Set(invoices.map((inv) => inv.status))].join(", ")}`
+                        `Only invoices with status 'Draft', 'Sent', 'Pending', or 'Paid' can generate projects. ` +
+                        `Current invoice statuses: ${[...new Set(invoices.map((inv) => inv.invoiceStatus))].join(", ")}`
                   }
                   type="warning"
                   showIcon
@@ -599,9 +607,23 @@ const ProjectForm = () => {
                     >
                       {validInvoices.map((invoice) => (
                         <Option key={invoice._id} value={invoice._id}>
-                          {invoice.invoiceNumber || invoice._id} -{" "}
-                          {invoice.type} ({invoice.status}) -{" "}
-                          {dayjs(invoice.createdAt).format("DD/MM/YYYY")}
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>
+                              {invoice.invoiceNumber || "No Number"} - ₹
+                              {invoice.grandTotal?.toLocaleString() || "0"}
+                            </span>
+                            <Tag
+                              color={
+                                invoice.invoiceStatus === "Paid"
+                                  ? "green"
+                                  : invoice.invoiceStatus === "Sent"
+                                    ? "blue"
+                                    : "default"
+                              }
+                            >
+                              {invoice.invoiceStatus?.toUpperCase()}
+                            </Tag>
+                          </div>
                         </Option>
                       ))}
                     </Select>
@@ -623,21 +645,11 @@ const ProjectForm = () => {
                           placeholder="Select invoice item"
                           onChange={handleInvoiceItemChange}
                         >
-                          {invoiceDetails.items.map((item, index) => {
-                            const serviceName =
-                              (typeof item.serviceId === "object" &&
-                                item.serviceId?.name) ||
-                              item.description ||
-                              "Unknown Service";
-                            const planName =
-                              typeof item.planId === "object" &&
-                              item.planId?.name
-                                ? ` - ${item.planId.name}`
-                                : "";
+                          {(invoiceDetails.proposalId?.masterItems || []).map((item, index) => {
+                            const itemName = item.name || item.description || "Unknown Item";
                             return (
-                              <Option key={index} value={index}>
-                                {serviceName}
-                                {planName} ({item.billingType})
+                              <Option key={item._id || index} value={index}>
+                                {itemName} - ₹{item.price?.toLocaleString()}
                               </Option>
                             );
                           })}
@@ -661,114 +673,29 @@ const ProjectForm = () => {
                                 label="Service/Master Item"
                                 span={2}
                               >
-                                {(typeof selectedInvoiceItem.serviceId ===
-                                  "object" &&
-                                  selectedInvoiceItem.serviceId?.name) ||
-                                  selectedInvoiceItem.description ||
-                                  "N/A"}
+                                {selectedInvoiceItem.name || selectedInvoiceItem.description || "N/A"}
                               </Descriptions.Item>
                               <Descriptions.Item label="Description" span={2}>
                                 {selectedInvoiceItem.description || "N/A"}
                               </Descriptions.Item>
-                              <Descriptions.Item label="Category">
-                                <Tag
-                                  color={
-                                    selectedInvoiceItem.category === "handling"
-                                      ? "blue"
-                                      : "green"
-                                  }
-                                >
-                                  {selectedInvoiceItem.category === "handling"
-                                    ? "Handling"
-                                    : "Campaign"}
-                                </Tag>
-                              </Descriptions.Item>
-                              <Descriptions.Item label="Billing Type">
-                                <Tag
-                                  color={
-                                    selectedInvoiceItem.billingType ===
-                                    "subscription"
-                                      ? "purple"
-                                      : "default"
-                                  }
-                                >
-                                  {selectedInvoiceItem.billingType ===
-                                  "subscription"
-                                    ? "Subscription"
-                                    : "One-Time"}
-                                </Tag>
-                              </Descriptions.Item>
-                              <Descriptions.Item label="Quantity">
-                                {selectedInvoiceItem.quantity || 1}
-                              </Descriptions.Item>
-                              <Descriptions.Item label="Rate (per unit)">
-                                ₹
-                                {(selectedInvoiceItem.rate || 0).toLocaleString(
-                                  "en-IN",
+                              <Descriptions.Item label="Categories" span={2}>
+                                {selectedInvoiceItem.categories && selectedInvoiceItem.categories.length > 0 ? (
+                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {selectedInvoiceItem.categories.map((cat, i) => (
+                                      <Tag key={i} color="blue">{cat.name} ({cat.count})</Tag>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  "No categories"
                                 )}
                               </Descriptions.Item>
-                              <Descriptions.Item label="Taxable Value" span={2}>
-                                ₹
-                                {(
-                                  selectedInvoiceItem.taxableValue ||
-                                  selectedInvoiceItem.rate *
-                                    (selectedInvoiceItem.quantity || 1) ||
-                                  0
-                                ).toLocaleString("en-IN")}
-                              </Descriptions.Item>
-                              {(selectedInvoiceItem.taxAmount > 0 ||
-                                selectedInvoiceItem.gst > 0) && (
-                                <>
-                                  <Descriptions.Item label="GST %">
-                                    {selectedInvoiceItem.gst || 0}%
-                                  </Descriptions.Item>
-                                  <Descriptions.Item label="Tax Amount">
-                                    ₹
-                                    {(
-                                      selectedInvoiceItem.taxAmount || 0
-                                    ).toLocaleString("en-IN")}
-                                  </Descriptions.Item>
-                                  {(selectedInvoiceItem.cgst > 0 ||
-                                    selectedInvoiceItem.sgst > 0 ||
-                                    selectedInvoiceItem.igst > 0) && (
-                                    <>
-                                      {selectedInvoiceItem.cgst > 0 && (
-                                        <Descriptions.Item label="CGST">
-                                          ₹
-                                          {selectedInvoiceItem.cgst.toLocaleString(
-                                            "en-IN",
-                                          )}
-                                        </Descriptions.Item>
-                                      )}
-                                      {selectedInvoiceItem.sgst > 0 && (
-                                        <Descriptions.Item label="SGST">
-                                          ₹
-                                          {selectedInvoiceItem.sgst.toLocaleString(
-                                            "en-IN",
-                                          )}
-                                        </Descriptions.Item>
-                                      )}
-                                      {selectedInvoiceItem.igst > 0 && (
-                                        <Descriptions.Item label="IGST">
-                                          ₹
-                                          {selectedInvoiceItem.igst.toLocaleString(
-                                            "en-IN",
-                                          )}
-                                        </Descriptions.Item>
-                                      )}
-                                    </>
-                                  )}
-                                </>
-                              )}
-                              <Descriptions.Item label="Total Amount" span={2}>
+                              <Descriptions.Item label="Price" span={2}>
                                 <strong
                                   style={{ fontSize: "16px", color: "#1890ff" }}
                                 >
                                   ₹
                                   {(
-                                    selectedInvoiceItem.totalAmount ||
-                                    selectedInvoiceItem.amount ||
-                                    0
+                                    selectedInvoiceItem.price || 0
                                   ).toLocaleString("en-IN")}
                                 </strong>
                               </Descriptions.Item>
@@ -794,19 +721,16 @@ const ProjectForm = () => {
                               <Descriptions.Item label="Invoice Status">
                                 <Tag
                                   color={
-                                    invoiceDetails.status === "paid"
+                                    invoiceDetails.invoiceStatus === "Paid"
                                       ? "green"
-                                      : invoiceDetails.status === "sent"
+                                      : invoiceDetails.invoiceStatus === "Sent"
                                         ? "blue"
-                                        : invoiceDetails.status === "overdue"
+                                        : invoiceDetails.invoiceStatus === "Overdue"
                                           ? "red"
                                           : "default"
                                   }
                                 >
-                                  {invoiceDetails.status
-                                    .charAt(0)
-                                    .toUpperCase() +
-                                    invoiceDetails.status.slice(1)}
+                                  {invoiceDetails.invoiceStatus?.toUpperCase()}
                                 </Tag>
                               </Descriptions.Item>
                               <Descriptions.Item label="Invoice Date">
@@ -1088,7 +1012,6 @@ const ProjectForm = () => {
             <DatePicker
               style={{ width: "100%" }}
               placeholder="Select start date"
-              disabled={!isEdit}
               disabledDate={(current) =>
                 current && current < dayjs().startOf("day")
               }
@@ -1126,7 +1049,6 @@ const ProjectForm = () => {
             <DatePicker
               style={{ width: "100%" }}
               placeholder="Select end date"
-              disabled={!isEdit}
               disabledDate={(current) => {
                 const startDate = form.getFieldValue("startDate");
                 if (!startDate)
@@ -1143,8 +1065,7 @@ const ProjectForm = () => {
           >
             <DatePicker
               style={{ width: "100%" }}
-              placeholder="Auto-calculated"
-              disabled
+              placeholder="Select renewal date"
             />
           </Form.Item>
 
@@ -1164,7 +1085,7 @@ const ProjectForm = () => {
                 {isEdit ? "Update Project" : "Create Project from Invoice"}
               </Button>
               <Button
-                onClick={() => navigate("/projects")}
+                onClick={() => navigate(`${getBaseRoute()}/projects`)}
                 block
                 className="responsive-button-secondary"
               >

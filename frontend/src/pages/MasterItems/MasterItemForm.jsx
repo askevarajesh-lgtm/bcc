@@ -1,38 +1,180 @@
 import React from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space } from 'antd';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Card, Form, Input, InputNumber, Select, Button, Space, DatePicker, Row, Col, message } from 'antd';
+import dayjs from 'dayjs';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+const { RangePicker } = DatePicker;
 
 const MasterItemForm = () => {
+  const [form] = Form.useForm();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
+  const location = useLocation();
+  const [loading, setLoading] = React.useState(false);
+
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency";
+    return "/workspace";
+  };
+
+  React.useEffect(() => {
+    if (isEditing) {
+      fetchMasterItem();
+    }
+  }, [id]);
+
+  const fetchMasterItem = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/master-items/${id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const item = data.data;
+        
+        // Transform backend categories to form fields
+        const categories = item.categories?.map(c => c.name) || [];
+        const categoryCounts = {};
+        item.categories?.forEach(c => {
+          categoryCounts[c.name] = c.count;
+        });
+
+        // Set form values
+        form.setFieldsValue({
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          status: item.status,
+          categories,
+          categoryCounts,
+          dateRange: item.startDate && item.endDate ? [dayjs(item.startDate), dayjs(item.endDate)] : null,
+        });
+      } else {
+        message.error("Failed to load item");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Error loading item");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onFinish = async (values) => {
+    try {
+      setLoading(true);
+      
+      // Transform form categories back to backend format
+      const formattedCategories = (values.categories || []).map(catName => ({
+        name: catName,
+        count: values.categoryCounts?.[catName] || 0
+      }));
+
+      const payload = {
+        name: values.name,
+        categories: formattedCategories,
+        description: values.description,
+        price: values.price,
+        status: values.status,
+        startDate: values.dateRange ? values.dateRange[0].toISOString() : null,
+        endDate: values.dateRange ? values.dateRange[1].toISOString() : null,
+      };
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(isEditing ? `/api/master-items/${id}` : "/api/master-items", {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        message.success(isEditing ? "Master Item updated" : "Master Item created");
+        navigate(`${getBaseRoute()}/master-items`);
+      } else {
+        message.error(data.message || data.error || "Failed to save Master Item");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Error saving Master Item");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedCategories = Form.useWatch('categories', form) || [];
 
   return (
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={3} style={{ margin: 0 }}>{isEditing ? "Edit Master Item" : "Create Master Item"}</Title>
-        <Button onClick={() => navigate('..')}>Back</Button>
+        <Button onClick={() => navigate(`${getBaseRoute()}/master-items`)}>Back</Button>
       </div>
-      <Card>
-        <Form layout="vertical">
-          <Form.Item label="Item Name" name="name" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Item Code" name="itemCode" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Category" name="category"><Input /></Form.Item>
-          <Form.Item label="Description" name="description"><TextArea rows={4} /></Form.Item>
-          <Form.Item label="Service Price" name="price" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} prefix="$" /></Form.Item>
-          <Form.Item label="Tax Percentage" name="taxPercentage"><InputNumber style={{ width: '100%' }} suffix="%" /></Form.Item>
-          <Form.Item label="Currency" name="currency"><Input defaultValue="USD" /></Form.Item>
-          <Form.Item label="Duration" name="duration"><Input placeholder="e.g., 1 Month" /></Form.Item>
-          <Form.Item label="Status" name="status"><Select defaultValue="active"><Option value="active">Active</Option><Option value="inactive">Inactive</Option></Select></Form.Item>
-          <Form.Item label="Notes" name="notes"><TextArea rows={2} /></Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit">Save</Button>
-            <Button onClick={() => navigate('..')}>Cancel</Button>
+      <Card loading={loading}>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item label="Item Name" name="name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          
+          <Form.Item label="Select Categories" name="categories">
+            <Select mode="tags" style={{ width: '100%' }} placeholder="Select or type categories (e.g. Poster, Banner)" />
+          </Form.Item>
+
+          {selectedCategories.length > 0 && (
+            <div style={{ marginBottom: 24, paddingLeft: 16 }}>
+              {selectedCategories.map((cat) => (
+                <Row key={cat} style={{ marginBottom: 16 }} align="middle" gutter={16}>
+                  <Col span={6}>
+                    <Text strong>{cat}</Text>
+                  </Col>
+                  <Col span={18}>
+                    <Form.Item 
+                      label={`Number of ${cat}`} 
+                      name={['categoryCounts', cat]} 
+                      initialValue={0}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber style={{ width: '100%' }} min={0} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              ))}
+            </div>
+          )}
+
+          <Form.Item label="Description" name="description">
+            <TextArea rows={4} />
+          </Form.Item>
+
+          <Form.Item label="Service Price" name="price" rules={[{ required: true }]}>
+            <InputNumber style={{ width: '100%' }} prefix="₹" />
+          </Form.Item>
+
+          <Form.Item label="Duration" name="dateRange">
+            <RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item label="Status" name="status" initialValue="active">
+            <Select>
+              <Option value="active">Active</Option>
+              <Option value="inactive">Inactive</Option>
+            </Select>
+          </Form.Item>
+
+          <Space style={{ marginTop: 24 }}>
+            <Button type="primary" htmlType="submit" loading={loading}>Save</Button>
+            <Button onClick={() => navigate(`${getBaseRoute()}/master-items`)} disabled={loading}>Cancel</Button>
           </Space>
         </Form>
       </Card>

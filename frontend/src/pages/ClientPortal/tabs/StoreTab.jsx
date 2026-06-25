@@ -63,7 +63,7 @@ const StoreTab = () => {
   ];
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Services & Upgrades</Title>

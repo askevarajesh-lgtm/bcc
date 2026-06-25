@@ -56,7 +56,7 @@ exports.getProposals = async (req, res, next) => {
     const total = await Proposal.countDocuments(queryFilter);
     const proposals = await Proposal.find(queryFilter)
       .populate('clientId', 'name email')
-      .populate('masterItems', 'name itemCode price')
+      .populate('masterItems', 'name itemCode price categories')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
