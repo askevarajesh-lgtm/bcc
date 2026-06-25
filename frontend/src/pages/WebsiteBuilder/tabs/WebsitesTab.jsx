@@ -739,7 +739,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
             name: resData.data.name,
             description: resData.data.description,
             lastUpdated: "Just now",
-            pages: resData.data.pages || [],
+            pages: resData.data.pages ? resData.data.pages.length : 1,
             isNew: true
           };
           setWebsites([newWebsite, ...websites]);
@@ -785,7 +785,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       title: "PAGES",
       dataIndex: "pages",
       key: "pages",
-      render: (t) => <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{t}</span>
+      render: (t) => <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{Array.isArray(t) ? t.length : t}</span>
     },
     {
       title: "ACTIONS",
