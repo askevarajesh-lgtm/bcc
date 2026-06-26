@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   Descriptions,
@@ -44,7 +44,7 @@ import {
 import MasterItemDetailsCard from "../../components/common/MasterItemDetailsCard";
 import TaskDetailDrawer from "../tasks/TaskDetailDrawer";
 import { useTheme } from "../../contexts/ThemeContext";
-import { LayoutDashboard, GitMerge, CheckSquare, MessageSquare, CheckCircle, DollarSign, Clock } from "lucide-react";
+import { LayoutDashboard, GitMerge, CheckSquare, MessageSquare, CheckCircle, DollarSign, Clock, FileText } from "lucide-react";
 import {
   useGetProjectByIdQuery,
   useSubmitForClientReviewMutation,
@@ -83,6 +83,14 @@ const { TabPane } = Tabs;
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getBaseRoute = () => {
+    if (location.pathname.startsWith("/client")) return "/client/workspace";
+    if (location.pathname.startsWith("/agency")) return "/agency";
+    return "/workspace";
+  };
+
   const { token } = theme.useToken();
   const { isDark } = useTheme();
   const [form] = Form.useForm();
@@ -268,7 +276,7 @@ const ProjectDetail = () => {
         fromRenewalProject: {
           clientId: clientId.toString(),
           projectName: project.name,
-          masterItemId: project.masterItemId?._id || project.masterItemId,
+          masterItemId: project.masterItemId?._id || project.masterItemId || project.masterItemIds?.[0]?._id || project.masterItemIds?.[0],
         },
       },
     });
@@ -474,7 +482,7 @@ const ProjectDetail = () => {
       <Card>
         <div style={{ textAlign: "center", padding: "40px" }}>
           <p>Project not found</p>
-          <Button onClick={() => navigate("/projects")}>
+          <Button onClick={() => navigate(`${getBaseRoute()}/projects`)}>
             Back to Projects
           </Button>
         </div>
@@ -512,10 +520,11 @@ const ProjectDetail = () => {
 
   // Get milestone workflow type based on master item
   const getMilestoneWorkflowType = () => {
-    if (!project?.masterItemId) return null;
+    const mainMasterItem = project?.masterItemId || (project?.masterItemIds && project.masterItemIds[0]);
+    if (!mainMasterItem) return null;
     const masterItemName =
-      typeof project.masterItemId === "object"
-        ? project.masterItemId.name
+      typeof mainMasterItem === "object"
+        ? mainMasterItem.name
         : null;
     if (!masterItemName) return null;
 
@@ -538,6 +547,19 @@ const ProjectDetail = () => {
 
   // Get milestone checklist based on workflow type
   const getMilestoneChecklist = (workflowType) => {
+    if (!workflowType) return [];
+
+    let type = workflowType.toLowerCase().trim();
+    if (type === "website_team" || type === "website_designing" || type === "website-designing") {
+      type = "website_designing";
+    } else if (type === "tech_team" || type === "web_application_development" || type === "web-application-development") {
+      type = "web_application_development";
+    } else if (type === "digital-marketing" || type === "digital_marketing") {
+      type = "digital_marketing";
+    } else if (type === "seo") {
+      type = "seo";
+    }
+
     const checklists = {
       website_designing: [
         "Client Onboarded",
@@ -584,7 +606,7 @@ const ProjectDetail = () => {
       ],
       digital_marketing: ["Poster Creation", "Video Creation", "Posting"],
     };
-    return checklists[workflowType] || [];
+    return checklists[type] || [];
   };
 
   // Calculate milestone progress
@@ -768,7 +790,7 @@ const ProjectDetail = () => {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/projects")}
+            onClick={() => navigate(`${getBaseRoute()}/projects`)}
           >
             Back
           </Button>
@@ -998,7 +1020,7 @@ const ProjectDetail = () => {
                 style={{ fontSize: "14px", marginBottom: 16 }}
               >
                 <Descriptions.Item label="Master Item (Service)">
-                  {project.masterItemId?.name || "N/A"}
+                  {project.masterItemId?.name || project.masterItemIds?.[0]?.name || "N/A"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Billing Type">
                   <Tag
@@ -1016,9 +1038,9 @@ const ProjectDetail = () => {
                 </Descriptions.Item>
               </Descriptions>
 
-              {project.masterItemId && (
+              {(project.masterItemId || (project.masterItemIds && project.masterItemIds[0])) && (
                 <MasterItemDetailsCard
-                  service={project.masterItemId}
+                  service={project.masterItemId || project.masterItemIds[0]}
                   packageName={project.packageName}
                   isDark={isDark}
                   numberOfPosters={project.numberOfPosters}

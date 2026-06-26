@@ -17,6 +17,23 @@ exports.getDepartments = async (req, res, next) => {
   }
 };
 
+exports.getDepartmentsDynamic = async (req, res, next) => {
+  try {
+    let queryFilter = {};
+    if (req.user.role === 'commander_admin') {
+      queryFilter.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
+      queryFilter.brandId = req.user.brandId;
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
+      queryFilter.agencyId = req.user.agencyId;
+    }
+    const departments = await Department.find(queryFilter).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: { departments } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.createDepartment = async (req, res, next) => {
   try {
     const data = { ...req.body };

@@ -16,6 +16,7 @@ const authMiddleware = (req, res, next) => {
       user = decoded;
       req.user = decoded;
       workspaceId = workspaceId || decoded.workspaceId;
+      req.companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId;
     } catch (error) {
       return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
     }
@@ -42,6 +43,10 @@ const authMiddleware = (req, res, next) => {
       email: 'sandbox@m1growth.com',
       workspaceId: req.workspaceId
     };
+  }
+
+  if (!req.companyId && req.user) {
+    req.companyId = req.user.agencyId || req.user.brandId || req.user.workspaceId;
   }
 
   next();

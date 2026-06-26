@@ -206,13 +206,8 @@ const TaskForm = () => {
     return departments.find((d) => d.slug === "digital-marketing")?._id;
   }, [departments]);
 
-  // Get companies - Filter for SEO users or when SEO department is selected
-  const companyFilter =
-    isSEOUser ||
-    selectedDepartment === "seo" ||
-    (seoDeptId && selectedDepartment === seoDeptId)
-      ? { department: "seo", includeInternal: true }
-      : {};
+  // Get companies - Fetch all available clients
+  const companyFilter = {};
   const { data: companiesData, isLoading: isLoadingCompanies } =
     useGetCompaniesDropdownQuery(companyFilter);
 
@@ -306,56 +301,8 @@ const TaskForm = () => {
   // For SEO members creating/editing tasks: show only SEO users in Assigned To (so they can assign to other SEOs or interns)
   // Filter users by department for "Assigned To" field
   const usersForAssignees = useMemo(() => {
-    let filtered = users || [];
-
-    // 1. For SEO members, restrict to SEO role (existing logic)
-    if (userRole === "seo") {
-      filtered = filtered.filter(
-        (u) => String(u.role || "").toLowerCase() === "seo",
-      );
-    }
-
-    // 2. Filter by selected department (New requirement)
-    // selectedDepartment is an ObjectId; users store dept as departmentId (ObjectId) or team (slug)
-    if (selectedDepartment) {
-      const selectedDeptObj = departments.find(
-        (d) => d._id === selectedDepartment,
-      );
-      const selectedDeptSlug = selectedDeptObj?.slug;
-      const selectedDeptName = selectedDeptObj?.name?.toLowerCase();
-
-      filtered = filtered.filter((u) => {
-        const userDeptId = u.departmentId?._id || u.departmentId;
-        // Match by departmentId (ObjectId)
-        if (userDeptId && String(userDeptId) === String(selectedDepartment))
-          return true;
-        // Match by team slug
-        if (selectedDeptSlug && u.team === selectedDeptSlug) return true;
-        // Match by team name (case-insensitive fallback)
-        if (selectedDeptName && u.team?.toLowerCase() === selectedDeptName)
-          return true;
-        return false;
-      });
-    }
-
-    return filtered;
-  }, [users, userRole, selectedDepartment, departments]);
-
-  // Clear Assigned To if it's no longer in the filtered list when department changes
-  useEffect(() => {
-    // Only clear in create mode to avoid confusing behavior in edit mode
-    if (!isEdit && selectedDepartment) {
-      const currentAssignedTo = form.getFieldValue("assignedTo");
-      if (currentAssignedTo) {
-        const isStillValid = usersForAssignees.some(
-          (u) => u._id === currentAssignedTo,
-        );
-        if (!isStillValid) {
-          form.setFieldsValue({ assignedTo: undefined });
-        }
-      }
-    }
-  }, [selectedDepartment, usersForAssignees, form, isEdit]);
+    return users || [];
+  }, [users]);
 
   const absentEmailSet = useMemo(() => {
     return new Set(
@@ -901,7 +848,6 @@ const TaskForm = () => {
                 <Select
                   placeholder="Select department"
                   loading={isLoadingDepartments}
-                  disabled={isSEOUser && !isEdit}
                   showSearch
                   optionFilterProp="children"
                   filterOption={(input, option) => {
@@ -949,9 +895,7 @@ const TaskForm = () => {
                 rules={[{ required: true, message: "Please select a user" }]}
               >
                 <Select
-                  placeholder={
-                    isSEOUser ? "Select SEO team member" : "Select user"
-                  }
+                  placeholder="Select user"
                   loading={isLoadingUsers}
                   showSearch
                   notFoundContent={
@@ -959,9 +903,7 @@ const TaskForm = () => {
                       ? "Loading..."
                       : isUsersError
                         ? "Error loading users"
-                        : isSEOUser
-                          ? "No SEO users found"
-                          : "No users found"
+                        : "No users found"
                   }
                   filterOption={(input, option) => {
                     const label = Array.isArray(option?.children)
@@ -1008,21 +950,21 @@ const TaskForm = () => {
               <>
                 <Col xs={24} md={8}>
                   <Form.Item
-                    label="Company"
+                    label="Client"
                     name="companyId"
-                rules={[{ required: true, message: "Please select a company" }]}
-                tooltip={
-                  selectedProject
-                    ? "Client is pre-filled from selected project. You can change it if needed."
-                    : "Select a company. Or select a project first to auto-fill the client."
-                }
-              >
-                <Select
-                  placeholder={
-                    selectedProject
-                      ? "Client (pre-filled from project)"
-                      : "Select company"
-                  }
+                    rules={[{ required: true, message: "Please select a client" }]}
+                    tooltip={
+                      selectedProject
+                        ? "Client is pre-filled from selected project. You can change it if needed."
+                        : "Select a client. Or select a project first to auto-fill the client."
+                    }
+                  >
+                    <Select
+                      placeholder={
+                        selectedProject
+                          ? "Client (pre-filled from project)"
+                          : "Select client"
+                      }
                   loading={isLoadingCompanies}
                   showSearch
                   allowClear
@@ -1091,7 +1033,7 @@ const TaskForm = () => {
                       ? "Loading projects..."
                       : (selectedCompanyId ? projects : allProjects).length ===
                           0
-                        ? "No active projects available for the selected company."
+                        ? "No active projects available for the selected client."
                         : "No projects found"
                   }
                 >
@@ -1128,12 +1070,23 @@ const TaskForm = () => {
             >
               {({ getFieldValue }) => {
                 const projectId = getFieldValue("projectId");
-                const selectedCategories = ensureNamedCategories(
+                const rawCategories =
                   selectedProjectWithCounts?.selectedCategories ||
-                    selectedProjectWithCounts?.masterItemId?.selectedCategories ||
-                    [],
-                  selectedProjectWithCounts?.masterItemId,
-                );
+                  selectedProjectWithCounts?.masterItemId?.selectedCategories ||
+                  selectedProjectWithCounts?.masterItemIds?.[0]?.selectedCategories ||
+                  [];
+                const selectedCategories = rawCategories.map((cat, idx) => {
+                  if (typeof cat === "string") {
+                    return { name: cat, value: cat, remaining: 1 };
+                  }
+                  const name = cat.name || cat.categoryName || cat.label || `Item ${idx + 1}`;
+                  return {
+                    ...cat,
+                    name,
+                    value: cat.value || cat._id || name,
+                    remaining: cat.remaining !== undefined ? cat.remaining : (cat.quantity || 0),
+                  };
+                });
                 const hasDynamicCategories = selectedCategories.length > 0;
                 const hasLegacyDeliverables =
                   (selectedProjectWithCounts?.numberOfPosters || 0) > 0 ||
@@ -1144,36 +1097,28 @@ const TaskForm = () => {
                   return (
                     <Col xs={24} md={8}>
                       <Form.Item
-                        label="Services"
+                        label="Project Category"
                         name="serviceType"
                         rules={[
                           {
                             required: true,
-                            message: "Please select a service",
+                            message: "Please select a category",
                           },
                         ]}
-                        tooltip="Available services based on project deliverables."
+                        tooltip="Available categories based on project deliverables."
                         >
                         <Select
-                          placeholder="Select service"
+                          placeholder="Select category"
                           showSearch
                           optionFilterProp="children"
                         >
                           {(() => {
                             const dynamicOptions = selectedCategories.map(
-                              (cat, idx) => ({
-                                label:
-                                  cat.name ||
-                                  cat.categoryName ||
-                                  cat.type ||
-                                  `Item ${idx + 1}`,
-                                value:
-                                  cat.name ||
-                                  cat.categoryName ||
-                                  cat.type ||
-                                  `Item ${idx + 1}`,
-                                remaining: Number(cat.remaining ?? cat.quantity ?? 0),
-                                id: cat._id || `cat-${idx}`,
+                              (opt, idx) => ({
+                                label: opt.name,
+                                value: opt.value,
+                                remaining: Number(opt.remaining ?? opt.quantity ?? 0),
+                                id: opt._id || `cat-${idx}`,
                               }),
                             );
 
@@ -1182,7 +1127,7 @@ const TaskForm = () => {
                                 <Option
                                   key={opt.id || `opt-${idx}`}
                                   value={opt.value}
-                                  disabled={opt.remaining <= 0}
+                                  disabled={opt.remaining <= 0 && opt.value !== task?.serviceType}
                                 >
                                   {opt.label} {`(Remaining: ${opt.remaining})`}
                                 </Option>

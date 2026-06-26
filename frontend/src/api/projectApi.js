@@ -44,20 +44,37 @@ const createMutationHook = (endpointFn) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const mutate = async (params) => {
+    const mutate = useCallback((params) => {
       setIsLoading(true);
       setError(null);
-      try {
-        const config = endpointFn(params);
-        const response = await api.request(config);
-        return { data: response.data };
-      } catch (err) {
-        setError(err);
-        return { error: err };
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const promise = (async () => {
+        try {
+          const config = endpointFn(params);
+          const response = await api.request(config);
+          return { data: response.data };
+        } catch (err) {
+          const formattedError = {
+            status: err.response?.status || 500,
+            data: err.response?.data || { message: err.message }
+          };
+          setError(formattedError);
+          return { error: formattedError };
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+
+      promise.unwrap = async () => {
+        const result = await promise;
+        if (result.error) {
+          throw result.error;
+        }
+        return result.data;
+      };
+
+      return promise;
+    }, []);
+
     return [mutate, { isLoading, error }];
   };
 };
@@ -68,23 +85,40 @@ const createLazyQueryHook = (endpointFn) => {
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
 
-    const trigger = async (params) => {
+    const trigger = useCallback((params) => {
       setIsLoading(true);
-      try {
-        const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
-        const url = typeof config === 'string' ? config : config.url;
-        const queryParams = typeof config === 'object' && config.params ? config.params : {};
-        
-        const response = await api.get(url, { params: queryParams });
-        setData(response.data);
-        return { data: response.data };
-      } catch (err) {
-        setError(err);
-        return { error: err };
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const promise = (async () => {
+        try {
+          const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
+          const url = typeof config === 'string' ? config : config.url;
+          const queryParams = typeof config === 'object' && config.params ? config.params : {};
+          
+          const response = await api.get(url, { params: queryParams });
+          setData(response.data);
+          return { data: response.data };
+        } catch (err) {
+          const formattedError = {
+            status: err.response?.status || 500,
+            data: err.response?.data || { message: err.message }
+          };
+          setError(formattedError);
+          return { error: formattedError };
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+
+      promise.unwrap = async () => {
+        const result = await promise;
+        if (result.error) {
+          throw result.error;
+        }
+        return result.data;
+      };
+
+      return promise;
+    }, []);
+
     return [trigger, { data, isLoading, error }];
   };
 };

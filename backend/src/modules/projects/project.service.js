@@ -32,8 +32,14 @@ const parseHandlingDurationMonths = (duration) => {
 
 // Helper function to get client company IDs for a tenant
 const getClientCompanyIds = async (tenantCompanyId) => {
-  const clientCompanies = await ClientCompany.find({
-    companyId: tenantCompanyId,
+  const User = require("../auth/user.model");
+  const clientCompanies = await User.find({
+    $or: [
+      { agencyId: tenantCompanyId },
+      { adminId: tenantCompanyId },
+      { brandId: tenantCompanyId },
+      { _id: tenantCompanyId }
+    ]
   }).select("_id");
   return clientCompanies.map((cc) => cc._id);
 };
@@ -814,7 +820,7 @@ const getAllProjects = async (
   }
 
   // Execute paginated query with populate
-  return await executePaginatedQuery(Project, resolved.queryOptions, [
+  const result = await executePaginatedQuery(Project, resolved.queryOptions, [
     { path: "clientId", select: "name email phone address status" },
     { path: "companyId", select: "name email phone address status" },
     { path: "createdBy", select: "name email" },
@@ -824,7 +830,23 @@ const getAllProjects = async (
       select:
         "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories isActive",
     },
+    {
+      path: "masterItemIds",
+      select: "name itemCode category price duration description"
+    }
   ]);
+
+  if (result && result.data) {
+    result.data = result.data.map(project => {
+      const projObj = project.toObject ? project.toObject() : project;
+      if (!projObj.masterItemId && projObj.masterItemIds && projObj.masterItemIds.length > 0) {
+        projObj.masterItemId = projObj.masterItemIds[0];
+      }
+      return projObj;
+    });
+  }
+
+  return result;
 };
 
 const getProjectReport = async (
@@ -1086,6 +1108,7 @@ const getUnassignedDeliverablesSummary = async (
 // Dropdown query for projects
 const getProjectsDropdown = async (tenantCompanyId, reqQuery = {}) => {
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(reqQuery.userRole);
 
   // Apply role-based data filtering for dropdown
   let clientIdFilter;
@@ -1100,20 +1123,28 @@ const getProjectsDropdown = async (tenantCompanyId, reqQuery = {}) => {
   } else if (reqQuery.companyId) {
     // Filter by specific client company (Admin/Sales view)
     const requestedClientId = reqQuery.companyId;
-    // Verify the requested client belongs to this tenant
-    if (
-      clientCompanyIds.some(
-        (id) => id.toString() === requestedClientId.toString(),
-      )
-    ) {
+    if (isGlobalAdmin) {
       clientIdFilter = requestedClientId;
     } else {
-      // Client doesn't belong to tenant, return empty
-      return [];
+      // Verify the requested client belongs to this tenant
+      if (
+        clientCompanyIds.some(
+          (id) => id.toString() === requestedClientId.toString(),
+        )
+      ) {
+        clientIdFilter = requestedClientId;
+      } else {
+        // Client doesn't belong to tenant, return empty
+        return [];
+      }
     }
   } else {
     // Show all clients' projects
-    clientIdFilter = { $in: clientCompanyIds };
+    if (isGlobalAdmin) {
+      clientIdFilter = undefined; // Do not filter by client ID (allows all)
+    } else {
+      clientIdFilter = { $in: clientCompanyIds };
+    }
   }
 
   // website_coordinator only sees website-designing and web-application-development projects
@@ -1128,8 +1159,8 @@ const getProjectsDropdown = async (tenantCompanyId, reqQuery = {}) => {
     defaultSortField: "name",
     defaultSortOrder: "asc",
     additionalFilters: {
-      companyId: tenantCompanyId,
-      clientId: clientIdFilter,
+      ...(!isGlobalAdmin && { companyId: tenantCompanyId }),
+      ...(clientIdFilter && { clientId: clientIdFilter }),
       isActive: true, // Only show active projects in dropdown
       // Default to excluding inactive/closed if status is not provided
       ...(reqQuery.status
@@ -1180,7 +1211,6 @@ const getProjectById = async (
       "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories isActive",
     )
     .populate("masterItemIds", "name itemCode category price duration description")
-    .populate("packageName")
     .populate("planId", "name")
     .populate("milestones.completedBy", "name email");
 
@@ -1210,8 +1240,13 @@ const getProjectById = async (
 
   await reconcileProjectTaskCounts(project, tenantCompanyId, tasks);
 
+  const projectObj = project.toObject();
+  if (!projectObj.masterItemId && projectObj.masterItemIds && projectObj.masterItemIds.length > 0) {
+    projectObj.masterItemId = projectObj.masterItemIds[0];
+  }
+
   return {
-    ...project.toObject(),
+    ...projectObj,
     tasks,
   };
 };

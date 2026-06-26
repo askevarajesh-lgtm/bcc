@@ -5,6 +5,8 @@ const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.use(authMiddleware);
 
+router.get('/dynamic', departmentController.getDepartmentsDynamic);
+
 router.route('/')
   .get(departmentController.getDepartments)
   .post(departmentController.createDepartment);

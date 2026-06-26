@@ -22,7 +22,13 @@ export function useActionPermissions(path) {
     return true;
   }, [userRole, user]);
 
-  return { hasPermission };
+  return { 
+    hasPermission,
+    canAdd: hasPermission('create'),
+    canEdit: hasPermission('edit'),
+    canDelete: hasPermission('delete'),
+    canView: hasPermission('view')
+  };
 }
 
 export default useActionPermissions;

@@ -10,7 +10,7 @@ const CompanyNotificationSettings = require("./companyNotificationSettings.model
 const ClientCompany = require("../auth/user.model");
 const Company = require("../auth/user.model");
 const User = require("../auth/user.model");
-const eventConfigService = { triggerEvent: async () => {}, getEventConfig: async () => {} };
+const eventConfigService = { triggerEvent: async () => {}, getEventConfig: async () => {}, getEventConfigByType: async () => null };
 const Integration = require("../integrations/integration.model");
 const logger = require('./dummyLogger');
 const config = require('./dummyConfig');
@@ -182,7 +182,12 @@ const createAndEmitNotification = async (notificationData) => {
 // Helper function to get client company IDs for a tenant
 const getClientCompanyIds = async (tenantCompanyId) => {
   const clientCompanies = await ClientCompany.find({
-    companyId: tenantCompanyId,
+    $or: [
+      { agencyId: tenantCompanyId },
+      { adminId: tenantCompanyId },
+      { brandId: tenantCompanyId },
+      { _id: tenantCompanyId }
+    ]
   }).select("_id");
   return clientCompanies.map((cc) => cc._id);
 };
@@ -403,13 +408,15 @@ const getAllTasks = async (
 ) => {
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
 
   // Role-based filtering: Only super_admin and admin can see all tasks.
   // All other roles (including coordinators, managers) only see tasks
   // where they are assignedTo or listed in the watchers array.
-  const additionalFilters = {
-    tenantCompanyId,
-  };
+  const additionalFilters = {};
+  if (!isGlobalAdmin) {
+    additionalFilters.tenantCompanyId = tenantCompanyId;
+  }
   const userObjId =
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
@@ -657,11 +664,13 @@ const getTasksDropdown = async (
   userId = null,
 ) => {
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
 
-  const additionalFilters = {
-    tenantCompanyId,
-    companyId: { $in: clientCompanyIds },
-  };
+  const additionalFilters = {};
+  if (!isGlobalAdmin) {
+    additionalFilters.tenantCompanyId = tenantCompanyId;
+    additionalFilters.companyId = { $in: clientCompanyIds };
+  }
   const userObjId =
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
@@ -711,14 +720,23 @@ const getTaskById = async (
   userRole = null,
   userId = null,
 ) => {
+  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
+
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
 
-  const task = await Task.findOne({
-    _id: taskId,
-    tenantCompanyId,
-    companyId: { $in: clientCompanyIds },
-  })
+  let taskQuery;
+  if (isGlobalAdmin) {
+    taskQuery = Task.findById(taskId);
+  } else {
+    taskQuery = Task.findOne({
+      _id: taskId,
+      tenantCompanyId,
+      companyId: { $in: clientCompanyIds },
+    });
+  }
+
+  const task = await taskQuery
     .populate("companyId", "name email phone address")
     .populate("projectId", "name status description")
     .populate("assignedTo", "name email role avatar")
@@ -805,11 +823,25 @@ const updateProjectCompletedCount = async (projectId, taskServiceType, increment
 };
 
 const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
+  const User = require("../auth/user.model");
+  const creator = await User.findById(createdByUserId).select("role");
+  const isGlobalAdmin = creator && ["supreme_super_admin", "commander_admin"].includes(creator.role);
+
   // Verify that the client company belongs to the tenant company
-  const clientCompany = await ClientCompany.findOne({
-    _id: taskData.companyId,
-    companyId: tenantCompanyId,
-  });
+  let clientCompany;
+  if (isGlobalAdmin) {
+    clientCompany = await ClientCompany.findById(taskData.companyId);
+  } else {
+    clientCompany = await ClientCompany.findOne({
+      _id: taskData.companyId,
+      $or: [
+        { agencyId: tenantCompanyId },
+        { adminId: tenantCompanyId },
+        { brandId: tenantCompanyId },
+        { _id: tenantCompanyId }
+      ]
+    });
+  }
 
   if (!clientCompany) {
     throw new Error(
@@ -1251,7 +1283,7 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
     }
   }
 
-  return await getTaskById(task._id, tenantCompanyId);
+  return await getTaskById(task._id, tenantCompanyId, isGlobalAdmin ? creator.role : null);
 };
 
 /**
@@ -1347,14 +1379,23 @@ const updateTask = async (
   tenantCompanyId,
   updatedByUserId = null,
 ) => {
+  const User = require("../auth/user.model");
+  const updator = updatedByUserId ? await User.findById(updatedByUserId).select("role") : null;
+  const isGlobalAdmin = updator && ["supreme_super_admin", "commander_admin"].includes(updator.role);
+
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
 
-  const task = await Task.findOne({
-    _id: taskId,
-    tenantCompanyId,
-    companyId: { $in: clientCompanyIds },
-  });
+  let task;
+  if (isGlobalAdmin) {
+    task = await Task.findById(taskId);
+  } else {
+    task = await Task.findOne({
+      _id: taskId,
+      tenantCompanyId,
+      companyId: { $in: clientCompanyIds },
+    });
+  }
 
   if (!task) {
     throw new Error("Task not found");
@@ -2084,7 +2125,7 @@ const updateTask = async (
     }
   }
 
-  return await getTaskById(task._id, tenantCompanyId);
+  return await getTaskById(task._id, tenantCompanyId, isGlobalAdmin ? updator.role : null);
 };
 
 // ── [NEW: HOLD TASK] ──────────────────────────────────────────────────────────

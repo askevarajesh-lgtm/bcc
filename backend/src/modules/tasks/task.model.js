@@ -280,6 +280,9 @@ const taskSchema = new mongoose.Schema(
     taskType: {
       type: String,
       enum: [
+        "client",
+        "own",
+        "own_brand",
         "content_upload",
         "creative_design",
         "internal_review",
@@ -454,7 +457,9 @@ taskSchema.pre("save", function (next) {
     this.serviceType = undefined;
   }
 
-  next();
+  if (typeof next === 'function') {
+    next();
+  }
 });
 
 module.exports = mongoose.model("Task", taskSchema);

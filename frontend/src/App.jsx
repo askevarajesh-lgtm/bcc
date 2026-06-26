@@ -201,6 +201,7 @@ const AppRoutes = () => {
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
+          <Route path="workspace/projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/master-items" element={<MasterItemsList />} />
           <Route path="workspace/master-items/new" element={<MasterItemForm />} />
           <Route path="workspace/master-items/:id" element={<MasterItemForm />} />
@@ -278,6 +279,7 @@ const AppRoutes = () => {
           <Route path="projects" element={<ProjectList />} />
           <Route path="projects/new" element={<ProjectForm />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
+          <Route path="projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
         </Route>
@@ -317,6 +319,7 @@ const AppRoutes = () => {
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
+          <Route path="workspace/projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/master-items" element={<MasterItemsList />} />
           <Route path="workspace/master-items/new" element={<MasterItemForm />} />
           <Route path="workspace/master-items/:id" element={<MasterItemForm />} />

@@ -8,11 +8,14 @@ const createQueryHook = (endpointFn) => {
     const [isLoading, setIsLoading] = useState(!skip);
     const [error, setError] = useState(null);
 
+    const paramsStr = JSON.stringify(params);
+
     const fetchData = useCallback(async () => {
       if (skip) return;
       setIsLoading(true);
       try {
-        const route = typeof endpointFn === 'function' ? endpointFn(params) : endpointFn;
+        const parsedParams = paramsStr ? JSON.parse(paramsStr) : undefined;
+        const route = typeof endpointFn === 'function' ? endpointFn(parsedParams) : endpointFn;
         const config = typeof route === 'object' ? route : { url: route };
         const response = await api.request({ method: 'GET', ...config });
         setData(response.data?.data || response.data || []);
@@ -21,7 +24,7 @@ const createQueryHook = (endpointFn) => {
       } finally {
         setIsLoading(false);
       }
-    }, [params, skip]);
+    }, [paramsStr, skip]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

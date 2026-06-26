@@ -371,7 +371,7 @@ const ProjectList = () => {
               type="link"
               icon={<EyeOutlined />}
               onClick={() =>
-                handleAction(record, `/projects/${record._id}/view`)
+                handleAction(record, `${getBaseRoute()}/projects/${record._id}`)
               }
             >
               <span className="hide-on-mobile">View</span>
@@ -382,7 +382,7 @@ const ProjectList = () => {
               type="link"
               icon={<EditOutlined />}
               onClick={() =>
-                handleAction(record, `/projects/${record._id}/edit`)
+                handleAction(record, `${getBaseRoute()}/projects/${record._id}/edit`)
               }
             >
               <span className="hide-on-mobile">Edit</span>

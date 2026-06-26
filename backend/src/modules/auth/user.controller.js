@@ -55,6 +55,37 @@ exports.getUsers = async (req, res, next) => {
   }
 };
 
+exports.getUsersDropdown = async (req, res, next) => {
+  try {
+    let queryFilter = {};
+    if (req.query.role) queryFilter.role = req.query.role;
+    
+    // If user is commander_admin, only return users they created
+    if (req.user.role === 'commander_admin') {
+      queryFilter.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
+      queryFilter.brandId = req.user.brandId;
+      if (req.user.role === 'brand_manager') {
+        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'brand_super_admin'] };
+      } else {
+        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
+      }
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
+      queryFilter.agencyId = req.user.agencyId;
+      if (req.user.role === 'agency_manager') {
+        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
+      } else {
+        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
+      }
+    }
+
+    const users = await User.find(queryFilter).select('name email role').sort({ name: 1 });
+    res.status(200).json({ success: true, data: { users } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
