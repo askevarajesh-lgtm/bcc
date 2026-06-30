@@ -46,7 +46,7 @@ import {
   useGetTodayAssignedDMSummaryQuery,
 } from "../../api/taskApi";
 import { useGetUnassignedDeliverablesSummaryQuery } from "../../api/projectApi";
-import { useGetDMTeamSettingsQuery } from "../../api/settingsApi";
+// import removed
 import { useTheme } from "../../contexts/ThemeContext";
 
 const { Title, Text } = Typography;
@@ -69,21 +69,13 @@ const TasksPage = () => {
   const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
 
-  // Define roles that have full access (can create tasks and access settings)
-  const rolesWithFullAccess = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "digital_marketing_manager",
-  ];
-  const isAdmin = rolesWithFullAccess.includes(userRole);
+  const isAdmin = true; // Default-Allow model
 
   // Intern type must not see Create Task regardless of role
-  // SEO users must be full-time
   const userType = (user?.type || "").toLowerCase().trim();
   const isIntern = userType === "intern";
-  const isSEO = userRole === "seo";
-  const isSEOFullTime = isSEO && userType === "full_time";
+  const isSEO = false; // Default-Allow model
+  const isSEOFullTime = false;
 
   const canCreateTask = !isIntern && canCreate && (!isSEO || isSEOFullTime);
 
@@ -142,11 +134,9 @@ const TasksPage = () => {
       skip: !canViewTaskInsightCards,
     });
 
-  // Dynamic DM team daily task limits (admin-configurable)
-  const { data: dmTeamSettingsData } = useGetDMTeamSettingsQuery();
-  const dmTeamSettings = dmTeamSettingsData?.data?.dmTeam;
-  const designerDailyLimit = dmTeamSettings?.designerDailyLimit ?? 7;
-  const videoEditorDailyLimit = dmTeamSettings?.videoEditorDailyLimit ?? 2;
+  // Hardcoded DM team daily task limits (removed missing API call)
+  const designerDailyLimit = 7;
+  const videoEditorDailyLimit = 2;
 
   const unassignedSummary = unassignedSummaryData?.data?.summary || {};
   const posterProjects = unassignedSummary.posterProjects || [];
@@ -784,7 +774,7 @@ const TasksPage = () => {
               hoverable
               onClick={() => {
                 setIsTaskTypeModalOpen(false);
-                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own" } });
+                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand" } });
               }}
               style={{
                 textAlign: "center",

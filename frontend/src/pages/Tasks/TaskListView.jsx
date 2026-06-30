@@ -120,38 +120,19 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
   const userRole = user?.role;
 
   // Check permissions and roles
-  // SEO users must be full-time
   const userType = (user?.type || "").toLowerCase().trim();
   const isIntern = userType === "intern";
-  const isSEO = userRole === "seo";
-  const isSEOFullTime = isSEO && userType === "full_time";
+  const isSEO = false; // Default-Allow model
+  const isSEOFullTime = false;
 
   const { hasPermission } = useActionPermissions("/tasks");
   const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const canDelete = hasPermission(PERMISSION_ACTIONS.DELETE_TASK);
   const canEditTaskDetails = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
 
-  // Define roles that have full access to see all projects
-  const rolesWithFullAccess = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "digital_marketing_manager",
-    "digital_marketing_coordinator",
-    "website_coordinator",
-    "coordinator",
-  ];
-  const isAdmin = rolesWithFullAccess.includes(userRole);
-  const canSeeAllFilters = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "digital_marketing_manager",
-    "digital_marketing_coordinator",
-    "website_coordinator",
-    "coordinator",
-  ].includes(userRole);
-  const canUseClientScope = userRole === "admin";
+  const isAdmin = true; // Default-Allow model
+  const canSeeAllFilters = true; // Default-Allow model
+  const canUseClientScope = true; // Default-Allow model
 
   const { data, isLoading, error, refetch } = useGetTasksQuery(
     {
@@ -240,8 +221,10 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
 
   const handleDelete = async (taskId) => {
     try {
-      await deleteTask(taskId).unwrap();
+      const response = await deleteTask(taskId);
+      if (response.error) throw response.error;
       message.success("Task deleted successfully");
+      refetch();
     } catch (err) {
       message.error(err.data?.message || "Failed to delete task");
     }

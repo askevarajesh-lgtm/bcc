@@ -135,9 +135,9 @@ exports.createUser = async (req, res, next) => {
       userData.agencyId = req.user.agencyId || req.user._id; 
       if (req.user.adminId) userData.adminId = req.user.adminId;
       
-      // If custom role, base access is user or agency_manager
-      if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'agency_manager'; 
-      else if (!userData.role) userData.role = 'agency_manager';
+      // If custom role, base access is user
+      if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'user'; 
+      else if (!userData.role) userData.role = 'user';
       
     } else if (req.user.role === 'commander_admin') {
       // Commander Admin can create roles in validRolesForAdmin

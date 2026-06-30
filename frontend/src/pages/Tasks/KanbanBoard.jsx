@@ -965,7 +965,7 @@ const TaskCardInner = ({
                     cancelText: "Cancel",
                     onOk: async () => {
                       try {
-                        await onDelete(task._id).unwrap();
+                        await onDelete(task._id);
                         message.success("Task deleted successfully");
                       } catch (err) {
                         message.error(
@@ -1453,6 +1453,8 @@ const KanbanBoard = ({
   const [selectedCreator, setSelectedCreator] = useState(null);
   const [selectedTaskType, setSelectedTaskType] = useState(null);
   const [isMobileKanbanUi, setIsMobileKanbanUi] = useState(false);
+  // Guard to prevent runQuickMoveToInProgress firing twice on the same drag
+  const moveInFlightRef = React.useRef(false);
 
   const { user: user } = useAuth();
   const selectedClientId = null;
@@ -1461,29 +1463,18 @@ const KanbanBoard = ({
 
   const userType = (user?.type || "").toLowerCase().trim();
   const isIntern = userType === "intern";
-  const isSEO = userRole === "seo";
-  const isSEOFullTime = isSEO && userType === "full_time";
+  const isSEO = false; // Default-Allow model
+  const isSEOFullTime = false;
 
   const { hasPermission } = useActionPermissions("/tasks");
   const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const canDelete = hasPermission(PERMISSION_ACTIONS.DELETE_TASK);
   const canMoveStatus = true; // Drag functionality should always remain enabled by default for all users.
-  const rolesWithFullAccess = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "digital_marketing_manager",
-    "digital_marketing_coordinator",
-    "website_coordinator",
-    "coordinator",
-  ];
-  const isAdmin = rolesWithFullAccess.includes(userRole);
-  const isCoordinatorRole = [
-    "digital_marketing_coordinator",
-    "coordinator",
-  ].includes(userRole);
-  const canUseClientScope = userRole === "admin";
+  
+  const isAdmin = true; // Default-Allow model
+  const isCoordinatorRole = true; // Default-Allow model
+  const canUseClientScope = true; // Default-Allow model
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1658,16 +1649,7 @@ const KanbanBoard = ({
     let result = [];
     const isWebsiteCoordinatorView = userRole === "website_coordinator";
     // Define roles that should see the "All" view by default if no filter is selected
-    const rolesWithAllView = [
-      "super_admin",
-      "admin",
-      "operations_head",
-      "digital_marketing_manager",
-      "website_coordinator",
-      "digital_marketing_coordinator",
-      "coordinator",
-    ];
-    const canSeeAllView = rolesWithAllView.includes(userRole);
+    const canSeeAllView = true; // Default-Allow model
 
     // Determine the department we are currently viewing
     const rawDept =
@@ -1794,7 +1776,7 @@ const KanbanBoard = ({
         let displayName = status.name;
         if (status.id === "backlog") {
           displayName = "Hold";
-        } else if (status.id === "complete") {
+        } else if (["complete", "done", "completed", "validated"].includes(status.id)) {
           displayName = isDigitalMarketing ? "Approved" : "Complete";
         }
         return {
@@ -1827,7 +1809,10 @@ const KanbanBoard = ({
         : shortFlow;
 
     const enforcedResult = targetFlow.map((template) => {
-      const dbStatus = result.find((s) => s.id === template.id);
+      let dbStatus = result.find((s) => s.id === template.id);
+      if (!dbStatus && template.id === "complete") {
+        dbStatus = result.find((s) => ["done", "completed", "validated"].includes(s.id));
+      }
       const displayName =
         template.id === "backlog"
           ? "Hold"
@@ -1926,7 +1911,7 @@ const KanbanBoard = ({
   const handleSendUserReminder = async (userId, tasks) => {
     setSendingReminders((prev) => new Set(prev).add(userId));
     try {
-      const promises = tasks.map((task) => sendTaskReminder(task._id).unwrap());
+      const promises = tasks.map((task) => sendTaskReminder(task._id));
       await Promise.all(promises);
       setPendingTasksData((prevData) =>
         prevData.map((user) =>
@@ -1958,7 +1943,7 @@ const KanbanBoard = ({
         return;
       }
       const promises = allTasks.map((task) =>
-        sendTaskReminder(task._id).unwrap(),
+        sendTaskReminder(task._id),
       );
       await Promise.all(promises);
       setPendingTasksData((prevData) =>
@@ -1986,7 +1971,7 @@ const KanbanBoard = ({
       else if (currentStatusId === "in_progress")
         allowed = ["in_progress", "review"];
       else if (currentStatusId === "review")
-        allowed = ["review", "complete", "in_progress", "to_do"];
+        allowed = ["review", "complete", "completed", "done", "validated", "in_progress", "to_do"];
 
       if (canAccessRejected && !allowed.includes("Rejected")) {
         allowed.push("Rejected");
@@ -1999,7 +1984,7 @@ const KanbanBoard = ({
       if (currentStatusId === "backlog") allowed = ["backlog", "to_do", "in_progress"];
       else if (currentStatusId === "to_do") allowed = ["to_do", "in_progress"];
       else if (currentStatusId === "in_progress")
-        allowed = ["in_progress", "complete"];
+        allowed = ["in_progress", "complete", "completed", "done", "validated"];
 
       if (canAccessRejected && !allowed.includes("Rejected")) {
         allowed.push("Rejected");
@@ -2138,18 +2123,26 @@ const KanbanBoard = ({
   };
 
   const runQuickMoveToInProgress = async (taskId) => {
+    // Prevent double-fire when dnd-kit triggers both the column path
+    // and the card-to-card path on the same drag drop event
+    if (moveInFlightRef.current) return;
+    moveInFlightRef.current = true;
     try {
       const formData = new FormData();
       formData.append("status", "in_progress");
       formData.append("order", "0");
       appendBoardDateScope(formData);
-      await updateTaskStatusAndOrder({
+      const response = await updateTaskStatusAndOrder({
         id: taskId,
         formData,
-      }).unwrap();
+      });
+      if (response.error) throw response.error;
       message.success("Moved to In Progress");
+      refetch();
     } catch (error) {
       message.error(error?.data?.message || "Failed to move task");
+    } finally {
+      moveInFlightRef.current = false;
     }
   };
 
@@ -2307,6 +2300,9 @@ const KanbanBoard = ({
     }
     const { active, over } = event;
     setActiveId(null);
+    // Reset the in-flight lock at the start of every drag-end so a
+    // new drag can always proceed even if the previous one was aborted.
+    moveInFlightRef.current = false;
     if (!over) return;
     const activeId = active.id;
     const overId = over.id;
@@ -2383,7 +2379,9 @@ const KanbanBoard = ({
           order: index,
         }));
         try {
-          await updateTasksOrder({ updates }).unwrap();
+          const response = await updateTasksOrder({ updates });
+          if (response.error) throw response.error;
+          refetch();
         } catch (error) {
           message.error("Failed to reorder task");
         }
@@ -2482,10 +2480,11 @@ const KanbanBoard = ({
       if (isReviewToInProgress) formData.append("taskCategory", "Correction");
       if (isReviewToToDo) formData.append("taskCategory", "Redesign");
       if (screenshotFile) formData.append("screenshot", screenshotFile);
-      await updateTaskStatusAndOrder({
+      const response = await updateTaskStatusAndOrder({
         id: pendingStatusChange.taskId,
         formData,
-      }).unwrap();
+      });
+      if (response.error) throw response.error;
       const completedStatuses = ["review", "done", "completed", "validated"];
       const isTargetCompleted = completedStatuses.includes(
         pendingStatusChange.targetStatus,
@@ -2503,6 +2502,8 @@ const KanbanBoard = ({
       statusForm.resetFields();
       setScreenshotFile(null);
       setPendingStatusChange(null);
+      refetch();
+
     } catch (error) {
       message.error(error?.data?.message || "Failed to move task");
     }
@@ -2887,7 +2888,10 @@ const KanbanBoard = ({
                   canEdit={canEdit}
                   canDrag={canMoveStatus}
                   canDelete={canDelete}
-                  onDelete={deleteTask}
+                  onDelete={async (id) => {
+                    await deleteTask(id);
+                    refetch();
+                  }}
                   getWorkflowColorForTask={getWorkflowColorForTask}
                   userRole={userRole}
                   navigate={navigate}

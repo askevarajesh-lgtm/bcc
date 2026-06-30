@@ -9,7 +9,7 @@ const createQueryHook = (endpointFn) => {
     const [error, setError] = useState(null);
 
     const refetch = useCallback(async () => {
-      if (skip) return;
+      if (skip) return { data: null };
       setIsLoading(true);
       try {
         const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
@@ -17,10 +17,19 @@ const createQueryHook = (endpointFn) => {
         const queryParams = typeof config === 'object' && config.params ? config.params : {};
         
         const response = await api.get(url, { params: queryParams });
+        // Treat { success: false } 200 responses as errors (backend business logic errors)
+        if (response.data?.success === false) {
+          const errorObj = { data: response.data, status: response.status };
+          setError(errorObj);
+          return { error: errorObj };
+        }
         setData(response.data);
         setError(null);
+        return { data: response.data };
       } catch (err) {
-        setError(err);
+        const errorObj = err.response ? { data: err.response.data, status: err.response.status } : err;
+        setError(errorObj);
+        return { error: errorObj };
       } finally {
         setIsLoading(false);
       }
@@ -29,8 +38,11 @@ const createQueryHook = (endpointFn) => {
     useEffect(() => {
       refetch();
     }, [refetch]);
+    const isError = !!error;
+    const isSuccess = !error && !isLoading && data !== null;
+    const isFetching = isLoading;
 
-    return { data, isLoading, error, refetch };
+    return { data, isLoading, error, refetch, isError, isSuccess, isFetching };
   };
 };
 
@@ -39,29 +51,46 @@ const createMutationHook = (endpointFn) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const mutate = async (params) => {
-      setIsLoading(true);
-      try {
-        const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
-        const url = typeof config === 'string' ? config : config.url;
-        const method = typeof config === 'object' && config.method ? config.method : 'POST';
-        const body = typeof config === 'object' ? config.body : undefined;
-        const formData = typeof config === 'object' ? config.formData : undefined;
-        
-        const response = await api({ 
-          url, 
-          method, 
-          data: formData || body 
-        });
-        
-        setError(null);
-        return { data: response.data };
-      } catch (err) {
-        setError(err);
-        return { error: err };
-      } finally {
-        setIsLoading(false);
-      }
+    const mutate = (params) => {
+      const executionPromise = (async () => {
+        setIsLoading(true);
+        try {
+          const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
+          const url = typeof config === 'string' ? config : config.url;
+          const method = typeof config === 'object' && config.method ? config.method : 'POST';
+          const body = typeof config === 'object' ? config.body : undefined;
+          const formData = typeof config === 'object' ? config.formData : undefined;
+          
+          const response = await api({ 
+            url, 
+            method, 
+            data: formData || body 
+          });
+          
+          // Treat { success: false } 200 responses as errors (backend business logic errors)
+          if (response.data?.success === false) {
+            const errorObj = { data: response.data, status: response.status };
+            setError(errorObj);
+            return { error: errorObj };
+          }
+          setError(null);
+          return { data: response.data };
+        } catch (err) {
+          const errorObj = err.response ? { data: err.response.data, status: err.response.status } : err;
+          setError(errorObj);
+          return { error: errorObj };
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+
+      executionPromise.unwrap = async () => {
+        const res = await executionPromise;
+        if (res.error) throw res.error;
+        return res.data;
+      };
+
+      return executionPromise;
     };
     return [mutate, { isLoading, error }];
   };

@@ -1161,7 +1161,7 @@ const getProjectsDropdown = async (tenantCompanyId, reqQuery = {}) => {
     additionalFilters: {
       ...(!isGlobalAdmin && { companyId: tenantCompanyId }),
       ...(clientIdFilter && { clientId: clientIdFilter }),
-      isActive: true, // Only show active projects in dropdown
+      isActive: { $ne: false }, // Only show active projects in dropdown (handle missing field on old projects)
       // Default to excluding inactive/closed if status is not provided
       ...(reqQuery.status
         ? { status: reqQuery.status }

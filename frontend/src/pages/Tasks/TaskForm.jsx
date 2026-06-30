@@ -73,22 +73,11 @@ const TaskForm = () => {
   const hideCompanyProject = 
     userRole === 'commander_admin' || 
     userRole === 'brand_manager' || 
-    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own');
-
-  // Roles that should see all projects
-  const rolesWithFullAccess = [
-    "super_admin",
-    "admin",
-    "digital_marketing_coordinator",
-    "digital_marketing_manager",
-    "operations_head",
-    "website_coordinator",
-  ];
-  const hasFullProjectAccess = rolesWithFullAccess.includes(userRole);
+    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own_brand');
 
   const { hasPermission } = useActionPermissions("/tasks");
   const isSEO = hasPermission(PERMISSION_ACTIONS.VIEW_SEO_PANEL);
-  const isSEOUser = isSEO && !hasFullProjectAccess;
+  const isSEOUser = false; // Default-Allow: do not restrict project dropdowns
   const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEditTaskDetails = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const isRestricted = isEdit ? !canEditTaskDetails : !canCreate;
@@ -760,22 +749,14 @@ const TaskForm = () => {
         taskData.assignedTo?._id === currentUser?._id;
 
       if (isEdit) {
-        await updateTask({ id, ...taskData }).unwrap();
+        const result = await updateTask({ id, ...taskData });
+        if (result.error) throw result.error;
         message.success("Task updated successfully");
       } else {
-        await createTask(taskData).unwrap();
+        const result = await createTask(taskData);
+        if (result.error) throw result.error;
         message.success("Task created successfully");
       }
-
-      // Forceful cache invalidation to ensure Tasks module gets fresh data without F5
-      dispatch(
-        taskApi.util.invalidateTags([
-          "Task",
-          "Project",
-          "AdminDashboard",
-          "BDEDashboard",
-        ])
-      );
 
       if (isNewlyCompleted && isAssignedToMe) {
         navigate(`${getBaseRoute()}/tasks`, { state: { triggerCelebration: true } });
@@ -783,7 +764,8 @@ const TaskForm = () => {
         navigate(`${getBaseRoute()}/tasks`);
       }
     } catch (error) {
-      message.error(error?.data?.message || "Operation failed");
+      const errorMessage = error?.response?.data?.message || error?.data?.message || error?.message || "Operation failed";
+      message.error(errorMessage);
     }
   };
 

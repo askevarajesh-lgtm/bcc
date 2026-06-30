@@ -79,23 +79,9 @@ const TaskCalendarView = ({ onTaskClick, departmentFilter }) => {
   const { user: user } = useAuth();
   const selectedClientId = null;
   const userRole = user?.role;
-  const rolesWithFullAccess = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "digital_marketing_manager",
-    "website_coordinator",
-  ];
-  const isAdmin = rolesWithFullAccess.includes(userRole);
-  const canUseClientScope = userRole === "admin";
-  const canManageScheduledNotes = [
-    "super_admin",
-    "admin",
-    "operations_head",
-    "coordinator",
-    "digital_marketing_coordinator",
-    "website_coordinator",
-  ].includes(userRole);
+  const isAdmin = true; // Default-Allow model
+  const canUseClientScope = true; // Default-Allow model
+  const canManageScheduledNotes = true; // Default-Allow model
 
   const monthAnchor = useMemo(
     () => calendarMonth.startOf("month").valueOf(),

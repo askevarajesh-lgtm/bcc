@@ -48,6 +48,10 @@ const ROLES_WITH_FULL_TASK_ACCESS = [
   "digital_marketing_coordinator",
   "website_coordinator",
   "coordinator",
+  "supreme_super_admin",
+  "commander_admin",
+  "agency_super_admin",
+  "agency_manager",
 ];
 
 const toHyphenatedSlug = (value = "") =>
@@ -189,7 +193,9 @@ const getClientCompanyIds = async (tenantCompanyId) => {
       { _id: tenantCompanyId }
     ]
   }).select("_id");
-  return clientCompanies.map((cc) => cc._id);
+  const ids = clientCompanies.map((cc) => cc._id);
+  ids.push(null); // Include null to match Own Brand tasks naturally in all $in queries
+  return ids;
 };
 
 const parseScheduledNoteDate = (value) => {
@@ -421,12 +427,7 @@ const getAllTasks = async (
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-  const restrictToOwnAssignedTasks =
-    userRole &&
-    userRole !== "website_coordinator" &&
-    userRole !== "client" &&
-    !ROLES_WITH_FULL_TASK_ACCESS.includes(userRole) &&
-    userObjId;
+  const restrictToOwnAssignedTasks = false;
 
   if (userRole === "website_coordinator") {
     additionalFilters.$or = [
@@ -511,7 +512,6 @@ const getAllTasks = async (
     });
 
     if (startDateVal && !isNaN(start.getTime())) {
-      // Only set to midnight if it's a simple date string (YYYY-MM-DD)
       if (typeof startDateVal === "string" && startDateVal.length <= 10) {
         start.setUTCHours(0, 0, 0, 0);
       }
@@ -521,6 +521,10 @@ const getAllTasks = async (
     if (endDateVal && !isNaN(end.getTime())) {
       if (typeof endDateVal === "string" && endDateVal.length <= 10) {
         end.setUTCHours(23, 59, 59, 999);
+      } else if (start.getTime() === end.getTime()) {
+        // If start and end are exactly the same millisecond (e.g., from a single date picker), 
+        // expand the end date to cover the next 24 hours to capture all events for that local day.
+        end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
       }
       dateQuery.$lte = end;
     }
@@ -675,12 +679,7 @@ const getTasksDropdown = async (
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-  const restrictToOwnAssignedTasks =
-    userRole &&
-    userRole !== "website_coordinator" &&
-    userRole !== "client" &&
-    !ROLES_WITH_FULL_TASK_ACCESS.includes(userRole) &&
-    userObjId;
+  const restrictToOwnAssignedTasks = false;
 
   if (userRole === "website_coordinator") {
     additionalFilters.department = { $in: WEBSITE_COORDINATOR_DEPARTMENTS };
@@ -827,26 +826,28 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
   const creator = await User.findById(createdByUserId).select("role");
   const isGlobalAdmin = creator && ["supreme_super_admin", "commander_admin"].includes(creator.role);
 
-  // Verify that the client company belongs to the tenant company
-  let clientCompany;
-  if (isGlobalAdmin) {
-    clientCompany = await ClientCompany.findById(taskData.companyId);
-  } else {
-    clientCompany = await ClientCompany.findOne({
-      _id: taskData.companyId,
-      $or: [
-        { agencyId: tenantCompanyId },
-        { adminId: tenantCompanyId },
-        { brandId: tenantCompanyId },
-        { _id: tenantCompanyId }
-      ]
-    });
-  }
+  // Verify that the client company belongs to the tenant company if provided
+  let clientCompany = null;
+  if (taskData.companyId) {
+    if (isGlobalAdmin) {
+      clientCompany = await ClientCompany.findById(taskData.companyId);
+    } else {
+      clientCompany = await ClientCompany.findOne({
+        _id: taskData.companyId,
+        $or: [
+          { agencyId: tenantCompanyId },
+          { adminId: tenantCompanyId },
+          { brandId: tenantCompanyId },
+          { _id: tenantCompanyId }
+        ]
+      });
+    }
 
-  if (!clientCompany) {
-    throw new Error(
-      "Client company not found or does not belong to your organization",
-    );
+    if (!clientCompany) {
+      throw new Error(
+        "Client company not found or does not belong to your organization",
+      );
+    }
   }
 
   // If task is linked to a project, verify project is approved before allowing assignment
@@ -2133,12 +2134,15 @@ const holdTask = async (taskId, holdReason, userId, userRole, tenantCompanyId) =
   const task = await Task.findOne({ _id: taskId, tenantCompanyId });
   if (!task) throw new Error("Task not found");
 
+  // [RESTRICTIONS REMOVED AS PER USER REQUEST: ALL USERS HAVE FULL ACCESS BY DEFAULT]
+  /*
   const isAdmin = ["super_admin", "admin", "operations_head"].includes(userRole);
   const isAssigned = task.assignedTo && String(task.assignedTo) === String(userId);
 
   if (!isAdmin && !isAssigned) {
     throw new Error("Only admins or the assigned user can place this task on hold");
   }
+  */
 
   if (task.status === "hold") {
     throw new Error("Task is already on hold");
@@ -2537,12 +2541,7 @@ const getTasksForKanban = async (
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-  const restrictToOwnAssignedTasks =
-    userRole &&
-    userRole !== "website_coordinator" &&
-    userRole !== "client" &&
-    !ROLES_WITH_FULL_TASK_ACCESS.includes(userRole) &&
-    userObjId;
+  const restrictToOwnAssignedTasks = false;
 
   // Role-based filtering: Only super_admin and admin see all tasks.
   // All other roles only see tasks where they are assignedTo or in watchers.
@@ -2616,20 +2615,16 @@ const getTasksForKanban = async (
     let start = new Date(startDateVal);
     let end = new Date(endDateVal);
 
-    // Ensure we cover the full day if input is ISO string from frontend
-    // This prevents timezone shifts (e.g. IST midnight becoming previous day UTC)
-    if (typeof startDateVal === "string" && startDateVal.includes("T")) {
-      const datePart = startDateVal.split("T")[0];
-      start = new Date(datePart + "T00:00:00.000Z");
-    } else if (typeof startDateVal === "string" && startDateVal.length <= 10) {
+    if (typeof startDateVal === "string" && startDateVal.length <= 10) {
       start.setUTCHours(0, 0, 0, 0);
     }
-
-    if (typeof endDateVal === "string" && endDateVal.includes("T")) {
-      const datePart = endDateVal.split("T")[0];
-      end = new Date(datePart + "T23:59:59.999Z");
-    } else if (typeof endDateVal === "string" && endDateVal.length <= 10) {
+    
+    if (typeof endDateVal === "string" && endDateVal.length <= 10) {
       end.setUTCHours(23, 59, 59, 999);
+    } else if (start.getTime() === end.getTime()) {
+      // If start and end are exactly the same millisecond (e.g., from a single date picker), 
+      // expand the end date to cover the next 24 hours to capture all events for that local day.
+      end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
     }
 
     console.log("[taskService.getTasksForKanban] Normalized Range:", {
@@ -3122,6 +3117,7 @@ const updateTaskStatusAndOrder = async (
 
   // 0. Block Multiple "In Progress" Tasks for a Single User
   if (finalStatus === "in_progress" && oldStatus !== "in_progress") {
+
     await ensureNoOtherInProgressTask(
       task.assignedTo,
       task._id,
@@ -3131,6 +3127,10 @@ const updateTaskStatusAndOrder = async (
     );
   }
 
+  // [RESTRICTIONS REMOVED AS PER USER REQUEST: ALL USERS HAVE FULL ACCESS BY DEFAULT]
+  // The following restrictions (skipInProgress, isTerminalMove, isAssignedUser) 
+  // have been disabled to remove hardcoded role checks.
+  /*
   const isAdmin = ["super_admin", "admin", "operations_head"].includes(
     userRole,
   );
@@ -3146,8 +3146,6 @@ const updateTaskStatusAndOrder = async (
   }
 
   // 2. Terminal Status Restriction (Only for Digital Marketing)
-  // For Digital Marketing: Only Coordinator/Admin can move to 'validated' (Done/Approved)
-  // For other departments: This restriction is not required.
   const isDigitalMarketing = task.department === "digital-marketing";
   const isTerminalMove = finalStatus === "validated";
 
@@ -3176,6 +3174,7 @@ const updateTaskStatusAndOrder = async (
       );
     }
   }
+  */
 
   // ── [CUMULATIVE TIMING LOGIC] ──────────────────────────────────────────────
   const now = new Date();
