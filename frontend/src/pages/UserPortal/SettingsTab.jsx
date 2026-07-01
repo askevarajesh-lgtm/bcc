@@ -76,8 +76,18 @@ const UserSettingsTab = () => {
             <Text type="secondary" style={{ fontSize: 14 }}>{user.email}</Text>
             <div style={{ marginTop: 8 }}>
               <span style={{ background: 'var(--bg-tertiary)', padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Role: {role}
+                Role: {user.roleName || role}
               </span>
+              {(user.agencyName || user.companyName) && (
+                <span style={{ marginLeft: 8, background: 'var(--bg-tertiary)', padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Agency: {user.agencyName || user.companyName}
+                </span>
+              )}
+              {user.brandName && (
+                <span style={{ marginLeft: 8, background: 'var(--bg-tertiary)', padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Brand: {user.brandName}
+                </span>
+              )}
             </div>
           </div>
         </div>

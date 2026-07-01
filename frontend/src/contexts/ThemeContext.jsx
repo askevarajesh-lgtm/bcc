@@ -25,27 +25,33 @@ export const ThemeProvider = ({ children }) => {
     algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
     token: {
       fontFamily: `'Plus Jakarta Sans', sans-serif`,
-      fontSize: 16,
+      fontSize: 14,
       colorPrimary: '#3b82f6',
       colorSuccess: '#10b981',
       colorWarning: '#f59e0b',
       colorError: '#ef4444',
-      borderRadius: 8,
+      colorText: isDark ? '#f8fafc' : '#071733',
+      colorTextSecondary: isDark ? '#c7d2e4' : '#536484',
+      colorBorder: isDark ? '#22324b' : '#e5ebf3',
+      colorBgLayout: isDark ? '#0b1220' : '#f5f8fc',
+      borderRadius: 12,
     },
     components: {
       Typography: {
         fontWeightStrong: 800,
       },
       Card: {
-        colorBgContainer: isDark ? '#1e293b' : '#ffffff',
-        colorBorderSecondary: isDark ? '#334155' : '#e2e8f0',
+        colorBgContainer: isDark ? '#111c31' : '#ffffff',
+        colorBorderSecondary: isDark ? '#22324b' : '#e5ebf3',
       },
       Menu: {
         colorItemBg: 'transparent',
+        colorItemBgSelected: 'transparent',
+        colorItemTextSelected: '#10b981',
       },
       Layout: {
-        colorBgHeader: isDark ? '#1e293b' : '#ffffff',
-        colorBgBody: isDark ? '#0f172a' : '#f4f7fb',
+        colorBgHeader: isDark ? '#0d1526' : '#ffffff',
+        colorBgBody: isDark ? '#0b1220' : '#f5f8fc',
       }
     }
   };

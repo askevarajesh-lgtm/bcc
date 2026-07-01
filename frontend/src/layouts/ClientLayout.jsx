@@ -3,6 +3,7 @@ import { Layout } from 'antd';
 import { Outlet } from 'react-router-dom';
 import ClientSidebar from './ClientSidebar';
 import Header from './Header';
+import PageTransition from '../components/PageTransition';
 
 const { Content } = Layout;
 
@@ -10,18 +11,15 @@ const ClientLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <Layout style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <Layout className="app-root-shell">
       <ClientSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <Layout style={{ background: 'var(--bg-primary)' }}>
+      <Layout className="app-main-shell">
         <Header />
-        <Content style={{ 
-          margin: '24px 24px 0', 
-          overflow: 'initial',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{ flex: 1, paddingBottom: 24 }}>
-            <Outlet />
+        <Content className="app-content">
+          <div className="app-content__inner">
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
           </div>
         </Content>
       </Layout>

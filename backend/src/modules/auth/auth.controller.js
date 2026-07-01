@@ -9,7 +9,9 @@ exports.signin = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email })
+      .populate('agencyId', 'companyName name')
+      .populate('brandId', 'companyName name');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
     }
@@ -25,8 +27,8 @@ exports.signin = async (req, res, next) => {
         _id: user._id, 
         email: user.email, 
         role: user.role, 
-        agencyId: user.agencyId,
-        brandId: user.brandId,
+        agencyId: user.agencyId ? user.agencyId._id : null,
+        brandId: user.brandId ? user.brandId._id : null,
         workspaceId: user.workspaceId 
       },
       process.env.JWT_SECRET || 'super_secret_jwt_key_12345',
@@ -36,7 +38,7 @@ exports.signin = async (req, res, next) => {
     // If user is an agency manager or super admin, get their package features
     let features = [];
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
-      const agency = await User.findById(user.agencyId).populate('plan');
+      const agency = await User.findById(user.agencyId._id).populate('plan');
       if (agency && agency.plan && agency.plan.features) {
         features = agency.plan.features;
       }
@@ -47,10 +49,15 @@ exports.signin = async (req, res, next) => {
       token,
       user: {
         _id: user._id,
+        name: user.name,
         email: user.email,
         role: user.role,
-        agencyId: user.agencyId,
-        brandId: user.brandId,
+        roleName: user.roleName,
+        companyName: user.companyName,
+        agencyId: user.agencyId ? user.agencyId._id : null,
+        agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
+        brandId: user.brandId ? user.brandId._id : null,
+        brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
         workspaceId: user.workspaceId,
         features: features
       }

@@ -1,0 +1,1177 @@
+.bcc-signin-page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100svh;
+  padding: clamp(10px, 1.6vw, 24px);
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(16, 185, 129, 0.16), transparent 24rem),
+    radial-gradient(circle at 84% 14%, rgba(59, 130, 246, 0.16), transparent 20rem),
+    radial-gradient(circle at 78% 78%, rgba(16, 185, 129, 0.08), transparent 18rem),
+    linear-gradient(180deg, #edf7ff 0%, #f5fff8 100%);
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+[data-theme='dark'] .bcc-signin-page {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(59, 130, 246, 0.18), transparent 24rem),
+    radial-gradient(circle at 84% 14%, rgba(16, 185, 129, 0.16), transparent 20rem),
+    radial-gradient(circle at 78% 78%, rgba(59, 130, 246, 0.08), transparent 18rem),
+    linear-gradient(180deg, #07101f 0%, #0a1220 100%);
+}
+
+.bcc-signin-page__glow {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(22px);
+  opacity: 0.8;
+}
+
+.bcc-signin-page__glow--one {
+  top: -6rem;
+  left: -5rem;
+  width: 22rem;
+  height: 22rem;
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.bcc-signin-page__glow--two {
+  top: 8rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.bcc-signin-page__glow--three {
+  bottom: -6rem;
+  left: 32%;
+  width: 26rem;
+  height: 26rem;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.bcc-signin-shell {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1360px);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.bcc-signin-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: clamp(10px, 1vw, 14px);
+  width: 100%;
+  height: 100%;
+  padding: clamp(10px, 1vw, 14px);
+  border-radius: clamp(24px, 2.8vw, 38px);
+  background: rgba(6, 12, 22, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 40px 90px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
+}
+
+[data-theme='dark'] .bcc-signin-frame {
+  background: rgba(6, 12, 22, 0.96);
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.38);
+}
+
+.bcc-signin-visual {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(20px, 3vw, 48px);
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(239, 252, 247, 0.98) 0%, rgba(234, 242, 255, 0.98) 100%);
+}
+
+[data-theme='dark'] .bcc-signin-visual {
+  background: linear-gradient(135deg, rgba(14, 23, 37, 0.98) 0%, rgba(13, 27, 48, 0.98) 100%);
+}
+
+.bcc-signin-visual::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(16, 185, 129, 0.24), transparent 32%),
+    radial-gradient(circle at 83% 20%, rgba(59, 130, 246, 0.2), transparent 28%),
+    radial-gradient(circle at 58% 78%, rgba(14, 165, 233, 0.1), transparent 30%);
+  filter: blur(10px);
+}
+
+.bcc-signin-visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.24;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 94%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 94%);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .bcc-signin-visual::after {
+  opacity: 0.08;
+}
+
+.bcc-signin-visual__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.bcc-signin-visual__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.bcc-signin-visual__brand-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-theme='dark'] .bcc-signin-visual__brand-tag {
+  background: rgba(15, 23, 42, 0.62);
+  border-color: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+.bcc-signin-visual__subtag {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bcc-signin-visual h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  font-weight: 900;
+}
+
+.bcc-signin-visual__lede {
+  max-width: 540px;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.bcc-signin-visual__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.bcc-signin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme='dark'] .bcc-signin-chip {
+  background: rgba(15, 23, 42, 0.56);
+  border-color: rgba(148, 163, 184, 0.14);
+  color: #f8fafc;
+  box-shadow: none;
+}
+
+.bcc-signin-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  flex: none;
+}
+
+.bcc-signin-visual__scene {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  margin-top: 18px;
+  pointer-events: none;
+}
+
+.bcc-signin-scene__halo {
+  position: absolute;
+  left: 18%;
+  top: 10%;
+  width: 48%;
+  height: 48%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.24) 0%, rgba(59, 130, 246, 0.1) 34%, transparent 70%);
+  filter: blur(20px);
+}
+
+.bcc-signin-scene__clock {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 3;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 244, 250, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+[data-theme='dark'] .bcc-signin-scene__clock {
+  background: linear-gradient(180deg, rgba(17, 28, 49, 0.96), rgba(12, 19, 34, 0.96));
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.bcc-signin-scene__card {
+  position: absolute;
+  z-index: 2;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-theme='dark'] .bcc-signin-scene__card {
+  background: rgba(15, 23, 42, 0.66);
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.24);
+}
+
+.bcc-signin-scene__card--top {
+  top: 18px;
+  right: 6%;
+  width: 240px;
+}
+
+.bcc-signin-scene__card--side {
+  right: 2%;
+  bottom: 120px;
+  width: 220px;
+}
+
+.bcc-signin-scene__eyebrow {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bcc-signin-scene__card strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.bcc-signin-scene__card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.bcc-signin-scene__progress {
+  height: 10px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+
+.bcc-signin-scene__progress span {
+  display: block;
+  height: 100%;
+  width: 76%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.18);
+}
+
+.bcc-signin-monitor {
+  position: absolute;
+  left: 7%;
+  bottom: 38px;
+  z-index: 1;
+  width: min(60%, 540px);
+  aspect-ratio: 1.18 / 1;
+  padding: 18px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, rgba(10, 17, 30, 0.98), rgba(15, 23, 42, 0.92));
+  box-shadow: 0 40px 70px rgba(15, 23, 42, 0.28);
+  transform: rotate(-4deg);
+}
+
+.bcc-signin-monitor::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(14, 23, 39, 0.96), rgba(8, 15, 30, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bcc-signin-monitor__screen {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border-radius: 26px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(59, 130, 246, 0.14), transparent 30%),
+    radial-gradient(circle at 82% 16%, rgba(16, 185, 129, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(9, 14, 25, 1), rgba(12, 21, 38, 0.98));
+  overflow: hidden;
+}
+
+.bcc-signin-monitor__screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.bcc-signin-monitor__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bcc-signin-monitor__top span:last-child {
+  color: #7dd3fc;
+}
+
+.bcc-signin-monitor__chart {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 150px;
+  margin-top: 24px;
+}
+
+.bcc-signin-monitor__bar {
+  flex: 1;
+  border-radius: 16px 16px 8px 8px;
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.96), rgba(16, 185, 129, 0.88));
+  box-shadow: 0 18px 34px rgba(59, 130, 246, 0.22);
+  transform-origin: bottom center;
+  animation: bcc-signin-float 4s ease-in-out infinite;
+}
+
+.bcc-signin-monitor__bar:nth-child(2n) {
+  background: linear-gradient(180deg, rgba(110, 231, 183, 0.96), rgba(59, 130, 246, 0.88));
+}
+
+.bcc-signin-monitor__bar:nth-child(3n) {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.96), rgba(16, 185, 129, 0.88));
+}
+
+.bcc-signin-monitor__metrics {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.bcc-signin-monitor__metric {
+  padding: 14px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.bcc-signin-monitor__metric strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.bcc-signin-monitor__metric span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.bcc-signin-monitor__base {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  z-index: 0;
+  width: 52%;
+  height: 28px;
+  border-radius: 0 0 24px 24px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(3, 7, 18, 0.98));
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.42);
+}
+
+.bcc-signin-scene__plant {
+  position: absolute;
+  right: 2%;
+  bottom: 10px;
+  z-index: 2;
+  width: 96px;
+  height: 210px;
+}
+
+.bcc-signin-scene__pot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 68px;
+  height: 78px;
+  transform: translateX(-50%);
+  border-radius: 0 0 18px 18px;
+  background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+  box-shadow: 0 16px 24px rgba(15, 23, 42, 0.1);
+}
+
+.bcc-signin-scene__leaf {
+  position: absolute;
+  bottom: 62px;
+  width: 28px;
+  height: 120px;
+  border-radius: 999px 999px 999px 999px / 92px 92px 28px 28px;
+  background: linear-gradient(180deg, #8fd1b1 0%, #3d6e5b 68%, #223932 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.bcc-signin-scene__leaf--one {
+  left: 28px;
+  transform: rotate(-10deg);
+}
+
+.bcc-signin-scene__leaf--two {
+  right: 24px;
+  height: 132px;
+  transform: rotate(14deg);
+  opacity: 0.96;
+}
+
+.bcc-signin-visual__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bcc-signin-visual__note svg {
+  flex: none;
+  color: var(--accent-secondary);
+}
+
+.bcc-signin-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: clamp(16px, 2vw, 30px);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 252, 255, 0.96));
+}
+
+[data-theme='dark'] .bcc-signin-panel {
+  background: linear-gradient(180deg, rgba(11, 18, 32, 0.86), rgba(11, 18, 32, 0.96));
+}
+
+.bcc-signin-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 32px !important;
+  border: 1px solid rgba(229, 235, 243, 0.96) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+[data-theme='dark'] .bcc-signin-card {
+  border-color: rgba(34, 50, 75, 0.96) !important;
+  background: rgba(13, 21, 38, 0.92) !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
+}
+
+.bcc-signin-card__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: clamp(24px, 3vw, 42px);
+  text-align: center;
+}
+
+.bcc-signin-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.bcc-signin-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 55%, #2563eb 100%);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  box-shadow: 0 18px 34px rgba(59, 130, 246, 0.26);
+}
+
+.bcc-signin-brand__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.bcc-signin-brand__copy strong {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.bcc-signin-brand__copy span {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.bcc-signin-heading {
+  max-width: 360px;
+  margin-top: 16px;
+}
+
+.bcc-signin-heading .ant-typography {
+  margin: 0;
+}
+
+.bcc-signin-heading h2 {
+  margin: 0 !important;
+  color: var(--text-primary);
+  font-size: clamp(28px, 3.2vw, 40px) !important;
+  line-height: 0.96;
+  letter-spacing: -0.07em;
+  font-weight: 900 !important;
+}
+
+.bcc-signin-heading .ant-typography:last-child {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.bcc-signin-alert {
+  width: 100%;
+  margin-top: 18px;
+  border-radius: 16px;
+  text-align: left;
+}
+
+.bcc-signin-form__wrap {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.bcc-signin-form {
+  width: 100%;
+  text-align: left;
+}
+
+.bcc-signin-page .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.bcc-signin-page .ant-form-item-label {
+  padding-bottom: 0;
+}
+
+.bcc-signin-page .ant-form-item-label > label {
+  height: auto;
+  padding: 0;
+}
+
+.bcc-signin-field-label {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.bcc-signin-page .ant-input-affix-wrapper {
+  min-height: 48px;
+  border-radius: 16px !important;
+  border-color: rgba(214, 223, 234, 0.96) !important;
+  background: rgba(247, 250, 252, 0.96) !important;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+[data-theme='dark'] .bcc-signin-page .ant-input-affix-wrapper {
+  background: rgba(15, 23, 42, 0.68) !important;
+  border-color: rgba(34, 50, 75, 0.92) !important;
+}
+
+.bcc-signin-page .ant-input-affix-wrapper:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong) !important;
+}
+
+.bcc-signin-page .ant-input-affix-wrapper-focused {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+[data-theme='dark'] .bcc-signin-page .ant-input-affix-wrapper-focused {
+  background: rgba(17, 28, 49, 0.98) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important;
+}
+
+.bcc-signin-page .ant-input {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.bcc-signin-page .ant-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.bcc-signin-page .ant-input-prefix,
+.bcc-signin-page .ant-input-suffix {
+  color: var(--text-tertiary);
+}
+
+.bcc-signin-page .ant-input-prefix {
+  margin-inline-end: 12px;
+}
+
+.bcc-signin-field__icon {
+  color: var(--text-tertiary);
+}
+
+.bcc-signin-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.bcc-signin-password-toggle:hover {
+  color: var(--text-primary);
+  transform: scale(1.04);
+}
+
+.bcc-signin-form__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.bcc-signin-form__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bcc-signin-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.bcc-signin-link:hover {
+  color: var(--accent-secondary);
+  transform: translateY(-1px);
+}
+
+.bcc-signin-submit {
+  height: 48px;
+  border: none !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-primary) 58%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  box-shadow: 0 18px 34px rgba(59, 130, 246, 0.24);
+}
+
+.bcc-signin-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 38px rgba(59, 130, 246, 0.3);
+}
+
+.bcc-signin-submit:active {
+  transform: translateY(0);
+}
+
+.bcc-signin-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 18px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bcc-signin-divider::before,
+.bcc-signin-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.bcc-signin-divider span {
+  white-space: nowrap;
+}
+
+.bcc-signin-social {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.bcc-signin-social__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: rgba(247, 250, 252, 0.96);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+[data-theme='dark'] .bcc-signin-social__button {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(34, 50, 75, 0.9);
+  color: #f8fafc;
+  box-shadow: none;
+}
+
+.bcc-signin-social__button:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.bcc-signin-social__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  flex: none;
+}
+
+.bcc-signin-social__badge--google {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.bcc-signin-social__badge--microsoft {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.bcc-signin-social__badge--github {
+  background: rgba(15, 23, 42, 0.1);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .bcc-signin-social__badge--github {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.bcc-signin-card__note {
+  max-width: 380px;
+  margin: 16px auto 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+@keyframes bcc-signin-float {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+
+  50% {
+    transform: translateY(-4px) scaleY(1.02);
+  }
+}
+
+@media (max-width: 1180px) {
+  .bcc-signin-page {
+    padding: 10px;
+  }
+
+  .bcc-signin-shell {
+    align-items: stretch;
+  }
+
+  .bcc-signin-frame {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .bcc-signin-panel {
+    order: -1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .bcc-signin-visual {
+    display: none;
+  }
+
+  .bcc-signin-visual__scene,
+  .bcc-signin-visual__note,
+  .bcc-signin-divider,
+  .bcc-signin-social,
+  .bcc-signin-card__note {
+    display: none;
+  }
+
+  .bcc-signin-card__inner {
+    height: auto;
+    padding: 22px;
+  }
+
+  .bcc-signin-panel {
+    padding: 12px;
+  }
+}
+
+@media (max-height: 920px) {
+  .bcc-signin-page {
+    padding: 8px;
+  }
+
+  .bcc-signin-frame {
+    gap: 10px;
+    padding: 10px;
+    border-radius: 28px;
+  }
+
+  .bcc-signin-visual {
+    padding: 18px 22px;
+  }
+
+  .bcc-signin-visual__header {
+    margin-bottom: 14px;
+  }
+
+  .bcc-signin-visual h1 {
+    font-size: clamp(30px, 3.8vw, 50px);
+  }
+
+  .bcc-signin-visual__lede {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .bcc-signin-visual__chips {
+    margin-top: 14px;
+  }
+
+  .bcc-signin-visual__scene {
+    min-height: 220px;
+    margin-top: 12px;
+  }
+
+  .bcc-signin-monitor {
+    width: min(56%, 500px);
+    bottom: 24px;
+  }
+
+  .bcc-signin-scene__card--top {
+    top: 12px;
+    width: 224px;
+  }
+
+  .bcc-signin-scene__card--side {
+    bottom: 84px;
+    width: 200px;
+  }
+
+  .bcc-signin-visual__note,
+  .bcc-signin-divider,
+  .bcc-signin-social,
+  .bcc-signin-card__note {
+    display: none;
+  }
+
+  .bcc-signin-panel {
+    padding: 12px;
+  }
+
+  .bcc-signin-card__inner {
+    padding: 22px 22px 20px;
+  }
+
+  .bcc-signin-heading {
+    margin-top: 12px;
+  }
+
+  .bcc-signin-heading h2 {
+    font-size: clamp(26px, 3vw, 36px) !important;
+  }
+
+  .bcc-signin-heading .ant-typography:last-child {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .bcc-signin-form__wrap {
+    margin-top: 10px;
+  }
+
+  .bcc-signin-page .ant-form-item {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .bcc-signin-page {
+    padding: 8px;
+  }
+
+  .bcc-signin-frame {
+    gap: 8px;
+    padding: 8px;
+    border-radius: 28px;
+  }
+
+  .bcc-signin-visual {
+    display: none;
+  }
+
+  .bcc-signin-visual h1 {
+    max-width: none;
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  .bcc-signin-visual__chips {
+    margin-top: 14px;
+  }
+
+  .bcc-signin-chip {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .bcc-signin-visual__scene,
+  .bcc-signin-visual__note,
+  .bcc-signin-divider,
+  .bcc-signin-social,
+  .bcc-signin-card__note {
+    display: none;
+  }
+
+  .bcc-signin-panel {
+    padding: 8px;
+  }
+
+  .bcc-signin-card__inner {
+    height: auto;
+    padding: 20px 18px 18px;
+  }
+
+  .bcc-signin-heading {
+    margin-top: 10px;
+  }
+
+  .bcc-signin-heading h2 {
+    font-size: clamp(26px, 8vw, 34px) !important;
+  }
+
+  .bcc-signin-page .ant-input-affix-wrapper {
+    min-height: 46px;
+  }
+
+  .bcc-signin-submit {
+    height: 46px;
+  }
+
+  .bcc-signin-form__meta {
+    margin-bottom: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .bcc-signin-visual__chips {
+    gap: 10px;
+  }
+
+  .bcc-signin-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bcc-signin-scene__clock {
+    width: 48px;
+    height: 48px;
+    font-size: 11px;
+  }
+
+  .bcc-signin-scene__card {
+    padding: 14px 16px;
+    border-radius: 20px;
+  }
+
+  .bcc-signin-page .ant-form-item {
+    margin-bottom: 10px;
+  }
+}

@@ -1,51 +1,64 @@
 import React from 'react';
-import { Layout, Menu, Drawer, Grid } from 'antd';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, HeartHandshake, Monitor, Target, Search, FileText, 
-  Sparkles, MessageCircle, TrendingUp, Zap, CheckSquare, Globe, PieChart, 
-  BarChart2, GitMerge, LineChart, Lightbulb, Calendar, DollarSign, File, 
-  Store, Book, Library, Settings as SettingsIcon, Shield, Bell, CreditCard, Activity, Clock, Briefcase, Bot, Award, AlertTriangle, Palette
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  Award,
+  BarChart2,
+  Bot,
+  Briefcase,
+  Calendar,
+  CheckSquare,
+  CreditCard,
+  DollarSign,
+  FileText,
+  GitMerge,
+  Globe,
+  LayoutDashboard,
+  Library,
+  LineChart,
+  MessageCircle,
+  Monitor,
+  Palette,
+  PieChart,
+  Search,
+  Settings as SettingsIcon,
+  Shield,
+  Store,
+  Target,
+  TrendingUp,
+  Users,
+  Zap,
 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
-import { useLayoutContext } from '../contexts/LayoutContext';
 import { useAuth } from '../contexts/AuthContext';
-
-const { Sider } = Layout;
+import PortalSidebar from './PortalSidebar';
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isDark } = useTheme();
-  const { mobileMenuOpen, setMobileMenuOpen } = useLayoutContext();
-  const { role } = useAuth();
-  const screens = Grid.useBreakpoint();
+  const { role, user } = useAuth();
 
-  const getIcon = (IconCmp) => <IconCmp size={16} strokeWidth={2} />;
-
-  const getBadge = (text, type) => {
-    let bg = 'var(--bg-tertiary)';
-    let color = 'var(--text-secondary)';
-    if (type === 'alert') { bg = 'rgba(239, 68, 68, 0.2)'; color = '#ef4444'; }
-    if (type === 'warning') { bg = 'rgba(245, 158, 11, 0.2)'; color = '#f59e0b'; }
-    if (type === 'success') { bg = 'rgba(16, 185, 129, 0.2)'; color = '#10b981'; }
-    if (type === 'teal') { bg = 'rgba(13, 148, 136, 0.2)'; color = '#0d9488'; }
-
-    return (
-      <span style={{ 
-        background: bg, color: color, padding: '2px 8px', borderRadius: 12, 
-        fontSize: 10, fontWeight: 700, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4
-      }}>
-        {text}
-      </span>
-    );
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
   };
+
+  const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
+
+  const getBadge = (text, type = 'neutral') => (
+    <span className={`sidebar-menu-badge sidebar-menu-badge--${type}`}>{text}</span>
+  );
 
   const getLabel = (text, badgeText, badgeType) => {
     if (!badgeText) return text;
     return (
-      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-        {text}
+      <div className="sidebar-menu-label">
+        <span>{text}</span>
         {getBadge(badgeText, badgeType)}
       </div>
     );
@@ -57,19 +70,17 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       icon: getIcon(LayoutDashboard),
       label: 'Command Center',
     },
-    { type: 'divider' },
     {
       key: 'clients',
       label: collapsed ? 'CLI' : 'CLIENTS',
       children: [
         ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
-          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', '12', 'default') }
+          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', '12') },
         ]),
-        { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3⚠', 'alert') },
+        { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3', 'danger') },
         { key: '/clients/portal', icon: getIcon(Monitor), label: 'Portal Settings' },
       ],
     },
-    { type: 'divider' },
     {
       key: 'workspace',
       label: collapsed ? 'WRK' : 'WORKSPACE',
@@ -80,125 +91,90 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/workspace/aistudio', icon: getIcon(Palette), label: 'AI Studio' },
         { key: '/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },
         { key: '/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
-        { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142', 'default') },
+        { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142') },
         { key: '/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
         ...(role === 'commander_admin' ? [] : [
           { key: '/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
           { key: '/workspace/invoices', icon: getIcon(DollarSign), label: 'Invoices' },
-          { key: '/workspace/projects', icon: getIcon(Library), label: 'Projects' }
+          { key: '/workspace/projects', icon: getIcon(Library), label: 'Projects' },
         ]),
         { key: '/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
         { key: '/workspace/website', icon: getIcon(Globe), label: 'Websites' },
       ],
     },
-    { type: 'divider' },
     {
       key: 'intelligence',
       label: collapsed ? 'INT' : 'INTELLIGENCE',
       children: [
-        
         { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
         { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', '68', 'warning') },
         { key: '/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
         { key: '/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
         { key: '/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
-        { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('Ai Agent', 'teal') },
+        { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
       ],
     },
-    { type: 'divider' },
     {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
       children: [
-        { key: '/ops/team', icon: getIcon(Users), label: getLabel('People', '5', 'default') },
-        { key: '/ops/time', icon: getIcon(Clock), label: 'Time Tracking' },
+        { key: '/ops/team', icon: getIcon(Users), label: getLabel('People', '5') },
+        { key: '/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
-        // Admins cannot access financial controls
         ...(role === 'commander_admin' ? [] : [
           { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
-          { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' }
+          { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
         ]),
-        { key: '/ops/newbusiness', icon: getIcon(Briefcase), label: getLabel('New Business', '8', 'default') },
+        { key: '/ops/newbusiness', icon: getIcon(Briefcase), label: getLabel('New Business', '8') },
         { key: '/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
       ],
     },
-    { type: 'divider' },
     {
       key: 'settings',
       label: collapsed ? 'SET' : 'SETTINGS',
       children: [
         { key: '/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
         ...(role === 'commander_admin' ? [] : [
-          { key: '/workspace/master-items', icon: getIcon(Store), label: 'Master Item' }
+          { key: '/workspace/master-items', icon: getIcon(Store), label: 'Master Item' },
         ]),
       ],
     },
   ];
 
-  const getSelectedKeys = () => [location.pathname];
+  const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
 
-  const sidebarContent = (
-    <Sider 
-      collapsible 
-      collapsed={collapsed} 
-      onCollapse={(value) => setCollapsed(value)}
-      width={280}
-      theme={isDark ? 'dark' : 'light'}
-      style={{
-        borderRight: `1px solid var(--border-color)`,
-        boxShadow: 'var(--shadow-sm)',
-        zIndex: 10,
-        overflow: 'hidden',
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        left: 0,
+  const getSelectedKeys = () => {
+    const flatItems = flattenItems(menuItems);
+    const match = flatItems
+      .filter((item) => item.key.startsWith('/'))
+      .sort((a, b) => b.key.length - a.key.length)
+      .find((item) => location.pathname.startsWith(item.key));
+    return [match?.key || '/dashboard'];
+  };
+
+  return (
+    <PortalSidebar
+      collapsed={collapsed}
+      setCollapsed={setCollapsed}
+      brandInitials="M1"
+      brandTitle="M1"
+      brandSubtitle="Agency Growth OS"
+      accent="#3b82f6"
+      accentSoft="rgba(59, 130, 246, 0.12)"
+      menuItems={menuItems}
+      selectedKeys={getSelectedKeys()}
+      defaultOpenKeys={['clients', 'workspace', 'intelligence', 'ops', 'settings']}
+      onNavigate={navigate}
+      partner={{
+        initials: getInitials(user?.name),
+        label: user?.roleName || 'Role Not Assigned',
+        name: user?.name || 'Unknown User',
+        title: user?.brandName || user?.agencyName || user?.companyName || 'Workspace',
       }}
-    >
-      <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px', background: 'var(--bg-primary)', zIndex: 11, borderBottom: '1px solid var(--border-color)' }}>
-        {collapsed ? (
-          <div style={{ background: '#0d9488', color: '#fff', borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>M1</div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-            <div style={{ background: '#0d9488', color: '#fff', borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>M1</div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 800, fontSize: 16, lineHeight: 1, color: 'var(--text-primary)' }}>M1</span>
-              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: 'var(--text-secondary)' }}>AGENCY GROWTH OS</span>
-            </div>
-          </div>
-        )}
-      </div>
-      <div style={{ height: 'calc(100vh - 72px)', overflowY: 'auto', overflowX: 'hidden' }}>
-        <Menu
-          mode="inline"
-          selectedKeys={getSelectedKeys()}
-          defaultOpenKeys={['clients', 'workspace', 'intelligence', 'ops', 'settings']}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{ borderRight: 0, paddingBottom: 60, paddingTop: 16 }}
-        />
-      </div>
-    </Sider>
+    />
   );
-
-  if (!screens.lg && screens.lg !== undefined) {
-    return (
-      <Drawer
-        placement="left"
-        closable={false}
-        onClose={() => setMobileMenuOpen(false)}
-        open={mobileMenuOpen}
-        bodyStyle={{ padding: 0, overflow: 'hidden' }}
-        width={280}
-      >
-        {sidebarContent}
-      </Drawer>
-    );
-  }
-
-  return sidebarContent;
 };
 
 export default Sidebar;
