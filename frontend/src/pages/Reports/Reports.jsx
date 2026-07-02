@@ -1,14 +1,49 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Select, Table, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Table, Tag, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Calendar, Plus, FileText, BarChart2, Target, Zap, Edit3, PauseCircle, PlayCircle, Download, CheckCircle2, Clock } from 'lucide-react';
-import { scheduledReports, recentSentReports } from '../../data/mock';
+import { getReportSchedules, getRecentSentReports, updateScheduleStatus } from '../../api/reportApi';
 import CreateReportModal from '../../components/CreateReportModal';
 
 const { Title, Text } = Typography;
 
 const Reports = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [scheduledReports, setScheduledReports] = useState([]);
+  const [recentSentReports, setRecentSentReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [schedules, recent] = await Promise.all([
+        getReportSchedules(),
+        getRecentSentReports()
+      ]);
+      setScheduledReports(schedules);
+      setRecentSentReports(recent);
+    } catch (error) {
+      console.error('Error fetching reports data:', error);
+      message.error('Failed to load reports data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleToggleStatus = async (record) => {
+    try {
+      const newStatus = record.status === 'Active' ? 'Paused' : 'Active';
+      await updateScheduleStatus(record._id, newStatus);
+      message.success(`Schedule ${newStatus.toLowerCase()} successfully`);
+      fetchData(); // refresh list
+    } catch (error) {
+      message.error('Failed to update status');
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -29,10 +64,10 @@ const Reports = () => {
 
   const scheduledCols = [
     { title: 'REPORT NAME', dataIndex: 'name', key: 'name', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'CLIENT', dataIndex: 'client', key: 'client', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
+    { title: 'CLIENT', dataIndex: 'clientId', key: 'client', render: client => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{client?.companyName || client?.name || 'Unknown'}</Text> },
     { title: 'TEMPLATE', dataIndex: 'template', key: 'template', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
     { title: 'FREQUENCY', dataIndex: 'frequency', key: 'frequency', render: text => <span style={{ fontWeight: 500 }}>{text}</span> },
-    { title: 'NEXT SEND', dataIndex: 'nextSend', key: 'nextSend', render: text => <span style={{ fontWeight: 600 }}>{text}</span> },
+    { title: 'NEXT SEND', dataIndex: 'nextSend', key: 'nextSend', render: text => <span style={{ fontWeight: 600 }}>{new Date(text).toLocaleDateString()}</span> },
     { title: 'FORMAT', dataIndex: 'format', key: 'format', render: text => <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontWeight: 500 }}><FileText size={16}/> {text}</span> },
     { 
       title: 'STATUS', 
@@ -46,7 +81,9 @@ const Reports = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', gap: 16 }}>
           <a style={{ color: 'var(--text-tertiary)' }}><Edit3 size={18} /></a>
-          <a style={{ color: 'var(--text-tertiary)' }}>{record.status === 'Active' ? <PauseCircle size={18}/> : <PlayCircle size={18}/>}</a>
+          <a onClick={() => handleToggleStatus(record)} style={{ color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+            {record.status === 'Active' ? <PauseCircle size={18}/> : <PlayCircle size={18}/>}
+          </a>
         </div>
       ) 
     }
@@ -54,20 +91,32 @@ const Reports = () => {
 
   const recentCols = [
     { title: 'REPORT NAME', dataIndex: 'name', key: 'name', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'CLIENT', dataIndex: 'client', key: 'client', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
-    { title: 'SENT AT', dataIndex: 'sentAt', key: 'sentAt', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
-    { title: 'DELIVERED TO', dataIndex: 'deliveredTo', key: 'deliveredTo', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
+    { title: 'CLIENT', dataIndex: 'clientId', key: 'client', render: client => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{client?.companyName || client?.name || 'Unknown'}</Text> },
+    { title: 'SENT AT', dataIndex: 'sentAt', key: 'sentAt', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{new Date(text).toLocaleString()}</Text> },
+    { title: 'DELIVERED TO', dataIndex: 'deliveredTo', key: 'deliveredTo', render: arr => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{arr?.join(', ') || 'N/A'}</Text> },
     { 
-      title: 'OPENED', 
-      dataIndex: 'opened', 
-      key: 'opened', 
-      render: text => text === 'Opened' ? <span style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}><CheckCircle2 size={16}/> Opened</span> : <span style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}><Clock size={16}/> Pending</span>
+      title: 'STATUS', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: text => text === 'Opened' ? <span style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}><CheckCircle2 size={16}/> Opened</span> : <span style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}><Clock size={16}/> {text || 'Pending'}</span>
     },
     { title: 'PAGES', dataIndex: 'pages', key: 'pages', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
     { 
       title: 'DOWNLOAD', 
-      key: 'download', 
-      render: () => <a style={{ color: 'var(--text-tertiary)' }}><Download size={18} /></a> 
+      key: 'download',
+      dataIndex: 'downloadUrl',
+      render: (url) => url ? (
+        <a 
+          href={url.startsWith('http') ? url : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'} 
+          target="_blank" 
+          rel="noreferrer" 
+          download 
+          onClick={e => e.stopPropagation()}
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          <Download size={18} />
+        </a>
+      ) : <Text type="secondary">N/A</Text>
     }
   ];
 
@@ -148,7 +197,7 @@ const Reports = () => {
           title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Scheduled Reports</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Automated delivery to clients on a recurring cadence.</Text></div>} 
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={scheduledCols} dataSource={scheduledReports} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table loading={loading} columns={scheduledCols} dataSource={scheduledReports} pagination={false} rowKey="_id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
         </Card>
       </motion.div>
 
@@ -157,11 +206,11 @@ const Reports = () => {
           title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Sent Reports</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>History of delivered reports and engagement.</Text></div>} 
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', marginBottom: 40 }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={recentCols} dataSource={recentSentReports} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table loading={loading} columns={recentCols} dataSource={recentSentReports} pagination={false} rowKey="_id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
         </Card>
       </motion.div>
 
-      <CreateReportModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CreateReportModal open={isModalOpen} onClose={() => { setIsModalOpen(false); fetchData(); }} />
 
     </motion.div>
   );

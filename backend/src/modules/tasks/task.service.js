@@ -429,6 +429,39 @@ const getAllTasks = async (
       : userId;
   const restrictToOwnAssignedTasks = false;
 
+  // ----------------------------------------------------
+  // CREATOR-BASED TASK ISOLATION
+  // ----------------------------------------------------
+  if (userId && userRole) {
+    const currentUser = await User.findById(userId);
+    let allowedCreatorRoles = [];
+
+    if (userRole === 'commander_admin') {
+      allowedCreatorRoles = ['commander_admin'];
+    } else if (userRole === 'agency_manager') {
+      allowedCreatorRoles = ['agency_manager', 'agency_client', 'client'];
+    } else if (userRole === 'agency_client' || userRole === 'client') {
+      allowedCreatorRoles = ['agency_manager', 'agency_super_admin', 'client', 'agency_client'];
+    } else if (userRole === 'agency_super_admin') {
+      allowedCreatorRoles = ['agency_super_admin', 'agency_manager', 'agency_client', 'client'];
+    } else if (userRole === 'brand_manager' || userRole === 'brand_super_admin') {
+      allowedCreatorRoles = [userRole, 'brand_manager', 'brand_super_admin'];
+    } else {
+      allowedCreatorRoles = [userRole];
+    }
+
+    const creatorMatchQuery = { role: { $in: allowedCreatorRoles } };
+    if (currentUser?.agencyId) {
+      creatorMatchQuery.agencyId = currentUser.agencyId;
+    }
+    if (currentUser?.brandId) {
+      creatorMatchQuery.brandId = currentUser.brandId;
+    }
+
+    const allowedCreatorIds = await User.find(creatorMatchQuery).distinct('_id');
+    additionalFilters.createdBy = { $in: allowedCreatorIds };
+  }
+  // ----------------------------------------------------
   if (userRole === "website_coordinator") {
     additionalFilters.$or = [
       { department: { $in: WEBSITE_COORDINATOR_DEPARTMENTS } },

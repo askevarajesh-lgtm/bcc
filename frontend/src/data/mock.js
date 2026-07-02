@@ -13,37 +13,6 @@ export const agencyClients = [
   { id: 'WF', name: 'Wakefit', industry: 'D2C', mos: 49, status: 'Critical', sla: 62, mrr: '₹1.60 L', growth: '-12.7%', leads30d: 91, contract: 'Jun 2026', owner: 'Arjun Sharma', due: 18, completed: 11, avgResponse: '11.2h', package: 'Starter', features: ['dashboard', 'performance', 'tasks', 'support'] },
 ];
 
-export const alertsData = [
-  { id: 1, client: 'Wakefit', type: 'critical', desc: 'MOS dropped 12 pts this week. SEO traffic down 34%.', time: '20 min ago', action: 'Resolve' },
-  { id: 2, client: 'Lenskart', type: 'warning', desc: 'SLA breach: Content deliverable overdue by 3 days.', time: '2 hr ago', action: 'Resolve' },
-  { id: 3, client: 'BharatPe', type: 'warning', desc: 'Ad spend 40% over budget. Needs review.', time: '4 hr ago', action: 'Resolve' },
-  { id: 4, client: 'Prestige Estates', type: 'success', desc: 'MOS hit all-time high: 84.', time: 'Yesterday', action: 'Resolve' },
-  { id: 5, client: 'Meesho', type: 'info', desc: 'New lead batch synced from Google Ads (38 leads).', time: 'Yesterday', action: 'Resolve' },
-];
-
-export const executionActivityData = [
-  { name: 'SEO Tasks', completed: 420, total: 450 },
-  { name: 'Ad Campaigns', completed: 45, total: 60 },
-  { name: 'Content Pieces', completed: 110, total: 140 },
-  { name: 'Social Posts', completed: 140, total: 180 },
-  { name: 'CRM Actions', completed: 280, total: 320 },
-];
-
-export const teamUtilisationData = [
-  { name: 'Design', value: 20, fill: '#1e293b' },
-  { name: 'SEO', value: 35, fill: '#0f172a' },
-  { name: 'Paid Media', value: 30, fill: '#334155' },
-  { name: 'Content', value: 15, fill: '#cbd5e1' },
-];
-
-export const teamCapacityData = [
-  { initials: 'AS', name: 'Arjun Sharma', logged: 36, capacity: 40, color: '#ef4444' },
-  { initials: 'PN', name: 'Priya Nair', logged: 31, capacity: 40, color: '#f59e0b' },
-  { initials: 'KM', name: 'Karan Mehta', logged: 27, capacity: 40, color: '#f59e0b' },
-  { initials: 'DR', name: 'Divya Rao', logged: 33, capacity: 40, color: '#10b981' },
-  { initials: 'RS', name: 'Rahul Singh', logged: 35, capacity: 40, color: '#10b981' },
-];
-
 export const strategyOkrs = [
   { id: 1, title: 'Become #1 organic brand for premium real estate in South India', client: 'Prestige Estates - owned by Arjun Sharma', progress: 72, status: 'On Track', stats: [{label: 'Non-brand organic sessions', val: '184k / 250k', pct: 73}, {label: 'Top 3 rankings on commercial KWs', val: '62 / 85', pct: 72}, {label: 'MQLs from organic', val: '892 / 1,200', pct: 74}] },
   { id: 2, title: 'Scale paid acquisition with CAC under ₹420', client: 'Rapido - owned by Priya Nair', progress: 58, status: 'On Track', stats: [{label: 'Blended CAC', val: '₹480 / ₹420', pct: 60}, {label: 'New rider signups / mo', val: '38k / 55k', pct: 69}, {label: 'ROAS (Meta + Google)', val: '3.1x / 4.2x', pct: 73}] },
@@ -130,26 +99,6 @@ export const socialPosts = [
   { id: 4, title: '5 things every NRI buyer should check before investing.', date: 'May 31', er: '4.1%', reach: '17.8K', likes: 1240, comments: 88, shares: 196 },
   { id: 5, title: 'Sunday open house — Prestige Lakeside Habitat. RSVP in bio.', date: 'May 29', er: '3.8%', reach: '16.2K', likes: 1180, comments: 54, shares: 142 },
   { id: 6, title: 'Whitefield then & now — a 10-year transformation story.', date: 'May 27', er: '4.9%', reach: '20.8K', likes: 1720, comments: 102, shares: 214 },
-];
-
-export const performanceAdsCampaigns = [
-  { id: 1, campaign: 'Brand Awareness — Bangalore', platform: 'Meta', status: 'Active', budget: '₹2.00L', spend: '₹1.80L', leads: 48, cpl: '₹3,750', roas: '-', ctr: '2.8%', progress: 90 },
-  { id: 2, campaign: 'Lead Gen — Luxury Apartments', platform: 'Google', status: 'Active', budget: '₹3.50L', spend: '₹3.10L', leads: 67, cpl: '₹4,627', roas: '4.8x', ctr: '4.1%', progress: 88 },
-  { id: 3, campaign: 'Retargeting — Website Visitors', platform: 'Meta', status: 'Active', budget: '₹1.00L', spend: '₹82,000', leads: 27, cpl: '₹3,037', roas: '5.2x', ctr: '3.9%', progress: 82 },
-  { id: 4, campaign: 'YouTube Brand — Q2', platform: 'YouTube', status: 'Paused', budget: '₹1.50L', spend: '₹90,000', leads: '-', cpl: '-', roas: '-', ctr: '1.2%', progress: 60 },
-];
-
-export const dailyPerformanceAds = [
-  { day: 1, leads: 5, spend: 12000, roas: 3.8 }, { day: 2, leads: 4, spend: 11500, roas: 3.9 }, { day: 3, leads: 3, spend: 11000, roas: 4.1 },
-  { day: 4, leads: 6, spend: 12500, roas: 4.2 }, { day: 5, leads: 7, spend: 13000, roas: 4.5 }, { day: 6, leads: 5, spend: 11500, roas: 4.0 },
-  { day: 7, leads: 4, spend: 10000, roas: 3.8 }, { day: 8, leads: 5, spend: 10500, roas: 3.9 }, { day: 9, leads: 4, spend: 10000, roas: 3.8 },
-  { day: 10, leads: 5, spend: 11000, roas: 4.0 }, { day: 11, leads: 4, spend: 10500, roas: 3.9 }, { day: 12, leads: 3, spend: 9500, roas: 3.8 },
-  { day: 13, leads: 3, spend: 9000, roas: 3.7 }, { day: 14, leads: 3, spend: 9500, roas: 3.8 }, { day: 15, leads: 4, spend: 10000, roas: 3.9 },
-  { day: 16, leads: 5, spend: 11000, roas: 4.0 }, { day: 17, leads: 3, spend: 9000, roas: 3.7 }, { day: 18, leads: 3, spend: 9500, roas: 3.8 },
-  { day: 19, leads: 4, spend: 10000, roas: 3.9 }, { day: 20, leads: 4, spend: 10500, roas: 4.0 }, { day: 21, leads: 5, spend: 11500, roas: 4.2 },
-  { day: 22, leads: 6, spend: 12500, roas: 4.5 }, { day: 23, leads: 7, spend: 13500, roas: 4.8 }, { day: 24, leads: 6, spend: 13000, roas: 4.6 },
-  { day: 25, leads: 8, spend: 14500, roas: 5.2 }, { day: 26, leads: 6, spend: 13000, roas: 4.8 }, { day: 27, leads: 5, spend: 12000, roas: 4.5 },
-  { day: 28, leads: 5, spend: 11500, roas: 4.2 }, { day: 29, leads: 5, spend: 11000, roas: 4.0 }, { day: 30, leads: 4, spend: 10500, roas: 3.9 },
 ];
 
 // --- FINAL BATCH MOCK DATA ---

@@ -35,11 +35,30 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useFeatures } from '../contexts/FeatureContext';
 import PortalSidebar from './PortalSidebar';
+import { slaApi } from '../api/slaApi';
 
 const ClientSidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, user } = useAuth();
+  const { features } = useFeatures();
+  
+  const [slaCount, setSlaCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchSlaCount = async () => {
+      try {
+        const res = await slaApi.getSlaDashboardStats();
+        if (res && res.data && res.data.stats) {
+          const { total, resolved } = res.data.stats;
+          setSlaCount(total - resolved);
+        }
+      } catch (error) {
+        console.error('Failed to fetch SLA stats for sidebar', error);
+      }
+    };
+    fetchSlaCount();
+  }, []);
   const { hasFeature } = useFeatures();
 
   const getInitials = (name) => {
@@ -104,6 +123,13 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         children: [
           { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
         ],
+      },
+      {
+        key: 'support-group',
+        label: collapsed ? 'SUP' : 'SUPPORT',
+        children: [
+          { key: '/client/support', icon: getIcon(HelpCircle), label: 'Support', featureId: 'support' },
+        ],
       }
     );
   } else if (role === 'brand_manager') {
@@ -112,7 +138,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         key: 'clients',
         label: collapsed ? 'CLI' : 'CLIENTS',
         children: [
-          { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3', 'danger') },
+          { key: '/client/support', icon: getIcon(HelpCircle), label: 'Support', featureId: 'support' },
         ],
       },
       {

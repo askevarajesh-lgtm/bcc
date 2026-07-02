@@ -1,11 +1,54 @@
-import React from 'react';
-import { Typography, Select, Button, Row, Col, Table, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Select, Button, Row, Col, Table, Tag, Skeleton, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { getDashboardData, getTableData, getIndustries } from '../../api/benchmarkApi';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const Benchmarks = () => {
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [tableData, setTableData] = useState([]);
+  const [industries, setIndustries] = useState(['All Industries']);
+  const [selectedIndustry, setSelectedIndustry] = useState('All Industries');
+  const [selectedClient, setSelectedClient] = useState('');
+
+  // Helper to map 0-100 score to radar chart coordinates
+  const getRadarPoint = (score, angleDeg) => {
+    // Max radius is 100
+    const radius = Math.max(10, Math.min(100, score)); 
+    const angleRad = (angleDeg - 90) * (Math.PI / 180);
+    return `${radius * Math.cos(angleRad)},${radius * Math.sin(angleRad)}`;
+  };
+
+  const getIndustryPolygon = () => {
+    if (!dashboardData?.industryData) return "0,-68 50,-28 65,30 0,68 -55,35 -50,-35";
+    const d = dashboardData.industryData;
+    return [
+      getRadarPoint(d.avgSeo || 0, 0),
+      getRadarPoint(d.avgSocial || 0, 60),
+      getRadarPoint(d.avgAds || 0, 120),
+      getRadarPoint(d.avgLeads || 0, 180),
+      getRadarPoint(d.avgContent || 0, 240),
+      getRadarPoint(d.avgCx || 0, 300),
+    ].join(' ');
+  };
+
+  const getClientPolygon = () => {
+    if (!dashboardData?.clientData?.metrics) return "0,-84 70,-20 80,45 0,80 -70,50 -60,-20";
+    const m = dashboardData.clientData.metrics;
+    return [
+      getRadarPoint(m.seo || 0, 0),
+      getRadarPoint(m.social || 0, 60),
+      getRadarPoint(m.ads || 0, 120),
+      getRadarPoint(m.leads || 0, 180),
+      getRadarPoint(m.content || 0, 240),
+      getRadarPoint(m.cx || 0, 300),
+    ].join(' ');
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -16,7 +59,6 @@ const Benchmarks = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  // The Analytical Reticle Frame Component
   const ReticleFrame = ({ children, style, bodyStyle }) => {
     const nodeStyle = {
       position: 'absolute',
@@ -44,29 +86,40 @@ const Benchmarks = () => {
     );
   };
 
-  const percentiles = [
-    { label: 'SEO Performance', value: 84, suffix: 'Top 16% in Real Estate' },
-    { label: 'Social Media', value: 71, suffix: 'Top 29%' },
-    { label: 'Paid Advertising', value: 68, suffix: 'Top 32%' },
-    { label: 'Lead Generation', value: 78, suffix: 'Top 22%' },
-    { label: 'Content Marketing', value: 82, suffix: 'Top 18%' },
-    { label: 'Overall MOS', value: 79, suffix: 'Top 21%' },
-  ];
+  useEffect(() => {
+    fetchIndustries();
+  }, []);
 
-  const tableData = [
-    { key: '1', client: 'Prestige Estates', industry: 'Real Estate', mos: 84, avg: 68, diff: 16, seo: 'Top 16%', ads: 'Top 32%', social: 'Top 29%' },
-    { key: '2', client: 'boAt', industry: 'Consumer Electronics', mos: 81, avg: 72, diff: 9, seo: 'Top 22%', ads: 'Top 18%', social: 'Top 14%' },
-    { key: '3', client: 'Rapido', industry: 'Mobility', mos: 78, avg: 65, diff: 13, seo: 'Top 28%', ads: 'Top 24%', social: 'Top 31%' },
-    { key: '4', client: 'Nykaa', industry: 'Beauty', mos: 76, avg: 74, diff: 2, seo: 'Top 34%', ads: 'Top 29%', social: 'Top 19%' },
-    { key: '5', client: 'CRED', industry: 'Fintech', mos: 73, avg: 70, diff: 3, seo: 'Top 38%', ads: 'Top 42%', social: 'Top 45%' },
-    { key: '6', client: 'Meesho', industry: 'E-Commerce', mos: 71, avg: 76, diff: -5, seo: 'Top 45%', ads: 'Top 38%', social: 'Top 41%' },
-    { key: '7', client: 'Zepto', industry: 'Q-Commerce', mos: 67, avg: 71, diff: -4, seo: 'Top 52%', ads: 'Top 48%', social: 'Top 44%' },
-    { key: '8', client: 'Lenskart', industry: 'Retail', mos: 63, avg: 69, diff: -6, seo: 'Top 58%', ads: 'Top 62%', social: 'Top 55%' },
-    { key: '9', client: 'OYO', industry: 'Hospitality', mos: 62, avg: 67, diff: -5, seo: 'Top 61%', ads: 'Top 58%', social: 'Top 64%' },
-    { key: '10', client: 'BharatPe', industry: 'Fintech', mos: 58, avg: 70, diff: -12, seo: 'Top 72%', ads: 'Top 78%', social: 'Top 68%' },
-    { key: '11', client: 'Urban Company', industry: 'Services', mos: 55, avg: 63, diff: -8, seo: 'Top 74%', ads: 'Top 71%', social: 'Top 78%' },
-    { key: '12', client: 'Wakefit', industry: 'D2C', mos: 49, avg: 68, diff: -19, seo: 'Bottom 30%', ads: 'Bottom 28%', social: 'Bottom 35%' },
-  ];
+  useEffect(() => {
+    fetchData();
+  }, [selectedIndustry, selectedClient]);
+
+  const fetchIndustries = async () => {
+    try {
+      const res = await getIndustries();
+      if (res.status === 'success') {
+        setIndustries(['All Industries', ...res.data]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch industries', error);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [dashRes, tableRes] = await Promise.all([
+        getDashboardData(selectedClient, selectedIndustry),
+        getTableData(selectedIndustry)
+      ]);
+      if (dashRes.status === 'success') setDashboardData(dashRes.data);
+      if (tableRes.status === 'success') setTableData(tableRes.data);
+    } catch (error) {
+      message.error('Failed to load benchmark data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
     { title: 'Client', dataIndex: 'client', key: 'client', render: (text) => <Text style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{text}</Text> },
@@ -101,8 +154,9 @@ const Benchmarks = () => {
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>See how your clients perform vs industry standards and competitors.</Text>
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Select defaultValue="Prestige Estates" style={{ width: 200, height: 40 }} className="custom-select" />
-          <Select defaultValue="All Industries" style={{ width: 180, height: 40 }} className="custom-select" />
+          <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
+            {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
+          </Select>
           <Button type="primary" icon={<Download size={16} />} style={{ height: 40, background: 'var(--accent-primary)', borderRadius: 0, fontWeight: 700, border: 'none' }}>
             Export Report
           </Button>
@@ -144,10 +198,10 @@ const Benchmarks = () => {
                     <text x="-100" y="-55" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontWeight="700">CX</text>
 
                     {/* Industry Avg Polygon (Dark) */}
-                    <polygon points="0,-68 50,-28 65,30 0,68 -55,35 -50,-35" fill="var(--text-primary)" fillOpacity="0.8" stroke="var(--text-primary)" strokeWidth="2" />
+                    <polygon points={getIndustryPolygon()} fill="var(--text-primary)" fillOpacity="0.8" stroke="var(--text-primary)" strokeWidth="2" />
                     
-                    {/* Prestige Estates Polygon (Cyan/Primary) */}
-                    <polygon points="0,-84 70,-20 80,45 0,80 -70,50 -60,-20" fill="var(--accent-primary)" fillOpacity="0.4" stroke="var(--accent-primary)" strokeWidth="3" />
+                    {/* Client Polygon (Cyan/Primary) */}
+                    <polygon points={getClientPolygon()} fill="var(--accent-primary)" fillOpacity="0.4" stroke="var(--accent-primary)" strokeWidth="3" />
                   </g>
                 </svg>
               </div>
@@ -170,31 +224,44 @@ const Benchmarks = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
                 <div>
                   <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Percentile Rankings</Title>
-                  <Text type="secondary" style={{ fontSize: 14 }}>Prestige Estates — where they stand in their industry</Text>
+                  <Text type="secondary" style={{ fontSize: 14 }}>
+                    {dashboardData?.clientData?.clientId?.companyName || 'Client'} — where they stand in their industry
+                  </Text>
                 </div>
-                <Tag style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-primary)', border: 'none', padding: '6px 12px', fontWeight: 800 }}>79th percentile overall</Tag>
+                <Tag style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-primary)', border: 'none', padding: '6px 12px', fontWeight: 800 }}>
+                  {dashboardData?.clientData?.percentiles?.mos || 0}th percentile overall
+                </Tag>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-                {percentiles.map((p, idx) => (
-                  <div key={idx}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{p.label}</Text>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{p.value}th</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>· {p.suffix}</span>
+                {loading ? <Skeleton active /> : (
+                  [
+                    { label: 'SEO Performance', value: dashboardData?.clientData?.percentiles?.seo || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.seo || 0)}%` },
+                    { label: 'Social Media', value: dashboardData?.clientData?.percentiles?.social || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.social || 0)}%` },
+                    { label: 'Paid Advertising', value: dashboardData?.clientData?.percentiles?.ads || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.ads || 0)}%` },
+                    { label: 'Lead Generation', value: dashboardData?.clientData?.percentiles?.leads || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.leads || 0)}%` },
+                    { label: 'Content Marketing', value: dashboardData?.clientData?.percentiles?.content || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.content || 0)}%` },
+                    { label: 'Overall MOS', value: dashboardData?.clientData?.percentiles?.mos || 0, suffix: `Top ${100 - (dashboardData?.clientData?.percentiles?.mos || 0)}%` },
+                  ].map((p, idx) => (
+                    <div key={idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{p.label}</Text>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{p.value}th</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>· {p.suffix}</span>
+                        </div>
+                      </div>
+                      <div style={{ width: '100%', height: 6, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: `${p.value}%` }} 
+                          transition={{ duration: 1, delay: idx * 0.1 }}
+                          style={{ height: '100%', background: 'var(--accent-primary)' }} 
+                        />
                       </div>
                     </div>
-                    <div style={{ width: '100%', height: 6, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${p.value}%` }} 
-                        transition={{ duration: 1, delay: idx * 0.1 }}
-                        style={{ height: '100%', background: 'var(--accent-primary)' }} 
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </ReticleFrame>
           </Col>
@@ -214,19 +281,21 @@ const Benchmarks = () => {
             pagination={false} 
             rowClassName="hover-bg"
             style={{ padding: '0 16px 16px 16px' }}
+            loading={loading}
+            rowKey="id"
           />
         </ReticleFrame>
       </motion.div>
 
       {/* Line Charts */}
       <motion.div variants={itemVariants}>
-        <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Industry Benchmarks — Real Estate (selected)</Title>
+        <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Industry Benchmarks — {selectedIndustry} (selected)</Title>
         <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 24 }}>12-month rolling average · highlighted months = client beat industry</Text>
         
         <Row gutter={[32, 32]}>
           <Col xs={24} md={12}>
             <ReticleFrame>
-              <Title level={5} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>MOS — Prestige Estates vs Industry</Title>
+              <Title level={5} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>MOS — {dashboardData?.clientData?.clientId?.companyName || 'Client'} vs Industry</Title>
               <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 32 }}>MOS over 12 months</Text>
               
               <div style={{ position: 'relative', height: 200 }}>
@@ -258,7 +327,7 @@ const Benchmarks = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 12, height: 2, background: 'var(--accent-primary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>Prestige Estates</Text>
+                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>{dashboardData?.clientData?.clientId?.companyName || 'Client'}</Text>
                 </div>
               </div>
             </ReticleFrame>
@@ -297,7 +366,7 @@ const Benchmarks = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 12, height: 2, background: 'var(--accent-primary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>Prestige Estates</Text>
+                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>{dashboardData?.clientData?.clientId?.companyName || 'Client'}</Text>
                 </div>
               </div>
             </ReticleFrame>

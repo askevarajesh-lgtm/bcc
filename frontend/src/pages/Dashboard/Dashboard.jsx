@@ -1,16 +1,47 @@
-import React from 'react';
-import { Typography, Row, Col, Card, Table, Tag, Progress, List, Button, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Table, Tag, Progress, List, Button, Avatar, Spin, message } from 'antd';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { agencyClients, alertsData, executionActivityData, teamUtilisationData, teamCapacityData } from '../../data/mock';
+import { superadminApi } from '../../api/superadminApi';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
   const { role } = useAuth();
-  const topClients = [...agencyClients].sort((a, b) => b.mos - a.mos).slice(0, 7);
+  const navigate = useNavigate();
+  
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    activeClients: 0,
+    avgMosScore: 0,
+    slaCompliance: 100,
+    openEscalations: 0,
+    topClients: [],
+    alertsData: [],
+    executionActivityData: [],
+    teamUtilisationData: [],
+    teamCapacityData: []
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await superadminApi.getCommandCenterData();
+        if (res && res.data) {
+          setData(res.data.data || res.data);
+        }
+      } catch (error) {
+        console.error('Failed to load command center data', error);
+        message.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -50,185 +81,223 @@ const Dashboard = () => {
     )}
   ];
 
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
+  }
+
   return (
-    <motion.div 
-      variants={containerVariants}
-      initial="hidden" 
-      animate="visible"
-    >
-      <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible">
+      {/* Header Section */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OVERVIEW</Text>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Command Center</Title>
-          <Text type="secondary">Good morning, Arjun — here's your agency at a glance.</Text>
+          <Text style={{ fontSize: 13, fontWeight: 800, letterSpacing: 2, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Command Center</Text>
+          <Title level={2} style={{ margin: '8px 0 4px 0', fontWeight: 800, fontSize: 36, letterSpacing: '-0.02em' }}>Agency Overview</Title>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Live performance matrix and operational health.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Last 30 days</Button>
-          <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Report</Button>
+          <Button icon={<Calendar size={16} />} style={{ borderRadius: 12, height: 44, padding: '0 20px', borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-elevated)', fontWeight: 600, boxShadow: 'var(--shadow-sm)' }}>Last 30 days</Button>
+          <Button type="primary" onClick={() => navigate('/intelligence/reporting')} icon={<Download size={16} />} style={{ borderRadius: 12, height: 44, padding: '0 24px', background: 'linear-gradient(135deg, var(--accent-primary), #60a5fa)', border: 'none', fontWeight: 700, boxShadow: 'var(--shadow-glow)' }}>Generate Report</Button>
         </div>
       </motion.div>
 
-      {/* KPI Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      {/* KPI Cards Row */}
+      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'ACTIVE CLIENTS', val: '12', sub: '+2 this month', type: 'up' },
-          // Hide MRR for commander_admin
-          ...(role === 'commander_admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up' }]),
-          { label: 'AVG MOS SCORE', val: '68', sub: '+4 pts', type: 'up', isProgress: true },
-          { label: 'SLA COMPLIANCE', val: '94%', sub: '-2% vs last month', type: 'down' },
-          { label: 'OPEN ESCALATIONS', val: '3', sub: 'Needs attention', type: 'alert' }
+          { label: 'ACTIVE CLIENTS', val: data.activeClients, sub: 'Current total', type: 'up', gradient: 'linear-gradient(145deg, rgba(59, 130, 246, 0.1), transparent)' },
+          ...(role === 'commander_admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up', gradient: 'linear-gradient(145deg, rgba(16, 185, 129, 0.1), transparent)' }]),
+          { label: 'AVG MOS SCORE', val: data.avgMosScore, sub: 'Across portfolio', type: 'up', isProgress: true, gradient: 'linear-gradient(145deg, rgba(139, 92, 246, 0.1), transparent)' },
+          { label: 'SLA COMPLIANCE', val: `${data.slaCompliance}%`, sub: 'Resolved on time', type: 'down', gradient: 'linear-gradient(145deg, rgba(245, 158, 11, 0.1), transparent)' },
+          { label: 'ESCALATIONS', val: data.openEscalations, sub: 'Requires action', type: 'alert', gradient: 'linear-gradient(145deg, rgba(239, 68, 68, 0.1), transparent)' }
         ].map((kpi, i) => (
-          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
-            <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-              <Card className="glassmorphism" bodyStyle={{ padding: '16px 20px' }} style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{kpi.label}</Text>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                  <Title level={2} style={{ margin: 0, fontSize: 32, fontWeight: 800, whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{kpi.val}</Title>
-                  {kpi.isProgress && <Progress type="circle" percent={68} size={48} strokeColor="var(--accent-secondary)" trailColor="var(--bg-tertiary)" format={() => ''} />}
+          <Col style={{ flex: '1 1 220px', minWidth: 220 }} key={i}>
+            <motion.div variants={itemVariants} whileHover={{ y: -6, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
+              <div style={{ background: kpi.gradient || 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '24px', borderRadius: 20, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.2, color: 'var(--text-tertiary)' }}>{kpi.label}</Text>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
+                  <Title level={2} style={{ margin: 0, fontSize: 38, fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)' }}>{kpi.val}</Title>
+                  {kpi.isProgress && <Progress type="circle" percent={kpi.val} size={54} strokeColor="var(--accent-info)" trailColor="var(--bg-tertiary)" format={() => ''} strokeWidth={8} />}
                 </div>
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {kpi.type === 'up' && <ArrowUpRight size={16} style={{ color: 'var(--accent-secondary)' }} />}
-                  {kpi.type === 'down' && <ArrowDownRight size={16} style={{ color: 'var(--accent-warning)' }} />}
-                  {kpi.type === 'alert' && <AlertCircle size={16} style={{ color: 'var(--accent-danger)' }} />}
-                  <Text style={{ fontSize: 13, fontWeight: 500, color: kpi.type === 'alert' ? 'var(--accent-danger)' : kpi.type === 'down' ? 'var(--accent-warning)' : 'var(--accent-secondary)' }}>{kpi.sub}</Text>
+                <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-tertiary)', padding: '6px 12px', borderRadius: 8, alignSelf: 'flex-start' }}>
+                  {kpi.type === 'up' && <ArrowUpRight size={14} style={{ color: 'var(--accent-secondary)' }} />}
+                  {kpi.type === 'down' && <ArrowDownRight size={14} style={{ color: 'var(--accent-warning)' }} />}
+                  {kpi.type === 'alert' && <AlertCircle size={14} style={{ color: 'var(--accent-danger)' }} />}
+                  <Text style={{ fontSize: 12, fontWeight: 700, color: kpi.type === 'alert' ? 'var(--accent-danger)' : kpi.type === 'down' ? 'var(--accent-warning)' : 'var(--text-secondary)' }}>{kpi.sub}</Text>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </Col>
         ))}
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      {/* Row 2: Execution Activity & Alerts */}
+      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} xl={16}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Client MOS Leaderboard</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Ranked by Marketing Operating Score</Text></div>} 
-              extra={<a style={{ color: 'var(--accent-secondary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>View all →</a>}
-              className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
-            >
-              <div style={{ overflowX: 'auto' }}>
-                <Table columns={leaderboardCols} dataSource={topClients} pagination={false} size="middle" scroll={{ x: 600 }} style={{ minWidth: 600 }} />
+            <div style={{ background: 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '28px', borderRadius: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', height: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Execution Activity</Title>
+                  <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Completed vs scheduled over last 30 days</Text>
+                </div>
+                <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 700 }}>
+                  <span style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-primary)' }}></div> Completed</span>
+                  <span style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-tertiary)' }}></div> Scheduled</span>
+                </div>
               </div>
-            </Card>
+              <div style={{ height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.executionActivityData} margin={{ left: -20, right: 0, top: 10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity={0.4}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                    <XAxis dataKey="name" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 600, fill: 'var(--text-secondary)' }} dy={10} />
+                    <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-tertiary)' }} />
+                    <Tooltip 
+                      cursor={{ fill: 'var(--bg-tertiary)', opacity: 0.4 }} 
+                      contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', color: 'var(--text-primary)', padding: '12px 16px' }} 
+                      itemStyle={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: 14 }} 
+                    />
+                    <Bar dataKey="completed" fill="url(#barGradient)" radius={[8, 8, 0, 0]} barSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </motion.div>
         </Col>
+
         <Col xs={24} xl={8}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Alerts & Escalations</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Sorted by severity</Text></div>} 
-              extra={<Tag color="error" style={{ borderRadius: 12, padding: '2px 10px', marginTop: 8, fontWeight: 600, border: 'none', background: 'var(--accent-danger)', color: '#fff' }}>1 CRITICAL</Tag>}
-              className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '0 16px 16px 16px' }}
-            >
-              <List
-                itemLayout="horizontal"
-                dataSource={alertsData}
-                renderItem={item => (
-                  <List.Item actions={[<Button size="small" style={{ borderRadius: 8, color: 'var(--text-primary)', borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>{item.action}</Button>]}>
-                    <List.Item.Meta
-                      avatar={
-                        <div style={{ padding: 8, borderRadius: 10, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                          {item.type === 'critical' ? <AlertCircle color="var(--accent-danger)" size={18} /> : 
-                           item.type === 'warning' ? <AlertCircle color="var(--accent-warning)" size={18} /> : 
-                           item.type === 'success' ? <CheckCircle2 color="var(--accent-secondary)" size={18} /> : 
-                           <Clock color="var(--accent-primary)" size={18} />}
-                        </div>
-                      }
-                      title={<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><strong style={{ color: 'var(--text-primary)' }}>{item.client}</strong><span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>{item.time}</span></div>}
-                      description={<span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.desc}</span>}
-                    />
-                  </List.Item>
-                )}
-              />
-            </Card>
+            <div style={{ background: 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '28px', borderRadius: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Action Center</Title>
+                  <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Active alerts & escalations</Text>
+                </div>
+                <Tag style={{ borderRadius: 12, padding: '4px 12px', fontWeight: 700, border: 'none', background: 'var(--accent-danger)', color: '#fff' }}>{data.openEscalations} Critical</Tag>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }}>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={data.alertsData}
+                  renderItem={item => (
+                    <List.Item style={{ padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
+                      <List.Item.Meta
+                        avatar={
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                            {item.type === 'critical' ? <AlertCircle color="var(--accent-danger)" size={20} /> : 
+                             item.type === 'warning' ? <AlertCircle color="var(--accent-warning)" size={20} /> : 
+                             item.type === 'success' ? <CheckCircle2 color="var(--accent-secondary)" size={20} /> : 
+                             <Clock color="var(--accent-primary)" size={20} />}
+                          </div>
+                        }
+                        title={
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <strong style={{ color: 'var(--text-primary)', fontSize: 14 }}>{item.client}</strong>
+                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>{item.time}</span>
+                          </div>
+                        }
+                        description={
+                          <div>
+                            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 8 }}>{item.desc}</div>
+                            <Button size="small" type="text" onClick={() => navigate('/clients/sla')} style={{ padding: 0, color: 'var(--accent-primary)', fontWeight: 700, fontSize: 12, height: 'auto' }}>{item.action} →</Button>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </div>
+            </div>
           </motion.div>
         </Col>
       </Row>
 
-      <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Execution Activity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Completed vs scheduled - last 30 days</Text></div>} 
-          extra={<div style={{ display: 'flex', gap: 16, fontSize: 13, marginTop: 8, fontWeight: 600 }}><span style={{ color: 'var(--accent-secondary)' }}>● Completed</span><span style={{ color: 'var(--text-tertiary)' }}>● Total</span></div>}
-          className="glassmorphism" style={{ borderRadius: 16, marginBottom: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
-        >
-          <div style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={executionActivityData} margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="colorCompleted" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="5%" stopColor="var(--accent-secondary)" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="var(--accent-secondary)" stopOpacity={0.6}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                <XAxis type="number" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
-                <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 500, fill: 'var(--text-secondary)' }} />
-                <Tooltip 
-                  cursor={{fill: 'var(--bg-tertiary)'}} 
-                  contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: 'var(--shadow-md)', color: 'var(--text-primary)' }} 
-                  itemStyle={{ color: 'var(--accent-secondary)', fontWeight: 600 }} 
-                />
-                <Bar dataKey="completed" fill="url(#colorCompleted)" radius={[0, 6, 6, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </motion.div>
-
-      <Row gutter={[16, 16]}>
+      {/* Row 3: Leaderboard, Utilisation, Capacity */}
+      <Row gutter={[24, 24]}>
         <Col xs={24} xl={12}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Team Utilisation</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Billable % by team</Text></div>} 
-              className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
-            >
-              <div style={{ height: 240, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ background: 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '28px', borderRadius: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', height: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800 }}>MOS Leaderboard</Title>
+                  <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Ranked by overall health</Text>
+                </div>
+                <Button type="link" onClick={() => navigate('/clients/accounts')} style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>View All</Button>
+              </div>
+              <Table columns={leaderboardCols} dataSource={data.topClients} pagination={false} size="middle" rowKey="id" 
+                rowClassName={() => 'glass-row'}
+                style={{ 
+                  '--ant-table-header-bg': 'transparent', 
+                  '--ant-table-header-color': 'var(--text-tertiary)',
+                  '--ant-table-row-hover-bg': 'var(--bg-tertiary)'
+                }} 
+              />
+            </div>
+          </motion.div>
+        </Col>
+        
+        <Col xs={24} md={12} xl={6}>
+          <motion.div variants={itemVariants} style={{ height: '100%' }}>
+            <div style={{ background: 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '28px', borderRadius: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Team Utilisation</Title>
+              <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Billable distribution</Text>
+              
+              <div style={{ height: 200, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: 'var(--shadow-md)', color: 'var(--text-primary)' }} 
+                      contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-lg)', color: 'var(--text-primary)', fontWeight: 700 }} 
+                      itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Pie data={teamUtilisationData} innerRadius={70} outerRadius={90} paddingAngle={6} dataKey="value" stroke="var(--bg-secondary)">
-                      {teamUtilisationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    <Pie data={data.teamUtilisationData} innerRadius={60} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none" cornerRadius={4}>
+                      {data.teamUtilisationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap', marginTop: 16 }}>
-                {teamUtilisationData.map(t => (
-                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: t.fill, boxShadow: 'var(--shadow-sm)' }}></span> {t.name}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+                {data.teamUtilisationData.map(t => (
+                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.fill, flexShrink: 0 }}></span> {t.name}
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           </motion.div>
         </Col>
-        <Col xs={24} xl={12}>
+
+        <Col xs={24} md={12} xl={6}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>This Week's Capacity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assigned vs available hours</Text></div>} 
-              className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
-                {teamCapacityData.map(t => (
+            <div style={{ background: 'var(--bg-elevated)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '28px', borderRadius: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)', height: '100%' }}>
+              <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Capacity Hub</Title>
+              <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Logged vs Available hrs</Text>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 32 }}>
+                {data.teamCapacityData.map(t => (
                   <div key={t.initials} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <Avatar size="large" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 600 }}>{t.initials}</Avatar>
+                    <Avatar size="large" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 800, boxShadow: 'var(--shadow-sm)' }}>{t.initials}</Avatar>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{t.name}</Text>
-                        <Text style={{ fontSize: 13, color: t.color, fontWeight: 600 }}>{t.logged}h / {t.capacity}h <span style={{ marginLeft: 8, fontWeight: 700 }}>{Math.round((t.logged/t.capacity)*100)}%</span></Text>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</Text>
+                        <Text style={{ fontSize: 13, color: t.color, fontWeight: 800 }}>{Math.round((t.logged/t.capacity)*100)}%</Text>
                       </div>
-                      <Progress percent={(t.logged/t.capacity)*100} showInfo={false} strokeColor={t.color} trailColor="var(--bg-tertiary)" size="small" />
+                      <Progress percent={(t.logged/t.capacity)*100} showInfo={false} strokeColor={t.color} trailColor="var(--bg-tertiary)" size="small" strokeWidth={6} />
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           </motion.div>
         </Col>
       </Row>
     </motion.div>
   );
+
 };
 
 export default Dashboard;

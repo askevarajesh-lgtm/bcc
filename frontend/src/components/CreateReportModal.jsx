@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Modal, Typography, Button, Select, Row, Col, Card, Input } from 'antd';
+import { Modal, Typography, Button, Select, Row, Col, Card, Input, DatePicker, message } from 'antd';
 import { FileText, BarChart2, Target, Zap, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGetClientsQuery } from '../api/clientApi';
+import { createReportSchedule, generateReport } from '../api/reportApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -12,12 +14,58 @@ const CreateReportModal = ({ open, onClose }) => {
 
   // Form State
   const [selectedTemplate, setSelectedTemplate] = useState('monthly');
-  const [selectedClient, setSelectedClient] = useState('Prestige Estates');
+  const [selectedClient, setSelectedClient] = useState('');
   const [selectedDateRange, setSelectedDateRange] = useState('Last 30 days');
   const [selectedSections, setSelectedSections] = useState(['mos', 'seo', 'ads', 'leads']);
-  const [emailRecipients, setEmailRecipients] = useState('client@example.com');
-  const [whatsappNumber, setWhatsappNumber] = useState('+91 9XXXXXXXXX');
+  const [emailRecipients, setEmailRecipients] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState('Send now');
+  const [frequency, setFrequency] = useState('Monthly');
+  const [nextSend, setNextSend] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: clientsData } = useGetClientsQuery();
+  const clients = clientsData?.data || [];
+
+  const handleSubmit = async () => {
+    if (!selectedClient) return message.error('Please select a client');
+    
+    setIsSubmitting(true);
+    try {
+      const templateName = selectedTemplate === 'monthly' ? 'Monthly Performance Report' : 
+                           selectedTemplate === 'seo' ? 'SEO Ranking Report' : 
+                           selectedTemplate === 'paid' ? 'Paid Media Report' : 
+                           selectedTemplate === 'exec' ? 'Executive Summary' : 'Custom';
+      
+      const payload = {
+        clientId: selectedClient,
+        template: templateName,
+        recipients: emailRecipients.split(',').map(e => e.trim()).filter(e => e),
+        whatsappRecipients: whatsappNumber ? [whatsappNumber] : [],
+        deliveryMethod: emailRecipients && whatsappNumber ? 'Both' : whatsappNumber ? 'WhatsApp' : 'Email'
+      };
+
+      if (deliveryMethod === 'Schedule') {
+        if (!nextSend) return message.error('Please select the first send date');
+        await createReportSchedule({
+          ...payload,
+          name: `${clients.find(c => c._id === selectedClient)?.companyName} - ${templateName}`,
+          frequency,
+          nextSend
+        });
+        message.success('Report scheduled successfully');
+      } else {
+        await generateReport(payload);
+        message.success('Report generated and sent successfully');
+      }
+      onClose();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to create report');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const nextStep = () => {
     if (currentStep < totalSteps) setCurrentStep(currentStep + 1);
@@ -142,10 +190,11 @@ const CreateReportModal = ({ open, onClose }) => {
                 value={selectedClient} 
                 onChange={setSelectedClient} 
                 style={{ width: '100%', fontWeight: 500 }}
+                placeholder="Select a client"
               >
-                <Option value="Prestige Estates">Prestige Estates</Option>
-                <Option value="Bhartiya City">Bhartiya City</Option>
-                <Option value="Rapido">Rapido</Option>
+                {clients.map(c => (
+                  <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>
+                ))}
               </Select>
             </div>
           </motion.div>
@@ -254,6 +303,34 @@ const CreateReportModal = ({ open, onClose }) => {
                 <Option value="Schedule">Schedule for later</Option>
               </Select>
             </div>
+            
+            {deliveryMethod === 'Schedule' && (
+              <>
+                <div style={{ marginBottom: 24 }}>
+                  <strong style={{ display: 'block', fontSize: 15, marginBottom: 12, color: 'var(--text-primary)' }}>Frequency</strong>
+                  <Select 
+                    size="large" 
+                    value={frequency} 
+                    onChange={setFrequency} 
+                    style={{ width: '100%', fontWeight: 500 }}
+                  >
+                    <Option value="Daily">Daily</Option>
+                    <Option value="Weekly">Weekly</Option>
+                    <Option value="Bi-weekly">Bi-weekly</Option>
+                    <Option value="Monthly">Monthly</Option>
+                    <Option value="Quarterly">Quarterly</Option>
+                  </Select>
+                </div>
+                <div style={{ marginBottom: 24 }}>
+                  <strong style={{ display: 'block', fontSize: 15, marginBottom: 12, color: 'var(--text-primary)' }}>First send date</strong>
+                  <DatePicker 
+                    size="large" 
+                    style={{ width: '100%', fontWeight: 500 }}
+                    onChange={date => setNextSend(date ? date.toDate() : null)}
+                  />
+                </div>
+              </>
+            )}
           </motion.div>
         );
       case 6:
@@ -324,7 +401,8 @@ const CreateReportModal = ({ open, onClose }) => {
         )}
         <Button 
           type="primary" 
-          onClick={currentStep === totalSteps ? onClose : nextStep} 
+          onClick={currentStep === totalSteps ? handleSubmit : nextStep} 
+          loading={isSubmitting}
           style={{ borderRadius: 8, height: 44, padding: '0 24px', fontWeight: 700, background: 'var(--accent-primary)', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
         >
           {currentStep === totalSteps ? <><Check size={16} /> Send Report</> : <>Next <ChevronRight size={16} /></>}

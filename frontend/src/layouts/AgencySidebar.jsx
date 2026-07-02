@@ -23,12 +23,30 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
+import { slaApi } from '../api/slaApi';
 
 const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, features, user } = useAuth();
   
+  const [slaCount, setSlaCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchSlaCount = async () => {
+      try {
+        const res = await slaApi.getSlaDashboardStats();
+        if (res && res.data && res.data.stats) {
+          const { total, resolved } = res.data.stats;
+          setSlaCount(total - resolved);
+        }
+      } catch (error) {
+        console.error('Failed to fetch SLA stats for sidebar', error);
+      }
+    };
+    fetchSlaCount();
+  }, []);
+
   const getInitials = (name) => {
     if (!name) return 'U';
     return name
@@ -45,6 +63,20 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
 
   const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
 
+  const getBadge = (text, type = 'neutral') => (
+    <span className={`sidebar-menu-badge sidebar-menu-badge--${type}`}>{text}</span>
+  );
+
+  const getLabel = (text, badgeText, badgeType) => {
+    if (!badgeText) return text;
+    return (
+      <div className="sidebar-menu-label">
+        <span className="sidebar-menu-text">{text}</span>
+        {!collapsed && getBadge(badgeText, badgeType)}
+      </div>
+    );
+  };
+
   let menuItems = [];
 
   if (role === 'agency_super_admin') {
@@ -55,6 +87,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       { key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' },
       { key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' },
       { key: '/agency/users', icon: getIcon(Shield), label: 'User Management' },
+      { key: '/agency/sla', icon: getIcon(Activity), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       { key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' },
     ];
   } else {
@@ -71,7 +104,9 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
         label: 'CLIENTS',
         children: [
           { key: '/agency/clients', icon: getIcon(Users), label: 'Accounts' },
-          { key: '/agency/sla', icon: getIcon(Activity), label: 'SLA & Success' },
+          ...(['agency_super_admin', 'agency_manager'].includes(role) ? [
+            { key: '/agency/sla', icon: getIcon(Activity), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') }
+          ] : []),
         ],
       });
     }
@@ -103,6 +138,10 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
         label: 'WORKSPACE',
         children: workspaceChildren,
       });
+    }
+
+    if (['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {
+      menuItems.push({ key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' });
     }
   }
 

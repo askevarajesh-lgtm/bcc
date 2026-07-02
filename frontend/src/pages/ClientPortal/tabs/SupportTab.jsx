@@ -1,14 +1,46 @@
-import React from 'react';
-import { Typography, Row, Col, Input, Button, Tag, Select, Upload, Checkbox } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Input, Button, Tag, Select, Upload, Checkbox, Form, message } from 'antd';
 import { motion } from 'framer-motion';
 import { MessageCircle, Mail, PhoneCall, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 import BubbleCard from '../../../components/BubbleCard';
+import { supportApi } from '../../../api/supportApi';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Dragger } = Upload;
 
 const SupportTab = () => {
+  const [form] = Form.useForm();
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await supportApi.getAssignableUsers();
+        if (res && res.data) {
+          setAssignableUsers(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch assignable users', err);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const handleSubmit = async (values) => {
+    setSubmitting(true);
+    try {
+      await supportApi.createSupportTicket(values);
+      message.success('Request submitted successfully!');
+      form.resetFields();
+    } catch (err) {
+      message.error('Failed to submit request');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -87,63 +119,65 @@ const SupportTab = () => {
         <Text type="secondary" style={{ fontSize: 14, fontWeight: 500, display: 'block', marginBottom: 24 }}>For anything that needs attention — we'll respond within SLA</Text>
         
         <BubbleCard bodyStyle={{ padding: 40 }}>
-          <Row gutter={32} style={{ marginBottom: 24 }}>
-            <Col xs={24} md={12}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Type of request *</Text>
-              <Select placeholder="Select request type" style={{ width: '100%' }} size="large" />
-            </Col>
-            <Col xs={24} md={12}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Priority *</Text>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Button style={{ borderRadius: 8, background: 'var(--bg-secondary)', fontWeight: 600 }}>Normal</Button>
-                <Button style={{ borderRadius: 8, background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 600 }}>Urgent</Button>
-                <Button style={{ borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', border: '1px solid rgba(239, 68, 68, 0.3)', fontWeight: 600 }}>Critical</Button>
+          <Form form={form} layout="vertical" onFinish={handleSubmit}>
+            <Row gutter={32} style={{ marginBottom: 12 }}>
+              <Col xs={24} md={8}>
+                <Form.Item name="typeOfRequest" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Type of request *</Text>} rules={[{ required: true, message: 'Please select a type' }]}>
+                  <Select placeholder="Select request type" size="large">
+                    <Select.Option value="Bug Report">Bug Report</Select.Option>
+                    <Select.Option value="Feature Request">Feature Request</Select.Option>
+                    <Select.Option value="Account Assistance">Account Assistance</Select.Option>
+                    <Select.Option value="Billing Issue">Billing Issue</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item name="priority" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Priority *</Text>} initialValue="Normal" rules={[{ required: true }]}>
+                  <Select size="large">
+                    <Select.Option value="Normal">Normal</Select.Option>
+                    <Select.Option value="Urgent">Urgent</Select.Option>
+                    <Select.Option value="Critical">Critical</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item name="assignedToUserId" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Assign To *</Text>} rules={[{ required: true, message: 'Please select an assignee' }]}>
+                  <Select placeholder="Select Assignee" size="large">
+                    {assignableUsers.map(user => (
+                      <Select.Option key={user._id} value={user._id}>{user.name} ({user.role.replace(/_/g, ' ')})</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item name="subject" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Subject *</Text>} rules={[{ required: true, message: 'Please enter a subject' }]}>
+              <Input placeholder="Brief description of your request" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item name="details" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Details</Text>}>
+              <TextArea placeholder="Tell us more — the more detail, the faster we can help." rows={4} style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <div style={{ marginBottom: 32 }}>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Attach files</Text>
+              <Dragger style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: 12 }}>
+                <p className="ant-upload-drag-icon">
+                  <UploadCloud size={32} color="var(--text-secondary)" />
+                </p>
+                <p className="ant-upload-text" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Drag files here or click to upload</p>
+                <p className="ant-upload-hint" style={{ fontWeight: 500, color: 'var(--text-tertiary)', fontSize: 12 }}>PNG, JPG, PDF, MP4 · Max 10MB each</p>
+              </Dragger>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
+              <Text style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>* Required fields</Text>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <Button type="text" onClick={() => form.resetFields()} style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cancel</Button>
+                <Button type="primary" htmlType="submit" loading={submitting} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, padding: '0 24px' }}>Submit Request</Button>
               </div>
-            </Col>
-          </Row>
-
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Subject *</Text>
-              <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)' }}>0/120</Text>
             </div>
-            <Input placeholder="Brief description of your request" size="large" style={{ borderRadius: 8 }} />
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Details</Text>
-              <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)' }}>0/1000</Text>
-            </div>
-            <TextArea placeholder="Tell us more — the more detail, the faster we can help." rows={4} style={{ borderRadius: 8 }} />
-          </div>
-
-          <div style={{ marginBottom: 32 }}>
-            <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Attach files</Text>
-            <Dragger style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: 12 }}>
-              <p className="ant-upload-drag-icon">
-                <UploadCloud size={32} color="var(--text-secondary)" />
-              </p>
-              <p className="ant-upload-text" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Drag files here or click to upload</p>
-              <p className="ant-upload-hint" style={{ fontWeight: 500, color: 'var(--text-tertiary)', fontSize: 12 }}>PNG, JPG, PDF, MP4 · Max 10MB each</p>
-            </Dragger>
-          </div>
-
-          <div style={{ marginBottom: 32 }}>
-            <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 12 }}>Notify me via</Text>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Checkbox checked><Text style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Email (rahul.kapoor@prestigeestates.com)</Text></Checkbox>
-              <Checkbox><Text style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>WhatsApp (+91 98765 43210)</Text></Checkbox>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
-            <Text style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>* Required fields</Text>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <Button type="text" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cancel</Button>
-              <Button type="primary" style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, padding: '0 24px' }}>Submit Request</Button>
-            </div>
-          </div>
+          </Form>
         </BubbleCard>
       </motion.div>
 

@@ -1,0 +1,74 @@
+const reportService = require('./report.service');
+
+exports.createSchedule = async (req, res, next) => {
+    try {
+        const agencyId = req.user.agencyId || req.user._id;
+        const scheduleData = { ...req.body, agencyId, createdBy: req.user._id };
+        const schedule = await reportService.createSchedule(scheduleData);
+        res.status(201).json({ status: 'success', data: schedule });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.getSchedules = async (req, res, next) => {
+    try {
+        const agencyId = req.user.agencyId || req.user._id;
+        const schedules = await reportService.getSchedules(agencyId);
+        res.status(200).json({ status: 'success', data: schedules });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.updateScheduleStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const schedule = await reportService.updateScheduleStatus(id, status);
+        res.status(200).json({ status: 'success', data: schedule });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.deleteSchedule = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await reportService.deleteSchedule(id);
+        res.status(200).json({ status: 'success', message: 'Schedule deleted' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.getRecentSentReports = async (req, res, next) => {
+    try {
+        const agencyId = req.user.agencyId || req.user._id;
+        const reports = await reportService.getRecentSentReports(agencyId);
+        res.status(200).json({ status: 'success', data: reports });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.generateReport = async (req, res, next) => {
+    try {
+        const agencyId = req.user.agencyId || req.user._id;
+        const { clientId, template, recipients, deliveryMethod } = req.body;
+        
+        const report = await reportService.generateAndSendReport(
+            agencyId, 
+            clientId, 
+            template, 
+            null, 
+            recipients, 
+            deliveryMethod, 
+            req.user._id
+        );
+        
+        res.status(200).json({ status: 'success', data: report });
+    } catch (error) {
+        next(error);
+    }
+};

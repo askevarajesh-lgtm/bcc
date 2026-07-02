@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Select, Button } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Calendar as CalendarIcon, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
+import { analyticsApi } from '../../api/analyticsApi';
+import { useGetClientsQuery } from '../../api/clientApi';
 
 import AnalyticsTab from './tabs/AnalyticsTab';
 import AttributionTab from './tabs/AttributionTab';
@@ -11,6 +13,30 @@ const { Option } = Select;
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState('analytics');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState('All Clients');
+
+  const { data: clientsData } = useGetClientsQuery({});
+  const clients = clientsData?.data || [];
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [selectedClient]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const res = await analyticsApi.getAnalytics(selectedClient);
+      if (res.success) {
+        setData(res.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -30,10 +56,11 @@ const Analytics = () => {
   };
 
   const renderActiveTab = () => {
+    if (loading || !data) return <div style={{ textAlign: 'center', padding: '100px 0' }}>Loading analytics...</div>;
     switch(activeTab) {
-      case 'analytics': return <AnalyticsTab />;
-      case 'attribution': return <AttributionTab />;
-      default: return <AnalyticsTab />;
+      case 'analytics': return <AnalyticsTab data={data} />;
+      case 'attribution': return <AttributionTab data={data} />;
+      default: return <AnalyticsTab data={data} />;
     }
   };
 
@@ -48,7 +75,15 @@ const Analytics = () => {
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Select defaultValue="All Clients" style={{ width: 150, fontWeight: 600 }} size="large"><Option value="All Clients">All Clients</Option></Select>
+          <Select 
+            value={selectedClient} 
+            onChange={setSelectedClient}
+            style={{ width: 180, fontWeight: 600 }} 
+            size="large"
+          >
+            <Option value="All Clients">All Clients</Option>
+            {clients.map(c => <Option key={c._id} value={c._id}>{c.name}</Option>)}
+          </Select>
           <Button icon={<CalendarIcon size={16} />} style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>May 10 - Jun 9, 2026</Button>
           {activeTab === 'analytics' && <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export</Button>}
         </div>

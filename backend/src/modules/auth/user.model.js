@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema({
     ]
   },
   companyName: { type: String, default: null },
+  industry: { type: String, default: 'General' },
   isActive: { type: Boolean, default: true },
   status: { type: String, enum: ['active', 'suspended', 'trial', 'churned'], default: 'active' },
   

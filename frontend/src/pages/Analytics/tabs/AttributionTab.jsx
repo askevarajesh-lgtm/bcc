@@ -16,7 +16,7 @@ const itemVariants = {
 };
 
 // SVG Flow Diagram Component
-const CustomerJourneyFlow = () => {
+const CustomerJourneyFlow = ({ journeyData }) => {
   // Columns X coordinates
   const c1x = 0;
   const c2x = 420;
@@ -26,23 +26,23 @@ const CustomerJourneyFlow = () => {
   // Nodes definition
   const nodes = [
     // Column 1
-    { id: 'organic', label: 'Organic', value: '3,840', x: c1x, y: 0, h: 120, color: '#34d399' },
-    { id: 'google', label: 'Google Ads', value: '1,842', x: c1x, y: 130, h: 80, color: '#38bdf8' },
-    { id: 'meta', label: 'Meta Ads', value: '1,240', x: c1x, y: 220, h: 60, color: '#6366f1' },
-    { id: 'whatsapp1', label: 'WhatsApp', value: '642', x: c1x, y: 290, h: 30, color: '#4ade80' },
-    { id: 'direct', label: 'Direct', value: '420', x: c1x, y: 330, h: 20, color: '#fbbf24' },
+    { id: 'organic', label: 'Organic', value: journeyData.organic?.toLocaleString() || '0', x: c1x, y: 0, h: 120, color: '#34d399' },
+    { id: 'google', label: 'Google Ads', value: journeyData.googleAds?.toLocaleString() || '0', x: c1x, y: 130, h: 80, color: '#38bdf8' },
+    { id: 'meta', label: 'Meta Ads', value: journeyData.metaAds?.toLocaleString() || '0', x: c1x, y: 220, h: 60, color: '#6366f1' },
+    { id: 'whatsapp1', label: 'WhatsApp', value: journeyData.whatsapp?.toLocaleString() || '0', x: c1x, y: 290, h: 30, color: '#4ade80' },
+    { id: 'direct', label: 'Direct', value: journeyData.direct?.toLocaleString() || '0', x: c1x, y: 330, h: 20, color: '#fbbf24' },
 
     // Column 2
-    { id: 'landing', label: 'Landing Page', value: '2,922', x: c2x, y: 0, h: 110, color: '#7dd3fc' },
-    { id: 'blog', label: 'Blog', value: '1,800', x: c2x, y: 120, h: 70, color: '#a78bfa' },
-    { id: 'product', label: 'Product Page', value: '2,542', x: c2x, y: 200, h: 90, color: '#67e8f9' },
-    { id: 'retargeting', label: 'Retargeting Ad', value: '720', x: c2x, y: 300, h: 50, color: '#f472b6' },
+    { id: 'landing', label: 'Landing Page', value: journeyData.landingPage?.toLocaleString() || '0', x: c2x, y: 0, h: 110, color: '#7dd3fc' },
+    { id: 'blog', label: 'Blog', value: journeyData.blog?.toLocaleString() || '0', x: c2x, y: 120, h: 70, color: '#a78bfa' },
+    { id: 'product', label: 'Product Page', value: journeyData.productPage?.toLocaleString() || '0', x: c2x, y: 200, h: 90, color: '#67e8f9' },
+    { id: 'retargeting', label: 'Retargeting Ad', value: journeyData.retargetingAd?.toLocaleString() || '0', x: c2x, y: 300, h: 50, color: '#f472b6' },
 
     // Column 3
-    { id: 'lead', label: 'Lead Captured', value: '2,202', x: c3x, y: 0, h: 100, color: '#4ade80' },
-    { id: 'form', label: 'Form Submit', value: '2,080', x: c3x, y: 110, h: 90, color: '#2dd4bf' },
-    { id: 'call', label: 'Call', value: '1,020', x: c3x, y: 210, h: 50, color: '#fbbf24' },
-    { id: 'whatsapp2', label: 'WhatsApp Inquiry', value: '2,382', x: c3x, y: 270, h: 80, color: '#22c55e' },
+    { id: 'lead', label: 'Lead Captured', value: journeyData.leadCaptured?.toLocaleString() || '0', x: c3x, y: 0, h: 100, color: '#4ade80' },
+    { id: 'form', label: 'Form Submit', value: journeyData.formSubmit?.toLocaleString() || '0', x: c3x, y: 110, h: 90, color: '#2dd4bf' },
+    { id: 'call', label: 'Call', value: journeyData.call?.toLocaleString() || '0', x: c3x, y: 210, h: 50, color: '#fbbf24' },
+    { id: 'whatsapp2', label: 'WhatsApp Inquiry', value: journeyData.whatsappInquiry?.toLocaleString() || '0', x: c3x, y: 270, h: 80, color: '#22c55e' },
   ];
 
   // Helper to draw bezier path between two nodes
@@ -133,7 +133,9 @@ const CustomerJourneyFlow = () => {
   );
 };
 
-const AttributionTab = () => {
+const AttributionTab = ({ data }) => {
+  if (!data) return null;
+  const breakdownData = data.channelBreakdown || [];
 
   const breakdownCols = [
     { title: 'Channel', dataIndex: 'channel', key: 'channel', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
@@ -148,14 +150,6 @@ const AttributionTab = () => {
       : <Text style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{t}</Text>
     ) },
     { title: 'CPA', dataIndex: 'cpa', key: 'cpa', align: 'right', render: t => <Text style={{ fontWeight: 600 }}>{t}</Text> },
-  ];
-
-  const breakdownData = [
-    { key: '1', channel: 'Google Ads', touchpoints: '1,842', assisted: '312', direct: '486', revenue: '₹28.4L', cost: '₹24.2L', roas: '4.2x', cpa: '₹4,980' },
-    { key: '2', channel: 'Meta Ads', touchpoints: '1,240', assisted: '428', direct: '298', revenue: '₹19.2L', cost: '₹18.6L', roas: '3.8x', cpa: '₹6,242' },
-    { key: '3', channel: 'Organic SEO', touchpoints: '3,840', assisted: '284', direct: '186', revenue: '₹14.8L', cost: '₹0', roas: '∞', cpa: '₹0' },
-    { key: '4', channel: 'WhatsApp', touchpoints: '642', assisted: '184', direct: '142', revenue: '₹9.4L', cost: '₹2.2L', roas: '12.4x', cpa: '₹1,549' },
-    { key: '5', channel: 'Direct/Referral', touchpoints: '420', assisted: '98', direct: '88', revenue: '₹6.2L', cost: '₹0', roas: '∞', cpa: '₹0' },
   ];
 
   const PathTag = ({ text, color }) => (
@@ -198,7 +192,7 @@ const AttributionTab = () => {
           extra={<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, background: 'var(--bg-tertiary)', padding: '4px 10px', borderRadius: 12, border: '1px solid var(--border-color)' }}><Info size={14}/> Width ∝ volume</div>}
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '0 24px 24px' }}
         >
-          <CustomerJourneyFlow />
+          <CustomerJourneyFlow journeyData={data.customerJourney || {}} />
         </Card>
       </motion.div>
 
@@ -219,50 +213,20 @@ const AttributionTab = () => {
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '24px 32px' }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Path 1 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>1</div>
-                <PathTag text="Google Ad" color="#38bdf8" /> <Arrow/> <PathTag text="Landing Page" color="var(--text-secondary)" /> <Arrow/> <PathTag text="WhatsApp Inquiry" color="#4ade80" />
+            {(data.attributionPaths || []).map((path, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: idx !== (data.attributionPaths?.length - 1) ? '1px solid var(--border-color)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>{idx + 1}</div>
+                  {path.steps.map((step, stepIdx) => (
+                    <React.Fragment key={stepIdx}>
+                      <PathTag text={step.text} color={step.color} />
+                      {stepIdx < path.steps.length - 1 && <Arrow />}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>{path.conversions}</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
               </div>
-              <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>486</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-            </div>
-            
-            {/* Path 2 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>2</div>
-                <PathTag text="Organic Blog" color="#34d399" /> <Arrow/> <PathTag text="Product Page" color="var(--text-secondary)" /> <Arrow/> <PathTag text="Form Submit" color="var(--text-secondary)" />
-              </div>
-              <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>284</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-            </div>
-
-            {/* Path 3 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>3</div>
-                <PathTag text="Meta Ad" color="#6366f1" /> <Arrow/> <PathTag text="Retargeting" color="#f472b6" /> <Arrow/> <PathTag text="WhatsApp" color="#4ade80" />
-              </div>
-              <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>241</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-            </div>
-
-            {/* Path 4 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>4</div>
-                <PathTag text="Direct" color="#fbbf24" /> <Arrow/> <PathTag text="Product Page" color="var(--text-secondary)" /> <Arrow/> <PathTag text="Call" color="var(--text-secondary)" />
-              </div>
-              <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>188</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-            </div>
-
-            {/* Path 5 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>5</div>
-                <PathTag text="Organic" color="#34d399" /> <Arrow/> <PathTag text="Blog" color="#a78bfa" /> <Arrow/> <PathTag text="Blog" color="#a78bfa" /> <Arrow/> <PathTag text="Form" color="var(--text-secondary)" />
-              </div>
-              <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>142</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-            </div>
+            ))}
           </div>
         </Card>
       </motion.div>

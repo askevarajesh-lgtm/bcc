@@ -1,10 +1,13 @@
-import React from 'react';
-import { Typography, Row, Col, Table, Button, Tag } from 'antd';
-import { ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Table, Button, Tag, Modal, Form, Input, Select, message } from 'antd';
+import { ArrowUpRight, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
+import { slaApi } from '../../../api/slaApi';
+import { supportApi } from '../../../api/supportApi';
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const SupportTab = () => {
   const containerVariants = {
@@ -17,22 +20,80 @@ const SupportTab = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  const escalations = [
-    { client: 'Wakefit', level: 'Critical', text: 'MOS dropped 12 pts in 7 days. Client demands emergency call.', color: 'var(--accent-danger)' },
-    { client: 'Lenskart', level: 'High', text: '3 deliverables overdue - client formally raised SLA breach.', color: 'var(--accent-danger)' },
-    { client: 'BharatPe', level: 'High', text: 'Ad spend 40% over June budget without approval.', color: 'var(--accent-warning)' },
-  ];
+  const [tickets, setTickets] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [viewTicketModalVisible, setViewTicketModalVisible] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
-  const tickets = [
-    { id: 1, client: 'Prestige Estates', subject: 'June Instagram for approval', type: 'Content', priority: 'Urgent', am: 'KM', opened: '2 days', status: 'In Progress', action: 'View' },
-    { id: 2, client: 'Prestige Estates', subject: 'Q2 board presentation', type: 'Report', priority: 'Normal', am: 'KM', opened: '4 days', status: 'Open', action: 'View' },
-    { id: 3, client: 'Prestige Estates', subject: 'Google Ads not working', type: 'Technical', priority: 'Critical', am: 'PN', opened: '1 hr', status: 'Open', action: 'Resolve' },
-    { id: 4, client: 'boAt', subject: 'Refresh creative templates', type: 'Creative', priority: 'Normal', am: 'PN', opened: '1 day', status: 'In Progress', action: 'View' },
-    { id: 5, client: 'Nykaa', subject: 'Reduce CAC on Meta', type: 'Strategy', priority: 'High', am: 'PN', opened: '3 days', status: 'Open', action: 'View' },
-    { id: 6, client: 'Zepto', subject: 'Local SEO push for 5 cities', type: 'SEO', priority: 'High', am: 'RS', opened: '2 days', status: 'In Progress', action: 'View' },
-    { id: 7, client: 'BharatPe', subject: 'Q2 billing reconciliation', type: 'Billing', priority: 'Urgent', am: 'PN', opened: '6 hrs', status: 'Open', action: 'View' },
-    { id: 8, client: 'Wakefit', subject: 'Crisis war-room setup', type: 'Strategy', priority: 'Critical', am: 'AS', opened: '1 hr', status: 'Open', action: 'Resolve' },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await supportApi.getAssignableUsers();
+        if (res && res.data) {
+          setAssignableUsers(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch assignable users', err);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const fetchSupportTickets = async () => {
+    try {
+      const res = await slaApi.getSlas({ triggerType: 'Client Issue' });
+      if (res && res.data) {
+        const fetchedTickets = res.data.map((item, index) => {
+          let type = 'General';
+          if (item.description && item.description.startsWith('[')) {
+            type = item.description.split(']')[0].substring(1);
+          }
+
+          const days = Math.floor((new Date() - new Date(item.createdAt)) / (1000 * 60 * 60 * 24));
+          const openedStr = days === 0 ? 'Today' : `${days} days`;
+
+          return {
+            id: item._id || index,
+            client: item.clientId?.companyName || item.clientId?.name || 'Unknown',
+            subject: item.title,
+            type: type,
+            priority: item.priority || 'Normal',
+            am: item.assignedTo?.name || 'Unassigned',
+            opened: openedStr,
+            status: item.status || 'Open',
+            action: 'View',
+            original: item
+          };
+        });
+
+        setTickets(fetchedTickets);
+      }
+    } catch (error) {
+      console.error('Failed to fetch support tickets', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupportTickets();
+  }, []);
+
+  const handleSubmitTicket = async (values) => {
+    setSubmitting(true);
+    try {
+      await supportApi.createSupportTicket(values);
+      message.success('Ticket raised successfully!');
+      setIsModalVisible(false);
+      form.resetFields();
+      fetchSupportTickets();
+    } catch (err) {
+      message.error('Failed to raise ticket');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getPriorityColor = (priority) => {
     if (priority === 'Critical' || priority === 'Urgent') return 'var(--accent-danger)';
@@ -69,7 +130,14 @@ const SupportTab = () => {
       title: 'ACTION', 
       key: 'action', 
       render: (_, record) => (
-        <Button type="text" style={{ color: 'var(--accent-secondary)', fontWeight: 700, padding: 0 }}>
+        <Button 
+          type="text" 
+          style={{ color: 'var(--accent-secondary)', fontWeight: 700, padding: 0 }}
+          onClick={() => {
+            setSelectedTicket(record);
+            setViewTicketModalVisible(true);
+          }}
+        >
           {record.action}
         </Button>
       ) 
@@ -79,43 +147,22 @@ const SupportTab = () => {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
-      <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
-        <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Client Support</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All open support tickets and escalations across all clients</Text>
+      <motion.div variants={itemVariants} style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Client Support</Title>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All open support tickets and escalations across all clients</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<Plus size={16} />} 
+          style={{ fontWeight: 800, borderRadius: 8, height: 40 }}
+          onClick={() => setIsModalVisible(true)}
+        >
+          Raise Ticket
+        </Button>
       </motion.div>
 
-      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
-        <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--accent-danger)', display: 'block', marginBottom: 24 }}>Active Escalations (3)</Text>
-        
-        <Row gutter={[24, 24]}>
-          {escalations.map((esc, idx) => (
-            <Col xs={24} md={8} key={idx}>
-              <div style={{ 
-                background: esc.color === 'var(--accent-danger)' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(245, 158, 11, 0.05)', 
-                border: `1px solid ${esc.color}40`, 
-                borderRadius: 16, 
-                padding: 24,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <Text style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>{esc.client}</Text>
-                  <Tag style={{ background: esc.color, color: '#fff', border: 'none', borderRadius: 12, padding: '2px 12px', fontWeight: 800, margin: 0 }}>
-                    {esc.level}
-                  </Tag>
-                </div>
-                <Text style={{ color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, display: 'block', marginBottom: 24, flex: 1, lineHeight: 1.6 }}>
-                  {esc.text}
-                </Text>
-                <Button type="primary" style={{ background: esc.color, fontWeight: 800, borderRadius: 8, height: 40, border: 'none', width: 'fit-content', padding: '0 24px' }}>
-                  Resolve
-                </Button>
-              </div>
-            </Col>
-          ))}
-        </Row>
-      </motion.div>
+
 
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <SlabCard bodyStyle={{ padding: 0 }}>
@@ -133,12 +180,117 @@ const SupportTab = () => {
         </SlabCard>
       </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <Button type="link" style={{ padding: 0, fontWeight: 800, fontSize: 14, color: 'var(--accent-secondary)' }}>
-          Open Client Support <ArrowUpRight size={16} style={{ marginLeft: 4 }} />
-        </Button>
-      </motion.div>
 
+
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Raise Support Ticket</span>}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmitTicket} style={{ marginTop: 24 }}>
+          <Form.Item name="subject" label={<span style={{ fontWeight: 600 }}>Subject</span>} rules={[{ required: true }]}>
+            <Input placeholder="E.g., Need help with billing..." size="large" style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item name="typeOfRequest" label={<span style={{ fontWeight: 600 }}>Type of Request</span>} rules={[{ required: true }]}>
+                <Select size="large" style={{ borderRadius: 8 }}>
+                  <Select.Option value="Technical">Technical Issue</Select.Option>
+                  <Select.Option value="Billing">Billing/Invoice</Select.Option>
+                  <Select.Option value="Strategy">Strategy Review</Select.Option>
+                  <Select.Option value="Content">Content Update</Select.Option>
+                  <Select.Option value="Other">Other</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="priority" label={<span style={{ fontWeight: 600 }}>Priority Level</span>} rules={[{ required: true }]}>
+                <Select size="large" style={{ borderRadius: 8 }}>
+                  <Select.Option value="Normal">Normal (24h SLA)</Select.Option>
+                  <Select.Option value="High">High (8h SLA)</Select.Option>
+                  <Select.Option value="Critical">Critical (1h SLA)</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="assignedToUserId" label={<span style={{ fontWeight: 600 }}>Assign To</span>} rules={[{ required: true, message: 'Please select an assignee' }]}>
+            <Select size="large" placeholder="Select a manager or admin" loading={assignableUsers.length === 0} style={{ borderRadius: 8 }}>
+              {assignableUsers.map(user => (
+                <Select.Option key={user._id} value={user._id}>
+                  {user.name} ({user.role})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="details" label={<span style={{ fontWeight: 600 }}>Details</span>} rules={[{ required: true }]}>
+            <TextArea rows={4} placeholder="Please describe your issue in detail..." style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 32 }}>
+            <Button type="primary" htmlType="submit" size="large" loading={submitting} block style={{ borderRadius: 8, fontWeight: 800 }}>
+              Submit Ticket
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Ticket Details</span>}
+        open={viewTicketModalVisible}
+        onCancel={() => setViewTicketModalVisible(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setViewTicketModalVisible(false)} style={{ fontWeight: 800, borderRadius: 8 }}>
+            Close
+          </Button>
+        ]}
+        destroyOnClose
+      >
+        {selectedTicket && (
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>SUBJECT</Text><br/>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>{selectedTicket.subject}</Text>
+            </div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>CLIENT</Text><br/>
+                <Text style={{ fontWeight: 600 }}>{selectedTicket.client}</Text>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>STATUS</Text><br/>
+                <Tag style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontWeight: 700, border: '1px solid var(--border-color)', borderRadius: 12, margin: 0 }}>
+                  {selectedTicket.status}
+                </Tag>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>PRIORITY</Text><br/>
+                <Text style={{ fontWeight: 600, color: getPriorityColor(selectedTicket.priority) }}>{selectedTicket.priority}</Text>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>TYPE</Text><br/>
+                <Text style={{ fontWeight: 600 }}>{selectedTicket.type}</Text>
+              </Col>
+            </Row>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>DETAILS</Text><br/>
+              <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 8, marginTop: 4 }}>
+                <Text style={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                  {selectedTicket.original?.description?.includes(']') 
+                    ? selectedTicket.original.description.split(']').slice(1).join(']').trim() 
+                    : selectedTicket.original?.description}
+                </Text>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </motion.div>
   );
 };

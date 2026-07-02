@@ -174,7 +174,7 @@ const PortalSettings = () => {
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 01 · CLIENTS</Text>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Portal Settings</Title>
+          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Direct Brand</Title>
           <Text type="secondary">Per-client configuration for the white-label portal.</Text>
         </div>
       </motion.div>
@@ -248,7 +248,7 @@ const PortalSettings = () => {
                       }}
                       style={{ background: 'var(--accent-secondary)', fontWeight: 600, borderRadius: 6 }}
                     >
-                      Portal Settings
+                      Direct Brand
                     </Button>
                   )
                 }

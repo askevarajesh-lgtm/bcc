@@ -26,6 +26,9 @@ const taskRoutes = require('../modules/tasks/task.routes');
 const coordinatorTaskRoutes = require('../modules/tasks/coordinatorTask.routes');
 const projectRoutes = require('../modules/projects/project.routes');
 const campaignScheduledRoutes = require('../modules/campaign-scheduled/campaignScheduled.routes');
+const slaRoutes = require('../modules/sla/sla.routes');
+const mosRoutes = require('../modules/mos/mos.routes');
+const benchmarkRoutes = require('../modules/benchmarking/benchmark.routes');
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
@@ -39,6 +42,11 @@ const agencySettingsRoutes = require('../modules/accounts/agencySettings.routes'
 const agencyPerformanceRoutes = require('../modules/accounts/agencyPerformance.routes');
 const agencySupportRoutes = require('../modules/accounts/agencySupport.routes');
 const agencyUsersRoutes = require('../modules/accounts/agencyUsers.routes');
+const supportRoutes = require('../modules/support/support.routes');
+const strategyRoutes = require('../modules/strategy/strategy.routes');
+const performanceAdsRoutes = require('../modules/performanceAds/performanceAds.routes');
+const analyticsRoutes = require('../modules/analytics/analytics.routes');
+const reportRoutes = require('../modules/reports/report.routes');
 
 // Mount routes
 router.use('/health', healthRoutes);
@@ -52,11 +60,18 @@ router.use('/agency/settings', agencySettingsRoutes);
 router.use('/agency/performance', agencyPerformanceRoutes);
 router.use('/agency/support', agencySupportRoutes);
 router.use('/agency/users', agencyUsersRoutes);
+router.use('/strategy', strategyRoutes);
+router.use('/performance-ads', performanceAdsRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/mos', mosRoutes);
+router.use('/benchmark', benchmarkRoutes);
+router.use('/reports', reportRoutes);
 
 router.use('/websites', websiteRoutes);
 router.use('/funnels', funnelRoutes);
 router.use('/stores', storeRoutes);
 router.use('/forms', formRoutes);
+router.use('/support', supportRoutes);
 router.use('/form-templates', formTemplateRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/qrs', qrRoutes);
@@ -76,6 +91,7 @@ router.use('/tasks', taskRoutes);
 router.use('/coordinator-tasks', coordinatorTaskRoutes);
 router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
+router.use('/sla-success', slaRoutes);
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);

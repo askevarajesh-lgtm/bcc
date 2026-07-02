@@ -59,7 +59,7 @@ const UserManagementTab = () => {
 
   const permissionGroups = {
     'General': ['Command Center', 'Settings'],
-    'Clients': ['Accounts', 'SLA & Success', 'Portal Settings'],
+    'Clients': ['Accounts', 'SLA & Success', 'Direct Brand'],
     'Workspace': [
       'Strategy', 
       'SEO / AEO / GEO', 

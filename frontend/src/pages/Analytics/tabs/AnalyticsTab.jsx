@@ -3,7 +3,6 @@ import { Typography, Row, Col, Card, Table, Tag, Button } from 'antd';
 import { motion } from 'framer-motion';
 import { Filter } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
-import { websiteTrafficAnalytics, topPagesAnalytics, clientPerformanceAnalytics } from '../../../data/mock';
 
 const { Title, Text } = Typography;
 
@@ -26,32 +25,25 @@ const topPagesCols = [
   { title: 'Conv. Rate', dataIndex: 'convRate', key: 'convRate', render: text => <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 8px' }}>{text}</Tag> },
 ];
 
-const pieData = [
-  { name: 'Google Ads', value: 34, fill: 'var(--accent-info)' },
-  { name: 'Meta Ads', value: 27, fill: 'var(--accent-secondary)' },
-  { name: 'Organic', value: 18, fill: 'var(--accent-primary)' },
-  { name: 'WhatsApp', value: 13, fill: 'var(--accent-warning)' },
-  { name: 'Referral', value: 8, fill: 'var(--text-tertiary)' },
-];
-
-const barData = [
-  { name: 'Google Ads', val: 28.4, fill: 'var(--accent-info)' },
-  { name: 'Meta Ads', val: 19.2, fill: 'var(--accent-secondary)' },
-  { name: 'Organic', val: 14.8, fill: 'var(--accent-primary)' },
-  { name: 'WhatsApp', val: 9.4, fill: 'var(--accent-warning)' },
-];
-
-const AnalyticsTab = () => {
+const AnalyticsTab = ({ data }) => {
+  if (!data) return null;
+  const metrics = data.metrics || {};
+  
+  const pieData = data.leadsByChannel || [];
+  const barData = data.revenueAttribution || [];
+  const websiteTraffic = data.websiteTraffic || [];
+  const clientPerformance = data.clientPerformance || [];
+  const topPages = data.topPages || [];
   return (
     <>
       {/* NEW ANALYTICAL VIEWFINDER HUD CARDS */}
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
         {[
-          { label: 'TOTAL WEBSITE SESSIONS', val: '4,82,000', sub: '▲ +14%', color: 'var(--accent-primary)' },
-          { label: 'TOTAL LEADS GENERATED', val: '1,840', sub: '▲ +18%', color: 'var(--accent-secondary)' },
-          { label: 'BLENDED ROAS', val: '3.8x', sub: '▲ +0.4', color: 'var(--accent-info)' },
-          { label: 'ORGANIC TRAFFIC SHARE', val: '54%', sub: '▲ +3%', color: 'var(--accent-warning)' },
-          { label: 'TOTAL AD SPEND', val: '₹84.2L', sub: '▼ -2%', down: true, color: 'var(--text-tertiary)' },
+          { label: 'TOTAL WEBSITE SESSIONS', val: metrics.totalSessions?.toLocaleString() || '0', sub: metrics.sessionsTrend || '0%', color: 'var(--accent-primary)' },
+          { label: 'TOTAL LEADS GENERATED', val: metrics.totalLeads?.toLocaleString() || '0', sub: metrics.leadsTrend || '0%', color: 'var(--accent-secondary)' },
+          { label: 'BLENDED ROAS', val: metrics.blendedRoas || '0x', sub: metrics.roasTrend || '0', color: 'var(--accent-info)' },
+          { label: 'ORGANIC TRAFFIC SHARE', val: metrics.organicTrafficShare || '0%', sub: metrics.organicTrend || '0%', color: 'var(--accent-warning)' },
+          { label: 'TOTAL AD SPEND', val: metrics.totalAdSpend || '0', sub: metrics.spendTrend || '0%', down: (metrics.spendTrend || '').startsWith('-'), color: 'var(--text-tertiary)' },
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
@@ -91,7 +83,7 @@ const AnalyticsTab = () => {
         >
           <div style={{ height: 350 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={websiteTrafficAnalytics} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <AreaChart data={websiteTraffic} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="day" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dy={10} />
                 <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dx={-10} />
@@ -124,7 +116,7 @@ const AnalyticsTab = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                  <Title level={3} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>1,840</Title>
+                  <Title level={3} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{metrics.totalLeads?.toLocaleString() || '0'}</Title>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>TOTAL LEADS</Text>
                 </div>
               </div>
@@ -187,7 +179,7 @@ const AnalyticsTab = () => {
         >
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={clientPerformanceAnalytics} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <BarChart data={clientPerformance} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="name" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500, angle: -45, textAnchor: 'end' }} height={80} dy={10} />
                 <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dx={-10} />
@@ -207,7 +199,7 @@ const AnalyticsTab = () => {
           extra={<Button size="middle" icon={<Filter size={14}/>} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>June 2026</Button>}
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', marginBottom: 40 }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={topPagesCols} dataSource={topPagesAnalytics} pagination={false} rowKey="url" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table columns={topPagesCols} dataSource={topPages} pagination={false} rowKey="url" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
         </Card>
       </motion.div>
 

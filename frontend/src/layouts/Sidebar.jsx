@@ -31,11 +31,45 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
+import { slaApi } from '../api/slaApi';
+import api from '../services/api';
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, user } = useAuth();
+  
+  const [slaCount, setSlaCount] = React.useState(0);
+  const [accountsCount, setAccountsCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchSlaCount = async () => {
+      try {
+        const res = await slaApi.getSlaDashboardStats();
+        if (res && res.data && res.data.stats) {
+          const { total, resolved } = res.data.stats;
+          setSlaCount(total - resolved);
+        }
+      } catch (error) {
+        console.error('Failed to fetch SLA stats for sidebar', error);
+      }
+    };
+
+    const fetchAccountsCount = async () => {
+      try {
+        const res = await api.get('/brands', { params: { limit: 1 } });
+        if (res && res.data) {
+          const count = res.data.pagination?.total || res.data.data?.length || 0;
+          setAccountsCount(count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch accounts count for sidebar', error);
+      }
+    };
+
+    fetchSlaCount();
+    fetchAccountsCount();
+  }, []);
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -75,10 +109,12 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'CLI' : 'CLIENTS',
       children: [
         ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
-          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', '12') },
+          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', accountsCount.toString()) },
         ]),
-        { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', '3', 'danger') },
-        { key: '/clients/portal', icon: getIcon(Monitor), label: 'Portal Settings' },
+        ...(['commander_admin', 'agency_super_admin', 'agency_manager'].includes(role) ? [
+          { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') }
+        ] : []),
+        { key: '/clients/portal', icon: getIcon(Monitor), label: getLabel('Direct Brand', accountsCount.toString()) },
       ],
     },
     {
@@ -116,6 +152,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
       ],
     },
+    ...(['agency_super_admin', 'agency_manager', 'client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(role) ? [{
+      key: '/support',
+      icon: getIcon(HelpCircle),
+      label: 'Support'
+    }] : []),
     {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
