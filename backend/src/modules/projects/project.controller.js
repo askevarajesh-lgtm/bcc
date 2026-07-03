@@ -137,37 +137,9 @@ const createProject = async (req, res) => {
 
     const project = await Project.create(projectData);
 
-    const tasksToCreate = [];
-    const startDate = project.startDate || new Date();
-    const dueDate = project.endDate || new Date(new Date().setDate(startDate.getDate() + 7)); // Default 1 week
-
-    for (const item of proposal.masterItems) {
-      if (item.categories && Array.isArray(item.categories)) {
-        for (const category of item.categories) {
-          const count = category.count || 0;
-          for (let i = 0; i < count; i++) {
-            tasksToCreate.push({
-              title: `${item.name} - ${category.name} #${i + 1}`,
-              description: `Auto-generated task from project ${project.name}`,
-              department: "digital-marketing", // Default department
-              projectId: project._id,
-              status: "created",
-              tenantCompanyId: companyId,
-              clientId: project.clientId,
-              assignedBy: req.user._id,
-              startDate,
-              dueDate
-            });
-          }
-        }
-      }
-    }
-
-    if (tasksToCreate.length > 0) {
-      await Task.insertMany(tasksToCreate);
-    }
-
-    console.log("[Project Controller] Project created successfully:", project._id, "with", tasksToCreate.length, "tasks");
+    // DISABLED: Automatic task creation when creating a project.
+    // Tasks should only be created manually by coordinators/admins when needed.
+    console.log("[Project Controller] Project created successfully:", project._id);
     return sendSuccess(res, "Project created successfully", { project });
   } catch (error) {
     console.error("[Project Controller] Error creating project:", error);

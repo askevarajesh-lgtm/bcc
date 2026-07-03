@@ -13,6 +13,11 @@ const notificationSchema = new mongoose.Schema(
       ref: "Task",
       index: true,
     },
+    meetingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Meeting",
+      index: true,
+    },
     type: {
       type: String,
       required: true,
@@ -37,6 +42,11 @@ const notificationSchema = new mongoose.Schema(
         "brand_created",
         "report_downloaded",
         "task_created",
+        "meeting_created",
+        "meeting_cancelled",
+        "meeting_rescheduled",
+        "meeting_reminder",
+        "meeting_followup_pending",
       ],
     },
     title: {

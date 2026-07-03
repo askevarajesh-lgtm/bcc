@@ -4,6 +4,7 @@ const connectDB = require('./src/config/db');
 const startSlaScheduler = require('./src/modules/sla/sla.scheduler');
 const startMosScheduler = require('./src/modules/mos/mos.scheduler');
 const startReportScheduler = require('./src/modules/reports/report.scheduler');
+const startCalendarScheduler = require('./src/modules/calendar/calendar.scheduler');
 
 const PORT = process.env.PORT || 5500;
 
@@ -14,5 +15,6 @@ connectDB().then(() => {
     startSlaScheduler();
     startMosScheduler();
     startReportScheduler();
+    startCalendarScheduler();
   });
 });

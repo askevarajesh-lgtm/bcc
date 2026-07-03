@@ -307,25 +307,6 @@ export const clientProfitabilityData = [
   { client: 'Wakefit', revenue: '₹1,60,000', teamCost: '₹1,34,000', vendorCost: '₹16,000', totalCost: '₹1,50,000', grossProfit: '₹10,000', margin: 6.3, hours: 52, effRate: '₹192', trend: 'down' },
 ];
 
-export const newBusinessPipelineData = {
-  lead: [
-    { name: 'HealthKart', category: 'Health & Wellness', value: '₹2.8L / mo', rep: 'Amit Jain', date: 'Added 3 Jun', ownerInit: 'AS' },
-    { name: 'Swiggy Instamart', category: 'Q-Commerce', value: '₹3.2L / mo', rep: 'Neha Kapoor', date: 'Added 5 Jun', ownerInit: 'PN' },
-    { name: 'Mamaearth', category: 'D2C Beauty', value: '₹2.4L / mo', rep: 'Varun Alagh', date: 'Added 8 Jun', ownerInit: 'KM' }
-  ],
-  qualified: [
-    { name: 'Ather Energy', category: 'EV / Mobility', value: '₹3.8L / mo', rep: 'Tarun Mehta', date: 'Qualified 28 May', ownerInit: 'AS' },
-    { name: 'Sugar Cosmetics', category: 'D2C Beauty', value: '₹2.2L / mo', rep: 'Vineeta Singh', date: 'Qualified 1 Jun', ownerInit: 'PN' }
-  ],
-  proposal: [
-    { name: 'Noise', category: 'Consumer Electronics', value: '₹3.4L / mo', rep: 'Amit Khatri', date: 'Sent 2 Jun', ownerInit: 'KM', follow: '12 Jun' },
-    { name: 'DealShare', category: 'E-Commerce', value: '₹2.6L / mo', rep: 'Vineet Rao', date: 'Sent 5 Jun', ownerInit: 'AS', follow: '15 Jun' }
-  ],
-  negotiation: [
-    { name: 'Pepperfry', category: 'Home Furnishing', value: '₹4.2L / mo', rep: 'Ambareesh M.', date: 'Decision 15 Jun', ownerInit: 'PN' }
-  ]
-};
-
 export const activeProposals = [
   { company: 'Noise', mrr: '₹3.4L', sent: '2 Jun', val: '₹40.8L / yr', follow: '12 Jun', status: 'Awaiting Response' },
   { company: 'DealShare', mrr: '₹2.6L', sent: '5 Jun', val: '₹31.2L / yr', follow: '15 Jun', status: 'Reviewed' },

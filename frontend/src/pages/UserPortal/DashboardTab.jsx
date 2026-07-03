@@ -18,10 +18,10 @@ const UserDashboard = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  const { data: tasksData, isLoading } = useGetTasksQuery({});
-  const tasks = tasksData?.data?.tasks || [];
+  const { data: tasksData, isLoading } = useGetTasksQuery({ limit: 1000 });
+  const tasks = tasksData?.data?.data || tasksData?.data?.tasks || [];
 
-  const activeTasks = tasks.filter(t => !['COMPLETED', 'APPROVED', 'VALIDATED', 'DELIVERED'].includes(t.status?.toUpperCase()));
+  const activeTasks = tasks.filter(t => !['COMPLETED', 'APPROVED', 'VALIDATED', 'DELIVERED', 'DONE', 'COMPLETE'].includes(t.status?.toUpperCase()));
   const today = dayjs().startOf('day');
   const nextWeek = dayjs().add(7, 'day').endOf('day');
 

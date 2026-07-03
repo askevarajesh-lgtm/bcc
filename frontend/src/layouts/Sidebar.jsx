@@ -168,8 +168,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
           { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
         ]),
-        { key: '/ops/newbusiness', icon: getIcon(Briefcase), label: getLabel('New Business', '8') },
+        { key: '/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', '8') },
         { key: '/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
+        { key: '/ops/meetings', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Meetings' : 'Meetings' },
+        { key: '/ops/calendar', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Calendar' : 'Calendar' },
+        { key: '/ops/deliverables', icon: getIcon(FileText), label: role === 'commander_admin' ? 'Global Deliverables' : 'Deliverables' },
       ],
     },
     {

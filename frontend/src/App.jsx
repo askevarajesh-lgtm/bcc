@@ -50,6 +50,9 @@ import ProposalsList from './pages/Proposals/ProposalsList';
 import ProposalForm from './pages/Proposals/ProposalForm';
 import InvoicesList from './pages/Invoices/InvoicesList';
 import InvoiceForm from './pages/Invoices/InvoiceForm';
+import MeetingsPage from './pages/Meetings/MeetingsPage';
+import CalendarPage from './pages/Calendar/CalendarPage';
+import DeliverablesPage from './pages/Deliverables/DeliverablesPage';
 
 import Reports from './pages/Reports/Reports';
 import Teams from './pages/Teams/Teams';
@@ -58,7 +61,7 @@ import Resources from './pages/Resources/Resources';
 import MOSScore from './pages/MOSScore/MOSScore';
 import Finance from './pages/Finance/Finance';
 import Profitability from './pages/Profitability/Profitability';
-import NewBusiness from './pages/NewBusiness/NewBusiness';
+import SalesPipeline from './pages/SalesPipeline/SalesPipeline';
 import BusinessIntel from './pages/BusinessIntel/BusinessIntel';
 import SettingsPage from './pages/Settings/Settings';
 import ClientSettingsTab from './pages/ClientPortal/tabs/ClientSettingsTab';
@@ -229,8 +232,11 @@ const AppRoutes = () => {
           <Route path="ops/resources" element={<Resources />} />
           <Route path="ops/finance" element={<Finance />} />
           <Route path="ops/profitability" element={<Profitability />} />
-          <Route path="ops/newbusiness" element={<NewBusiness />} />
+          <Route path="ops/salespipeline" element={<SalesPipeline />} />
           <Route path="ops/businessintel" element={<BusinessIntel />} />
+          <Route path="ops/meetings" element={<MeetingsPage />} />
+          <Route path="ops/calendar" element={<CalendarPage />} />
+          <Route path="ops/deliverables" element={<DeliverablesPage />} />
 
           <Route path="settings/company" element={<SettingsPage />} />
           <Route path="settings/marketplace" element={<Marketplace />} />
@@ -284,6 +290,9 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="meetings" element={<MeetingsPage />} />
+          <Route path="calendar" element={<CalendarPage />} />
+          <Route path="deliverables" element={<DeliverablesPage />} />
         </Route>
       </Route>
 
@@ -350,7 +359,7 @@ const AppRoutes = () => {
           <Route path="ops/resources" element={<Resources />} />
           <Route path="ops/finance" element={<Finance />} />
           <Route path="ops/profitability" element={<Profitability />} />
-          <Route path="ops/newbusiness" element={<NewBusiness />} />
+          <Route path="ops/salespipeline" element={<SalesPipeline />} />
           <Route path="ops/businessintel" element={<BusinessIntel />} />
 
           <Route path="settings/company" element={
@@ -374,6 +383,9 @@ const AppRoutes = () => {
           <Route path="billing" element={<ClientBillingTab />} />
           <Route path="reports" element={<ClientReportsTab />} />
           <Route path="support" element={<ClientSupportTab />} />
+          <Route path="meetings" element={<MeetingsPage />} />
+          <Route path="calendar" element={<CalendarPage />} />
+          <Route path="deliverables" element={<DeliverablesPage />} />
         </Route>
       </Route>
 

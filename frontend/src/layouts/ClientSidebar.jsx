@@ -111,6 +111,21 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         ],
       },
       {
+        key: 'calendar-group',
+        label: collapsed ? 'CAL' : 'CALENDAR',
+        children: [
+          { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
+          { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
+        ],
+      },
+      {
+        key: 'projects-group',
+        label: collapsed ? 'PRJ' : 'PROJECTS',
+        children: [
+          { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
+        ],
+      },
+      {
         key: 'intelligence',
         label: collapsed ? 'INT' : 'INTELLIGENCE',
         children: [
@@ -158,6 +173,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
           { key: '/client/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
           { key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
           { key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites' },
+          { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
+          { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
+          { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
         ],
       },
       {
@@ -183,7 +201,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
           { key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
           { key: '/client/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
           { key: '/client/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
-          { key: '/client/ops/newbusiness', icon: getIcon(Briefcase), label: getLabel('New Business', '8') },
+          { key: '/client/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', '8') },
           { key: '/client/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
         ],
       },
@@ -200,7 +218,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     allMenuItems.push(
       { key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance', featureId: 'performance' },
       { key: '/client/leads', icon: getIcon(Users), label: 'CRM', featureId: 'leads' },
-      { key: '/client/tasks', icon: getIcon(FileText), label: 'Deliverables', featureId: 'tasks' },
+      { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
+      { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
+      { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
       { key: '/client/intelligence/copilot', icon: getIcon(Sparkles), label: 'AI Executive' },
       { key: '/client/settings/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' },
       { key: '/client/reports', icon: getIcon(FileText), label: 'Reports' },
@@ -212,7 +232,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     allMenuItems.push(
       { key: '/client/performance', icon: getIcon(Target), label: 'Marketing Performance', featureId: 'performance' },
       { key: '/client/leads', icon: getIcon(Users), label: 'CRM', featureId: 'leads' },
-      { key: '/client/tasks', icon: getIcon(CheckCircle2), label: getLabel('Approvals', '3', 'success'), featureId: 'tasks' },
+      { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
+      { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
       { key: '/client/website', icon: getIcon(Globe), label: 'Website', featureId: 'website' },
       { key: '/client/store', icon: getIcon(ShoppingCart), label: 'Store', featureId: 'store' },
       { key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing', featureId: 'billing' },

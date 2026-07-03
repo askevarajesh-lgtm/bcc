@@ -31,7 +31,7 @@ const availableFeatures = [
   { id: 'resources', label: 'Resources' },
   { id: 'finance', label: 'Finance' },
   { id: 'profitability', label: 'Profitability' },
-  { id: 'newbusiness', label: 'New Business' },
+  { id: 'salespipeline', label: 'Sales Pipeline' },
   { id: 'businessintel', label: 'Business Intel' },
   { id: 'settings', label: 'Settings' }
 ];

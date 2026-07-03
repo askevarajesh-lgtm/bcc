@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
+  Calendar,
   CheckSquare,
   CreditCard,
   FileText,
@@ -88,6 +89,9 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       { key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' },
       { key: '/agency/users', icon: getIcon(Shield), label: 'User Management' },
       { key: '/agency/sla', icon: getIcon(Activity), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
+      { key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' },
+      { key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' },
+      { key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
       { key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' },
     ];
   } else {
@@ -130,6 +134,9 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     }
     if (feats.includes('automation') || feats.length === 0) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
     if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    workspaceChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+    workspaceChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+    workspaceChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
 
     if (workspaceChildren.length > 0) {
       menuItems.push({
