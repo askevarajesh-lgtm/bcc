@@ -66,6 +66,19 @@ exports.generateReport = async (req, res, next) => {
             deliveryMethod, 
             req.user._id
         );
+
+        // Dispatch system notification
+        const { dispatchSystemNotification } = require('../tasks/notification.service');
+        if (agencyId) {
+            await dispatchSystemNotification(
+                agencyId,
+                'reportDownloaded',
+                'report_downloaded',
+                'Report Generated',
+                `A new report has been generated and sent via ${deliveryMethod}.`,
+                { clientId, template }
+            );
+        }
         
         res.status(200).json({ status: 'success', data: report });
     } catch (error) {

@@ -148,6 +148,21 @@ exports.createUser = async (req, res, next) => {
     const user = await User.create(userData);
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
+
+    // Dispatch system notification
+    const { dispatchSystemNotification } = require('../tasks/notification.service');
+    const companyId = user.agencyId || user.brandId || req.user.workspaceId;
+    if (companyId) {
+      await dispatchSystemNotification(
+        companyId,
+        'userCreated',
+        'user_created',
+        'New User Created',
+        `User ${user.name} (${user.email}) has been created with role ${user.roleName || user.role}.`,
+        { userId: user._id }
+      );
+    }
+
     res.status(201).json({ success: true, data: userWithoutPassword });
   } catch (error) {
     next(error);

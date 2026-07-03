@@ -1,50 +1,64 @@
-import React from 'react';
-import { Typography, Row, Col, Card, Button, Tag, Select } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Spin, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Calendar, TrendingUp, Users, ShieldCheck, Activity, RefreshCcw, Link as LinkIcon, ChevronDown } from 'lucide-react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
-import { mrrGrowthData, cohortData } from '../../data/mock';
+import { businessIntelService } from '../../services/businessIntel.service';
+import { cohortData as mockCohortData } from '../../data/mock'; // Temporarily keep cohort UI structure if data not fully dynamic yet, but we will make it dynamic
 
 const { Title, Text } = Typography;
 
 const BusinessIntel = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    kpis: { mrr: 0, arr: 0, mrrGrowthRate: 0, arpu: 0, ltv: 0, activeClients: 0 },
+    mrrGrowthData: [],
+    forecastData: [],
+    pieData: [],
+    churnData: { rate: 0, revenueAtRisk: 0, avgContractLength: 0, reasons: [] },
+    ratios: { grossMargin: 0, nrr: 0, ltvCac: '0x', payback: '0 mo' }
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await businessIntelService.getDashboardData();
+      if (res.success) {
+        setData(res.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch business intelligence data:', error);
+      message.error('Failed to load business intelligence data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
-    }
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  const pieData = [
-    { name: '0-6 months', value: 18, color: 'var(--text-tertiary)' },
-    { name: '6-12 months', value: 24, color: 'var(--accent-info)' },
-    { name: '1-2 years', value: 35, color: 'var(--accent-primary)' },
-    { name: '2+ years', value: 23, color: 'var(--accent-secondary)' },
-  ];
+  const formatCurrency = (val) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`;
+    if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`;
+    return `₹${val.toLocaleString()}`;
+  };
 
-  const churnData = [
-    { reason: 'Moved in-house', val: 2 },
-    { reason: 'Budget cut', val: 1 },
-    { reason: 'Competitor', val: 1 },
-    { reason: 'Results gap', val: 0 },
-  ];
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}><Spin size="large" /></div>;
+  }
 
-  const forecastData = [
-    { month: 'Jun', act: 42.8, cons: null, base: null, opt: null },
-    { month: 'Jul', act: null, cons: 43.2, base: 44.2, opt: 46.0 },
-    { month: 'Aug', act: null, cons: 43.8, base: 45.8, opt: 48.5 },
-    { month: 'Sep', act: null, cons: 44.2, base: 47.8, opt: 52.4 },
-  ];
+  const { kpis, mrrGrowthData, forecastData, pieData, churnData, ratios } = data;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -60,22 +74,21 @@ const BusinessIntel = () => {
         </div>
       </motion.div>
 
-      {/* AERODYNAMIC TEARDROP CARDS - TOP ROW */}
       <motion.div variants={itemVariants}>
         <Row gutter={[16, 24]} style={{ marginBottom: 40 }}>
           {[
-            { label: 'MRR', val: '₹42.80L', sub: '+8.2% MoM', pos: true, icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
-            { label: 'ARR', val: '₹5.14Cr', sub: 'Annualised run rate', icon: <TrendingUp size={20}/>, color: 'var(--text-primary)' },
-            { label: 'MRR GROWTH RATE', val: '+8.2%', sub: '3-month avg', color: 'var(--accent-primary)', icon: <Activity size={20}/> },
-            { label: 'ARPU', val: '₹3.57L', sub: '12 active clients', icon: <Users size={20}/>, color: 'var(--text-primary)' },
-            { label: 'CLIENT LTV (AVG)', val: '₹1.43Cr', sub: '42 months avg tenure', icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
+            { label: 'MRR', val: formatCurrency(kpis.mrr), sub: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}% MoM`, pos: kpis.mrrGrowthRate >= 0, icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
+            { label: 'ARR', val: formatCurrency(kpis.arr), sub: 'Annualised run rate', icon: <TrendingUp size={20}/>, color: 'var(--text-primary)' },
+            { label: 'MRR GROWTH RATE', val: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}%`, sub: 'Recent avg', color: kpis.mrrGrowthRate >= 0 ? 'var(--accent-primary)' : 'var(--accent-danger)', icon: <Activity size={20}/> },
+            { label: 'ARPU', val: formatCurrency(kpis.arpu), sub: `${kpis.activeClients} active clients`, icon: <Users size={20}/>, color: 'var(--text-primary)' },
+            { label: 'CLIENT LTV (AVG)', val: formatCurrency(kpis.ltv), sub: `${churnData.avgContractLength} months avg tenure`, icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   bodyStyle={{ padding: '24px 20px' }} 
                   style={{ 
-                    borderRadius: '32px 6px 32px 6px', // Right-leaning Teardrop
+                    borderRadius: '32px 6px 32px 6px',
                     height: '100%',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',
@@ -97,7 +110,7 @@ const BusinessIntel = () => {
 
       <motion.div variants={itemVariants}>
         <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>MRR Growth — Last 12 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs · with 90-day forecast (dashed)</Text></div>} 
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>MRR Growth — Last 12 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs</Text></div>} 
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ height: 420 }}>
@@ -111,12 +124,11 @@ const BusinessIntel = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="month" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} />
-                <YAxis yAxisId="left" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[0, 60]} tickFormatter={val => `${val}L`} />
-                <YAxis yAxisId="right" orientation="right" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[-4, 8]} tickFormatter={val => `${val}%`} />
+                <YAxis yAxisId="left" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[0, 'auto']} tickFormatter={val => `${val}L`} />
+                <YAxis yAxisId="right" orientation="right" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[-10, 'auto']} tickFormatter={val => `${val}%`} />
                 <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }} />
-                <Area yAxisId="left" type="monotone" dataKey="actual" name="MRR" stroke="var(--accent-secondary)" strokeWidth={3} fillOpacity={1} fill="url(#colorAct)" />
-                <Line yAxisId="left" type="monotone" dataKey="forecast" name="Forecast" stroke="var(--accent-secondary)" strokeWidth={3} strokeDasharray="6 6" dot={false} />
+                <Area yAxisId="left" type="monotone" dataKey="actual" name="MRR (Lakhs)" stroke="var(--accent-secondary)" strokeWidth={3} fillOpacity={1} fill="url(#colorAct)" />
                 <Line yAxisId="right" type="monotone" dataKey="growth" name="Growth %" stroke="var(--accent-warning)" strokeWidth={3} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -141,7 +153,7 @@ const BusinessIntel = () => {
                   <div style={{ flex: 1, textAlign: 'center' }}>M4</div>
                   <div style={{ flex: 1, textAlign: 'center' }}>M5</div>
                 </div>
-                {cohortData.map((c, i) => (
+                {mockCohortData.map((c, i) => (
                   <div key={i} style={{ display: 'flex', minWidth: 600, alignItems: 'center', padding: '6px 8px', fontSize: 13 }}>
                     <div style={{ width: 90, fontWeight: 700, color: 'var(--text-primary)' }}>{c.cohort}</div>
                     {['m0', 'm1', 'm2', 'm3', 'm4', 'm5'].map(m => {
@@ -178,14 +190,20 @@ const BusinessIntel = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', height: 280 }}>
                 <div style={{ width: '50%', height: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" stroke="none">
-                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                      </Pie>
-                      <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {pieData.reduce((acc, curr) => acc + curr.value, 0) > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" stroke="none">
+                          {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                        </Pie>
+                        <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                      <Text type="secondary">No active clients</Text>
+                    </div>
+                  )}
                 </div>
                 <div style={{ width: '50%', paddingLeft: 24 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -213,32 +231,32 @@ const BusinessIntel = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div style={{ border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>MONTHLY CHURN RATE</Text>
-                  <Title level={2} style={{ margin: '12px 0 8px', color: 'var(--accent-primary)', fontWeight: 800 }}>2.1%</Title>
-                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Below 3% target</Text>
+                  <Title level={2} style={{ margin: '12px 0 8px', color: churnData.rate > 3 ? 'var(--accent-danger)' : 'var(--accent-primary)', fontWeight: 800 }}>{churnData.rate}%</Title>
+                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{churnData.rate > 3 ? 'Above' : 'Below'} 3% target</Text>
                 </div>
                 <div style={{ border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>REVENUE AT CHURN RISK</Text>
-                  <Title level={2} style={{ margin: '12px 0 8px', color: 'var(--accent-warning)', fontWeight: 800 }}>₹8.20L</Title>
-                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>19.2% of MRR</Text>
+                  <Title level={2} style={{ margin: '12px 0 8px', color: 'var(--accent-warning)', fontWeight: 800 }}>{formatCurrency(churnData.revenueAtRisk)}</Title>
+                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Based on suspended accounts</Text>
                 </div>
                 <div style={{ border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>AVG CONTRACT LENGTH</Text>
-                  <Title level={2} style={{ margin: '12px 0 8px', color: 'var(--text-primary)', fontWeight: 800 }}>18.4 mo</Title>
+                  <Title level={2} style={{ margin: '12px 0 8px', color: 'var(--text-primary)', fontWeight: 800 }}>{churnData.avgContractLength} mo</Title>
                   <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Across active clients</Text>
                 </div>
               </div>
             </Col>
             <Col xs={24} lg={24} xl={24} xxl={16}>
-              <Text type="secondary" style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 24, marginTop: 8 }}>Churn reasons — last 12 months</Text>
+              <Text type="secondary" style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 24, marginTop: 8 }}>Churn reasons</Text>
               <div style={{ height: 420 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={churnData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                  <BarChart data={churnData.reasons} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                    <XAxis type="number" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} domain={[0, 4]} tick={{ fontSize: 12, fontWeight: 500 }} />
+                    <XAxis type="number" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} />
                     <YAxis dataKey="reason" type="category" stroke="var(--text-secondary)" axisLine={false} tickLine={false} width={120} tick={{ fontSize: 13, fontWeight: 600 }} />
                     <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
                     <Bar dataKey="val" fill="var(--accent-danger)" radius={[0, 6, 6, 0]} barSize={40}>
-                      {churnData.map((entry, index) => {
+                      {churnData.reasons.map((entry, index) => {
                         const colors = ['var(--accent-danger)', 'var(--accent-warning)', 'var(--accent-secondary)', 'var(--text-tertiary)'];
                         return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                       })}
@@ -253,32 +271,29 @@ const BusinessIntel = () => {
 
       <motion.div variants={itemVariants}>
         <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>90-Day Revenue Forecast</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Three scenarios extending current MRR through September</Text></div>} 
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>90-Day Revenue Forecast</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Three scenarios extending current MRR through upcoming months</Text></div>} 
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
             <Col xs={24} lg={24} xl={8} xxl={8}>
               <div style={{ border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>CONSERVATIVE</Text>
-                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹44.2L / mo by Sep</div>
-                <div style={{ color: 'var(--accent-primary)', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>+3.3%</div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes current churn rate</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹{forecastData.length > 3 ? forecastData[3].cons : 0}L / mo</div>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes 2% churn rate</Text>
               </div>
             </Col>
             <Col xs={24} lg={24} xl={8} xxl={8}>
               <div style={{ border: '2px solid var(--accent-primary)', background: 'rgba(16, 185, 129, 0.05)', borderRadius: 16, padding: 24, boxShadow: 'var(--shadow-md)' }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--accent-primary)' }}>BASE</Text>
-                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹47.8L / mo by Sep</div>
-                <div style={{ color: 'var(--accent-primary)', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>+11.7%</div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes 2 new wins from pipeline</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹{forecastData.length > 3 ? forecastData[3].base : 0}L / mo</div>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes sent pipeline wins</Text>
               </div>
             </Col>
             <Col xs={24} lg={24} xl={8} xxl={8}>
               <div style={{ border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>OPTIMISTIC</Text>
-                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹52.4L / mo by Sep</div>
-                <div style={{ color: 'var(--accent-primary)', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>+22.4%</div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes 4 new wins, 0 churn</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>₹{forecastData.length > 3 ? forecastData[3].opt : 0}L / mo</div>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assumes draft + sent pipeline wins</Text>
               </div>
             </Col>
           </Row>
@@ -288,7 +303,7 @@ const BusinessIntel = () => {
               <ComposedChart data={forecastData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="month" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} />
-                <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[0, 60]} tickFormatter={val => `${val}L`} />
+                <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500 }} domain={[0, 'auto']} tickFormatter={val => `${val}L`} />
                 <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }} />
                 <Line type="monotone" dataKey="act" name="Actual" stroke="var(--accent-secondary)" strokeWidth={3} />
@@ -306,21 +321,20 @@ const BusinessIntel = () => {
         <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Unit economics & operating health</Text>
       </div>
 
-      {/* AERODYNAMIC TEARDROP CARDS - BOTTOM ROW */}
       <motion.div variants={itemVariants}>
         <Row gutter={[16, 24]} style={{ paddingBottom: 40 }}>
           {[
-            { label: 'LTV : CAC RATIO', val: '8.2x', sub: 'Healthy - target ≥ 3x', icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
-            { label: 'PAYBACK PERIOD', val: '4.2 mo', sub: 'CAC recovered in <6 mo', icon: <RefreshCcw size={20}/>, color: 'var(--text-primary)' },
-            { label: 'NET REVENUE RETENTION', val: '108%', sub: '↗ Expansion > churn', color: 'var(--accent-primary)', icon: <TrendingUp size={20}/> },
-            { label: 'AGENCY GROSS MARGIN', val: '33.6%', sub: 'Service-business benchmark', icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
+            { label: 'LTV : CAC RATIO', val: ratios.ltvCac, sub: 'Healthy - target ≥ 3x', icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
+            { label: 'PAYBACK PERIOD', val: ratios.payback, sub: 'CAC recovered in <6 mo', icon: <RefreshCcw size={20}/>, color: 'var(--text-primary)' },
+            { label: 'NET REVENUE RETENTION', val: `${ratios.nrr}%`, sub: '↗ Expansion > churn', color: 'var(--accent-primary)', icon: <TrendingUp size={20}/> },
+            { label: 'AGENCY GROSS MARGIN', val: `${ratios.grossMargin}%`, sub: 'Service-business benchmark', icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   bodyStyle={{ padding: '24px 20px' }} 
                   style={{ 
-                    borderRadius: '6px 32px 6px 32px', // Left-leaning Teardrop for bottom row
+                    borderRadius: '6px 32px 6px 32px',
                     height: '100%',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',

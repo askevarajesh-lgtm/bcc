@@ -48,6 +48,20 @@ exports.createAgency = async (req, res, next) => {
     agencyUser.agencyId = agencyUser._id;
     await agencyUser.save();
 
+    // Dispatch system notification
+    const { dispatchSystemNotification } = require('../tasks/notification.service');
+    const companyId = req.user?.workspaceId || agencyUser._id;
+    if (companyId) {
+      await dispatchSystemNotification(
+        companyId,
+        'agencyCreated',
+        'agency_created',
+        'New Agency Created',
+        `Agency ${agencyUser.companyName} (${agencyUser.email}) has been created.`,
+        { agencyId: agencyUser._id }
+      );
+    }
+
     res.status(201).json({ success: true, data: agencyUser });
   } catch (error) {
     next(error);

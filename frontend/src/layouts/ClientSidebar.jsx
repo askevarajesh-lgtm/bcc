@@ -252,6 +252,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       collapsed={collapsed}
       setCollapsed={setCollapsed}
       brandInitials={dynamicBrandInitials}
+      brandLogo={user?.logo}
       brandTitle={dynamicBrandName}
       brandSubtitle={user?.roleName || "Executive Portal"}
       accent="#10b981"

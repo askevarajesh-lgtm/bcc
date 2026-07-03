@@ -52,10 +52,10 @@ const SettingsPage = () => {
   const allTabs = [
     { key: '1', label: <strong style={{ fontWeight: 600 }}>Agency</strong> },
     { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
-    { key: '3', label: <strong style={{ fontWeight: 600 }}>Team & Access</strong> },
+    // { key: '3', label: <strong style={{ fontWeight: 600 }}>Team & Access</strong> },
     { key: '4', label: <strong style={{ fontWeight: 600 }}>Notifications</strong> },
-    { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
-    { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
+    // { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
+    // { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
     ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
       { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> }

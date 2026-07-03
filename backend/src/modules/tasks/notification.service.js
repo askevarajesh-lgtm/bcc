@@ -90,10 +90,60 @@ const deleteNotifications = async (notificationIds, userId) => {
   return result;
 };
 
+const CompanyNotificationSettings = require("./companyNotificationSettings.model");
+const User = require("../auth/user.model");
+
+/**
+ * Dispatch system notification
+ */
+const dispatchSystemNotification = async (companyId, triggerKey, type, title, message, metadata = {}) => {
+  try {
+    // Check if the trigger is enabled in company settings
+    const settings = await CompanyNotificationSettings.findOne({ companyId });
+    if (!settings || !settings.systemTriggers || !settings.systemTriggers[triggerKey]) {
+      return; // Not configured or disabled
+    }
+
+    const triggerSettings = settings.systemTriggers[triggerKey];
+    if (!triggerSettings.inApp && !triggerSettings.email) {
+      return; // No channels enabled
+    }
+
+    // Find admins to notify
+    const admins = await User.find({
+      $or: [
+        { agencyId: companyId },
+        { brandId: companyId }
+      ],
+      role: { $in: ["agency_super_admin", "commander_admin", "brand_super_admin"] },
+      isActive: true
+    });
+
+    if (!admins.length) return;
+
+    // Create in-app notifications
+    if (triggerSettings.inApp) {
+      const notifications = admins.map(admin => ({
+        userId: admin._id,
+        type,
+        title,
+        message,
+        metadata,
+        channels: { inApp: true, email: triggerSettings.email, whatsapp: triggerSettings.whatsapp }
+      }));
+      
+      await Notification.insertMany(notifications);
+    }
+  } catch (err) {
+    console.error("Error dispatching system notification:", err);
+  }
+};
+
 module.exports = {
   getUserNotifications,
   markAsRead,
   markAllAsRead,
   deleteNotification,
   deleteNotifications,
+  dispatchSystemNotification,
 };

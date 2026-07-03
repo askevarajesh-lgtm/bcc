@@ -200,6 +200,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       collapsed={collapsed}
       setCollapsed={setCollapsed}
       brandInitials="M1"
+      brandLogo={user?.logo}
       brandTitle="M1"
       brandSubtitle="Agency Growth OS"
       accent="#3b82f6"

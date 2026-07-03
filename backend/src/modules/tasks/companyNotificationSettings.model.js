@@ -56,6 +56,39 @@ const companyNotificationSettingsSchema = new mongoose.Schema(
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
     },
+    // System-wide Triggers
+    systemTriggers: {
+      userCreated: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      },
+      agencyCreated: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      },
+      brandCreated: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      },
+      reportDownloaded: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      },
+      taskCreated: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      },
+      taskCompleted: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        whatsapp: { type: Boolean, default: false },
+      }
+    }
   },
   {
     timestamps: true,

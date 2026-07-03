@@ -60,9 +60,11 @@ const SuperAdminSidebar = () => {
 
   return (
     <PortalSidebar
+      collapsed={collapsed}
+      setCollapsed={setCollapsed}
       brandInitials="SA"
-      brandTitle="Super Admin"
-      brandSubtitle="M1 Platform"
+      brandLogo={user?.logo}
+      brandTitle="M1 Platform"
       accent="#7c3aed"
       accentSoft="rgba(124, 58, 237, 0.12)"
       menuItems={menuItems}

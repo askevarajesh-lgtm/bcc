@@ -1062,6 +1062,19 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
     );
   }
 
+  // Dispatch system notification for task creation
+  const { dispatchSystemNotification } = require('./notification.service');
+  if (tenantCompanyId) {
+    await dispatchSystemNotification(
+      tenantCompanyId,
+      'taskCreated',
+      'task_created',
+      'New Task Created',
+      `Task "${task.title}" has been created in ${task.department}.`,
+      { taskId: task._id }
+    );
+  }
+
   // Log activity
   if (createdByUserId) {
     await logTaskActivity(task._id, createdByUserId, "created", {
@@ -3333,6 +3346,19 @@ const updateTaskStatusAndOrder = async (
     // Get comment from command if available
     const comment = command || task.validationRemarks || null;
     await notifyTaskCompleted(task, userId, tenantCompanyId, comment);
+
+    // Dispatch system notification for task completion
+    const { dispatchSystemNotification } = require('./notification.service');
+    if (tenantCompanyId) {
+      await dispatchSystemNotification(
+        tenantCompanyId,
+        'taskCompleted',
+        'task_completed',
+        'Task Completed',
+        `Task "${task.title}" has been completed.`,
+        { taskId: task._id }
+      );
+    }
 
     // Create timeline event for task completion
     try {

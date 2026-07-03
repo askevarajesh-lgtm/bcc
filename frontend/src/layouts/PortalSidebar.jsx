@@ -11,6 +11,7 @@ const PortalSidebar = ({
   setCollapsed,
   width = 276,
   brandInitials = 'M1',
+  brandLogo = null,
   brandTitle = 'M1',
   brandSubtitle = 'Growth OS',
   accent = '#10b981',
@@ -46,12 +47,28 @@ const PortalSidebar = ({
       }}
     >
       <div className="app-sidebar__brand">
-        <div className="app-sidebar__logo">{brandInitials}</div>
-        {!collapsed && (
-          <div className="app-sidebar__brand-copy">
-            <strong>{brandTitle}</strong>
-            <span>{brandSubtitle}</span>
+        {brandLogo ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', width: '100%' }}>
+            <img 
+              src={brandLogo} 
+              alt="Logo" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: 44, 
+                objectFit: 'contain' 
+              }} 
+            />
           </div>
+        ) : (
+          <>
+            <div className="app-sidebar__logo">{brandInitials}</div>
+            {!collapsed && (
+              <div className="app-sidebar__brand-copy">
+                <strong>{brandTitle}</strong>
+                <span>{brandSubtitle}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 

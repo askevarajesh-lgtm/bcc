@@ -32,6 +32,11 @@ const notificationSchema = new mongoose.Schema(
         "daily_note_reminder",
         "client_onboarded",
         "campaign_recharge_added",
+        "user_created",
+        "agency_created",
+        "brand_created",
+        "report_downloaded",
+        "task_created",
       ],
     },
     title: {

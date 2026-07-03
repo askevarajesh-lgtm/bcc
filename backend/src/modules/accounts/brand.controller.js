@@ -86,6 +86,20 @@ exports.createBrand = async (req, res, next) => {
     brand.brandId = brand._id;
     await brand.save();
 
+    // Dispatch system notification
+    const { dispatchSystemNotification } = require('../tasks/notification.service');
+    const companyId = req.user?.workspaceId || agencyId || brand._id;
+    if (companyId) {
+      await dispatchSystemNotification(
+        companyId,
+        'brandCreated',
+        'brand_created',
+        'New Brand Created',
+        `Brand ${brand.companyName} (${brand.email}) has been created.`,
+        { brandId: brand._id }
+      );
+    }
+
     res.status(201).json({ success: true, data: brand });
   } catch (error) {
     next(error);
