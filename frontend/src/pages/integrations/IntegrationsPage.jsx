@@ -1,25 +1,18 @@
-import React, { useState } from 'react';
-import { Switch, message, Typography, Button, Alert } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Switch, message, Typography, Button } from "antd";
+import { ArrowRightOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import {
   useGetIntegrationsQuery,
   useUpdateIntegrationMutation,
-} from "../../../api/integrationApi";
-import useCompanyIntegrations from "../../../hooks/useCompanyIntegrations";
-
-// Import config pages
-import WhatsAppConfigPage from "../../integrations/WhatsAppConfigPage";
-import SmsConfigPage from "../../integrations/SmsConfigPage";
-import EmailConfigPage from "../../integrations/EmailConfigPage";
-import WebsiteConfigPage from "../../integrations/WebsiteConfigPage";
+} from "../../api/integrationApi";
+import useCompanyIntegrations from "../../hooks/useCompanyIntegrations";
 
 const { Title, Text } = Typography;
 
 const cardStyles = `
   /* ── Grid ── */
   .int-grid {
-    --primary-color: #2563eb;
-    --primary-color-rgb: 37, 99, 235;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
     gap: 22px;
@@ -258,7 +251,16 @@ const WhatsAppIcon = () => (
 );
 
 const SmsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     <circle cx="9" cy="10" r="0.9" fill="#fff" stroke="none" />
     <circle cx="12" cy="10" r="0.9" fill="#fff" stroke="none" />
@@ -267,24 +269,68 @@ const SmsIcon = () => (
 );
 
 const EmailIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
     <polyline points="22,6 12,13 2,6" />
   </svg>
 );
 
-const WebsiteIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+const EktaIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
 
-const GearIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+const IvrCallingIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
+
+const WebsiteIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 );
 
@@ -294,18 +340,49 @@ const isWebsiteIntegrationConfigured = (integration) => {
   return String(c.apiKey || "").trim().length > 0;
 };
 
-const IntegrationsTab = () => {
+const isIvrIntegrationConfigured = (integration) => {
+  const c = integration?.config;
+  if (!c || typeof c !== "object") return false;
+  const keys = [
+    "accountSid",
+    "subdomain",
+    "accountRegion",
+    "apiKey",
+    "apiToken",
+    "exoPhoneNumber",
+  ];
+  return keys.every((k) => String(c[k] || "").trim().length > 0);
+};
+
+const GearIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+const IntegrationsPage = () => {
+  const navigate = useNavigate();
   const { data, refetch } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
   const companyIntegrations = useCompanyIntegrations();
-  
-  const [selectedConfig, setSelectedConfig] = useState(null);
-
   const integrations = data?.data?.integrations || [];
 
   const whatsappIntegration = integrations.find((i) => i.type === "whatsapp");
   const smsIntegration = integrations.find((i) => i.type === "sms");
   const emailIntegration = integrations.find((i) => i.type === "email");
+  const ektaIntegration = integrations.find((i) => i.type === "ekta");
+  const ivrIntegration = integrations.find((i) => i.type === "ivr");
   const websiteIntegration = integrations.find((i) => i.type === "website");
 
   const handleToggle = async (integration, enabled) => {
@@ -327,19 +404,56 @@ const IntegrationsTab = () => {
 
   const IntegrationCard = ({ type, integration, icon, title, description }) => {
     const isActive = integration?.isActive || false;
-    const isConfigured = type === "website"
-      ? isWebsiteIntegrationConfigured(integration)
-      : Boolean(integration?.config && Object.keys(integration.config).length > 0);
+    const isConfigured =
+      type === "ivr"
+        ? isIvrIntegrationConfigured(integration)
+        : type === "website"
+          ? isWebsiteIntegrationConfigured(integration)
+          : Boolean(
+              integration?.config && Object.keys(integration.config).length > 0,
+            );
 
     const handleCardClick = () => {
-      setSelectedConfig({
-        type,
-        id: integration?._id || 'new'
-      });
+      if (type === "whatsapp") {
+        navigate(
+          integration?._id
+            ? `/settings/integrations/whatsapp/${integration._id}`
+            : "/settings/integrations/whatsapp/new",
+        );
+      } else if (type === "email") {
+        navigate(
+          integration?._id
+            ? `/settings/integrations/email/${integration._id}`
+            : "/settings/integrations/email/new",
+        );
+      } else if (type === "sms") {
+        navigate("/settings/integrations/sms");
+      } else if (type === "ekta") {
+        navigate(
+          integration?._id
+            ? `/settings/integrations/ekta/${integration._id}`
+            : "/settings/integrations/ekta/new",
+        );
+      } else if (type === "ivr") {
+        navigate(
+          integration?._id
+            ? `/settings/integrations/ivr/${integration._id}`
+            : "/settings/integrations/ivr/new",
+        );
+      } else if (type === "website") {
+        navigate(
+          integration?._id
+            ? `/settings/integrations/website/${integration._id}`
+            : "/settings/integrations/website/new",
+        );
+      } else {
+        message.info(`${title} coming soon`);
+      }
     };
 
     return (
       <div className={`int-card int-card-${type}`} onClick={handleCardClick}>
+        {/* Coloured banner */}
         <div className="int-banner">
           <div className="int-blob1" />
           <div className="int-blob2" />
@@ -355,11 +469,14 @@ const IntegrationsTab = () => {
           </div>
         </div>
 
+        {/* Body */}
         <div className="int-body">
           <span className="int-title">{title}</span>
 
           <div className="int-badges">
-            <span className={`int-dot ${isActive ? "int-dot-active" : "int-dot-inactive"}`}>
+            <span
+              className={`int-dot ${isActive ? "int-dot-active" : "int-dot-inactive"}`}
+            >
               <span className="int-dot-pulse" />
               {isActive ? "Active" : "Inactive"}
             </span>
@@ -371,7 +488,13 @@ const IntegrationsTab = () => {
           <p className="int-desc">{description}</p>
 
           <div className="int-footer">
-            <button className="int-cta-btn" onClick={(e) => { e.stopPropagation(); handleCardClick(); }}>
+            <button
+              className="int-cta-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick();
+              }}
+            >
               <GearIcon />
               {integration ? "Configure" : "Setup Integration"}
             </button>
@@ -384,66 +507,101 @@ const IntegrationsTab = () => {
     );
   };
 
-  const handleBack = () => {
-    setSelectedConfig(null);
-    refetch();
-  };
-
-  if (selectedConfig) {
-    return (
-      <div style={{ marginTop: 16 }}>
-        {selectedConfig.type === 'whatsapp' && <WhatsAppConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
-        {selectedConfig.type === 'sms' && <SmsConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
-        {selectedConfig.type === 'email' && <EmailConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
-        {selectedConfig.type === 'website' && <WebsiteConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
-      </div>
-    );
-  }
-
   return (
     <>
       <style>{cardStyles}</style>
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-          <Title level={4} style={{ margin: 0 }}>Company Integrations</Title>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <Button
+            type="ghost"
+            shape="circle"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/settings")}
+          />
+          <Title level={2} style={{ margin: 0 }}>
+            Company Integrations
+          </Title>
         </div>
         <Text type="secondary">
-          Configure messaging infrastructure for your company. Click on a card to configure.
+          Configure messaging infrastructure for your company. Click on a card
+          to configure.
         </Text>
 
         <div className="int-grid">
-          <IntegrationCard
-            type="whatsapp"
-            integration={whatsappIntegration}
-            icon={<WhatsAppIcon />}
-            title="WhatsApp"
-            description="Send invoices, reminders, and notifications via WhatsApp Business API"
-          />
-          <IntegrationCard
-            type="sms"
-            integration={smsIntegration}
-            icon={<SmsIcon />}
-            title="SMS"
-            description="Send SMS notifications and payment reminders to clients"
-          />
-          <IntegrationCard
-            type="email"
-            integration={emailIntegration}
-            icon={<EmailIcon />}
-            title="Email (SendPulse)"
-            description="Send invoices, reports, and notifications via SendPulse email service"
-          />
-          <IntegrationCard
-            type="website"
-            integration={websiteIntegration}
-            icon={<WebsiteIcon />}
-            title="Lead Management Integration"
-            description="Configure and manage lead integrations from Website forms and WhatsApp"
-          />
+          {companyIntegrations.whatsapp && (
+            <IntegrationCard
+              type="whatsapp"
+              integration={whatsappIntegration}
+              icon={<WhatsAppIcon />}
+              title="WhatsApp"
+              description="Send invoices, reminders, and notifications via WhatsApp Business API"
+            />
+          )}
+          {companyIntegrations.sms && (
+            <IntegrationCard
+              type="sms"
+              integration={smsIntegration}
+              icon={<SmsIcon />}
+              title="SMS"
+              description="Send SMS notifications and payment reminders to clients"
+            />
+          )}
+          {companyIntegrations.email && (
+            <IntegrationCard
+              type="email"
+              integration={emailIntegration}
+              icon={<EmailIcon />}
+              title="Email (SendPulse)"
+              description="Send invoices, reports, and notifications via SendPulse email service"
+            />
+          )}
+          {companyIntegrations.ekta && (
+            <IntegrationCard
+              type="ekta"
+              integration={ektaIntegration}
+              icon={<EktaIcon />}
+              title="Ekta HR Integration"
+              description="Sync employee data and payroll info with Ekta HR management system"
+            />
+          )}
+          {companyIntegrations.ivr && (
+            <IntegrationCard
+              type="ivr"
+              integration={ivrIntegration}
+              icon={<IvrCallingIcon />}
+              title="IVR Calling"
+              description="Outbound voice and IVR for leads using your telephony account (Exotel-style API credentials)"
+            />
+          )}
+          {companyIntegrations.website && (
+            <IntegrationCard
+              type="website"
+              integration={websiteIntegration}
+              icon={<WebsiteIcon />}
+              title="Lead Management Integration"
+              description="Configure and manage lead integrations from Website forms and WhatsApp"
+            />
+          )}
         </div>
+        {!Object.values(companyIntegrations).some(Boolean) && (
+          <Alert
+            style={{ marginTop: 16 }}
+            type="info"
+            showIcon
+            message="No integrations enabled"
+            description="Super Admin has disabled all integrations for this company."
+          />
+        )}
       </div>
     </>
   );
 };
 
-export default IntegrationsTab;
+export default IntegrationsPage;

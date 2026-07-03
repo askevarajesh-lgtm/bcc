@@ -1,14 +1,38 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const IntegrationSchema = new mongoose.Schema({
-  category: { type: String, required: true },
-  integrationId: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  description: { type: String },
-  status: { type: Boolean, default: false },
-  icon: { type: String },
-  color: { type: String },
-  bg: { type: String }
-}, { timestamps: true });
+const integrationSchema = new mongoose.Schema(
+  {
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      default: null, // null for platform-level integrations
+    },
+    type: {
+      type: String,
+      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website"],
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: false,
+    },
+    config: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+      // For WhatsApp: { backendUrl, apiToken, templates: [{ id, name, variables }] }
+      // For SendPulse: { clientId, clientSecret, fromEmail, fromName }
+      // For IVR (e.g. Exotel-style): { accountSid, subdomain, accountRegion, apiKey, apiToken, exoPhoneNumber }
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
-module.exports = mongoose.model('Integration', IntegrationSchema);
+integrationSchema.index({ companyId: 1, type: 1 });
+
+module.exports = mongoose.model("Integration", integrationSchema);

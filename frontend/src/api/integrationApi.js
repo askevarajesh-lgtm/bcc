@@ -36,32 +36,67 @@ const createQueryHook = (endpointFn) => {
 
 const createMutationHook = (endpointFn) => {
   return () => {
+    const [data, setData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const mutate = async (params) => {
+    const mutate = (params) => {
       setIsLoading(true);
-      try {
-        const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
-        const url = typeof config === 'string' ? config : config.url;
-        const method = typeof config === 'object' && config.method ? config.method : 'POST';
-        const body = typeof config === 'object' ? config.body : undefined;
-        const formData = typeof config === 'object' ? config.formData : undefined;
-        
-        const response = await api({ url, method, data: formData || body });
-        setError(null);
-        return { data: response.data };
-      } catch (err) {
-        setError(err);
-        return { error: err };
-      } finally {
-        setIsLoading(false);
-      }
+      const promise = (async () => {
+        try {
+          const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
+          const url = typeof config === 'string' ? config : config.url;
+          const method = typeof config === 'object' && config.method ? config.method : 'POST';
+          const body = typeof config === 'object' ? config.body : undefined;
+          const formData = typeof config === 'object' ? config.formData : undefined;
+          
+          const response = await api({ url, method, data: formData || body });
+          setData(response.data);
+          setError(null);
+          setIsLoading(false);
+          return { data: response.data };
+        } catch (err) {
+          setError(err);
+          setIsLoading(false);
+          return { error: err };
+        }
+      })();
+      
+      promise.unwrap = async () => {
+        const res = await promise;
+        if (res.error) throw res.error;
+        return res.data;
+      };
+      
+      return promise;
     };
-    return [mutate, { isLoading, error }];
+    return [mutate, { data, isLoading, error, isFetching: isLoading }];
   };
 };
 
-export const useGetIntegrationsQuery = createQueryHook(() => '/integrations');
-export const useSyncEktaStaffMutation = createMutationHook(() => ({ url: '/integrations/ekta/sync-staff', method: 'POST' }));
-export const useSyncEktaAttendanceMutation = createMutationHook(() => ({ url: '/integrations/ekta/sync-attendance', method: 'POST' }));
+export const useGetIntegrationsQuery = createQueryHook(() => "/integrations");
+export const useCreateIntegrationMutation = createMutationHook((data) => ({ url: "/integrations", method: "POST", body: data }));
+export const useUpdateIntegrationMutation = createMutationHook(({ id, ...data }) => ({ url: `/integrations/${id}`, method: "PUT", body: data }));
+export const useSendMessageMutation = createMutationHook(({ id, ...data }) => ({ url: `/integrations/${id}/send`, method: "POST", body: data }));
+export const useFetchWhatsAppTemplatesQuery = createQueryHook((id) => `/integrations/${id}/whatsapp/templates`);
+export const useValidateEktaApiMutation = createMutationHook((data) => ({ url: `/integrations/ekta/validate`, method: "POST", body: data }));
+export const useSyncEktaStaffMutation = createMutationHook(({ id, ...data }) => ({ url: `/integrations/${id}/ekta/sync/staff`, method: "POST", body: data }));
+export const useSyncEktaAttendanceMutation = createMutationHook(({ id, ...data }) => ({ url: `/integrations/${id}/ekta/sync/attendance`, method: "POST", body: data }));
+export const useFetchWhatsAppLeadsMutation = createMutationHook(({ id, ...data }) => ({ url: `/integrations/${id}/whatsapp-leads/fetch`, method: "POST", body: data }));
+export const useGetFacebookIntegrationsQuery = createQueryHook((clientId) => `/facebook/integrations${clientId ? `?clientId=${clientId}` : ""}`);
+export const useEnableFacebookSyncMutation = createMutationHook((data) => ({ url: "/facebook/integrations/subscribe", method: "POST", body: data }));
+export const useDisableFacebookSyncMutation = createMutationHook((data) => ({ url: "/facebook/integrations/unsubscribe", method: "POST", body: data }));
+export const useDisconnectFacebookPageMutation = createMutationHook(({ pageId, clientId }) => ({ url: `/facebook/integrations/${pageId}${clientId ? `?clientId=${clientId}` : ""}`, method: "DELETE" }));
+export const useGetFacebookSyncLogsQuery = createQueryHook(({ pageId, clientId }) => `/facebook/integrations/${pageId}/logs${clientId ? `?clientId=${clientId}` : ""}`);
+export const useLazyGetFacebookSyncLogsQuery = () => [useGetFacebookSyncLogsQuery().refetch]; // Mock lazy query
+export const useSyncFacebookLeadsMutation = createMutationHook((data) => ({ url: "/facebook/integrations/sync-leads", method: "POST", body: data }));
+export const useTestTwilioConnectionMutation = createMutationHook((data) => ({ url: "/integrations/twilio/test", method: "POST", body: data }));
+export const useSaveTwilioIntegrationMutation = createMutationHook((data) => ({ url: "/integrations/twilio/save", method: "POST", body: data }));
+export const useGetTwilioIntegrationQuery = createQueryHook(() => "/integrations/twilio");
+export const useGetSmsLogsQuery = createQueryHook((params) => ({ url: "/sms/logs", params }));
+
+// Event Config Hooks
+export const useGetEventConfigsQuery = createQueryHook((integrationId) => `/integrations/${integrationId}/events`);
+export const useUpsertEventConfigMutation = createMutationHook((data) => ({ url: `/integrations/${data.integrationId}/events`, method: "POST", body: data }));
+export const useTestEmailConnectionMutation = createMutationHook((data) => ({ url: `/integrations/email/test-connection`, method: "POST", body: data }));
+export const useSendTestEmailMutation = createMutationHook((data) => ({ url: `/integrations/email/test-send`, method: "POST", body: data }));

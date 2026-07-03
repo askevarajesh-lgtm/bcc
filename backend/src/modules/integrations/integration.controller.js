@@ -1,58 +1,177 @@
-const Integration = require('./integration.model');
+const { validationResult } = require("express-validator");
+const integrationService = require("./integration.service");
+const {
+  sendSuccess,
+  sendError,
+  sendValidationError,
+} = require("../../utils/response");
 
-exports.getIntegrations = async (req, res, next) => {
+const getAllIntegrations = async (req, res) => {
   try {
-    const integrations = await Integration.find().sort({ createdAt: 1 });
-    res.status(200).json({ success: true, count: integrations.length, data: integrations });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.getIntegration = async (req, res, next) => {
-  try {
-    const integration = await Integration.findById(req.params.id);
-    if (!integration) {
-      return res.status(404).json({ success: false, message: 'Integration not found' });
-    }
-    res.status(200).json({ success: true, data: integration });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.createIntegration = async (req, res, next) => {
-  try {
-    const integration = await Integration.create(req.body);
-    res.status(201).json({ success: true, data: integration });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.updateIntegration = async (req, res, next) => {
-  try {
-    const integration = await Integration.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+    const integrations = await integrationService.getAllIntegrations(
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Integrations retrieved successfully", {
+      integrations,
     });
-    if (!integration) {
-      return res.status(404).json({ success: false, message: 'Integration not found' });
-    }
-    res.status(200).json({ success: true, data: integration });
   } catch (error) {
-    next(error);
+    return sendError(res, 500, error.message);
   }
 };
 
-exports.deleteIntegration = async (req, res, next) => {
+const createIntegration = async (req, res) => {
   try {
-    const integration = await Integration.findByIdAndDelete(req.params.id);
-    if (!integration) {
-      return res.status(404).json({ success: false, message: 'Integration not found' });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return sendValidationError(res, errors.array());
     }
-    res.status(200).json({ success: true, data: {} });
+    const integration = await integrationService.createIntegration(
+      req.body,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Integration created successfully", {
+      integration,
+    });
   } catch (error) {
-    next(error);
+    return sendError(res, 400, error.message);
   }
+};
+
+const updateIntegration = async (req, res) => {
+  try {
+    const integration = await integrationService.updateIntegration(
+      req.params.id,
+      req.body,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Integration updated successfully", {
+      integration,
+    });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const sendMessage = async (req, res) => {
+  try {
+    const result = await integrationService.sendMessage(
+      req.params.id,
+      req.body,
+      req.companyId,
+    );
+    return sendSuccess(res, result.message, {
+      integrationType: result.integrationType,
+      messageId: result.messageId,
+    });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const fetchWhatsAppTemplates = async (req, res) => {
+  try {
+    const templates = await integrationService.fetchWhatsAppTemplates(
+      req.params.id,
+      req.companyId,
+      req.user.role,
+    );
+
+    // If no templates were found but no error was thrown, return empty array with info message
+    if (!templates || templates.length === 0) {
+      return sendSuccess(
+        res,
+        "No templates found. Your backend may not have a templates API endpoint. You can configure templates manually.",
+        { templates: [] },
+      );
+    }
+
+    return sendSuccess(res, "WhatsApp templates fetched successfully", {
+      templates,
+    });
+  } catch (error) {
+    // Return the error message as-is so frontend can handle it appropriately
+    return sendError(res, 400, error.message);
+  }
+};
+
+const validateEktaApi = async (req, res) => {
+  try {
+    const integration = await integrationService.validateEktaApi(
+      req.body,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Ekta API validated successfully", { integration });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const syncEktaStaff = async (req, res) => {
+  try {
+    const result = await integrationService.syncEktaStaff(
+      req.params.id,
+      req.body,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Ekta Staff sync started", result);
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const syncEktaAttendance = async (req, res) => {
+  try {
+    const result = await integrationService.syncEktaAttendance(
+      req.params.id,
+      req.body,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, "Ekta Attendance sync started", result);
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const submitWebsiteLead = async (req, res) => {
+  try {
+    const { apiKey, ...leadData } = req.body;
+    const lead = await integrationService.submitWebsiteLead(apiKey, leadData);
+    return sendSuccess(res, "Lead submitted successfully", {
+      leadId: lead._id,
+    });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const fetchWhatsAppLeads = async (req, res) => {
+  try {
+    const result = await integrationService.fetchWhatsAppLeads(
+      req.params.id,
+      req.companyId,
+      req.user.role,
+    );
+    return sendSuccess(res, result.message, result);
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+module.exports = {
+  getAllIntegrations,
+  createIntegration,
+  updateIntegration,
+  sendMessage,
+  fetchWhatsAppTemplates,
+  validateEktaApi,
+  syncEktaStaff,
+  syncEktaAttendance,
+  submitWebsiteLead,
+  fetchWhatsAppLeads,
 };
