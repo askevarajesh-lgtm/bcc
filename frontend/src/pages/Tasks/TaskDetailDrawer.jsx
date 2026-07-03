@@ -17,6 +17,7 @@ import {
   Upload,
   Modal,
 } from "antd";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import {
   UserOutlined,
   CalendarOutlined,
@@ -90,10 +91,10 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
         formData,
       }).unwrap();
 
-      message.success("Screenshot updated successfully");
+      notifySuccess('screenshot', task._id, "Screenshot updated successfully");
     } catch (error) {
       console.error("Failed to update screenshot:", error);
-      message.error(error.data?.message || "Failed to update screenshot");
+      notifyError('screenshot', task._id, error.data?.message || "Failed to update screenshot");
     }
     return false; // Prevent default upload behavior
   };
@@ -160,35 +161,35 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
         content: commentText,
       }).unwrap();
       setCommentText("");
-      message.success("Comment added successfully");
+      notifySuccess('comment', task._id, 'Comment added successfully');
     } catch (error) {
-      message.error("Failed to add comment");
+      notifyError('comment', task._id, error?.data?.message || 'Failed to add comment');
     }
   };
 
   const handleDelete = async () => {
     try {
       await deleteTask(task._id).unwrap();
-      message.success("Task deleted successfully");
+      notifySuccess('delete', task._id, 'Task deleted successfully');
       onClose();
     } catch (err) {
-      message.error(err.data?.message || "Failed to delete task");
+      notifyError('delete', task._id, err.data?.message || "Failed to delete task");
     }
   };
 
   const handleHoldSubmit = async () => {
     if (!holdReason.trim()) {
-      message.error("Hold reason is required.");
+      notifyError('hold', task._id, "Hold reason is required.");
       return;
     }
     try {
       await holdTask({ id: task._id, holdReason: holdReason.trim() }).unwrap();
-      message.success("Task placed on hold");
+      notifySuccess('hold', task._id, 'Task placed on hold');
       setIsHoldModalVisible(false);
       setHoldReason("");
       onClose();
     } catch (err) {
-      message.error(err.data?.message || "Failed to hold task");
+      notifyError('hold', task._id, err.data?.message || "Failed to hold task");
     }
   };
 
@@ -678,7 +679,7 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
               {task &&
                 canEdit &&
                 canEditTaskDetails &&
-                !["done", "validated", "completed", "complete"].includes(task.status) && (
+                !["done", "validated", "completed", "complete", "review"].includes(task.status?.toLowerCase()) && (
                   <Button
                     type="primary"
                     icon={<EditOutlined />}

@@ -93,11 +93,16 @@ function buildScopedAccountId(platformPrefix, companyId, providerId) {
 }
 
 async function resolveUserFromToken(token) {
+  console.log("[OAuth Debug] Token received:", token ? "Exists" : "Empty", "JWT_SECRET exists:", !!JWT_SECRET);
   if (!token || !JWT_SECRET) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    return await User.findById(decoded.id).select("-password").lean();
-  } catch {
+    console.log("[OAuth Debug] Token decoded:", decoded.id);
+    const user = await User.findById(decoded.id).select("-password").lean();
+    console.log("[OAuth Debug] User found:", user ? user._id : "null");
+    return user;
+  } catch (err) {
+    console.error("[OAuth Debug] JWT Verify Error:", err.message);
     return null;
   }
 }
@@ -124,8 +129,13 @@ async function resolveClientCompanyId(rawClientId, companyId) {
 
 async function resolveCompanyIdFromQueryToken(req) {
   const rawToken = String(req.query?.token || "").trim();
+  console.log("[OAuth Debug] resolveCompanyIdFromQueryToken rawToken exists:", !!rawToken);
   const user = await resolveUserFromToken(rawToken);
-  if (!user || !user.companyId) return null;
+  
+  const companyId = user?.companyId || user?.agencyId || user?.brandId || user?.workspaceId || user?._id;
+  console.log("[OAuth Debug] companyId resolved as:", companyId);
+  
+  if (!user || !companyId) return null;
   const requestedClientCompanyId = String(
     req.query?.clientCompanyId || "",
   ).trim();
@@ -133,16 +143,16 @@ async function resolveCompanyIdFromQueryToken(req) {
   if (user.role === "client" && user.clientId) {
     clientCompanyId = await resolveClientCompanyId(
       user.clientId,
-      user.companyId,
+      companyId,
     );
   } else if (requestedClientCompanyId) {
     clientCompanyId = await resolveClientCompanyId(
       requestedClientCompanyId,
-      user.companyId,
+      companyId,
     );
   }
   return {
-    companyId: String(user.companyId),
+    companyId: String(companyId),
     clientCompanyId,
   };
 }

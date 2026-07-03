@@ -22,6 +22,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useGetTasksQuery, useDeleteTaskMutation } from "../../api/taskApi";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import { useGetDepartmentsDynamicQuery } from "../../api/accessControlApi";
 import { useGetProjectsDropdownQuery } from "../../api/projectApi";
 import { useGetUsersDropdownQuery } from "../../api/userApi";
@@ -221,12 +222,11 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
 
   const handleDelete = async (taskId) => {
     try {
-      const response = await deleteTask(taskId);
-      if (response.error) throw response.error;
-      message.success("Task deleted successfully");
-      refetch();
+      await deleteTask(taskId).unwrap();
+      notifySuccess('delete', taskId, 'Task deleted successfully');
+      try { if (typeof refetch === 'function') await refetch(); } catch(e) {}
     } catch (err) {
-      message.error(err.data?.message || "Failed to delete task");
+      notifyError('delete', taskId, err.data?.message || "Failed to delete task");
     }
   };
 
@@ -477,9 +477,9 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
             icon: <EyeOutlined />,
             onClick: () => onTaskClick(record),
           },
-          canEdit &&
+            canEdit &&
             canEditTaskDetails &&
-            !["done", "validated", "completed", "complete"].includes(record.status) && {
+            !["done", "validated", "completed", "complete", "review"].includes(record.status?.toLowerCase()) && {
               key: "edit",
               label: "Edit",
               icon: <EditOutlined />,

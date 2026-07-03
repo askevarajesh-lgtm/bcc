@@ -1,14 +1,52 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Select, Table, Tag, Avatar, Progress } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Select, Table, Tag, Avatar, Progress, Spin, message } from 'antd';
 import { motion } from 'framer-motion';
 import { UserPlus, Download, Search, LayoutGrid, List } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { teamAllocationData } from '../../../data/mock';
+import { hrmsService } from '../../../services/hrms.service';
 
 const { Title, Text } = Typography;
 
 const TeamOverviewTab = () => {
   const [view, setView] = useState('cards');
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      try {
+        setLoading(true);
+        const res = await hrmsService.getEmployees({});
+        if (res.success) {
+          const colors = ['var(--accent-warning)', 'var(--accent-primary)', 'var(--accent-info)', 'var(--accent-secondary)', 'var(--accent-danger)', 'var(--accent-success)'];
+          
+          const mapped = res.data.map((emp, index) => ({
+            id: emp._id,
+            name: `${emp.firstName} ${emp.lastName}`,
+            role: emp.designationId?.title || 'Team Member',
+            level: emp.employmentType || 'Full-time',
+            email: emp.email,
+            initials: `${emp.firstName.charAt(0)}${emp.lastName.charAt(0)}`.toUpperCase(),
+            color: colors[index % colors.length],
+            // Keeping placeholders for analytics not yet in DB schema
+            util: Math.floor(Math.random() * 40 + 50),
+            totalHours: Math.floor(Math.random() * 80 + 80),
+            capacity: 160,
+            clients: [],
+            tasks: Math.floor(Math.random() * 30),
+            avgHrs: (Math.random() * 3 + 1).toFixed(1),
+            numClients: Math.floor(Math.random() * 5)
+          }));
+          setTeamMembers(mapped);
+        }
+      } catch (error) {
+        message.error('Failed to load team members');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTeam();
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -27,21 +65,25 @@ const TeamOverviewTab = () => {
     }
   };
 
-  const teamMembers = [
-    { name: 'Arjun Sharma', role: 'SEO Lead', level: 'Senior', email: 'arjun@bccmartech.com', initials: 'AS', color: 'var(--accent-warning)', util: 90, totalHours: 144, capacity: 160, clients: ['Prestige Estates', 'Rapido', 'Meesho'], tasks: 28, avgHrs: 1.2, numClients: 7 },
-    { name: 'Priya Nair', role: 'Paid Media', level: 'Senior', email: 'priya@bccmartech.com', initials: 'PN', color: 'var(--accent-primary)', util: 78, totalHours: 124, capacity: 160, clients: ['Prestige Estates', 'boAt', 'Nykaa'], tasks: 22, avgHrs: 1.8, numClients: 6 },
-    { name: 'Karan Mehta', role: 'Content', level: 'Mid-level', email: 'karan@bccmartech.com', initials: 'KM', color: 'var(--accent-info)', util: 66, totalHours: 106, capacity: 160, clients: ['Prestige Estates', 'Rapido', 'Lenskart'], tasks: 18, avgHrs: 2.4, numClients: 6 },
-    { name: 'Divya Rao', role: 'Design', level: 'Mid-level', email: 'divya@bccmartech.com', initials: 'DR', color: 'var(--accent-secondary)', util: 83, totalHours: 132, capacity: 160, clients: ['Prestige Estates', 'boAt', 'Nykaa'], tasks: 14, avgHrs: 3.1, numClients: 5 },
-    { name: 'Rahul Singh', role: 'Account Mgr', level: 'Senior', email: 'rahul@bccmartech.com', initials: 'RS', color: 'var(--accent-danger)', util: 88, totalHours: 140, capacity: 160, clients: ['Lenskart', 'BharatPe', 'Wakefit'], tasks: 24, avgHrs: 0.8, numClients: 8 },
-  ];
+  const utilChartData = teamMembers.map(tm => ({
+    name: tm.name.split(' ')[0],
+    billable: tm.totalHours,
+    nonBillable: tm.capacity - tm.totalHours > 0 ? tm.capacity - tm.totalHours : 0
+  }));
 
-  const utilChartData = [
-    { name: 'Arjun', billable: 144, nonBillable: 16 },
-    { name: 'Priya', billable: 124, nonBillable: 36 },
-    { name: 'Karan', billable: 106, nonBillable: 54 },
-    { name: 'Divya', billable: 132, nonBillable: 28 },
-    { name: 'Rahul', billable: 140, nonBillable: 20 },
-  ];
+  const teamAllocationData = teamMembers.map(tm => ({
+    name: tm.name,
+    prestige: Math.floor(Math.random() * 30),
+    boat: Math.floor(Math.random() * 20),
+    rapido: Math.floor(Math.random() * 20),
+    nykaa: Math.floor(Math.random() * 20),
+    cred: Math.floor(Math.random() * 15),
+    meesho: Math.floor(Math.random() * 25),
+    lenskart: Math.floor(Math.random() * 15),
+    bharatpe: Math.floor(Math.random() * 10),
+    others: Math.floor(Math.random() * 40),
+    total: tm.totalHours
+  }));
 
   // Helper function to render heatmap cell
   const renderHeatmapCell = (val) => {
@@ -90,10 +132,10 @@ const TeamOverviewTab = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[16, 16]} style={{ marginBottom: 40 }}>
           {[
-            { label: 'TEAM SIZE', val: '5', sub: 'Active members', showIcon: true },
-            { label: 'AVG UTILISATION', val: '81%', sub: 'Billable hours this month', pos: '+2% vs last month' },
-            { label: 'TOTAL HOURS (MTD)', val: '648h', sub: 'of 800h capacity', pos: '+42h vs last month' },
-            { label: 'OPEN TASKS', val: '47', alert: '12 urgent · 35 normal' },
+            { label: 'TEAM SIZE', val: teamMembers.length.toString(), sub: 'Active members', showIcon: true },
+            { label: 'AVG UTILISATION', val: teamMembers.length > 0 ? `${Math.round(teamMembers.reduce((a, b) => a + b.util, 0) / teamMembers.length)}%` : '0%', sub: 'Billable hours this month', pos: null },
+            { label: 'TOTAL HOURS (MTD)', val: `${teamMembers.reduce((a, b) => a + b.totalHours, 0)}h`, sub: `of ${teamMembers.length * 160}h capacity`, pos: null },
+            { label: 'OPEN TASKS', val: teamMembers.reduce((a, b) => a + b.tasks, 0).toString(), alert: null },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <Card className="glassmorphism" bodyStyle={{ padding: '24px' }} style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
@@ -108,7 +150,7 @@ const TeamOverviewTab = () => {
                 <Text style={{ fontSize: 13, color: kpi.alert ? 'var(--accent-danger)' : 'var(--text-secondary)', display: 'block', marginTop: 12, fontWeight: 500 }}>
                   {kpi.alert ? <span><strong style={{ color: 'var(--accent-danger)' }}>12 urgent</strong> <span style={{ color: 'var(--text-secondary)' }}>· 35 normal</span></span> : kpi.sub}
                 </Text>
-                {kpi.label === 'AVG UTILISATION' && <Progress percent={81} showInfo={false} strokeColor="var(--accent-primary)" trailColor="var(--bg-tertiary)" size="small" style={{ marginTop: 12 }} />}
+                {kpi.label === 'AVG UTILISATION' && <Progress percent={parseInt(kpi.val) || 0} showInfo={false} strokeColor="var(--accent-primary)" trailColor="var(--bg-tertiary)" size="small" style={{ marginTop: 12 }} />}
               </Card>
             </Col>
           ))}
@@ -125,9 +167,12 @@ const TeamOverviewTab = () => {
         </div>
 
         {/* NEW PILLARED PROFILE ARCH CARDS */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin size="large" /></div>
+        ) : (
         <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
           {teamMembers.map((member, i) => (
-            <Col xs={24} lg={8} key={i}>
+            <Col xs={24} lg={8} key={member.id || i}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
                 <Card 
                   style={{ 
@@ -204,6 +249,7 @@ const TeamOverviewTab = () => {
             </Col>
           ))}
         </Row>
+        )}
       </motion.div>
 
       <motion.div variants={itemVariants}>

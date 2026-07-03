@@ -71,23 +71,21 @@ const createMutationHook = (endpointFn) => {
           if (response.data?.success === false) {
             const errorObj = { data: response.data, status: response.status };
             setError(errorObj);
-            return { error: errorObj };
+            throw errorObj;
           }
           setError(null);
-          return { data: response.data };
+          return response.data;
         } catch (err) {
           const errorObj = err.response ? { data: err.response.data, status: err.response.status } : err;
           setError(errorObj);
-          return { error: errorObj };
+          throw errorObj;
         } finally {
           setIsLoading(false);
         }
       })();
 
       executionPromise.unwrap = async () => {
-        const res = await executionPromise;
-        if (res.error) throw res.error;
-        return res.data;
+        return await executionPromise;
       };
 
       return executionPromise;

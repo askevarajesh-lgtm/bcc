@@ -11,6 +11,7 @@ import {
 } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import { useReopenTaskMutation } from "../../api/taskApi";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -39,13 +40,13 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
         correctionDetails: values.correctionDetails,
         dueDate: values.dueDate?.toISOString(),
       }).unwrap();
-      message.success(`Correction task created: "Correction: ${task.title}"`);
+      notifySuccess('reopen', task._id, `Correction task created: "Correction: ${task.title}"`);
       form.resetFields();
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       if (err?.data?.message) {
-        message.error(err.data.message);
+        notifyError('reopen', task._id, err.data.message);
       }
       // Validation errors are shown inline — don't show another message
     }

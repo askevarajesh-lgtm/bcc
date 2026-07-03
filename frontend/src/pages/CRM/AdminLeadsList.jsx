@@ -1,52 +1,200 @@
 import React, { useState } from 'react';
-import { Table, Tag, Space, Button, Typography, Input, Card, Modal, Select, Form } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { Table, Tag, Space, Button, Typography, Input, Card, Modal, Select, Form, message, Upload, Row, Col, Tabs, Descriptions, Empty, DatePicker } from 'antd';
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, AudioOutlined, PictureOutlined, VideoCameraOutlined, FileOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
+import { 
+  useCreateLeadMutation, 
+  useUpdateLeadMutation, 
+  useDeleteLeadMutation, 
+  useGetAssignableBdeUsersQuery,
+  useLazyExportLeadsCsvQuery,
+  useImportLeadsCsvMutation,
+  useAddLeadNoteMutation,
+  useDeleteLeadNoteMutation,
+  useAddLeadReminderMutation
+} from '../../api/leadApi';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { Search } = Input;
 const { Option } = Select;
+const { TextArea } = Input;
 
-const AdminLeadsList = () => {
+const CustomLabel = ({ text }) => (
+  <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+    {text}
+  </span>
+);
+
+const AdminLeadsList = ({ leads = [], refetch }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
+  const [viewingLead, setViewingLead] = useState(null);
+  const [noteContent, setNoteContent] = useState('');
+  const [noteType, setNoteType] = useState('text');
+  
+  const [reminderDesc, setReminderDesc] = useState('');
+  const [reminderDate, setReminderDate] = useState(null);
+  const [reminderTo, setReminderTo] = useState(null);
+
   const [form] = Form.useForm();
   
-  const [data, setData] = useState([
-    { id: '1', name: 'Developer TEst', phone: '+919087654321', email: 'test@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '2', name: 'Test', phone: '+919087654321', email: 'test@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '3', name: 'BCC Test', phone: '+919087654321', email: 'test@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '4', name: 'Test', phone: '+919087654321', email: 'test@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '5', name: 'Sabapathi Balasubrama...', phone: '+971522217129', email: 'saba2809@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '6', name: 'K SASIKUMAR', phone: '+919597930687', email: 'sasikumark1005@gmail....', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-    { id: '7', name: 'A Gowthaman', phone: '+919448780914', email: 'gowtheman@gmail.com', project: '—', source: 'Website', status: 'NEW', assigned: '—' },
-  ]);
+  const currentViewingLead = viewingLead ? leads.find(l => l._id === viewingLead._id) || viewingLead : null;
+  
+  const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
+  const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
+  const [deleteLead] = useDeleteLeadMutation();
+  const [addLeadNote, { isLoading: isAddingNote }] = useAddLeadNoteMutation();
+  const [deleteLeadNote] = useDeleteLeadNoteMutation();
+  const [addLeadReminder, { isLoading: isAddingReminder }] = useAddLeadReminderMutation();
+  const { data: bdeData } = useGetAssignableBdeUsersQuery();
+  const [exportCsv, { isFetching: isExporting }] = useLazyExportLeadsCsvQuery();
+  const [importCsv, { isLoading: isImporting }] = useImportLeadsCsvMutation();
+
+  const bdeUsers = bdeData?.data?.users || [];
 
   const columns = [
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Name</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>, dataIndex: 'phone', key: 'phone' },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Name</strong>, dataIndex: 'fullName', key: 'fullName', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Company</strong>, dataIndex: 'companyName', key: 'companyName' },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>, dataIndex: 'phoneNumber', key: 'phoneNumber' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Email</strong>, dataIndex: 'email', key: 'email' },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Project Type</strong>, dataIndex: 'project', key: 'project' },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Project Type</strong>, dataIndex: 'projectType', key: 'projectType', render: p => p || '—' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Source</strong>, dataIndex: 'source', key: 'source', render: s => <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>{s}</Tag> },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Status</strong>, dataIndex: 'status', key: 'status', render: s => <Tag color="blue" style={{ borderRadius: 6, fontWeight: 700 }}>{s}</Tag> },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Assigned To</strong>, dataIndex: 'assigned', key: 'assigned' },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Status</strong>, dataIndex: 'status', key: 'status', render: s => <Tag color="blue" style={{ borderRadius: 6, fontWeight: 700, textTransform: 'uppercase' }}>{s}</Tag> },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Assigned To</strong>, dataIndex: 'assignedTo', key: 'assignedTo', render: a => a || '—' },
     { 
       title: <strong style={{ color: 'var(--text-secondary)' }}>Action</strong>, key: 'action', fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)' }} />
-          <Button type="text" icon={<EditOutlined />} style={{ color: 'var(--accent-secondary)' }} />
-          <Button type="text" icon={<DeleteOutlined />} danger />
+          <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)' }} onClick={() => setViewingLead(record)} />
+          <Button type="text" icon={<EditOutlined />} style={{ color: 'var(--accent-secondary)' }} onClick={() => handleEditClick(record)} />
+          <Button type="text" icon={<DeleteOutlined />} danger onClick={() => handleDeleteClick(record)} />
         </Space>
       )
     }
   ];
 
-  const handleAdd = () => {
-    form.validateFields().then(values => {
-      setData([{ id: Date.now().toString(), ...values, project: '—', assigned: '—' }, ...data]);
-      setIsModalOpen(false);
-      form.resetFields();
+  const handleEditClick = (record) => {
+    setEditingLead(record);
+    form.setFieldsValue({
+      fullName: record.fullName,
+      companyName: record.companyName,
+      phoneNumber: record.phoneNumber,
+      email: record.email,
+      projectType: record.projectType,
+      source: record.source,
+      status: record.status?.toUpperCase(),
+      assignedTo: record.assignedTo,
+      notes: record.notes
     });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (record) => {
+    Modal.confirm({
+      title: 'Delete Lead',
+      content: `Are you sure you want to delete ${record.fullName}?`,
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          await deleteLead(record._id).unwrap();
+          message.success('Lead deleted successfully');
+          refetch?.();
+        } catch (error) {
+          message.error('Failed to delete lead');
+        }
+      }
+    });
+  };
+
+  const handleAddSubmit = () => {
+    form.validateFields().then(async (values) => {
+      try {
+        if (editingLead) {
+          await updateLead({ id: editingLead._id, ...values, status: values.status.toLowerCase() }).unwrap();
+          message.success('Lead updated successfully');
+        } else {
+          await createLead({ ...values, status: values.status.toLowerCase() }).unwrap();
+          message.success('Lead created successfully');
+        }
+        refetch?.();
+        setIsModalOpen(false);
+        setEditingLead(null);
+        form.resetFields();
+      } catch (error) {
+        message.error(error?.data?.message || error.message || 'Failed to save lead');
+      }
+    });
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await exportCsv('all').unwrap();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads_export_${dayjs().format('YYYY-MM-DD')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error('Failed to export leads');
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!noteContent.trim() || !currentViewingLead) return;
+    try {
+      await addLeadNote({ leadId: currentViewingLead._id, noteType, content: noteContent }).unwrap();
+      message.success('Note added successfully');
+      setNoteContent('');
+      refetch?.();
+    } catch (error) {
+      message.error('Failed to add note');
+    }
+  };
+
+  const handleAddReminder = async () => {
+    if (!reminderDesc.trim() || !reminderDate || !reminderTo) {
+      message.error("Please fill all reminder fields");
+      return;
+    }
+    try {
+      await addLeadReminder({
+        leadId: currentViewingLead._id,
+        description: reminderDesc,
+        remindAt: reminderDate.toISOString(),
+        remindTo: reminderTo
+      }).unwrap();
+      message.success('Reminder added successfully');
+      setReminderDesc('');
+      setReminderDate(null);
+      setReminderTo(null);
+      refetch?.();
+    } catch (error) {
+      message.error('Failed to add reminder');
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await deleteLeadNote({ leadId: currentViewingLead._id, noteId }).unwrap();
+      message.success('Note deleted successfully');
+      refetch?.();
+    } catch (error) {
+      message.error('Failed to delete note');
+    }
+  };
+
+  const handleImport = async (file) => {
+    try {
+      await importCsv(file).unwrap();
+      message.success('Leads imported successfully');
+      refetch?.();
+    } catch (error) {
+      message.error(error?.data?.message || 'Failed to import leads');
+    }
+    return false; // Prevent default upload behavior
   };
 
   return (
@@ -62,16 +210,18 @@ const AdminLeadsList = () => {
           </Space>
           
           <Space>
-            <Button icon={<UploadOutlined />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
-            <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Export</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-primary)', border: 'none' }}>Add Lead</Button>
+            <Upload beforeUpload={handleImport} showUploadList={false} accept=".csv">
+              <Button icon={<UploadOutlined />} loading={isImporting} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
+            </Upload>
+            <Button icon={<DownloadOutlined />} loading={isExporting} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Export</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingLead(null); form.resetFields(); setIsModalOpen(true); }} style={{ borderRadius: 8, fontWeight: 600, background: '#0e4ca2', border: 'none' }}>Add Lead</Button>
           </Space>
         </div>
         
         <Table 
           columns={columns} 
-          dataSource={data} 
-          rowKey="id"
+          dataSource={leads} 
+          rowKey="_id"
           pagination={{ pageSize: 10 }}
           rowSelection={{ type: 'checkbox' }}
           style={{ padding: 24 }}
@@ -80,40 +230,243 @@ const AdminLeadsList = () => {
         />
       </Card>
 
+      {/* Add / Edit Lead Modal */}
       <Modal
-        title={<Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Add New Lead</Title>}
+        title={<Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>{editingLead ? 'Edit lead' : 'Add new lead'}</Title>}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={handleAdd}
+        onCancel={() => { setIsModalOpen(false); setEditingLead(null); }}
+        onOk={handleAddSubmit}
+        width={700}
+        confirmLoading={isCreating || isUpdating}
+        okText={editingLead ? "Update Lead" : "Create Lead"}
+        cancelText="Cancel"
         className="glassmorphism-modal"
-        okButtonProps={{ style: { background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 600 } }}
-        cancelButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: '#0e4ca2', border: 'none', borderRadius: 6, fontWeight: 600, padding: '0 24px' } }}
+        cancelButtonProps={{ style: { borderRadius: 6, fontWeight: 600, padding: '0 24px' } }}
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-          <Form.Item name="name" label={<strong style={{ color: 'var(--text-secondary)' }}>Name</strong>} rules={[{ required: true }]}>
-            <Input size="large" style={{ borderRadius: 8 }} />
-          </Form.Item>
-          <Form.Item name="phone" label={<strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>} rules={[{ required: true }]}>
-            <Input size="large" style={{ borderRadius: 8 }} />
-          </Form.Item>
-          <Form.Item name="email" label={<strong style={{ color: 'var(--text-secondary)' }}>Email</strong>}>
-            <Input size="large" style={{ borderRadius: 8 }} />
-          </Form.Item>
-          <Form.Item name="source" label={<strong style={{ color: 'var(--text-secondary)' }}>Lead Source</strong>} initialValue="Website">
-            <Select size="large">
-              <Option value="Website">Website</Option>
-              <Option value="Referral">Referral</Option>
-              <Option value="Social Media">Social Media</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="status" label={<strong style={{ color: 'var(--text-secondary)' }}>Status</strong>} initialValue="NEW">
-            <Select size="large">
-              <Option value="NEW">New</Option>
-              <Option value="CONTACTED">Contacted</Option>
-            </Select>
-          </Form.Item>
+        <Form form={form} layout="vertical" style={{ marginTop: 24, paddingRight: 12 }}>
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item name="fullName" label={<CustomLabel text="Name" />} rules={[{ required: true, message: 'Name is required' }]}>
+                <Input size="large" placeholder="Name" style={{ borderRadius: 6 }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="companyName" label={<CustomLabel text="Company Name" />} rules={[{ required: true, message: 'Company Name is required' }]}>
+                <Input size="large" placeholder="Company name" style={{ borderRadius: 6 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item name="phoneNumber" label={<CustomLabel text="Phone Number" />} rules={[{ required: true, message: 'Phone is required' }]}>
+                <Input size="large" placeholder="Phone number" style={{ borderRadius: 6 }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="email" label={<CustomLabel text="Email" />}>
+                <Input size="large" placeholder="Email (optional)" style={{ borderRadius: 6 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item name="projectType" label={<CustomLabel text="Project Type" />} rules={[{ required: true, message: 'Project Type is required' }]}>
+                <Select size="large" placeholder="Select project type">
+                  <Option value="SEO">SEO</Option>
+                  <Option value="SMM">SMM</Option>
+                  <Option value="Website">Website</Option>
+                  <Option value="Performance Marketing">Performance Marketing</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="source" label={<CustomLabel text="Lead Source" />} rules={[{ required: true, message: 'Source is required' }]} initialValue="Website">
+                <Select size="large">
+                  <Option value="Website">Website</Option>
+                  <Option value="Referral">Referral</Option>
+                  <Option value="Social Media">Social Media</Option>
+                  <Option value="Cold Call">Cold Call</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item name="status" label={<CustomLabel text="Status" />} initialValue="NEW">
+                <Select size="large">
+                  <Option value="NEW">NEW</Option>
+                  <Option value="CONTACTED">CONTACTED</Option>
+                  <Option value="FOLLOW_UP">FOLLOW UP</Option>
+                  <Option value="IN_PROGRESS">IN PROGRESS</Option>
+                  <Option value="CONVERTED">CONVERTED</Option>
+                  <Option value="LOST">LOST</Option>
+                  <Option value="JUNK">JUNK</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={24}>
+            <Col span={24}>
+              <Form.Item name="notes" label={<CustomLabel text="Notes" />}>
+                <TextArea rows={4} placeholder="Internal notes (optional)" style={{ borderRadius: 6 }} />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
+
+      {/* View Lead Modal */}
+      <Modal
+        title={<Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Lead — {currentViewingLead?.fullName}</Title>}
+        open={!!viewingLead}
+        onCancel={() => setViewingLead(null)}
+        footer={null}
+        width={900}
+        className="glassmorphism-modal"
+        styles={{ body: { paddingTop: 0 } }}
+      >
+        <Tabs 
+          defaultActiveKey="details"
+          items={[
+            {
+              key: 'reminders',
+              label: <strong style={{ fontWeight: 600 }}>Reminders</strong>,
+              children: (
+                <div style={{ padding: '12px 0', minHeight: 400 }}>
+                  <Title level={5} style={{ marginBottom: 16 }}>Set New Reminder</Title>
+                  <Row gutter={16} style={{ marginBottom: 16 }}>
+                    <Col span={24}>
+                      <span style={{ color: 'red' }}>*</span> <span style={{ fontWeight: 600, fontSize: 13 }}>Description</span>
+                      <TextArea rows={3} value={reminderDesc} onChange={e => setReminderDesc(e.target.value)} placeholder="Enter reminder description or select from quick replies" style={{ borderRadius: 6, marginTop: 4 }} />
+                    </Col>
+                  </Row>
+                  <Row gutter={16} style={{ marginBottom: 16 }}>
+                    <Col span={12}>
+                      <span style={{ color: 'red' }}>*</span> <span style={{ fontWeight: 600, fontSize: 13 }}>Date & Time to be notified</span>
+                      <DatePicker showTime style={{ width: '100%', borderRadius: 6, marginTop: 4 }} value={reminderDate} onChange={setReminderDate} placeholder="Select date" />
+                    </Col>
+                    <Col span={12}>
+                      <span style={{ color: 'red' }}>*</span> <span style={{ fontWeight: 600, fontSize: 13 }}>Set reminder to</span>
+                      <Select style={{ width: '100%', marginTop: 4 }} placeholder="Select BDE" value={reminderTo} onChange={setReminderTo}>
+                        {bdeUsers.map(b => (
+                          <Option key={b._id} value={b.fullName || b.username}>{b.fullName || b.username}</Option>
+                        ))}
+                      </Select>
+                    </Col>
+                  </Row>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 32 }}>
+                    <Button type="primary" loading={isAddingReminder} onClick={handleAddReminder} style={{ borderRadius: 6, fontWeight: 600, background: '#0e4ca2' }}>Add Reminder</Button>
+                  </div>
+
+                  <Table 
+                    dataSource={currentViewingLead?.reminders || []}
+                    rowKey="_id"
+                    columns={[
+                      { title: 'S.No', render: (t,r,i) => i+1 },
+                      { title: 'Date', dataIndex: 'remindAt', render: d => dayjs(d).format('YYYY-MM-DD HH:mm') },
+                      { title: 'Description', dataIndex: 'description' },
+                      { title: 'Remind', dataIndex: 'remindTo' },
+                      { title: 'Status', dataIndex: 'status', render: s => <Tag color={s === 'completed' ? 'green' : 'orange'}>{s?.toUpperCase()}</Tag> }
+                    ]}
+                    pagination={false}
+                    locale={{ emptyText: <Empty description="No data" /> }}
+                    size="small"
+                  />
+                </div>
+              )
+            },
+            {
+              key: 'details',
+              label: <strong style={{ fontWeight: 600 }}>Lead Details</strong>,
+              children: (
+                <div style={{ padding: '12px 0' }}>
+                  <Descriptions bordered column={3} size="middle" labelStyle={{ fontWeight: 600, color: 'var(--text-secondary)', background: 'transparent' }} contentStyle={{ color: 'var(--text-primary)' }}>
+                    <Descriptions.Item label="Name">{currentViewingLead?.fullName || '—'}</Descriptions.Item>
+                    <Descriptions.Item label="Company Name">{currentViewingLead?.companyName || '—'}</Descriptions.Item>
+                    <Descriptions.Item label="Phone Number">{currentViewingLead?.phoneNumber || '—'}</Descriptions.Item>
+                    
+                    <Descriptions.Item label="Email">{currentViewingLead?.email || '—'}</Descriptions.Item>
+                    <Descriptions.Item label="Project Type"><Tag style={{borderRadius: 4}}>{currentViewingLead?.projectType || '—'}</Tag></Descriptions.Item>
+                    <Descriptions.Item label="Lead Source"><Tag color="purple" style={{borderRadius: 4}}>{currentViewingLead?.source || '—'}</Tag></Descriptions.Item>
+                    
+                    <Descriptions.Item label="Status"><Tag color="blue" style={{borderRadius: 4}}>{currentViewingLead?.status || 'NEW'}</Tag></Descriptions.Item>
+                    <Descriptions.Item label="Assigned To">{currentViewingLead?.assignedTo || '—'}</Descriptions.Item>
+                    <Descriptions.Item label="Last Interaction">{currentViewingLead?.updatedAt ? dayjs(currentViewingLead.updatedAt).format('YYYY-MM-DD HH:mm') : '—'}</Descriptions.Item>
+                    
+                    <Descriptions.Item label="Notes" span={3}>{currentViewingLead?.notes || '—'}</Descriptions.Item>
+                  </Descriptions>
+                </div>
+              )
+            },
+            {
+              key: 'notes',
+              label: <strong style={{ fontWeight: 600 }}>Notes</strong>,
+              children: (
+                <div style={{ padding: '12px 0', minHeight: 400 }}>
+                  <Title level={5} style={{ marginBottom: 16 }}>Add New Note</Title>
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 13 }}>Select Note Type:</span>
+                    <Space size="middle">
+                      <Button type={noteType === 'text' ? 'primary' : 'default'} icon={<FileTextOutlined />} onClick={() => setNoteType('text')} style={{ borderRadius: 6, fontWeight: 600, ...(noteType === 'text' ? {background: '#0e4ca2'} : {}) }}>Text</Button>
+                      <Button type={noteType === 'audio' ? 'primary' : 'default'} icon={<AudioOutlined />} onClick={() => setNoteType('audio')} style={{ borderRadius: 6, fontWeight: 500, ...(noteType === 'audio' ? {background: '#0e4ca2'} : {}) }}>Audio</Button>
+                      <Button type={noteType === 'image' ? 'primary' : 'default'} icon={<PictureOutlined />} onClick={() => setNoteType('image')} style={{ borderRadius: 6, fontWeight: 500, ...(noteType === 'image' ? {background: '#0e4ca2'} : {}) }}>Image</Button>
+                      <Button type={noteType === 'video' ? 'primary' : 'default'} icon={<VideoCameraOutlined />} onClick={() => setNoteType('video')} style={{ borderRadius: 6, fontWeight: 500, ...(noteType === 'video' ? {background: '#0e4ca2'} : {}) }}>Video</Button>
+                      <Button type={noteType === 'document' ? 'primary' : 'default'} icon={<FileOutlined />} onClick={() => setNoteType('document')} style={{ borderRadius: 6, fontWeight: 500, ...(noteType === 'document' ? {background: '#0e4ca2'} : {}) }}>Document</Button>
+                    </Space>
+                  </div>
+                  
+                  <TextArea rows={4} value={noteContent} onChange={e => setNoteContent(e.target.value)} placeholder="Enter your note here..." style={{ borderRadius: 6, marginBottom: 16 }} />
+                  
+                  <Button type="primary" loading={isAddingNote} onClick={handleAddNote} style={{ borderRadius: 6, fontWeight: 600, background: '#0e4ca2' }}>Add Note</Button>
+                  
+                  <div style={{ marginTop: 32 }}>
+                    <Title level={5} style={{ marginBottom: 16 }}>All Notes ({currentViewingLead?.leadNotes?.length || 0})</Title>
+                    <Table 
+                      dataSource={currentViewingLead?.leadNotes || []} 
+                      rowKey="_id"
+                      columns={[
+                        { title: 'S.No', render: (t,r,i) => i+1 },
+                        { title: 'Date & Time', dataIndex: 'createdAt', render: d => dayjs(d).format('YYYY-MM-DD HH:mm') },
+                        { title: 'Type', dataIndex: 'noteType', render: t => <Tag color="blue">{t?.toUpperCase()}</Tag> },
+                        { title: 'Content', dataIndex: 'content' },
+                        { title: 'Action', key: 'action', render: (_, record) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(record._id)} /> },
+                      ]}
+                      pagination={false}
+                      locale={{ emptyText: <Empty description="No notes found" /> }}
+                      size="small"
+                    />
+                  </div>
+                </div>
+              )
+            },
+            {
+              key: 'logs',
+              label: <strong style={{ fontWeight: 600 }}>Activity Logs</strong>,
+              children: (currentViewingLead?.activityLogs?.length > 0 ? (
+                <Table 
+                  dataSource={currentViewingLead.activityLogs}
+                  rowKey="_id"
+                  columns={[
+                    { title: 'Date', dataIndex: 'createdAt', render: d => dayjs(d).format('YYYY-MM-DD HH:mm:ss') },
+                    { title: 'Action', dataIndex: 'actionType', render: t => <Tag color="purple">{t?.toUpperCase()}</Tag> },
+                    { title: 'Details', dataIndex: 'details', render: d => typeof d === 'string' ? d : JSON.stringify(d) },
+                  ]}
+                  pagination={false}
+                  size="small"
+                />
+              ) : (
+                <Empty description="No activity logs found" style={{ margin: '40px 0' }} />
+              ))
+            }
+          ]}
+        />
+      </Modal>
+
     </motion.div>
   );
 };

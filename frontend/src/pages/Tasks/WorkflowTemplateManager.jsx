@@ -15,6 +15,7 @@ import {
   Tooltip,
   Divider,
 } from "antd";
+import { notifySuccess, notifyError } from '../../utils/notify';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -156,7 +157,7 @@ const WorkflowTemplateManager = () => {
 
   const handleRemoveStatus = (index) => {
     if (index <= 2) {
-      message.error("Core statuses (Hold, To Do, In Progress) cannot be deleted");
+      notifyError('workflow-template', 'global', "Core statuses (Hold, To Do, In Progress) cannot be deleted");
       return;
     }
     const newStatuses = statuses.filter((_, i) => i !== index);
@@ -233,15 +234,15 @@ const WorkflowTemplateManager = () => {
     try {
       const values = await form.validateFields();
       if (!values.name || values.name.trim() === "") {
-        message.error("Please enter a workflow template name");
+        notifyError('workflow-template', 'global', "Please enter a workflow template name");
         return;
       }
       if (!selectedDepartment) {
-        message.error("Please select a department");
+        notifyError('workflow-template', 'global', "Please select a department");
         return;
       }
       if (statuses.length === 0) {
-        message.error("Please add at least one status");
+        notifyError('workflow-template', 'global', "Please add at least one status");
         return;
       }
 
@@ -252,9 +253,7 @@ const WorkflowTemplateManager = () => {
         statuses[1].id !== "to_do" ||
         statuses[2].id !== "in_progress"
       ) {
-        message.error(
-          "The first three statuses must be Hold (backlog), To Do (to_do), and In Progress (in_progress) to support task time tracking.",
-        );
+        notifyError('workflow-template', 'global', "The first three statuses must be Hold (backlog), To Do (to_do), and In Progress (in_progress) to support task time tracking.");
         return;
       }
 
@@ -270,11 +269,11 @@ const WorkflowTemplateManager = () => {
         isActive: true,
       }).unwrap();
 
-      message.success("Workflow template saved successfully");
+      notifySuccess('workflow-template', editingTemplate || 'global', "Workflow template saved successfully");
       handleReset();
       refetchConfigs();
     } catch (error) {
-      message.error(error?.data?.message || "Failed to save workflow template");
+      notifyError('workflow-template', editingTemplate || 'global', error?.data?.message || "Failed to save workflow template");
     }
   };
 
@@ -285,10 +284,10 @@ const WorkflowTemplateManager = () => {
   const handleDelete = async (templateId) => {
     try {
       // TODO: Implement delete mutation
-      message.success("Delete functionality will be implemented");
+      notifySuccess('workflow-template', templateId || 'global', "Delete functionality will be implemented");
       refetchConfigs();
     } catch (error) {
-      message.error("Failed to delete template");
+      notifyError('workflow-template', templateId || 'global', "Failed to delete template");
     }
   };
 

@@ -24,6 +24,7 @@ import {
   useUpdateTaskMutation,
   taskApi,
 } from "../../api/taskApi";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import {
   useGetIntegrationsQuery,
   useSyncEktaStaffMutation,
@@ -69,11 +70,9 @@ const TaskForm = () => {
   // Get current user for role-based restrictions
   const { user: currentUser } = useAuth();
   const userRole = currentUser?.role;
-  const taskTarget = location.state?.taskTarget || "client";
-  const hideCompanyProject = 
-    userRole === 'commander_admin' || 
-    userRole === 'brand_manager' || 
-    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own_brand');
+  // When creating: read taskTarget from navigation state (set by the Create Task button).
+  // When editing: infer from the task data after it loads (see below, after taskData is declared).
+  const locationTaskTarget = location.state?.taskTarget;
 
   const { hasPermission } = useActionPermissions("/tasks");
   const isSEO = hasPermission(PERMISSION_ACTIONS.VIEW_SEO_PANEL);
@@ -84,14 +83,14 @@ const TaskForm = () => {
 
   useEffect(() => {
     if (isRestricted) {
-      message.error("You do not have permission to perform this action");
+      notifyError('permission', 'global', "You do not have permission to perform this action");
       navigate(`${getBaseRoute()}/tasks`);
     }
   }, [isRestricted, navigate]);
 
   useEffect(() => {
     if (isEdit && !canEditTaskDetails) {
-      message.error("Task detail editing is not allowed for your role");
+      notifyError('permission', 'global', "Task detail editing is not allowed for your role");
       navigate(`${getBaseRoute()}/tasks`);
     }
   }, [isEdit, canEditTaskDetails, navigate]);
@@ -99,6 +98,19 @@ const TaskForm = () => {
   const { data: taskData, isLoading: isLoadingTask } = useGetTaskByIdQuery(id, {
     skip: !isEdit,
   });
+
+  // Compute taskTarget and hideCompanyProject after taskData is available.
+  // When creating: use navigation state (set by Create Task button choosing 'own_brand').
+  // When editing: infer from the loaded task — no companyId means it's an Own Brand task.
+  const task_raw = taskData?.data?.task;
+  const inferredTaskTarget = isEdit
+    ? (locationTaskTarget || (task_raw && !task_raw.companyId ? 'own_brand' : 'client'))
+    : (locationTaskTarget || 'client');
+  const taskTarget = inferredTaskTarget;
+  const hideCompanyProject =
+    userRole === 'commander_admin' ||
+    userRole === 'brand_manager' ||
+    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own_brand');
   const selectedDepartment = Form.useWatch("department", form);
   const watchedCompanyId = Form.useWatch("companyId", form);
 
@@ -748,14 +760,14 @@ const TaskForm = () => {
         taskData.assignedTo === currentUser?._id ||
         taskData.assignedTo?._id === currentUser?._id;
 
+      const keyId = isEdit ? id : 'create';
+      notifyLoading('save', keyId, isEdit ? 'Updating task...' : 'Creating task...');
       if (isEdit) {
-        const result = await updateTask({ id, ...taskData });
-        if (result.error) throw result.error;
-        message.success("Task updated successfully");
+        await updateTask({ id, ...taskData }).unwrap();
+        notifySuccess('save', keyId, 'Task updated successfully');
       } else {
-        const result = await createTask(taskData);
-        if (result.error) throw result.error;
-        message.success("Task created successfully");
+        await createTask(taskData).unwrap();
+        notifySuccess('save', keyId, 'Task created successfully');
       }
 
       if (isNewlyCompleted && isAssignedToMe) {
@@ -765,7 +777,7 @@ const TaskForm = () => {
       }
     } catch (error) {
       const errorMessage = error?.response?.data?.message || error?.data?.message || error?.message || "Operation failed";
-      message.error(errorMessage);
+      notifyError('save', isEdit ? id : 'create', errorMessage);
     }
   };
 
@@ -791,9 +803,9 @@ const TaskForm = () => {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`${getBaseRoute()}/tasks`)}>
           Back
         </Button>
-        <h1 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>
+        <h2 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>
           {isEdit ? "Edit Task" : "Create Task"}
-        </h1>
+        </h2>
       </div>
       <Card>
         {(selectedProjectData?.data?.project?.clientId?.status === "inactive" ||

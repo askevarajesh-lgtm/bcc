@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Typography, Tabs } from 'antd';
+import { Typography, Tabs, Spin } from 'antd';
 import { motion } from 'framer-motion';
 import AdminDashboard from './AdminDashboard';
 import AdminLeadsList from './AdminLeadsList';
+import { useGetLeadsQuery } from '../../api/leadApi';
 
 const { Title, Text } = Typography;
 
 const CRM = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  const { data: leadsData, isLoading, refetch } = useGetLeadsQuery();
+  const leads = leadsData?.data?.leads || [];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -26,24 +30,30 @@ const CRM = () => {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Tabs 
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          size="large"
-          tabBarStyle={{ marginBottom: 24 }}
-          items={[
-            {
-              key: 'dashboard',
-              label: <strong style={{ fontWeight: 600 }}>Dashboard</strong>,
-              children: <AdminDashboard />
-            },
-            {
-              key: 'leads',
-              label: <strong style={{ fontWeight: 600 }}>Leads List</strong>,
-              children: <AdminLeadsList />
-            }
-          ]}
-        />
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <Spin size="large" />
+          </div>
+        ) : (
+          <Tabs 
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="large"
+            tabBarStyle={{ marginBottom: 24 }}
+            items={[
+              {
+                key: 'dashboard',
+                label: <strong style={{ fontWeight: 600 }}>Dashboard</strong>,
+                children: <AdminDashboard leads={leads} />
+              },
+              {
+                key: 'leads',
+                label: <strong style={{ fontWeight: 600 }}>Leads List</strong>,
+                children: <AdminLeadsList leads={leads} refetch={refetch} />
+              }
+            ]}
+          />
+        )}
       </div>
     </motion.div>
   );

@@ -19,6 +19,7 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { message } from "antd";
+import { notifySuccess, notifyError } from '../../utils/notify';
 import {
   useGetDMTeamSettingsQuery,
   useUpdateDMTeamSettingsMutation,
@@ -60,14 +61,14 @@ const DigitalMarketingTeamSettings = () => {
         designerDailyLimit: values.designerDailyLimit,
         videoEditorDailyLimit: values.videoEditorDailyLimit,
       }).unwrap();
-      message.success("Digital Marketing Team settings saved successfully!");
+      notifySuccess('dm-settings', 'global', "Digital Marketing Team settings saved successfully!");
     } catch (error) {
       if (error?.data?.message) {
-        message.error(error.data.message);
+        notifyError('dm-settings', 'global', error.data.message);
       } else if (error?.errorFields) {
         // Antd validation errors — already shown inline
       } else {
-        message.error("Failed to save settings. Please try again.");
+        notifyError('dm-settings', 'global', "Failed to save settings. Please try again.");
       }
     }
   };

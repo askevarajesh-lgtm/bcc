@@ -130,7 +130,7 @@ exports.createUser = async (req, res, next) => {
       } else {
          userData.role = 'user'; // Brand Manager creates generic users (customRole determines their job)
       }
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+    } else if (['commander_admin', 'agency_super_admin', 'agency_manager'].includes(req.user.role)) {
       // If created by an agency admin, assign agencyId
       userData.agencyId = req.user.agencyId || req.user._id; 
       if (req.user.adminId) userData.adminId = req.user.adminId;

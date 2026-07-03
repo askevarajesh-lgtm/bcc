@@ -37,6 +37,7 @@ import CoordinatorTaskCard from "./CoordinatorTaskCard";
 import TaskCompletionCelebrate from "./TaskCompletionCelebrate";
 import TaskCompletionToast from "./Taskcompletiontoast";
 import { isCompletedTask } from "./taskDuration";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 
 const { Title, Text } = Typography;
 
@@ -144,11 +145,12 @@ const CoordinatorTasks = () => {
 
   const handleDeleteTask = async (id) => {
     try {
+      notifyLoading('delete', id, 'Deleting task...');
       await deleteTask(id).unwrap();
-      message.success("Task deleted successfully");
-      refetch();
+      notifySuccess('delete', id, 'Task deleted successfully');
+      try { if (typeof refetch === 'function') await refetch(); } catch(e) {}
     } catch (err) {
-      message.error(err.data?.message || "Failed to delete task");
+      notifyError('delete', id, err.data?.message || "Failed to delete task");
     }
   };
 

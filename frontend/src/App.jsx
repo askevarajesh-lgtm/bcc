@@ -198,6 +198,7 @@ const AppRoutes = () => {
           <Route path="workspace/automation" element={<Automation />} />
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
+          <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
@@ -282,6 +283,7 @@ const AppRoutes = () => {
           <Route path="projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
+          <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
         </Route>
       </Route>
 
@@ -316,6 +318,7 @@ const AppRoutes = () => {
           <Route path="workspace/automation" element={<Automation />} />
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
+          <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
@@ -382,6 +385,7 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/user/dashboard" replace />} />
           <Route path="dashboard" element={<UserDashboardTab />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="tasks/:id/edit" element={<TaskForm />} />
           <Route path="settings" element={<UserSettingsTab />} />
         </Route>
       </Route>

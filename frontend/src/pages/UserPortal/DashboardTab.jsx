@@ -1,7 +1,9 @@
 import React from 'react';
-import { Typography, Card, Row, Col } from 'antd';
+import { Typography, Card, Row, Col, Spin } from 'antd';
 import { motion } from 'framer-motion';
 import { CheckSquare, Clock, AlertCircle } from 'lucide-react';
+import { useGetTasksQuery } from '../../api/taskApi';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -15,6 +17,24 @@ const UserDashboard = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
+
+  const { data: tasksData, isLoading } = useGetTasksQuery({});
+  const tasks = tasksData?.data?.tasks || [];
+
+  const activeTasks = tasks.filter(t => !['COMPLETED', 'APPROVED', 'VALIDATED', 'DELIVERED'].includes(t.status?.toUpperCase()));
+  const today = dayjs().startOf('day');
+  const nextWeek = dayjs().add(7, 'day').endOf('day');
+
+  const dueThisWeekCount = activeTasks.filter(t => {
+    if (!t.dueDate) return false;
+    const due = dayjs(t.dueDate);
+    return (due.isAfter(today) || due.isSame(today, 'day')) && due.isBefore(nextWeek);
+  }).length;
+
+  const overdueCount = activeTasks.filter(t => {
+    if (!t.dueDate) return false;
+    return dayjs(t.dueDate).isBefore(today, 'day');
+  }).length;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -33,7 +53,9 @@ const UserDashboard = () => {
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Active Tasks</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>12</Title>
+                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>
+                    {isLoading ? <Spin size="small" /> : activeTasks.length}
+                  </Title>
                 </div>
               </div>
             </Card>
@@ -49,7 +71,9 @@ const UserDashboard = () => {
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Due This Week</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>5</Title>
+                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>
+                    {isLoading ? <Spin size="small" /> : dueThisWeekCount}
+                  </Title>
                 </div>
               </div>
             </Card>
@@ -65,7 +89,9 @@ const UserDashboard = () => {
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Overdue</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>0</Title>
+                  <Title level={3} style={{ margin: 0, fontWeight: 800 }}>
+                    {isLoading ? <Spin size="small" /> : overdueCount}
+                  </Title>
                 </div>
               </div>
             </Card>

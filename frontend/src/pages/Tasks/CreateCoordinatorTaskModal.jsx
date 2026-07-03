@@ -10,6 +10,7 @@ import {
   theme as antTheme,
   Button,
 } from "antd";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import {
   CheckCircleOutlined,
   GlobalOutlined,
@@ -80,7 +81,7 @@ const CreateCoordinatorTaskModal = ({
     try {
       if (task) {
         await updateCoordinatorTask({ id: task._id, ...values }).unwrap();
-        message.success("Task updated successfully");
+        notifySuccess('save', task._id, "Task updated successfully");
       } else {
         const payload = {
           ...values,
@@ -94,13 +95,13 @@ const CreateCoordinatorTaskModal = ({
           taskDate: initialDate || new Date(),
         };
         await createCoordinatorTask(payload).unwrap();
-        message.success("Checklist task created successfully");
+        notifySuccess('save', 'create', "Checklist task created successfully");
       }
       form.resetFields();
       onSuccess();
       onCancel();
     } catch (err) {
-      message.error(err.data?.message || "Failed to save task");
+      notifyError('save', task?._id || 'create', err.data?.message || "Failed to save task");
     }
   };
 
@@ -115,14 +116,14 @@ const CreateCoordinatorTaskModal = ({
         taskDate: initialDate || new Date(),
       };
       const result = await createCoordinatorTask(payload).unwrap();
-      message.success("Manual task created");
+      notifySuccess('save', 'manual', "Manual task created");
       onSuccess();
       if (onManualCreate) {
         onManualCreate(result.data);
       }
       onCancel();
     } catch (err) {
-      message.error(err.data?.message || "Failed to create manual task");
+      notifyError('save', 'manual', err.data?.message || "Failed to create manual task");
     }
   };
 

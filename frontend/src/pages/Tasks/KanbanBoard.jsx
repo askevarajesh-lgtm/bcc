@@ -1,6 +1,6 @@
 import { useAuth } from "../../contexts/AuthContext";
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   Avatar,
@@ -17,6 +17,7 @@ import {
   DatePicker,
   Tooltip,
 } from "antd";
+import { notifyLoading, notifySuccess, notifyError } from "../../utils/notify";
 import {
   PlusOutlined,
   CalendarOutlined,
@@ -150,6 +151,15 @@ const TaskCardInner = ({
   const [mobileMoveSelectKey, setMobileMoveSelectKey] = useState(0);
   const accentColor = getPriorityColor(task.priority);
   const projectColor = task.projectId?.color || accentColor;
+
+  // Build the correct task edit URL based on the current portal
+  const cardLocation = useLocation();
+  const getCardTaskEditUrl = (taskId) => {
+    if (cardLocation.pathname.startsWith('/user')) return `/user/tasks/${taskId}/edit`;
+    if (cardLocation.pathname.startsWith('/client')) return `/client/workspace/tasks/${taskId}/edit`;
+    if (cardLocation.pathname.startsWith('/agency')) return `/agency/workspace/tasks/${taskId}/edit`;
+    return `/workspace/tasks/${taskId}/edit`;
+  };
 
   const handleCardClick = (e) => {
     if (
@@ -872,7 +882,7 @@ const TaskCardInner = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/tasks/${task._id}/edit`);
+                    navigate(getCardTaskEditUrl(task._id));
                   }}
                   style={{
                     display: "flex",
@@ -966,11 +976,9 @@ const TaskCardInner = ({
                     onOk: async () => {
                       try {
                         await onDelete(task._id);
-                        message.success("Task deleted successfully");
+                        // parent handler will show success notification
                       } catch (err) {
-                        message.error(
-                          err.data?.message || "Failed to delete task",
-                        );
+                        notifyError('delete', task._id, err.data?.message || "Failed to delete task");
                       }
                     },
                   });
@@ -1460,6 +1468,13 @@ const KanbanBoard = ({
   const selectedClientId = null;
   const userRole = user?.role;
   const navigate = useNavigate();
+  const location = useLocation();
+  const getTaskEditUrl = (taskId) => {
+    if (location.pathname.startsWith('/user')) return `/user/tasks/${taskId}/edit`;
+    if (location.pathname.startsWith('/client')) return `/client/workspace/tasks/${taskId}/edit`;
+    if (location.pathname.startsWith('/agency')) return `/agency/workspace/tasks/${taskId}/edit`;
+    return `/workspace/tasks/${taskId}/edit`;
+  };
 
   const userType = (user?.type || "").toLowerCase().trim();
   const isIntern = userType === "intern";
@@ -1483,7 +1498,7 @@ const KanbanBoard = ({
     }),
   );
 
-  const { data: kanbanData, isLoading: isLoadingTasks } =
+  const { data: kanbanData, isLoading: isLoadingTasks, refetch } =
     useGetTasksForKanbanQuery(
       {
         projectId: selectedProject,
@@ -1918,10 +1933,10 @@ const KanbanBoard = ({
           user.userId === userId ? { ...user, hasRemindedToday: true } : user,
         ),
       );
-      message.success(`Reminder sent to user successfully!`);
+      notifySuccess('reminder', userId, `Reminder sent to user successfully!`);
     } catch (error) {
       console.error("Failed to send reminder:", error);
-      message.error(error?.data?.message || "Failed to send reminder");
+      notifyError('reminder', userId, error?.data?.message || "Failed to send reminder");
     } finally {
       setSendingReminders((prev) => {
         const newSet = new Set(prev);
@@ -1949,10 +1964,10 @@ const KanbanBoard = ({
       setPendingTasksData((prevData) =>
         prevData.map((user) => ({ ...user, hasRemindedToday: true })),
       );
-      message.success(`Reminders sent to all users successfully!`);
+      notifySuccess('reminder', 'all', `Reminders sent to all users successfully!`);
     } catch (error) {
       console.error("Failed to send reminders:", error);
-      message.error(error?.data?.message || "Failed to send reminders");
+      notifyError('reminder', 'all', error?.data?.message || "Failed to send reminders");
     } finally {
       setSendingReminders(new Set());
     }
@@ -2127,20 +2142,25 @@ const KanbanBoard = ({
     // and the card-to-card path on the same drag drop event
     if (moveInFlightRef.current) return;
     moveInFlightRef.current = true;
+    const keyId = taskId || 'quick-move';
+    notifyLoading('move', keyId, 'Moving task...');
     try {
       const formData = new FormData();
       formData.append("status", "in_progress");
       formData.append("order", "0");
       appendBoardDateScope(formData);
-      const response = await updateTaskStatusAndOrder({
+      await updateTaskStatusAndOrder({
         id: taskId,
         formData,
-      });
-      if (response.error) throw response.error;
-      message.success("Moved to In Progress");
-      refetch();
+      }).unwrap();
+      try {
+        if (typeof refetch === 'function') await refetch();
+      } catch (e) {
+        // ignore refetch errors
+      }
+      notifySuccess('move', keyId, 'Moved to In Progress');
     } catch (error) {
-      message.error(error?.data?.message || "Failed to move task");
+      notifyError('move', keyId, error?.data?.message || "Failed to move task");
     } finally {
       moveInFlightRef.current = false;
     }
@@ -2156,9 +2176,7 @@ const KanbanBoard = ({
 
     const canAccessRejected = isAdmin || isCoordinatorRole;
     if (targetStatusId === "Rejected" && !canAccessRejected) {
-      message.error(
-        "Only Admins and Digital Marketing Coordinators can move tasks to Rejected.",
-      );
+      notifyError('move', taskId, "Only Admins and Digital Marketing Coordinators can move tasks to Rejected.");
       return;
     }
 
@@ -2207,9 +2225,7 @@ const KanbanBoard = ({
 
     // 3. Approval permission check (Moving TO terminal status)
     if (isDigitalMarketing && (targetStatusId === "done" || targetStatusId === "complete") && !canApproveReview) {
-      message.error(
-        "For Digital Marketing, only a Coordinator or Admin can mark a task as Done/Approved.",
-      );
+      notifyError('move', taskId, "For Digital Marketing, only a Coordinator or Admin can mark a task as Done/Approved.");
       return;
     }
 
@@ -2220,9 +2236,7 @@ const KanbanBoard = ({
       (targetStatusId !== "done" && targetStatusId !== "complete") &&
       !canApproveReview
     ) {
-      message.error(
-        "For Digital Marketing, only a Coordinator or Admin can move tasks from the Review column.",
-      );
+      notifyError('move', taskId, "For Digital Marketing, only a Coordinator or Admin can move tasks from the Review column.");
       return;
     }
     const validNextStatuses = getValidNextStatuses(draggedTask, sourceStatus);
@@ -2248,7 +2262,7 @@ const KanbanBoard = ({
 
   const handleMobileMoveToColumn = (taskId, targetStatusId) => {
     if (!canMoveStatus) {
-      message.error("You don't have permission to update task status");
+      notifyError('move', taskId, "You don't have permission to update task status");
       return;
     }
     let draggedTask = null;
@@ -2268,9 +2282,7 @@ const KanbanBoard = ({
       dayjs(draggedTask.dueDate).isBefore(dayjs(), "day") &&
       !["done", "completed", "validated", "complete"].includes(draggedTask.status);
     if (isTaskOverdue && !isAdmin) {
-      message.error(
-        "Overdue tasks cannot be moved. Please contact an admin to update the due date first.",
-      );
+      notifyError('move', draggedTask._id, "Overdue tasks cannot be moved. Please contact an admin to update the due date first.");
       return;
     }
     const isTaskCompleted = ["done", "completed", "validated", "complete"].includes(
@@ -2284,9 +2296,7 @@ const KanbanBoard = ({
     ];
     const canApproveReview = reviewApproverRoles.includes(userRole);
     if (isTaskCompleted && !isAdmin && !canApproveReview) {
-      message.error(
-        "Completed tasks cannot be moved. Only admins can modify completed tasks.",
-      );
+      notifyError('move', draggedTask._id, "Completed tasks cannot be moved. Only admins can modify completed tasks.");
       return;
     }
 
@@ -2295,7 +2305,7 @@ const KanbanBoard = ({
 
   const handleDragEnd = async (event) => {
     if (!canMoveStatus) {
-      message.error("You don't have permission to update task status");
+      notifyError('move', 'global', "You don't have permission to update task status");
       return;
     }
     const { active, over } = event;
@@ -2323,9 +2333,7 @@ const KanbanBoard = ({
       dayjs(draggedTask.dueDate).isBefore(dayjs(), "day") &&
       !["done", "completed", "validated", "complete"].includes(draggedTask.status);
     if (isTaskOverdue && !isAdmin) {
-      message.error(
-        "Overdue tasks cannot be moved. Please contact an admin to update the due date first.",
-      );
+      notifyError('move', draggedTask._id, "Overdue tasks cannot be moved. Please contact an admin to update the due date first.");
       return;
     }
     const isTaskCompleted = ["done", "completed", "validated", "complete"].includes(
@@ -2339,9 +2347,7 @@ const KanbanBoard = ({
     ];
     const canApproveReview = reviewApproverRoles.includes(userRole);
     if (isTaskCompleted && !isAdmin && !canApproveReview) {
-      message.error(
-        "Completed tasks cannot be moved. Only admins can modify completed tasks.",
-      );
+      notifyError('move', draggedTask._id, "Completed tasks cannot be moved. Only admins can modify completed tasks.");
       return;
     }
     const targetStatusId = over.data.current?.statusId;
@@ -2379,11 +2385,10 @@ const KanbanBoard = ({
           order: index,
         }));
         try {
-          const response = await updateTasksOrder({ updates });
-          if (response.error) throw response.error;
+          await updateTasksOrder({ updates }).unwrap();
           refetch();
         } catch (error) {
-          message.error("Failed to reorder task");
+          notifyError('reorder', activeId || 'reorder', "Failed to reorder task");
         }
       } else {
         if (
@@ -2391,9 +2396,7 @@ const KanbanBoard = ({
           (targetStatusFromTask === "done" || targetStatusFromTask === "complete") &&
           !canApproveReview
         ) {
-          message.error(
-            "Assigned users cannot move tasks to Done. Move In Progress to Review only.",
-          );
+          notifyError('move', activeId, "Assigned users cannot move tasks to Done. Move In Progress to Review only.");
           return;
         }
         const validNextStatuses = getValidNextStatuses(
@@ -2414,17 +2417,15 @@ const KanbanBoard = ({
           await runQuickMoveToInProgress(activeId);
           return;
         }
-        if (
-          draggedTask.department === "digital-marketing" &&
-          sourceStatus === "review" &&
-          (targetStatusFromTask !== "done" && targetStatusFromTask !== "complete") &&
-          !canApproveReview
-        ) {
-          message.error(
-            "Only Digital Marketing Coordinator or Admin can move tasks from Review.",
-          );
-          return;
-        }
+          if (
+            draggedTask.department === "digital-marketing" &&
+            sourceStatus === "review" &&
+            (targetStatusFromTask !== "done" && targetStatusFromTask !== "complete") &&
+            !canApproveReview
+          ) {
+            notifyError('move', activeId, "Only Digital Marketing Coordinator or Admin can move tasks from Review.");
+            return;
+          }
         setPendingStatusChange({
           taskId: activeId,
           task: draggedTask,
@@ -2458,17 +2459,19 @@ const KanbanBoard = ({
     const requiresCommand =
       !isInProgressToReview && !isToDoToInProgress && !isReviewToApproved;
     if (requiresCommand && !values.command) {
-      message.error("Please enter a command.");
+      notifyError('move', pendingStatusChange?.taskId || 'status-change', "Please enter a command.");
       return;
     }
     if (isDigitalMarketing && isInProgressToReview && !screenshotFile) {
-      message.error("Please upload a file before moving task to Review.");
+      notifyError('move', pendingStatusChange?.taskId || 'status-change', "Please upload a file before moving task to Review.");
       return;
     }
     if (isDigitalMarketing && isReviewToApproved && !screenshotFile) {
-      message.error("Please upload a file before moving task to Approved.");
+      notifyError('move', pendingStatusChange?.taskId || 'status-change', "Please upload a file before moving task to Approved.");
       return;
     }
+    const keyId = pendingStatusChange?.taskId || 'status-change';
+    notifyLoading('move', keyId, 'Moving task...');
     try {
       const formData = new FormData();
       formData.append("status", pendingStatusChange.targetStatus);
@@ -2480,11 +2483,10 @@ const KanbanBoard = ({
       if (isReviewToInProgress) formData.append("taskCategory", "Correction");
       if (isReviewToToDo) formData.append("taskCategory", "Redesign");
       if (screenshotFile) formData.append("screenshot", screenshotFile);
-      const response = await updateTaskStatusAndOrder({
+      await updateTaskStatusAndOrder({
         id: pendingStatusChange.taskId,
         formData,
-      });
-      if (response.error) throw response.error;
+      }).unwrap();
       const completedStatuses = ["review", "done", "completed", "validated"];
       const isTargetCompleted = completedStatuses.includes(
         pendingStatusChange.targetStatus,
@@ -2497,15 +2499,19 @@ const KanbanBoard = ({
         assignedToId?.toString?.() === user?._id?.toString?.();
       if (isTargetCompleted && isAssignedToMe && onTaskCompleted)
         onTaskCompleted();
-      message.success("Task moved successfully");
+      try {
+        if (typeof refetch === 'function') await refetch();
+      } catch (e) {
+        // ignore
+      }
+      notifySuccess('move', keyId, 'Task moved successfully');
       setIsStatusModalVisible(false);
       statusForm.resetFields();
       setScreenshotFile(null);
       setPendingStatusChange(null);
-      refetch();
 
     } catch (error) {
-      message.error(error?.data?.message || "Failed to move task");
+      notifyError('move', keyId, error?.data?.message || "Failed to move task");
     }
   };
 
@@ -2889,7 +2895,7 @@ const KanbanBoard = ({
                   canDrag={canMoveStatus}
                   canDelete={canDelete}
                   onDelete={async (id) => {
-                    await deleteTask(id);
+                    await deleteTask(id).unwrap();
                     refetch();
                   }}
                   getWorkflowColorForTask={getWorkflowColorForTask}
@@ -3195,12 +3201,12 @@ const KanbanBoard = ({
                       beforeUpload={(file) => {
                         const isImage = file.type.startsWith("image/");
                         if (!isImage) {
-                          message.error("You can only upload image files!");
+                          notifyError('upload', 'global', "You can only upload image files!");
                           return false;
                         }
                         const isLt5M = file.size / 1024 / 1024 < 5;
                         if (!isLt5M) {
-                          message.error("Image must be smaller than 5MB!");
+                          notifyError('upload', 'global', "Image must be smaller than 5MB!");
                           return false;
                         }
                         setScreenshotFile(file);

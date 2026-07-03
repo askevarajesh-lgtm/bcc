@@ -7,6 +7,7 @@ import {
   message,
   theme as antTheme,
 } from "antd";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import { useUpdateCoordinatorTaskMutation } from "../../api/coordinatorTaskApi";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 
@@ -34,11 +35,11 @@ const TaskPendingReasonModal = ({ visible, onCancel, task, onSuccess }) => {
         id: task._id,
         pendingReason: reason.trim(),
       }).unwrap();
-      message.success("Pending reason updated");
+      notifySuccess('pending', task._id, "Pending reason updated");
       onSuccess?.();
       onCancel();
     } catch (err) {
-      message.error("Failed to update pending reason");
+      notifyError('pending', task._id, "Failed to update pending reason");
     }
   };
 

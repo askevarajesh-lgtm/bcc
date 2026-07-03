@@ -427,12 +427,12 @@ const getAllTasks = async (
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-  const restrictToOwnAssignedTasks = false;
+  const restrictToOwnAssignedTasks = !ROLES_WITH_FULL_TASK_ACCESS.includes(userRole);
 
   // ----------------------------------------------------
   // CREATOR-BASED TASK ISOLATION
   // ----------------------------------------------------
-  if (userId && userRole) {
+  if (userId && userRole && !restrictToOwnAssignedTasks) {
     const currentUser = await User.findById(userId);
     let allowedCreatorRoles = [];
 
@@ -2574,7 +2574,7 @@ const getTasksForKanban = async (
     userId && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-  const restrictToOwnAssignedTasks = false;
+  const restrictToOwnAssignedTasks = !ROLES_WITH_FULL_TASK_ACCESS.includes(userRole);
 
   // Role-based filtering: Only super_admin and admin see all tasks.
   // All other roles only see tasks where they are assignedTo or in watchers.

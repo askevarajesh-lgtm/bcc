@@ -27,6 +27,7 @@ import {
   useUpdateCoordinatorTaskMutation,
   useGetCoordinatorTaskByIdQuery,
 } from "../../api/coordinatorTaskApi";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 
 const { Text, Title } = Typography;
 
@@ -111,9 +112,9 @@ const CoordinatorTaskDetailModal = ({
       ];
       await updateTask({ id: task._id, checklist: newChecklist }).unwrap();
       setNewItemText("");
-      message.success("Item added");
+      notifySuccess('item', task._id, 'Item added');
     } catch {
-      message.error("Failed to add item");
+      notifyError('item', task._id, 'Failed to add item');
     }
   };
 
@@ -139,9 +140,9 @@ const CoordinatorTaskDetailModal = ({
       if (newStatus === "completed" && onTaskCompleted) {
         onTaskCompleted();
       }
-      message.success("Item removed");
+      notifySuccess('item', task._id, 'Item removed');
     } catch {
-      message.error("Failed to remove item");
+      notifyError('item', task._id, 'Failed to remove item');
     }
   };
 
@@ -168,7 +169,7 @@ const CoordinatorTaskDetailModal = ({
         onTaskCompleted();
       }
     } catch {
-      message.error("Failed to update checklist item");
+      notifyError('checklist', task._id, 'Failed to update checklist item');
     }
   };
 

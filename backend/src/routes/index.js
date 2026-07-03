@@ -29,11 +29,13 @@ const campaignScheduledRoutes = require('../modules/campaign-scheduled/campaignS
 const slaRoutes = require('../modules/sla/sla.routes');
 const mosRoutes = require('../modules/mos/mos.routes');
 const benchmarkRoutes = require('../modules/benchmarking/benchmark.routes');
+const hrmsRoutes = require('../modules/hrms/hrms.routes');
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
 const proposalRoutes = require('../modules/proposals/proposal.routes');
 const invoiceRoutes = require('../modules/invoices/invoice.routes');
+const leadRoutes = require('../modules/leads/lead.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -92,10 +94,12 @@ router.use('/coordinator-tasks', coordinatorTaskRoutes);
 router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
 router.use('/sla-success', slaRoutes);
+router.use('/hrms', hrmsRoutes);
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);
 router.use('/proposals', proposalRoutes);
 router.use('/invoices', invoiceRoutes);
+router.use('/leads', leadRoutes);
 
 module.exports = router;

@@ -9,6 +9,7 @@ import {
   Space,
   Spin,
 } from "antd";
+import { notifySuccess, notifyError } from '../../utils/notify';
 import { BellOutlined, MailOutlined, MessageOutlined } from "@ant-design/icons";
 import {
   useGetNotificationSettingsQuery,
@@ -172,11 +173,9 @@ const NotificationSettings = () => {
       };
 
       await updateSettings(settingsData).unwrap();
-      message.success("Notification settings saved successfully");
+      notifySuccess('notification-settings', 'global', "Notification settings saved successfully");
     } catch (error) {
-      message.error(
-        error?.data?.message || "Failed to save notification settings",
-      );
+      notifyError('notification-settings', 'global', error?.data?.message || "Failed to save notification settings");
     }
   };
 

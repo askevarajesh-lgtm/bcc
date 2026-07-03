@@ -19,6 +19,7 @@ import {
   Input,
   message,
 } from "antd";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 import {
   BellOutlined,
   CalendarOutlined,
@@ -413,17 +414,13 @@ const TaskCalendarView = ({ onTaskClick, departmentFilter }) => {
         scheduledDate: values.scheduledDate.format("YYYY-MM-DD"),
         notes: values.notes,
       }).unwrap();
-      message.success("Scheduled note created successfully");
+      notifySuccess('note', 'create', "Scheduled note created successfully");
       setIsCreateNoteModalOpen(false);
       setDetailDay(values.scheduledDate);
       noteForm.resetFields();
     } catch (error) {
       if (error?.errorFields) return;
-      message.error(
-        error?.data?.message ||
-          error?.message ||
-          "Failed to create scheduled note",
-      );
+      notifyError('note', 'create', error?.data?.message || error?.message || "Failed to create scheduled note");
     }
   };
 

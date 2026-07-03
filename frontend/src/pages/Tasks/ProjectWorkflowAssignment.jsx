@@ -1,5 +1,6 @@
 import { useAuth } from "../../contexts/AuthContext";
 import React, { useState, useEffect, useMemo } from "react";
+import { notifySuccess, notifyError } from '../../utils/notify';
 import {
   Card,
   Tag,
@@ -38,6 +39,7 @@ const ProjectWorkflowAssignment = () => {
   const { data: departmentsResp } = useGetDepartmentsDynamicQuery();
   const [createOrUpdateWorkflow, { isLoading }] =
     useCreateOrUpdateWorkflowConfigMutation();
+
   const [isMobile, setIsMobile] = useState(false);
   const { user: user } = useAuth();
   const userRole = user?.role;
@@ -178,7 +180,7 @@ const ProjectWorkflowAssignment = () => {
     try {
       const project = projects.find((p) => p._id === projectId);
       if (!project) {
-        message.error("Project not found");
+        notifyError('workflow-assign', 'global', "Project not found");
         return;
       }
 
@@ -192,11 +194,11 @@ const ProjectWorkflowAssignment = () => {
         isActive: true,
       }).unwrap();
 
-      message.success(`Template assigned to ${project.name}`);
+      notifySuccess('workflow-assign', project._id || 'global', `Template assigned to ${project.name}`);
       refetchConfigs();
       refetchProjects();
     } catch (error) {
-      message.error(error?.data?.message || "Failed to assign template");
+      notifyError('workflow-assign', projectId || 'global', error?.data?.message || "Failed to assign template");
     }
   };
 
@@ -219,7 +221,7 @@ const ProjectWorkflowAssignment = () => {
         refetchConfigs();
       }
     } catch (error) {
-      message.error("Failed to remove assignment");
+      notifyError('workflow-assign', projectId || 'global', "Failed to remove assignment");
     }
   };
 

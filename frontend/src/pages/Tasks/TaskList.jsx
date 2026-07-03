@@ -18,7 +18,7 @@ import {
   EyeOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useGetTasksQuery, useDeleteTaskMutation } from "../../api/taskApi";
 import { useGetDepartmentsDynamicQuery } from "../../api/accessControlApi";
 import useBulkSelection from "../../hooks/useBulkSelection";
@@ -27,6 +27,7 @@ import { useActionPermissions } from "../../hooks/useActionPermissions";
 import { PERMISSION_ACTIONS } from "../../utils/actionPermissions";
 import dayjs from "dayjs";
 import { getProjectServiceStats } from "../../utils/categoryUtils";
+import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
 
 const { Option } = Select;
 
@@ -40,6 +41,13 @@ const getServiceCount = (task) => {
 
 const TaskList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const getTaskEditUrl = (taskId) => {
+    if (location.pathname.startsWith('/user')) return `/user/tasks/${taskId}/edit`;
+    if (location.pathname.startsWith('/client')) return `/client/workspace/tasks/${taskId}/edit`;
+    if (location.pathname.startsWith('/agency')) return `/agency/workspace/tasks/${taskId}/edit`;
+    return `/workspace/tasks/${taskId}/edit`;
+  };
   const {
     canAdd: canCreatePermission,
     canEdit: canEditPermission,
@@ -104,10 +112,11 @@ const TaskList = () => {
 
   const handleDelete = async (taskId) => {
     try {
+      notifyLoading('delete', taskId, 'Deleting task...');
       await deleteTask(taskId).unwrap();
-      message.success("Task deleted successfully");
+      notifySuccess('delete', taskId, 'Task deleted successfully');
     } catch (err) {
-      message.error(err.data?.message || "Failed to delete task");
+      notifyError('delete', taskId, err.data?.message || "Failed to delete task");
     }
   };
 
@@ -246,11 +255,13 @@ const TaskList = () => {
               <span className="hide-on-mobile">View</span>
             </Button>
           )}
-          {canEdit && !isIntern && (
+          {canEdit &&
+            !isIntern &&
+            !["done", "validated", "completed", "complete", "review"].includes(record.status?.toLowerCase()) && (
             <Button
               type="link"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/tasks/${record._id}/edit`)}
+              onClick={() => navigate(getTaskEditUrl(record._id))}
             >
               <span className="hide-on-mobile">Edit</span>
             </Button>
