@@ -187,14 +187,14 @@ const getAllIntegrations = async (companyId, role) => {
 
   // Super admin sees platform-level integrations (companyId: null)
   // Others see company-specific integrations
-  if (role === "super_admin") {
+  if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     query.companyId = null;
   } else {
     query.companyId = companyId;
   }
 
   const integrations = await Integration.find(query).sort({ type: 1 });
-  if (role === "super_admin") {
+  if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     return integrations;
   }
 
@@ -212,16 +212,16 @@ const getAllIntegrations = async (companyId, role) => {
 
 const createIntegration = async (integrationData, companyId, role) => {
   // Only super admin can create platform-level integrations
-  if (integrationData.companyId === null && role !== "super_admin") {
+  if (integrationData.companyId === null && !["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     throw new Error("Only super admin can create platform-level integrations");
   }
 
   const finalCompanyId =
-    role === "super_admin" && integrationData.companyId === null
+    ["super_admin", "supreme_super_admin", "commander_admin"].includes(role) && integrationData.companyId === null
       ? null
       : companyId;
 
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(
       finalCompanyId,
       integrationData.type,
@@ -242,7 +242,7 @@ const updateIntegration = async (
 ) => {
   const query = { _id: integrationId };
 
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     query.companyId = companyId;
   }
 
@@ -251,7 +251,7 @@ const updateIntegration = async (
     throw new Error("Integration not found");
   }
 
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
   }
 
@@ -267,7 +267,7 @@ const updateIntegration = async (
 const fetchWhatsAppTemplates = async (integrationId, companyId, role) => {
   const query = { _id: integrationId, type: "whatsapp" };
 
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     query.companyId = companyId;
   } else {
     query.companyId = null;
@@ -277,7 +277,7 @@ const fetchWhatsAppTemplates = async (integrationId, companyId, role) => {
   if (!integration) {
     throw new Error("WhatsApp integration not found");
   }
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
   }
 
@@ -421,7 +421,7 @@ const validateEktaApi = async (payload, companyId, role) => {
   // If updating an existing integration
   if (integrationId) {
     const query = { _id: integrationId, type: "ekta" };
-    if (role !== "super_admin") query.companyId = companyId;
+    if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
     else if (companyId) query.companyId = companyId;
 
     const integration = await Integration.findOne(query);
@@ -480,14 +480,14 @@ const syncEktaStaff = async (integrationId, payload, companyId, role) => {
   }
 
   const query = { _id: integrationId, type: "ekta" };
-  if (role !== "super_admin") query.companyId = companyId;
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
   else if (companyId) query.companyId = companyId;
 
   const integration = await Integration.findOne(query);
   if (!integration) {
     throw new Error("Ekta integration not found");
   }
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
   }
 
@@ -607,14 +607,14 @@ const syncEktaAttendance = async (integrationId, payload, companyId, role) => {
   }
 
   const query = { _id: integrationId, type: "ekta" };
-  if (role !== "super_admin") query.companyId = companyId;
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
   else if (companyId) query.companyId = companyId;
 
   const integration = await Integration.findOne(query);
   if (!integration) {
     throw new Error("Ekta integration not found");
   }
-  if (role !== "super_admin") {
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
   }
 
@@ -1148,7 +1148,7 @@ const submitWebsiteLead = async (apiKey, leadData) => {
  */
 const fetchWhatsAppLeads = async (integrationId, companyId, role) => {
   const query = { _id: integrationId, type: "website" };
-  if (role !== "super_admin") query.companyId = companyId;
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
 
   const integration = await Integration.findOne(query);
   if (!integration) {

@@ -14,7 +14,7 @@ const Integrations = () => {
     try {
       setLoading(true);
       const res = await api.get('/integrations');
-      setIntegrations(res.data.data);
+      setIntegrations(res.data.data?.integrations || res.data.data || []);
     } catch (error) {
       message.error('Failed to fetch integrations');
     } finally {

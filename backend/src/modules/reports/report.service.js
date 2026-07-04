@@ -48,9 +48,11 @@ exports.generateAndSendReport = async (agencyId, clientId, template, scheduleId 
     // Using a public dummy PDF URL so the download button actually downloads a file
     const dummyPdfUrl = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
     let pages = 1;
-    if (template === 'Monthly Performance Report') pages = 14;
-    else if (template === 'SEO Ranking Report') pages = 7;
-    else if (template === 'Paid Media Report') pages = 9;
+    if (template === 'Social Media Performance Report') pages = 14;
+    else if (template === 'SEO Keyword Ranking Report') pages = 7;
+    else if (template === 'Social Media Engagement Report') pages = 5;
+    else if (template === 'Paid Ads Lead Generation Report') pages = 9;
+    else if (template === 'Lead Conversion Report') pages = 4;
 
     // 4. Send via Email/WhatsApp (Mock tracking)
     // Normally we would invoke the email service here.

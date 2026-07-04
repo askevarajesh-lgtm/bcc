@@ -732,6 +732,7 @@ const resolveProjectListQueryOptions = async (
 ) => {
   const q = { ...reqQuery };
   let clientIdFilter = null;
+  const isGlobalAdmin = ["supreme_super_admin"].includes(userRole);
   
   if (userRole === "client" && userId) {
     clientIdFilter = userId;
@@ -789,6 +790,7 @@ const resolveProjectListQueryOptions = async (
       ...(clientIdFilter && { clientId: clientIdFilter }),
       ...(q.status && { status: q.status }),
       ...(q.companyId && { clientId: q.companyId }),
+      ...(!isGlobalAdmin && tenantCompanyId && { companyId: tenantCompanyId }),
       ...(masterItemIdFilter && { masterItemId: masterItemIdFilter }),
       ...(q.departments?.length && {
         departments: { $in: q.departments },
@@ -1108,7 +1110,7 @@ const getUnassignedDeliverablesSummary = async (
 // Dropdown query for projects
 const getProjectsDropdown = async (tenantCompanyId, reqQuery = {}) => {
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
-  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(reqQuery.userRole);
+  const isGlobalAdmin = ["supreme_super_admin"].includes(reqQuery.userRole);
 
   // Apply role-based data filtering for dropdown
   let clientIdFilter;

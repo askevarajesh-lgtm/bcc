@@ -12,6 +12,8 @@ router.get(
   "/",
   rbacMiddleware(
     "super_admin",
+    "supreme_super_admin",
+    "commander_admin",
     "admin",
     "coordinator",
     "digital_marketing_coordinator",
@@ -21,27 +23,27 @@ router.get(
 );
 router.post(
   "/",
-  rbacMiddleware("super_admin", "admin"),
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin"),
   integrationController.createIntegration,
 );
 router.put(
   "/:id",
-  rbacMiddleware("super_admin", "admin"),
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin"),
   integrationController.updateIntegration,
 );
 router.post(
   "/:id/send",
-  rbacMiddleware("admin", "salesperson"),
+  rbacMiddleware("admin", "supreme_super_admin", "commander_admin", "salesperson"),
   integrationController.sendMessage,
 );
 router.get(
   "/:id/whatsapp/templates",
-  rbacMiddleware("super_admin", "admin"),
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin"),
   integrationController.fetchWhatsAppTemplates,
 );
 router.post(
   "/:id/whatsapp-leads/fetch",
-  rbacMiddleware("super_admin", "admin"),
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin"),
   integrationController.fetchWhatsAppLeads,
 );
 

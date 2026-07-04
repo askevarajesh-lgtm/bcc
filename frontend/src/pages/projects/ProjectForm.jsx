@@ -365,6 +365,14 @@ const ProjectForm = () => {
           return;
         }
 
+        const getCategoryCount = (nameKeywords) => {
+          if (!selectedInvoiceItem.categories) return 0;
+          const cat = selectedInvoiceItem.categories.find(c => 
+            nameKeywords.some(keyword => (c.name || c.categoryName || '').toLowerCase().includes(keyword.toLowerCase()))
+          );
+          return cat ? (cat.count || cat.quantity || 0) : 0;
+        };
+
         const projectData = {
           name: values.name, // Include the project name from the form
           invoiceId: values.invoiceId,
@@ -376,12 +384,12 @@ const ProjectForm = () => {
           renewalDate: values.renewalDate
             ? values.renewalDate.toISOString()
             : null,
-          numberOfPosters: selectedInvoiceItem.numberOfPosters || 0,
-          numberOfVideos: selectedInvoiceItem.numberOfVideos || 0,
-          numberOfShoots: selectedInvoiceItem.numberOfShoots || 0,
-          remainingPosters: selectedInvoiceItem.numberOfPosters || 0,
-          remainingVideos: selectedInvoiceItem.numberOfVideos || 0,
-          remainingShoots: selectedInvoiceItem.numberOfShoots || 0,
+          numberOfPosters: selectedInvoiceItem.numberOfPosters || getCategoryCount(["poster", "posters"]),
+          numberOfVideos: selectedInvoiceItem.numberOfVideos || getCategoryCount(["video", "videos"]),
+          numberOfShoots: selectedInvoiceItem.numberOfShoots || getCategoryCount(["shoot", "shoots"]),
+          remainingPosters: selectedInvoiceItem.numberOfPosters || getCategoryCount(["poster", "posters"]),
+          remainingVideos: selectedInvoiceItem.numberOfVideos || getCategoryCount(["video", "videos"]),
+          remainingShoots: selectedInvoiceItem.numberOfShoots || getCategoryCount(["shoot", "shoots"]),
           selectedCategories: (
             selectedInvoiceItem.selectedCategories || []
           ).map((cat, idx) => {
@@ -678,17 +686,23 @@ const ProjectForm = () => {
                               <Descriptions.Item label="Description" span={2}>
                                 {selectedInvoiceItem.description || "N/A"}
                               </Descriptions.Item>
-                              <Descriptions.Item label="Categories" span={2}>
-                                {selectedInvoiceItem.categories && selectedInvoiceItem.categories.length > 0 ? (
-                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    {selectedInvoiceItem.categories.map((cat, i) => (
-                                      <Tag key={i} color="blue">{cat.name} ({cat.count})</Tag>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  "No categories"
-                                )}
-                              </Descriptions.Item>
+                              {selectedInvoiceItem.categories && selectedInvoiceItem.categories.length > 0 ? (
+                                selectedInvoiceItem.categories.map((cat, i) => {
+                                  const rawName = cat.name || cat.categoryName || "";
+                                  const singularName = rawName.toLowerCase().endsWith('s') ? rawName.slice(0, -1) : rawName;
+                                  const formattedName = singularName ? `Number of ${singularName.charAt(0).toUpperCase() + singularName.slice(1)}s` : "Unknown Item";
+                                  
+                                  return (
+                                    <Descriptions.Item key={i} label={formattedName} span={2}>
+                                      {cat.count || cat.quantity || 0}
+                                    </Descriptions.Item>
+                                  );
+                                })
+                              ) : (
+                                <Descriptions.Item label="Categories" span={2}>
+                                  No categories
+                                </Descriptions.Item>
+                              )}
                               <Descriptions.Item label="Price" span={2}>
                                 <strong
                                   style={{ fontSize: "16px", color: "#1890ff" }}

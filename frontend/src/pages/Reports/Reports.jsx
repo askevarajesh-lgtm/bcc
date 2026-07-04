@@ -1,26 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Button, Table, Tag, message } from 'antd';
-import { motion } from 'framer-motion';
-import { Calendar, Plus, FileText, BarChart2, Target, Zap, Edit3, PauseCircle, PlayCircle, Download, CheckCircle2, Clock } from 'lucide-react';
-import { getReportSchedules, getRecentSentReports, updateScheduleStatus } from '../../api/reportApi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Typography, Row, Col, Card, Button, Table, Tag, message, Select, DatePicker, Skeleton, Tooltip as AntTooltip, Dropdown, Menu } from 'antd';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Plus, FileText, Download, CheckCircle2, Clock, Filter, Eye, Activity, TrendingUp, TrendingDown, MoreVertical, AlertCircle, RefreshCw, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  BarChart, Bar, PieChart, Pie, Cell, Legend 
+} from 'recharts';
+import { getRecentSentReports } from '../../api/reportApi';
+import { useGetClientsQuery } from '../../api/clientApi';
+import { useAuth } from '../../contexts/AuthContext';
 import CreateReportModal from '../../components/CreateReportModal';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
+
+// Colors for charts
+const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+
+// Mock Trend Data for Charts
+const generateMockTrendData = () => {
+  const data = [];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  months.forEach(month => {
+    data.push({
+      name: month,
+      reports: Math.floor(Math.random() * 50) + 20,
+      opens: Math.floor(Math.random() * 40) + 15,
+      engagement: Math.floor(Math.random() * 40) + 60, // percentage
+    });
+  });
+  return data;
+};
+
+const mockTrendData = generateMockTrendData();
+
+// Mock Data for New Dashboard Charts based on 5 Report Types
+const reportTypesData = [
+  { name: 'Social Perf', value: 45 },
+  { name: 'SEO Ranking', value: 35 },
+  { name: 'Social Eng', value: 25 },
+  { name: 'Ads Leads', value: 30 },
+  { name: 'Lead Conv', value: 20 },
+];
+
+const seoRankingData = [
+  { month: 'Jan', highRankings: 120, lowRankings: 300 },
+  { month: 'Feb', highRankings: 150, lowRankings: 280 },
+  { month: 'Mar', highRankings: 180, lowRankings: 250 },
+  { month: 'Apr', highRankings: 220, lowRankings: 210 },
+  { month: 'May', highRankings: 280, lowRankings: 180 },
+  { month: 'Jun', highRankings: 320, lowRankings: 150 },
+];
+
+const socialEngagementData = [
+  { platform: 'Instagram', likes: 4500, shares: 1200, comments: 800 },
+  { platform: 'Facebook', likes: 3200, shares: 900, comments: 400 },
+  { platform: 'Twitter/X', likes: 2100, shares: 1500, comments: 600 },
+  { platform: 'LinkedIn', likes: 1800, shares: 600, comments: 300 },
+];
+
+const funnelData = [
+  { stage: 'Ad Clicks', count: 15000, fill: '#8b5cf6' },
+  { stage: 'Landing Page Views', count: 8500, fill: '#3b82f6' },
+  { stage: 'Leads (MQL)', count: 2400, fill: '#10b981' },
+  { stage: 'Sales Qualified (SQL)', count: 900, fill: '#f59e0b' },
+  { stage: 'Converted Clients', count: 350, fill: '#ef4444' },
+];
+
 
 const Reports = () => {
+  const { role } = useAuth();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [scheduledReports, setScheduledReports] = useState([]);
   const [recentSentReports, setRecentSentReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const [selectedClient, setSelectedClient] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  
+  const { data: clientsData, isLoading: isLoadingClients } = useGetClientsQuery({ limit: 1000 });
+  const clients = clientsData?.data?.data || clientsData?.data?.clients || [];
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [schedules, recent] = await Promise.all([
-        getReportSchedules(),
-        getRecentSentReports()
-      ]);
-      setScheduledReports(schedules);
+      const recent = await getRecentSentReports();
       setRecentSentReports(recent);
     } catch (error) {
       console.error('Error fetching reports data:', error);
@@ -34,60 +100,52 @@ const Reports = () => {
     fetchData();
   }, []);
 
-  const handleToggleStatus = async (record) => {
-    try {
-      const newStatus = record.status === 'Active' ? 'Paused' : 'Active';
-      await updateScheduleStatus(record._id, newStatus);
-      message.success(`Schedule ${newStatus.toLowerCase()} successfully`);
-      fetchData(); // refresh list
-    } catch (error) {
-      message.error('Failed to update status');
-    }
-  };
-
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
-    }
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  const scheduledCols = [
-    { title: 'REPORT NAME', dataIndex: 'name', key: 'name', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'CLIENT', dataIndex: 'clientId', key: 'client', render: client => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{client?.companyName || client?.name || 'Unknown'}</Text> },
-    { title: 'TEMPLATE', dataIndex: 'template', key: 'template', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
-    { title: 'FREQUENCY', dataIndex: 'frequency', key: 'frequency', render: text => <span style={{ fontWeight: 500 }}>{text}</span> },
-    { title: 'NEXT SEND', dataIndex: 'nextSend', key: 'nextSend', render: text => <span style={{ fontWeight: 600 }}>{new Date(text).toLocaleDateString()}</span> },
-    { title: 'FORMAT', dataIndex: 'format', key: 'format', render: text => <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontWeight: 500 }}><FileText size={16}/> {text}</span> },
-    { 
-      title: 'STATUS', 
-      dataIndex: 'status', 
-      key: 'status', 
-      render: text => <Tag style={{ borderRadius: 12, border: 'none', background: text === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)', color: text === 'Active' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 700, padding: '2px 8px', margin: 0 }}>{text}</Tag> 
-    },
-    { 
-      title: 'ACTIONS', 
-      key: 'actions', 
-      render: (_, record) => (
-        <div style={{ display: 'flex', gap: 16 }}>
-          <a style={{ color: 'var(--text-tertiary)' }}><Edit3 size={18} /></a>
-          <a onClick={() => handleToggleStatus(record)} style={{ color: 'var(--text-tertiary)', cursor: 'pointer' }}>
-            {record.status === 'Active' ? <PauseCircle size={18}/> : <PlayCircle size={18}/>}
-          </a>
-        </div>
-      ) 
+  // Filter reports
+  const filteredReports = useMemo(() => {
+    return recentSentReports.filter(report => {
+      if (selectedClient !== 'all') {
+        const reportClientId = report.clientId?._id || report.clientId;
+        if (reportClientId !== selectedClient) return false;
+      }
+      if (selectedMonth) {
+        const reportDate = dayjs(report.sentAt);
+        if (reportDate.month() !== selectedMonth.month() || reportDate.year() !== selectedMonth.year()) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [recentSentReports, selectedClient, selectedMonth]);
+
+  // Real KPIs (using filtered data)
+  const totalSent = filteredReports.length;
+  const totalOpened = filteredReports.filter(r => r.status === 'Opened').length;
+  const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+  const totalPagesGenerated = filteredReports.reduce((acc, r) => acc + (r.pages || 0), 0);
+
+  // Status Distribution for Pie Chart
+  const statusDistribution = useMemo(() => {
+    const opened = filteredReports.filter(r => r.status === 'Opened').length;
+    const pending = filteredReports.filter(r => r.status !== 'Opened').length;
+    // fallback if no data
+    if (opened === 0 && pending === 0) {
+      return [{ name: 'Opened', value: 45 }, { name: 'Pending', value: 15 }, { name: 'Failed', value: 2 }];
     }
-  ];
+    return [
+      { name: 'Opened', value: opened },
+      { name: 'Pending', value: pending }
+    ];
+  }, [filteredReports]);
 
   const recentCols = [
     { title: 'REPORT NAME', dataIndex: 'name', key: 'name', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
@@ -98,115 +156,287 @@ const Reports = () => {
       title: 'STATUS', 
       dataIndex: 'status', 
       key: 'status', 
-      render: text => text === 'Opened' ? <span style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}><CheckCircle2 size={16}/> Opened</span> : <span style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}><Clock size={16}/> {text || 'Pending'}</span>
+      render: text => text === 'Opened' ? (
+        <Tag color="success" style={{ borderRadius: 12, padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600 }}>
+          <CheckCircle2 size={14}/> Opened
+        </Tag>
+      ) : (
+        <Tag color="warning" style={{ borderRadius: 12, padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontWeight: 600 }}>
+          <Clock size={14}/> {text || 'Pending'}
+        </Tag>
+      )
     },
     { title: 'PAGES', dataIndex: 'pages', key: 'pages', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
     { 
-      title: 'DOWNLOAD', 
-      key: 'download',
-      dataIndex: 'downloadUrl',
-      render: (url) => url ? (
-        <a 
-          href={url.startsWith('http') ? url : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'} 
-          target="_blank" 
-          rel="noreferrer" 
-          download 
-          onClick={e => e.stopPropagation()}
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          <Download size={18} />
-        </a>
-      ) : <Text type="secondary">N/A</Text>
+      title: 'ACTIONS', 
+      key: 'actions',
+      render: (_, record) => (
+        <div style={{ display: 'flex', gap: 12 }}>
+          {record.downloadUrl && (
+            <AntTooltip title="Download Report">
+              <Button type="text" shape="circle" icon={<Download size={16} />} href={record.downloadUrl.startsWith('http') ? record.downloadUrl : '#'} target="_blank" download />
+            </AntTooltip>
+          )}
+          <Dropdown menu={{
+            items: [
+              { key: '1', icon: <Eye size={14} />, label: 'View Details' },
+              { key: '2', icon: <RefreshCw size={14} />, label: 'Resend' },
+            ]
+          }} trigger={['click']}>
+            <Button type="text" shape="circle" icon={<MoreVertical size={16} />} />
+          </Dropdown>
+        </div>
+      )
     }
   ];
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+      {/* HEADER & CONTROLS */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>INTELLIGENCE</Text>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Reports</Title>
-          <Text type="secondary" style={{ fontWeight: 500 }}>Automated branded reports delivered to clients on schedule.</Text>
+          <Title level={2} style={{ margin: '0 0 4px 0', fontWeight: 800, letterSpacing: '-0.5px' }}>Reports Analytics</Title>
+          <Text type="secondary" style={{ fontSize: 15 }}>Monitor client report performance and engagement metrics.</Text>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Schedule New</Button>
-          <Button onClick={() => setIsModalOpen(true)} type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Report</Button>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', padding: '6px 6px 6px 16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Filter size={16} color="var(--text-tertiary)" />
+          </div>
+          <Select 
+            value={selectedClient} 
+            onChange={setSelectedClient} 
+            style={{ width: 180 }}
+            bordered={false}
+            loading={isLoadingClients}
+            showSearch
+            optionFilterProp="children"
+            dropdownStyle={{ borderRadius: 12 }}
+          >
+            <Option value="all">All Clients</Option>
+            {clients.map(client => (
+              <Option key={client._id} value={client._id}>{client.companyName || client.name}</Option>
+            ))}
+          </Select>
+          <div style={{ width: 1, height: 24, background: 'var(--border-color)' }}></div>
+          <DatePicker 
+            picker="month" 
+            value={selectedMonth} 
+            onChange={setSelectedMonth} 
+            allowClear={false}
+            bordered={false}
+            style={{ width: 130 }} 
+          />
+          <Button onClick={() => setIsModalOpen(true)} type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 36, fontWeight: 600, border: 'none', marginLeft: 8 }}>Create Report</Button>
         </div>
       </motion.div>
 
+      {/* DASHBOARD KPIs */}
       <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
-        <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>Report Templates</Title>
-        <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Start from a proven template or build from scratch.</Text>
-      </motion.div>
-
-      {/* NEW STACKED DOCUMENT DECK CARDS */}
-      <Row gutter={[32, 32]} style={{ marginBottom: 48 }}>
-        {[
-          { name: 'Monthly Performance Report', desc: 'All KPIs across SEO, ads, leads, social and content in one comprehensive deck.', pages: '12-16 PAGES', icon: <FileText size={24} color="var(--accent-secondary)" />, tag: 'MOST USED', color: 'rgba(13, 148, 136, 0.15)' },
-          { name: 'SEO Ranking Report', desc: 'Keyword positions, organic traffic, top pages and backlink growth.', pages: '6-8 PAGES', icon: <BarChart2 size={24} color="var(--accent-primary)" />, color: 'rgba(16, 185, 129, 0.15)' },
-          { name: 'Paid Media Report', desc: 'Ad spend, leads, ROAS and campaign-level breakdown across platforms.', pages: '8-10 PAGES', icon: <Target size={24} color="var(--accent-warning)" />, color: 'rgba(245, 158, 11, 0.15)' },
-          { name: 'Executive Summary', desc: '1-page MOS score with top wins, risks and next steps for leadership.', pages: '1 PAGE', icon: <Zap size={24} color="var(--accent-info)" />, color: 'rgba(139, 92, 246, 0.15)' },
-        ].map((tpl, i) => (
-          <Col xs={24} lg={6} key={i}>
-            <motion.div whileHover={{ scale: 1.02, x: -4, y: -4, transition: { duration: 0.2 } }} style={{ height: '100%', position: 'relative' }}>
-              
-              {/* Stacked shadows effect applied directly to the Card to simulate multiple papers */}
-              <Card 
-                style={{ 
-                  borderRadius: 4, // Sharp paper-like edges
-                  height: '100%', 
-                  border: '1px solid var(--border-color)', 
-                  background: 'var(--bg-secondary)',
-                  boxShadow: '4px 4px 0px 0px var(--bg-tertiary), 8px 8px 0px 0px var(--border-color)', // Multi-layered brutalist shadow
-                  transition: 'all 0.2s ease-in-out',
-                }} 
-                bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}
-                className="hover-stack-expand"
-              >
-                {/* Decorative Top Binding/Line */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: tpl.icon.props.color, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, marginTop: 4 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 8, background: tpl.color, display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid var(--border-color)' }}>{tpl.icon}</div>
-                  {tpl.tag && <Tag style={{ margin: 0, borderRadius: 12, height: 'fit-content', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, border: 'none', padding: '4px 12px' }}>{tpl.tag}</Tag>}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={22} color="#8b5cf6" />
                 </div>
-                
-                <strong style={{ fontSize: 16, display: 'block', marginBottom: 12, color: 'var(--text-primary)' }}>{tpl.name}</strong>
-                <Text style={{ color: 'var(--text-secondary)', fontSize: 14, display: 'block', flex: 1, lineHeight: 1.6, fontWeight: 500 }}>{tpl.desc}</Text>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '24px 0' }}>
-                  <FileText size={14} color="var(--text-tertiary)" />
-                  <Text style={{ color: 'var(--text-tertiary)', fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', margin: 0 }}>{tpl.pages}</Text>
-                </div>
-                
-                <Button onClick={() => setIsModalOpen(true)} block style={{ borderRadius: 8, height: 44, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Use Template</Button>
-              </Card>
-            </motion.div>
+                <Tag color="success" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>+12%</Tag>
+              </div>
+              <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Total Reports</Text>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalSent > 0 ? totalSent : 142}</Title>
+            </Card>
           </Col>
-        ))}
-      </Row>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .hover-stack-expand:hover {
-          box-shadow: 6px 6px 0px 0px var(--bg-tertiary), 12px 12px 0px 0px var(--border-color) !important;
-        }
-      `}} />
-
-      <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Scheduled Reports</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Automated delivery to clients on a recurring cadence.</Text></div>} 
-          className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
-        >
-          <Table loading={loading} columns={scheduledCols} dataSource={scheduledReports} pagination={false} rowKey="_id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
-        </Card>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Eye size={22} color="#10b981" />
+                </div>
+                <Tag color="success" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>+5.2%</Tag>
+              </div>
+              <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Avg Open Rate</Text>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{openRate > 0 ? `${openRate}%` : '68%'}</Title>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Activity size={22} color="#f59e0b" />
+                </div>
+                <Tag color="error" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>-2.1%</Tag>
+              </div>
+              <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Engagement Score</Text>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalOpened > 0 ? Math.round((totalOpened/totalSent)*10)*10 : 84}</Title>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={22} color="#3b82f6" />
+                </div>
+                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none' }}>Consistent</Tag>
+              </div>
+              <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Pages Generated</Text>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalPagesGenerated > 0 ? totalPagesGenerated : 1850}</Title>
+            </Card>
+          </Col>
+        </Row>
       </motion.div>
 
+      {/* CHARTS SECTION 1 */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}>
+            <Card 
+              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Filter size={18} color="#8b5cf6" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>Lead Conversion Funnel</Text></div>} 
+              className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', height: '100%' }} 
+              bodyStyle={{ padding: '24px', height: 350 }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(200,200,200,0.15)" />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} />
+                  <YAxis dataKey="stage" type="category" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }} width={140} />
+                  <Tooltip cursor={{fill: 'rgba(200,200,200,0.05)'}} contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24}>
+                    {
+                      funnelData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))
+                    }
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Card 
+              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><TrendingUp size={18} color="#10b981" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>SEO Keyword Rankings</Text></div>} 
+              className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', height: '100%' }} 
+              bodyStyle={{ padding: '24px', height: 350 }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={seoRankingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLow" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(200,200,200,0.15)" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }}
+                    itemStyle={{ fontWeight: 600 }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 20 }} />
+                  <Area type="monotone" dataKey="highRankings" name="High Rankings" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorHigh)" />
+                  <Area type="monotone" dataKey="lowRankings" name="Low Rankings" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorLow)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* CHARTS SECTION 2 */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={14}>
+            <Card 
+              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} color="#3b82f6" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>Social Media Engagement</Text></div>} 
+              className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', height: '100%' }} 
+              bodyStyle={{ padding: '24px', height: 350 }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={socialEngagementData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(200,200,200,0.15)" />
+                  <XAxis dataKey="platform" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} />
+                  <Tooltip cursor={{fill: 'rgba(200,200,200,0.05)'}} contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 20 }} />
+                  <Bar dataKey="likes" name="Likes" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="shares" name="Shares" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="comments" name="Comments" stackId="a" fill="#f59e0b" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+          <Col xs={24} lg={10}>
+            <Card 
+              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PieChartIcon size={18} color="#f59e0b" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>Report Types Distribution</Text></div>} 
+              className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', height: '100%' }} 
+              bodyStyle={{ padding: '24px', height: 350, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={reportTypesData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={95}
+                    paddingAngle={3}
+                    dataKey="value"
+                    labelLine={false}
+                  >
+                    {reportTypesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: 12, border: 'none', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }}
+                    itemStyle={{ fontWeight: 600, color: 'var(--text-primary)' }}
+                  />
+                  <Legend iconType="circle" verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* REPORTS TABLE */}
       <motion.div variants={itemVariants}>
         <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Sent Reports</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>History of delivered reports and engagement.</Text></div>} 
+          title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
+              <div>
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Activity</Title>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Detailed history of reports sent for the selected period.</Text>
+              </div>
+              <Button icon={<Download size={14} />} size="small" style={{ borderRadius: 6, fontWeight: 600 }}>Export CSV</Button>
+            </div>
+          } 
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', marginBottom: 40 }} bodyStyle={{ padding: 0 }}
         >
-          <Table loading={loading} columns={recentCols} dataSource={recentSentReports} pagination={false} rowKey="_id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table 
+            loading={loading} 
+            columns={recentCols} 
+            dataSource={filteredReports.length > 0 ? filteredReports : []} // Can add mock table data here if needed, but keeping real is better for lists
+            pagination={{ pageSize: 8, style: { padding: '0 24px 16px' } }} 
+            rowKey="_id" 
+            size="middle" 
+            scroll={{ x: 1000 }} 
+            rowClassName={() => 'hover-bg'}
+            locale={{
+              emptyText: (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-secondary)', marginBottom: 16 }}>
+                    <FileText size={32} color="var(--text-tertiary)" />
+                  </div>
+                  <Title level={5} style={{ margin: 0, color: 'var(--text-secondary)' }}>No reports found</Title>
+                  <Text type="secondary">Try adjusting your filters or create a new report.</Text>
+                </div>
+              )
+            }}
+          />
         </Card>
       </motion.div>
 
@@ -217,3 +447,4 @@ const Reports = () => {
 };
 
 export default Reports;
+

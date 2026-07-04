@@ -88,7 +88,11 @@ export const useEnableFacebookSyncMutation = createMutationHook((data) => ({ url
 export const useDisableFacebookSyncMutation = createMutationHook((data) => ({ url: "/facebook/integrations/unsubscribe", method: "POST", body: data }));
 export const useDisconnectFacebookPageMutation = createMutationHook(({ pageId, clientId }) => ({ url: `/facebook/integrations/${pageId}${clientId ? `?clientId=${clientId}` : ""}`, method: "DELETE" }));
 export const useGetFacebookSyncLogsQuery = createQueryHook(({ pageId, clientId }) => `/facebook/integrations/${pageId}/logs${clientId ? `?clientId=${clientId}` : ""}`);
-export const useLazyGetFacebookSyncLogsQuery = () => [useGetFacebookSyncLogsQuery().refetch]; // Mock lazy query
+export const useLazyGetFacebookSyncLogsQuery = () => {
+  const [params, setParams] = useState(null);
+  const queryResult = useGetFacebookSyncLogsQuery(params || {}, { skip: !params });
+  return [setParams, { ...queryResult, isFetching: queryResult.isLoading }];
+};
 export const useSyncFacebookLeadsMutation = createMutationHook((data) => ({ url: "/facebook/integrations/sync-leads", method: "POST", body: data }));
 export const useTestTwilioConnectionMutation = createMutationHook((data) => ({ url: "/integrations/twilio/test", method: "POST", body: data }));
 export const useSaveTwilioIntegrationMutation = createMutationHook((data) => ({ url: "/integrations/twilio/save", method: "POST", body: data }));

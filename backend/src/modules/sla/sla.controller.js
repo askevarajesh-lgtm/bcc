@@ -12,8 +12,7 @@ exports.getSlaDashboardStats = async (req, res, next) => {
     if (role === 'commander_admin') {
       match.$or = [
         { triggerType: 'Payment' }, // In a real app we'd filter by clientType here if schema supported it
-        { triggerType: 'Client Issue' },
-        { triggerType: 'Due Date', entityType: 'Task' } // Task-related only
+        { triggerType: 'Client Issue' }
       ];
       match.entityType = { $nin: ['Project', 'Invoice'] };
     } else if (role === 'agency_super_admin') {
@@ -90,8 +89,7 @@ exports.getSlas = async (req, res, next) => {
     if (role === 'commander_admin') {
       query.$or = [
         { triggerType: 'Payment' },
-        { triggerType: 'Client Issue' },
-        { triggerType: 'Due Date', entityType: 'Task' }
+        { triggerType: 'Client Issue' }
       ];
       query.entityType = { $nin: ['Project', 'Invoice'] };
     } else if (role === 'agency_super_admin') {

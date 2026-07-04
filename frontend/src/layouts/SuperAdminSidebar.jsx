@@ -1,11 +1,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, CreditCard, Globe, LayoutDashboard, Users, Zap } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
 
-const SuperAdminSidebar = () => {
+const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
 

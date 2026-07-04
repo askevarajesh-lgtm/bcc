@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Typography, Row, Col, Card, Button, Select, Table, Tag, Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +21,38 @@ const WebsiteBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [websiteInitialAction, setWebsiteInitialAction] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalWebsites: 0,
+    totalPages: 0,
+    recentActivity: []
+  });
+
+  useEffect(() => {
+    const fetchWebsites = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/websites", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : ""
+          }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          const websites = data.data;
+          const totalPages = websites.reduce((acc, w) => acc + (w.pagesCount || 1), 0);
+          setDashboardStats(prev => ({
+            ...prev,
+            totalWebsites: websites.length,
+            totalPages: totalPages
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch websites for dashboard", err);
+      }
+    };
+    
+    fetchWebsites();
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -68,11 +100,11 @@ const WebsiteBuilder = () => {
     <motion.div variants={itemVariants}>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
         {[
-          { label: 'SITE HEALTH SCORE', val: '88/100', sub: '▲ +4 this month', alert: '2 critical · 14 warnings', showRing: true, color: 'var(--accent-primary)' },
-          { label: 'MONTHLY VISITORS', val: '48,200', sub: '▲ +15%', alert: 'Organic: 54% · Paid: 26% · Direct: 20%', color: 'var(--accent-info)' },
-          { label: 'CONVERSION RATE', val: '3.8%', sub: '▲ +0.4%', alert: '1,842 conversions this month', color: 'var(--accent-primary)' },
-          { label: 'PAGE SPEED SCORE', val: '91/100', badge: 'Good ✓', alert: 'LCP: 2.1s · CLS: 0.08 · INP: 84ms', color: 'var(--accent-warning)' },
-          { label: 'ACTIVE PAGES', val: '48', sub: '▲ +2 new this month', alert: '12 landing · 6 blog · 30 core', color: 'var(--accent-secondary)' },
+          { label: 'SITE HEALTH SCORE', val: 'N/A', sub: 'Connect Analytics', alert: 'No data available', showRing: false, color: 'var(--text-secondary)' },
+          { label: 'MONTHLY VISITORS', val: '0', sub: 'Connect Analytics', alert: '0 conversions this month', color: 'var(--text-secondary)' },
+          { label: 'CONVERSION RATE', val: '0%', sub: 'Connect Analytics', alert: '0 conversions this month', color: 'var(--text-secondary)' },
+          { label: 'TOTAL WEBSITES', val: dashboardStats.totalWebsites.toString(), sub: 'Active projects', alert: 'Manage in Websites tab', color: 'var(--accent-secondary)' },
+          { label: 'ACTIVE PAGES', val: dashboardStats.totalPages.toString(), sub: 'Across all websites', alert: 'Manage pages in builder', color: 'var(--accent-secondary)' },
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
@@ -181,25 +213,25 @@ const WebsiteBuilder = () => {
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingLeft: 8 }}>
-            {[
-              { user: 'Divya Das', action: 'published "Prestige Somerville — Phase 2 launch page"', site: 'prestigeestates.com/somerville-ph2', time: '2 hrs ago', dot: 'var(--accent-primary)' },
-              { user: 'Arjun Sharma', action: 'edited Homepage hero section', site: 'Main Website', time: '2 days ago', dot: 'var(--accent-info)' },
-              { user: 'AI Co-pilot', action: 'wrote 14 meta descriptions missing across 14 pages', site: 'Main Website', time: 'Yesterday', dot: 'var(--accent-warning)' },
-              { user: 'Whitefield landing page', action: 'published — now live', site: 'prestigeestates.com/whitefield', time: 'Yesterday', dot: 'var(--accent-primary)' },
-              { user: 'Conversion rate improved 0.4%', action: '— A/B test concluded - Variant B wins', site: 'Q2 Campaign page', time: '3 days ago', dot: 'var(--accent-primary)' },
-            ].map((log, i) => (
-              <div key={i} style={{ display: 'flex', gap: 20, position: 'relative' }}>
-                {i !== 4 && <div style={{ position: 'absolute', top: 24, left: 6, width: 2, height: 'calc(100% + 4px)', background: 'var(--border-color)' }} />}
-                <div style={{ width: 14, height: 14, borderRadius: '50%', background: log.dot, border: '3px solid var(--bg-secondary)', zIndex: 1, marginTop: 4, boxShadow: `0 0 0 1px ${log.dot}` }} />
-                <div>
-                  <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{log.user}</strong> <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>{log.action}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                    <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>{log.site}</Tag>
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{log.time}</Text>
+            {dashboardStats.recentActivity && dashboardStats.recentActivity.length > 0 ? (
+              dashboardStats.recentActivity.map((log, i) => (
+                <div key={i} style={{ display: 'flex', gap: 20, position: 'relative' }}>
+                  {i !== dashboardStats.recentActivity.length - 1 && <div style={{ position: 'absolute', top: 24, left: 6, width: 2, height: 'calc(100% + 4px)', background: 'var(--border-color)' }} />}
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: log.dot || 'var(--accent-primary)', border: '3px solid var(--bg-secondary)', zIndex: 1, marginTop: 4, boxShadow: `0 0 0 1px ${log.dot || 'var(--accent-primary)'}` }} />
+                  <div>
+                    <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{log.user}</strong> <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>{log.action}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                      <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>{log.site}</Tag>
+                      <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{log.time}</Text>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                No recent activity found
               </div>
-            ))}
+            )}
           </div>
         </Card>
       </motion.div>

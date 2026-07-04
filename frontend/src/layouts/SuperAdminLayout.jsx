@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Layout } from 'antd';
 import { Outlet } from 'react-router-dom';
 import SuperAdminSidebar from './SuperAdminSidebar';
@@ -8,9 +8,11 @@ import PageTransition from '../components/PageTransition';
 const { Content } = Layout;
 
 const SuperAdminLayout = () => {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <Layout className="app-root-shell">
-      <SuperAdminSidebar />
+      <SuperAdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <Layout className="app-main-shell">
         <Header />
         <Content className="app-content">

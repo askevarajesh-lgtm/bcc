@@ -28,8 +28,10 @@ exports.getUsers = async (req, res, next) => {
     let queryFilter = {};
     if (req.query.role) queryFilter.role = req.query.role;
     
-    // If user is commander_admin, only return users they created
-    if (req.user.role === 'commander_admin') {
+    // If user is supreme_super_admin, only return commander_admin
+    if (req.user.role === 'supreme_super_admin') {
+      queryFilter.role = 'commander_admin';
+    } else if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
       // If user is a brand admin/manager, only return users for their brand
@@ -60,8 +62,10 @@ exports.getUsersDropdown = async (req, res, next) => {
     let queryFilter = {};
     if (req.query.role) queryFilter.role = req.query.role;
     
-    // If user is commander_admin, only return users they created
-    if (req.user.role === 'commander_admin') {
+    // If user is supreme_super_admin, only return commander_admin
+    if (req.user.role === 'supreme_super_admin') {
+      queryFilter.role = 'commander_admin';
+    } else if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
       queryFilter.brandId = req.user.brandId;

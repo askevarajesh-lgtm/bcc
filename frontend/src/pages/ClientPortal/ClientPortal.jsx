@@ -45,14 +45,14 @@ const ClientPortal = () => {
     }
   };
 
-  const accountMenu = (
-    <Menu>
-      <Menu.Item key="1">Profile</Menu.Item>
-      <Menu.Item key="2">Company Details</Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="3" danger>Log out</Menu.Item>
-    </Menu>
-  );
+  const accountMenuProps = {
+    items: [
+      { key: '1', label: 'Profile' },
+      { key: '2', label: 'Company Details' },
+      { type: 'divider' },
+      { key: '3', danger: true, label: 'Log out' },
+    ]
+  };
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -132,7 +132,7 @@ const ClientPortal = () => {
             <Button type="text" icon={<Bell size={20} />} style={{ color: 'var(--text-secondary)' }} />
           </Badge>
           
-          <Dropdown overlay={accountMenu} trigger={['click']}>
+          <Dropdown menu={accountMenuProps} trigger={['click']}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '8px 16px', background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <Avatar style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 700, fontSize: 13 }} size={32}>RK</Avatar>
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>

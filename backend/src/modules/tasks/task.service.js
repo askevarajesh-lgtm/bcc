@@ -414,7 +414,7 @@ const getAllTasks = async (
 ) => {
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
-  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
+  const isGlobalAdmin = ["supreme_super_admin"].includes(userRole);
 
   // Role-based filtering: Only super_admin and admin can see all tasks.
   // All other roles (including coordinators, managers) only see tasks
@@ -701,7 +701,7 @@ const getTasksDropdown = async (
   userId = null,
 ) => {
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
-  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
+  const isGlobalAdmin = ["supreme_super_admin"].includes(userRole);
 
   const additionalFilters = {};
   if (!isGlobalAdmin) {
@@ -752,7 +752,7 @@ const getTaskById = async (
   userRole = null,
   userId = null,
 ) => {
-  const isGlobalAdmin = ["supreme_super_admin", "commander_admin"].includes(userRole);
+  const isGlobalAdmin = ["supreme_super_admin"].includes(userRole);
 
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
@@ -857,7 +857,7 @@ const updateProjectCompletedCount = async (projectId, taskServiceType, increment
 const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
   const User = require("../auth/user.model");
   const creator = await User.findById(createdByUserId).select("role");
-  const isGlobalAdmin = creator && ["supreme_super_admin", "commander_admin"].includes(creator.role);
+  const isGlobalAdmin = creator && ["supreme_super_admin"].includes(creator.role);
 
   // Verify that the client company belongs to the tenant company if provided
   let clientCompany = null;
@@ -1428,7 +1428,7 @@ const updateTask = async (
 ) => {
   const User = require("../auth/user.model");
   const updator = updatedByUserId ? await User.findById(updatedByUserId).select("role") : null;
-  const isGlobalAdmin = updator && ["supreme_super_admin", "commander_admin"].includes(updator.role);
+  const isGlobalAdmin = updator && ["supreme_super_admin"].includes(updator.role);
 
   // Get all client companies for this tenant
   const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
