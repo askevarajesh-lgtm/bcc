@@ -30,6 +30,7 @@ import QREmbedView from './pages/WebsiteBuilder/tabs/QREmbedView';
 import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
+import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
 import Content from './pages/Content/Content';
 import Creative from './pages/Creative/Creative';
 import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
@@ -226,6 +227,7 @@ const AppRoutes = () => {
           <Route path="intelligence/agents" element={<AIAgents />} />
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
+          <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
           <Route path="ops/team" element={<Teams />} />
           <Route path="ops/time" element={<TimeTracking />} />
@@ -353,6 +355,7 @@ const AppRoutes = () => {
           <Route path="intelligence/agents" element={<AIAgents />} />
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
+          <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
           <Route path="ops/team" element={<Teams />} />
           <Route path="ops/time" element={<TimeTracking />} />

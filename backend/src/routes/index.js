@@ -50,6 +50,7 @@ const strategyRoutes = require('../modules/strategy/strategy.routes');
 const performanceAdsRoutes = require('../modules/performanceAds/performanceAds.routes');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const reportRoutes = require('../modules/reports/report.routes');
+const seoIntelligenceRoutes = require('../modules/seoIntelligence/seoIntelligence.routes');
 
 // Mount routes
 router.use('/health', healthRoutes);
@@ -69,6 +70,7 @@ router.use('/analytics', analyticsRoutes);
 router.use('/mos', mosRoutes);
 router.use('/benchmark', benchmarkRoutes);
 router.use('/reports', reportRoutes);
+router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));
 router.use('/resources', require('../modules/resources/resources.routes'));
 router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));

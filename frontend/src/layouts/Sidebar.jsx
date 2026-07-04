@@ -150,6 +150,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
+        { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
       ],
     },
     ...(['agency_super_admin', 'agency_manager', 'client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(role) ? [{

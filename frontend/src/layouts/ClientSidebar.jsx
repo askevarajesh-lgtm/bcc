@@ -130,6 +130,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         label: collapsed ? 'INT' : 'INTELLIGENCE',
         children: [
           { key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
+          { key: '/client/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
         ],
       },
       {
@@ -190,6 +191,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
           { key: '/client/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
           { key: '/client/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
           { key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
+          { key: '/client/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
         ],
       },
       {
