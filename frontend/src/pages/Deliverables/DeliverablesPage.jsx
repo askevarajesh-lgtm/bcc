@@ -1,33 +1,41 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
-  Table, Typography, Card, Progress, Tag, Space, Tooltip, Row, Col, Statistic, Divider
+  Table, Typography, Card, Progress, Tag, Space, Tooltip, Row, Col, Statistic, Button, Drawer
 } from 'antd';
 import { 
-  ProjectOutlined, UserOutlined, CheckCircleOutlined, ClockCircleOutlined, ProfileOutlined
+  ProjectOutlined, CheckCircleOutlined, ClockCircleOutlined, ProfileOutlined, EyeOutlined
 } from '@ant-design/icons';
 import { useGetProjectsQuery } from '../../api/projectApi';
+import { useGetTasksQuery } from '../../api/taskApi';
+import TaskDetailDrawer from '../Tasks/TaskDetailDrawer';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 const DeliverablesPage = () => {
   const { isDark } = useTheme();
   const { user } = useAuth();
+  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
+  const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
   
   // Fetch all projects (populated with clientId)
   const { data: projectsResponse, isLoading } = useGetProjectsQuery({ limit: 1000 });
   const projects = projectsResponse?.data?.data || projectsResponse?.data?.projects || [];
+
+  const { data: tasksData, isLoading: isLoadingTasks } = useGetTasksQuery(
+    { projectId: selectedProjectForTasks?._id, limit: 1000 },
+    { skip: !selectedProjectForTasks }
+  );
+  const projectTasks = tasksData?.data?.data || tasksData?.data?.tasks || [];
 
   // Group by client and aggregate deliverables
   const clientData = useMemo(() => {
     const clientsMap = {};
 
     projects.forEach(project => {
-      // Depending on backend, clientId could be an object or string.
-      // But based on populate("clientId", "name"), it's an object.
       const clientId = project.clientId?._id || project.clientId;
-      
       if (!clientId) return;
       
       const clientName = project.clientId?.name || project.clientId?.companyName || 'Unknown Client';
@@ -58,31 +66,29 @@ const DeliverablesPage = () => {
            const rawName = cat.name || cat.categoryName || "";
            const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
            if (!isStandard) {
-             extraTotal += (cat.quantity || cat.count || 0);
-             extraRemaining += (cat.remaining !== undefined && cat.remaining !== null ? cat.remaining : (cat.quantity || cat.count || 0));
+             extraTotal += (cat.quantity || 0);
+             extraRemaining += (cat.remaining || 0);
            }
         });
       }
-      
-      const projectTotal = pTotal + extraTotal;
-      const projectRemaining = pRemaining + extraRemaining;
-      
-      // Calculate completed safely (cannot be negative)
-      const projectCompleted = Math.max(0, projectTotal - projectRemaining);
+
+      const totalD = pTotal + extraTotal;
+      const remD = pRemaining + extraRemaining;
+      const compD = totalD - remD;
+
+      clientsMap[clientId].totalDeliverables += totalD;
+      clientsMap[clientId].remainingDeliverables += remD;
+      clientsMap[clientId].completedDeliverables += compD;
 
       clientsMap[clientId].projects.push({
         ...project,
-        projectTotal,
-        projectRemaining,
-        projectCompleted
+        projectTotal: totalD,
+        projectRemaining: remD,
+        projectCompleted: compD
       });
-
-      clientsMap[clientId].totalDeliverables += projectTotal;
-      clientsMap[clientId].remainingDeliverables += projectRemaining;
-      clientsMap[clientId].completedDeliverables += projectCompleted;
     });
 
-    return Object.values(clientsMap).sort((a, b) => b.totalDeliverables - a.totalDeliverables);
+    return Object.values(clientsMap);
   }, [projects]);
 
   const columns = [
@@ -93,28 +99,27 @@ const DeliverablesPage = () => {
       render: (text, record) => (
         <Space>
           <div style={{
-            width: 40, height: 40, borderRadius: '50%', 
-            background: isDark ? '#177ddc' : '#e6f7ff',
-            color: isDark ? '#fff' : '#1890ff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18
+            width: 32, height: 32, borderRadius: '50%', background: '#e6f7ff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff', fontWeight: 'bold'
           }}>
             {text.charAt(0).toUpperCase()}
           </div>
           <div>
-            <Text strong style={{ fontSize: '15px' }}>{text}</Text>
+            <Text strong>{text}</Text>
             <br />
-            <Text type="secondary" style={{ fontSize: '12px' }}>{record.clientEmail || 'No Email Provided'}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{record.clientEmail}</Text>
           </div>
         </Space>
-      ),
+      )
     },
     {
       title: 'Active Projects',
-      key: 'activeProjects',
-      render: (_, record) => (
-        <Tag color="geekblue" icon={<ProjectOutlined />}>
-          {record.projects.length} {record.projects.length === 1 ? 'Project' : 'Projects'}
+      dataIndex: 'projects',
+      key: 'projects',
+      align: 'center',
+      render: (projs) => (
+        <Tag color="blue" icon={<ProjectOutlined />}>
+          {projs.length} Project{projs.length !== 1 ? 's' : ''}
         </Tag>
       )
     },
@@ -192,7 +197,7 @@ const DeliverablesPage = () => {
           let color = 'default';
           if (status === 'completed' || status === 'approved') color = 'success';
           else if (status === 'in_progress') color = 'processing';
-          else if (status === 'workflow_sent' || status === 'sent_for_client_review') color = 'warning';
+          else if (status === 'workflow_sent' || status === 'sent_for_client_review' || status === 'project_near_due_date') color = 'warning';
           
           return (
             <Tag color={color}>
@@ -229,6 +234,21 @@ const DeliverablesPage = () => {
           const percent = pRecord.projectTotal > 0 ? Math.round((pRecord.projectCompleted / pRecord.projectTotal) * 100) : 0;
           return <Progress type="circle" percent={percent} size={30} />;
         }
+      },
+      {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+        render: (_, pRecord) => (
+          <Button 
+            type="primary" 
+            icon={<EyeOutlined />} 
+            size="small"
+            onClick={() => setSelectedProjectForTasks(pRecord)}
+          >
+            Tasks
+          </Button>
+        )
       }
     ];
 
@@ -248,7 +268,6 @@ const DeliverablesPage = () => {
     );
   };
 
-  // Calculate global summary stats
   const totalGlobal = clientData.reduce((acc, curr) => acc + curr.totalDeliverables, 0);
   const completedGlobal = clientData.reduce((acc, curr) => acc + curr.completedDeliverables, 0);
   const remainingGlobal = clientData.reduce((acc, curr) => acc + curr.remainingDeliverables, 0);
@@ -313,6 +332,70 @@ const DeliverablesPage = () => {
           className="deliverables-table"
         />
       </Card>
+
+      <Drawer
+        title={`Tasks for ${selectedProjectForTasks?.name || 'Project'}`}
+        placement="right"
+        width={800}
+        open={!!selectedProjectForTasks}
+        onClose={() => setSelectedProjectForTasks(null)}
+      >
+        <Table
+          loading={isLoadingTasks}
+          dataSource={projectTasks}
+          rowKey="_id"
+          size="small"
+          columns={[
+            { 
+              title: 'Title', 
+              dataIndex: 'title', 
+              key: 'title', 
+              render: (text, record) => <a onClick={() => setSelectedTaskDetails(record)}>{text}</a> 
+            },
+            {
+              title: 'Deliverable Type',
+              dataIndex: 'serviceType',
+              key: 'serviceType',
+              render: (type) => type ? type.toUpperCase() : 'N/A'
+            },
+            { 
+              title: 'Status', 
+              dataIndex: 'status', 
+              key: 'status', 
+              render: (status) => {
+                let color = 'default';
+                if (status === 'completed' || status === 'approved' || status === 'validated' || status === 'done') color = 'success';
+                else if (status === 'in_progress') color = 'processing';
+                else if (status === 'workflow_sent' || status === 'sent_for_client_review' || status === 'review' || status === 'in_review') color = 'warning';
+                
+                return (
+                  <Tag color={color}>
+                    {status?.replace(/_/g, ' ')?.toUpperCase() || 'UNKNOWN'}
+                  </Tag>
+                );
+              }
+            },
+            { 
+              title: 'Assigned To', 
+              dataIndex: 'assignedTo', 
+              key: 'assignedTo', 
+              render: (user) => user?.name || 'Unassigned' 
+            },
+            { 
+              title: 'Due Date', 
+              dataIndex: 'dueDate', 
+              key: 'dueDate', 
+              render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : 'N/A' 
+            },
+          ]}
+        />
+      </Drawer>
+
+      <TaskDetailDrawer
+        task={selectedTaskDetails}
+        visible={!!selectedTaskDetails}
+        onClose={() => setSelectedTaskDetails(null)}
+      />
     </div>
   );
 };

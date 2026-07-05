@@ -44,6 +44,10 @@ const MeetingsPage = () => {
   const { isDark } = useTheme();
   const userRole = currentUser?.role;
 
+  const isClientRole = ['client', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(userRole);
+  const canManageMeetings = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole);
+  const canCreateMeeting = canManageMeetings || isClientRole;
+
   // Tabs state
   const [activeTab, setActiveTab] = useState('list');
 
@@ -148,8 +152,14 @@ const MeetingsPage = () => {
   // Handle submit create / edit form
   const handleFormSubmit = async (values) => {
     try {
+      let finalParticipants = values.participants;
+      if (isClientRole && finalParticipants && !Array.isArray(finalParticipants)) {
+        finalParticipants = [finalParticipants];
+      }
+
       const payload = {
         ...values,
+        participants: finalParticipants,
         date: values.date.format('YYYY-MM-DD'),
       };
 
@@ -388,7 +398,7 @@ const MeetingsPage = () => {
               />
             </Tooltip>
           )}
-          {['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
+          {((record.host?._id || record.host) === currentUser._id || ['supreme_super_admin'].includes(userRole)) && (
             <>
               <Tooltip title="Edit">
                 <Button 
@@ -441,7 +451,7 @@ const MeetingsPage = () => {
             Schedule, manage, and trace meeting outcomes with notes, tasks, and follow-ups.
           </p>
         </div>
-        {['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
+        {canCreateMeeting && (
           <Button 
             type="primary" 
             size="large" 
@@ -708,51 +718,69 @@ const MeetingsPage = () => {
             <TextArea rows={3} placeholder="Provide meeting description/agenda" />
           </Form.Item>
 
-          <Form.Item
-            name="participants"
-            label="Participants"
-          >
-            <Select mode="multiple" placeholder="Select participants" filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}>
-              {users.map(u => (
-                <Option key={u._id} value={u._id}>{u.name} ({u.role})</Option>
-              ))}
-            </Select>
-          </Form.Item>
+          {isClientRole ? (
+            <Form.Item
+              name="participants"
+              label="Agency Manager"
+              rules={[{ required: true, message: 'Please select an Agency Manager' }]}
+            >
+              <Select placeholder="Select Agency Manager">
+                {users.filter(u => u.role === 'agency_manager' || u.role === 'agency_super_admin').map(u => (
+                  <Option key={u._id} value={u._id}>{u.name} ({u.role})</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          ) : (
+            <Form.Item
+              name="participants"
+              label="Participants"
+            >
+              <Select mode="multiple" placeholder="Select participants" filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}>
+                {users.map(u => (
+                  <Option key={u._id} value={u._id}>{u.name} ({u.role})</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
-          <Divider>Associated Items (Optional)</Divider>
+          {!isClientRole && (
+            <>
+              <Divider>Associated Items (Optional)</Divider>
 
-          <Form.Item
-            name="clientId"
-            label="Client / Brand"
-          >
-            <Select placeholder="Select client" allowClear>
-              {clients.map(c => (
-                <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Form.Item
+                name="clientId"
+                label="Client / Brand"
+              >
+                <Select placeholder="Select client" allowClear>
+                  {clients.map(c => (
+                    <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-          <Form.Item
-            name="leadId"
-            label="Lead"
-          >
-            <Select placeholder="Select lead" allowClear>
-              {leads.map(l => (
-                <Option key={l._id} value={l._id}>{l.fullName} ({l.companyName})</Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Form.Item
+                name="leadId"
+                label="Lead"
+              >
+                <Select placeholder="Select lead" allowClear>
+                  {leads.map(l => (
+                    <Option key={l._id} value={l._id}>{l.fullName} ({l.companyName})</Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-          <Form.Item
-            name="projectId"
-            label="Project"
-          >
-            <Select placeholder="Select project" allowClear>
-              {projects.map(p => (
-                <Option key={p._id} value={p._id}>{p.name}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Form.Item
+                name="projectId"
+                label="Project"
+              >
+                <Select placeholder="Select project" allowClear>
+                  {projects.map(p => (
+                    <Option key={p._id} value={p._id}>{p.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Drawer>
 

@@ -45,12 +45,14 @@ const buildScopingFilter = (userRole, userId, companyId) => {
     filter.$or = [
       { companyId: companyId },
       { clientId: companyId },
+      { host: userId },
       { participants: userId }
     ];
   } else if (['agency_client', 'client'].includes(userRole)) {
     // Clients only see meetings they are invited to or their company meetings
     filter.$or = [
       { participants: userId },
+      { host: userId },
       { clientId: companyId }
     ];
   } else {

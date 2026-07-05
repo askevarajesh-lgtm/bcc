@@ -112,9 +112,35 @@ const calculateAndAggregateBenchmarks = async () => {
     console.log('Benchmarking aggregation completed.');
 };
 
+const createClientBenchmark = async (clientId, benchmarkData) => {
+    const { industryName, metrics, percentiles } = benchmarkData;
+
+    let clientBench = await ClientBenchmark.findOne({ clientId });
+    
+    if (clientBench) {
+        // Update
+        if (industryName) clientBench.industryName = industryName;
+        if (metrics) clientBench.metrics = { ...clientBench.metrics, ...metrics };
+        if (percentiles) clientBench.percentiles = { ...clientBench.percentiles, ...percentiles };
+        clientBench.lastUpdated = new Date();
+    } else {
+        // Create
+        clientBench = new ClientBenchmark({
+            clientId,
+            industryName: industryName || 'General',
+            metrics: metrics || {},
+            percentiles: percentiles || {}
+        });
+    }
+
+    await clientBench.save();
+    return clientBench;
+};
+
 module.exports = {
     getClientBenchmarkData,
     getBenchmarkTableData,
     getIndustriesList,
-    calculateAndAggregateBenchmarks
+    calculateAndAggregateBenchmarks,
+    createClientBenchmark
 };

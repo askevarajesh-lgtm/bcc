@@ -1,9 +1,17 @@
+let projectService = null;
+
+const getService = () => {
+  if (!projectService) {
+    projectService = require('../projects/project.service');
+  }
+  return projectService;
+};
 
 module.exports = {
-  getProject: async () => null,
-  updateProject: async () => null,
-  reconcileProjectTaskCounts: async () => null,
-  checkAndMarkProjectCompleted: async () => null,
-  getProjectServiceCapacity: async () => ({ remaining: 1, total: 1, assigned: 0 }),
-  projectSupportsServiceType: () => true,
+  getProject: async (...args) => getService().getProject(...args),
+  updateProject: async (...args) => getService().updateProject(...args),
+  reconcileProjectTaskCounts: async (...args) => getService().reconcileProjectTaskCounts(...args),
+  checkAndMarkProjectCompleted: async (...args) => getService().checkAndMarkProjectCompleted(...args),
+  getProjectServiceCapacity: async (...args) => getService().getProjectServiceCapacity(...args),
+  projectSupportsServiceType: (...args) => getService().projectSupportsServiceType(...args),
 };

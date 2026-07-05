@@ -162,6 +162,7 @@ const ProjectList = () => {
       on_hold: "warning",
       completed: "success",
       cancelled: "error",
+      project_near_due_date: "warning",
     };
     return colors[status] || "default";
   };
@@ -315,11 +316,14 @@ const ProjectList = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {status ? status.replace(/_/g, " ").toUpperCase() : "CREATED"}
-        </Tag>
-      ),
+      render: (status) => {
+        let displayStatus = status ? status.replace(/_/g, " ").toUpperCase() : "CREATED";
+        return (
+          <Tag color={getStatusColor(status)}>
+            {displayStatus}
+          </Tag>
+        );
+      },
     },
     {
       title: "Start Date",
@@ -621,6 +625,7 @@ const ProjectList = () => {
               <Select.Option value="in_progress">In Progress</Select.Option>
               <Select.Option value="on_hold">On Hold</Select.Option>
               <Select.Option value="completed">Completed</Select.Option>
+              <Select.Option value="project_near_due_date">Near Due Date</Select.Option>
               <Select.Option value="cancelled">Cancelled</Select.Option>
             </Select>
           </Col>

@@ -19,3 +19,8 @@ export const getIndustries = async () => {
     const response = await api.get('/benchmark/industries');
     return response.data;
 };
+
+export const createBenchmark = async (data) => {
+    const response = await api.post('/benchmark', data);
+    return response.data;
+};

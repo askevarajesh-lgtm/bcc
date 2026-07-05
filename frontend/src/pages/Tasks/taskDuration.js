@@ -1,5 +1,8 @@
 export const COMPLETED_TASK_STATUSES = [
   "review",
+  "in_review",
+  "in review",
+  "reviewing",
   "done",
   "completed",
   "validated",

@@ -45,3 +45,22 @@ exports.getIndustries = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.createBenchmark = async (req, res, next) => {
+    try {
+        const clientId = req.body.clientId;
+        if (!clientId) {
+            return res.status(400).json({ status: 'error', message: 'clientId is required' });
+        }
+        
+        const data = await benchmarkService.createClientBenchmark(clientId, req.body);
+        
+        res.status(201).json({
+            status: 'success',
+            message: 'Benchmark created/updated successfully',
+            data
+        });
+    } catch (error) {
+        next(error);
+    }
+};

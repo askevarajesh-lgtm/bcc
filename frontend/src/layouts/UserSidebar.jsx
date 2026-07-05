@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CheckSquare, LayoutDashboard, Settings } from 'lucide-react';
+import { CheckSquare, LayoutDashboard, Settings, Calendar } from 'lucide-react';
 import PortalSidebar from './PortalSidebar';
 
 const UserSidebar = ({ collapsed, setCollapsed }) => {
@@ -12,6 +12,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   const menuItems = [
     { key: '/user/dashboard', icon: getIcon(LayoutDashboard), label: 'Dashboard' },
     { key: '/user/tasks', icon: getIcon(CheckSquare), label: 'Tasks' },
+    { key: '/user/meetings', icon: getIcon(Calendar), label: 'Meetings' },
     { key: '/user/settings', icon: getIcon(Settings), label: 'Settings' },
   ];
 

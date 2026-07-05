@@ -357,6 +357,9 @@ const COMPLETED_TASK_STATUSES = new Set([
   "completed",
   "validated",
   "review",
+  "in_review",
+  "in review",
+  "reviewing",
   "done",
   "complete",
 ]);
@@ -542,13 +545,14 @@ const getProjectServiceCapacity = async (
         tenantCompanyId,
       }).select("serviceType status");
 
-  const { assignedCounts } = summarizeProjectTasksByDeliverable(tasks);
+  const { assignedCounts, completedCounts } = summarizeProjectTasksByDeliverable(tasks);
   const target = getProjectServiceTarget(project, serviceType);
   if (!target.key) {
     return {
       supported: false,
       total: 0,
       assigned: 0,
+      completed: 0,
       remaining: 0,
       key: "",
       target,
@@ -572,12 +576,14 @@ const getProjectServiceCapacity = async (
   }
 
   const assigned = assignedCounts.get(target.key) || 0;
+  const completed = completedCounts.get(target.key) || 0;
 
   return {
     supported: total > 0 || Boolean(target.dynamicMatch),
     total,
     assigned,
-    remaining: Math.max(0, total - assigned),
+    completed,
+    remaining: Math.max(0, total - completed),
     key: target.key,
     target,
     project,
@@ -635,7 +641,7 @@ const reconcileProjectTaskCounts = async (
     const assigned = assignedCounts.get(key) || 0;
     const completed = completedCounts.get(key) || 0;
 
-    const maxAllowedRemaining = Math.max(0, total - assigned);
+    const maxAllowedRemaining = Math.max(0, total - completed);
     const currentRemaining = project[remainingField];
     
     // If undefined or greater than max allowed, fix it to maxAllowed.
@@ -688,7 +694,7 @@ const reconcileProjectTaskCounts = async (
     const assigned = assignedCounts.get(matchedKey) || 0;
     const completed = completedCounts.get(matchedKey) || 0;
     
-    const maxAllowedRemaining = Math.max(0, quantity - assigned);
+    const maxAllowedRemaining = Math.max(0, quantity - completed);
     const currentRemaining = category.remaining;
     
     const nextRemaining = (currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)

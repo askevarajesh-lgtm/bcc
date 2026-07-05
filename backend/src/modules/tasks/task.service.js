@@ -52,6 +52,8 @@ const ROLES_WITH_FULL_TASK_ACCESS = [
   "commander_admin",
   "agency_super_admin",
   "agency_manager",
+  "agency_client",
+  "client",
 ];
 
 const toHyphenatedSlug = (value = "") =>
@@ -468,7 +470,7 @@ const getAllTasks = async (
       { assignedTo: userObjId },
       { watchers: userObjId },
     ];
-  } else if (userRole === "client" && userId) {
+  } else if ((userRole === "client" || userRole === "agency_client") && userId) {
     // Strict isolation for clients: only their own company data
     const user = await User.findById(userId).select("clientId");
     if (user && user.clientId) {
@@ -1791,7 +1793,7 @@ const updateTask = async (
 
   // ── [UPDATE PROJECT COMPLETED COUNTS] ───────────────────────────────────
   if (oldStatus !== task.status) {
-    const completedStatuses = ["completed", "validated", "review", "done"];
+    const completedStatuses = ["completed", "validated", "review", "in_review", "in review", "reviewing", "done", "complete"];
     const isNowCompleted = completedStatuses.includes(task.status);
     const wasPreviouslyCompleted = completedStatuses.includes(oldStatus);
 
@@ -2597,7 +2599,7 @@ const getTasksForKanban = async (
       { assignedTo: userObjId },
       { watchers: userObjId },
     ];
-  } else if (userRole === "client" && userId) {
+  } else if ((userRole === "client" || userRole === "agency_client") && userId) {
     // Strict isolation for clients: only their own company data
     const user = await User.findById(userId).select("clientId");
     if (user && user.clientId) {
@@ -3285,7 +3287,7 @@ const updateTaskStatusAndOrder = async (
   await task.save();
 
   // ── [UPDATE PROJECT COMPLETED COUNTS] ───────────────────────────────────
-  const completedStatuses = ["completed", "validated", "review", "done", "complete"];
+  const completedStatuses = ["completed", "validated", "review", "in_review", "in review", "reviewing", "done", "complete"];
   const isNowCompleted = completedStatuses.includes(finalStatus);
   const wasPreviouslyCompleted = completedStatuses.includes(oldStatus);
   const taskProjectId = task.projectId?._id || task.projectId || null;
@@ -5145,7 +5147,7 @@ const getTodayTaskStats = async (
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
 
-  const completedStatuses = ["done", "completed", "validated", "complete", "review"];
+  const completedStatuses = ["done", "completed", "validated", "complete", "review", "in_review", "in review", "reviewing"];
 
   // Celebration is based on dueDate (the day the task is assigned for)
   const tasks = await Task.find({

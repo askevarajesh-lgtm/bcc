@@ -41,6 +41,7 @@ const projectSchema = new mongoose.Schema(
         "completed",
         "on_hold",
         "cancelled",
+        "project_near_due_date",
       ],
       default: "created",
       comment:

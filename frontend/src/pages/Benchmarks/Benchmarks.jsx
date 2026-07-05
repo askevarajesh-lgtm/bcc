@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Select, Button, Row, Col, Table, Tag, Skeleton, message } from 'antd';
+import { Typography, Select, Button, Row, Col, Table, Tag, Skeleton, message, Drawer, Form, InputNumber } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { getDashboardData, getTableData, getIndustries } from '../../api/benchmarkApi';
+import { Download, TrendingUp, TrendingDown, Minus, Plus } from 'lucide-react';
+import { getDashboardData, getTableData, getIndustries, createBenchmark } from '../../api/benchmarkApi';
+import { useGetCompaniesDropdownQuery } from '../../api/companyApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -14,6 +15,9 @@ const Benchmarks = () => {
   const [industries, setIndustries] = useState(['All Industries']);
   const [selectedIndustry, setSelectedIndustry] = useState('All Industries');
   const [selectedClient, setSelectedClient] = useState('');
+
+  const { data: companiesData, isLoading: isLoadingCompanies } = useGetCompaniesDropdownQuery({});
+  const clients = companiesData?.data?.companies || companiesData?.data || [];
 
   // Helper to map 0-100 score to radar chart coordinates
   const getRadarPoint = (score, angleDeg) => {
@@ -121,6 +125,42 @@ const Benchmarks = () => {
     }
   };
 
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [form] = Form.useForm();
+
+  const handleCreateSubmit = async (values) => {
+    try {
+      const payload = {
+        clientId: values.clientId,
+        industryName: values.industryName,
+        metrics: {
+          seo: values.metric_seo || 0,
+          social: values.metric_social || 0,
+          ads: values.metric_ads || 0,
+          leads: values.metric_leads || 0,
+          content: values.metric_content || 0,
+          mos: values.metric_mos || 0,
+        },
+        percentiles: {
+          seo: values.perc_seo || 0,
+          social: values.perc_social || 0,
+          ads: values.perc_ads || 0,
+          leads: values.perc_leads || 0,
+          content: values.perc_content || 0,
+          mos: values.perc_mos || 0,
+        }
+      };
+      await createBenchmark(payload);
+      message.success('Benchmark created successfully');
+      setIsDrawerVisible(false);
+      form.resetFields();
+      fetchData();
+      fetchIndustries();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to create benchmark');
+    }
+  };
+
   const columns = [
     { title: 'Client', dataIndex: 'client', key: 'client', render: (text) => <Text style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{text}</Text> },
     { title: 'Industry', dataIndex: 'industry', key: 'industry', render: (text) => <Text type="secondary">{text}</Text> },
@@ -153,11 +193,25 @@ const Benchmarks = () => {
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Benchmarking Engine</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>See how your clients perform vs industry standards and competitors.</Text>
         </div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Select 
+            placeholder="Select Client"
+            value={selectedClient || undefined} 
+            onChange={setSelectedClient} 
+            style={{ width: 220, height: 40 }} 
+            className="custom-select"
+            allowClear
+            loading={isLoadingCompanies}
+          >
+            {clients.map(c => <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>)}
+          </Select>
           <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
             {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
           </Select>
-          <Button type="primary" icon={<Download size={16} />} style={{ height: 40, background: 'var(--accent-primary)', borderRadius: 0, fontWeight: 700, border: 'none' }}>
+          <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsDrawerVisible(true)} style={{ height: 40, background: 'var(--accent-primary)', borderRadius: 0, fontWeight: 700, border: 'none' }}>
+            Create Benchmark
+          </Button>
+          <Button type="default" icon={<Download size={16} />} style={{ height: 40, borderRadius: 0, fontWeight: 700 }}>
             Export Report
           </Button>
         </div>
@@ -268,6 +322,61 @@ const Benchmarks = () => {
         </Row>
       </motion.div>
 
+      {/* AI Recommendations */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
+        <ReticleFrame>
+          <div style={{ marginBottom: 24 }}>
+            <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>AI Recommendations & Insights</Title>
+            <Text type="secondary" style={{ fontSize: 14 }}>Actionable strategies to improve current performance metrics.</Text>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {(!dashboardData?.clientData?.percentiles) ? (
+              <Text type="secondary">Select a client to view AI recommendations based on their percentile rankings.</Text>
+            ) : (
+              <>
+                {(dashboardData.clientData.percentiles.seo || 0) < 50 && (
+                  <div style={{ padding: 16, background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#ef4444', display: 'block', marginBottom: 4 }}>Improve SEO Performance</Text>
+                    <Text>SEO ranking is below the industry average. We strongly recommend implementing an advanced SEO package, including technical audits, on-page optimization, and high-quality backlink generation to boost organic visibility.</Text>
+                  </div>
+                )}
+                {(dashboardData.clientData.percentiles.social || 0) < 50 && (
+                  <div style={{ padding: 16, background: 'rgba(245, 158, 11, 0.05)', borderLeft: '4px solid #f59e0b', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#f59e0b', display: 'block', marginBottom: 4 }}>Enhance Social Media Presence</Text>
+                    <Text>Social Media presence is lagging. A targeted content calendar with engaging video content and active community management is needed to increase brand awareness.</Text>
+                  </div>
+                )}
+                {(dashboardData.clientData.percentiles.ads || 0) < 50 && (
+                  <div style={{ padding: 16, background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#ef4444', display: 'block', marginBottom: 4 }}>Optimize Paid Advertising</Text>
+                    <Text>Paid Advertising efficiency is sub-optimal. We suggest restructuring the ad accounts, utilizing A/B testing on creatives, and refining audience targeting to improve ROAS.</Text>
+                  </div>
+                )}
+                {(dashboardData.clientData.percentiles.leads || 0) < 50 && (
+                  <div style={{ padding: 16, background: 'rgba(245, 158, 11, 0.05)', borderLeft: '4px solid #f59e0b', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#f59e0b', display: 'block', marginBottom: 4 }}>Boost Lead Generation</Text>
+                    <Text>Lead Generation is underperforming. Implementing high-converting landing pages, lead magnets, and automated email nurturing sequences will help capture and convert more prospects.</Text>
+                  </div>
+                )}
+                {(dashboardData.clientData.percentiles.content || 0) < 50 && (
+                  <div style={{ padding: 16, background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid #3b82f6', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#3b82f6', display: 'block', marginBottom: 4 }}>Expand Content Marketing</Text>
+                    <Text>Content Marketing efforts need enhancement. Publishing authoritative, long-form content and distributing it across multiple channels will establish thought leadership and drive inbound traffic.</Text>
+                  </div>
+                )}
+                {Object.values(dashboardData.clientData.percentiles).every(v => v >= 50) && (
+                  <div style={{ padding: 16, background: 'rgba(16, 185, 129, 0.05)', borderLeft: '4px solid #10b981', borderRadius: 4 }}>
+                    <Text strong style={{ color: '#10b981', display: 'block', marginBottom: 4 }}>Excellent Overall Performance</Text>
+                    <Text>The client is performing above average across all major metrics. Maintain the current retainer strategy and explore new innovative campaigns to push beyond the 90th percentile.</Text>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ReticleFrame>
+      </motion.div>
+
       {/* Massive Matrix Table */}
       <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
         <ReticleFrame bodyStyle={{ padding: 0 }}>
@@ -374,6 +483,60 @@ const Benchmarks = () => {
         </Row>
       </motion.div>
 
+      <Drawer
+        title="Create Benchmark"
+        width={720}
+        onClose={() => {
+          setIsDrawerVisible(false);
+          form.resetFields();
+        }}
+        open={isDrawerVisible}
+        bodyStyle={{ paddingBottom: 80 }}
+      >
+        <Form form={form} layout="vertical" onFinish={handleCreateSubmit}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="clientId" label="Client" rules={[{ required: true, message: 'Please select a client' }]}>
+                <Select placeholder="Select Client" loading={isLoadingCompanies}>
+                  {clients.map(c => <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="industryName" label="Industry Name" rules={[{ required: true, message: 'Please enter industry name' }]}>
+                <Select mode="tags" maxCount={1} placeholder="Enter or select Industry">
+                  {industries.filter(i => i !== 'All Industries').map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Title level={5}>Metrics (0-100)</Title>
+          <Row gutter={16}>
+            <Col span={8}><Form.Item name="metric_mos" label="MOS Score" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="metric_seo" label="SEO" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="metric_social" label="Social" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="metric_ads" label="Ads" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="metric_leads" label="Leads" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="metric_content" label="Content" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+
+          <Title level={5}>Percentiles (0-100)</Title>
+          <Row gutter={16}>
+            <Col span={8}><Form.Item name="perc_mos" label="Overall Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="perc_seo" label="SEO Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="perc_social" label="Social Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="perc_ads" label="Ads Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="perc_leads" label="Leads Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="perc_content" label="Content Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+
+          <div style={{ textAlign: 'right', marginTop: 16 }}>
+            <Button onClick={() => setIsDrawerVisible(false)} style={{ marginRight: 8 }}>Cancel</Button>
+            <Button type="primary" htmlType="submit">Submit Benchmark</Button>
+          </div>
+        </Form>
+      </Drawer>
     </motion.div>
   );
 };

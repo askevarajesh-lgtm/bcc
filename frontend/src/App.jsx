@@ -398,6 +398,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<UserDashboardTab />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="tasks/:id/edit" element={<TaskForm />} />
+          <Route path="meetings" element={<MeetingsPage />} />
           <Route path="settings" element={<UserSettingsTab />} />
         </Route>
       </Route>

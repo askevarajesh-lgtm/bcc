@@ -69,6 +69,34 @@ const startSlaScheduler = () => {
           status = 'At Risk';
         }
 
+        let remainingServices = [];
+        if (project.remainingPosters > 0) remainingServices.push(`${project.remainingPosters} Posters`);
+        if (project.remainingVideos > 0) remainingServices.push(`${project.remainingVideos} Videos`);
+        if (project.remainingShoots > 0) remainingServices.push(`${project.remainingShoots} Shoots`);
+        
+        if (project.selectedCategories && Array.isArray(project.selectedCategories)) {
+          project.selectedCategories.forEach(cat => {
+            const rawName = cat.name || cat.categoryName || "";
+            const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
+            if (!isStandard) {
+              const pendingCount = cat.remaining !== undefined ? cat.remaining : cat.quantity;
+              if (pendingCount > 0) {
+                remainingServices.push(`${pendingCount} ${rawName}`);
+              }
+            }
+          });
+        }
+        
+        let description = `Due Date Monitoring for Project ${project.name}`;
+        if (status === 'At Risk' || status === 'Breached') {
+          description = `Project Near Due Date. Pending: ${remainingServices.length > 0 ? remainingServices.join(', ') : 'None'}`;
+          
+          if (project.status !== 'project_near_due_date') {
+            project.status = 'project_near_due_date';
+            await project.save();
+          }
+        }
+
         await SlaRecord.findOneAndUpdate(
           { entityId: project._id, entityType: 'Project' },
           {
@@ -80,7 +108,7 @@ const startSlaScheduler = () => {
             entityId: project._id,
             entityType: 'Project',
             title: `Project: ${project.name}`,
-            description: `Due Date Monitoring for Project ${project.name}`,
+            description,
             dueDate: project.endDate,
             priority: status === 'Breached' ? 'High' : 'Medium',
             status

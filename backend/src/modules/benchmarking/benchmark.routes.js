@@ -8,5 +8,6 @@ router.use(protect);
 router.get('/dashboard', benchmarkController.getClientBenchmarkData);
 router.get('/table', benchmarkController.getBenchmarkTableData);
 router.get('/industries', benchmarkController.getIndustries);
+router.post('/', benchmarkController.createBenchmark);
 
 module.exports = router;
