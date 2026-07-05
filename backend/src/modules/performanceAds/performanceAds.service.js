@@ -71,7 +71,12 @@ const addCampaign = async (agencyId, campaignData) => {
     leads: 0,
     cpl: '₹0',
     roas: '-',
-    ctr: '0%'
+    ctr: '0%',
+    adAccount: campaignData.adAccount,
+    objective: campaignData.objective,
+    specialAdCategory: campaignData.specialAdCategory,
+    buyingType: campaignData.buyingType,
+    budgetType: campaignData.budgetType
   };
 
   dashboard.activeCampaigns.push(newCampaign);
