@@ -24,14 +24,19 @@ const performanceAdsSchema = new mongoose.Schema(
         id: String,
         campaign: String,
         platform: { type: String, enum: ['Meta', 'Google', 'YouTube'] },
-        status: { type: String, enum: ['Active', 'Paused', 'Completed'] },
+        status: { type: String, enum: ['Active', 'Paused', 'Completed', 'ACTIVE', 'PAUSED', 'COMPLETED'] },
         budget: String,
         spend: String,
         progress: Number,
         leads: Number,
         cpl: String,
         roas: String,
-        ctr: String
+        ctr: String,
+        adAccount: String,
+        objective: String,
+        specialAdCategory: String,
+        buyingType: String,
+        budgetType: String
       }
     ],
     dailyPerformance: [

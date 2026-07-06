@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { RefreshCw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, Activity } from 'lucide-react';
 import { performanceAdsApi } from '../../api/performanceAdsApi';
 import { useGetClientsQuery } from '../../api/clientApi';
+import { useGetFacebookIntegrationsQuery } from '../../api/integrationApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -18,10 +19,15 @@ const PerformanceAds = () => {
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
   const [form] = Form.useForm();
+  const platformWatch = Form.useWatch('platform', form);
 
   // Fetch clients dynamically
   const { data: clientsData, isLoading: isLoadingClients } = useGetClientsQuery({});
   const clients = clientsData?.data || [];
+
+  // Fetch Meta integrations dynamically for the selected client
+  const { data: facebookIntegrationsData, isLoading: isLoadingFbIntegrations } = useGetFacebookIntegrationsQuery(selectedClient, { skip: !selectedClient });
+  const fbIntegrations = facebookIntegrationsData?.data?.integrations || [];
 
   useEffect(() => {
     fetchData();
@@ -119,7 +125,7 @@ const PerformanceAds = () => {
       dataIndex: 'status',
       key: 'status',
       render: text => {
-        const isActive = text === 'Active';
+        const isActive = text === 'Active' || text === 'ACTIVE';
         return <Tag style={{ borderRadius: 12, background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: isActive ? 'var(--accent-primary)' : 'var(--accent-warning)', border: 'none', fontWeight: 600 }}>{text}</Tag>
       }
     },
@@ -331,9 +337,9 @@ const PerformanceAds = () => {
         onOk={() => form.submit()}
         confirmLoading={isCreatingCampaign}
         okText="Create Campaign"
-        width={500}
+        width={600}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateCampaign} style={{ marginTop: 24 }}>
+        <Form form={form} layout="vertical" onFinish={handleCreateCampaign} style={{ marginTop: 24 }} initialValues={{ platform: 'Meta', status: 'ACTIVE' }}>
           <Form.Item name="campaign" label="Campaign Name" rules={[{ required: true, message: 'Please enter a campaign name' }]}>
             <Input placeholder="e.g. Lead Gen — Bangalore" />
           </Form.Item>
@@ -348,18 +354,82 @@ const PerformanceAds = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Required' }]} initialValue="Active">
+              <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Required' }]}>
                 <Select>
-                  <Select.Option value="Active">Active</Select.Option>
-                  <Select.Option value="Paused">Paused</Select.Option>
-                  <Select.Option value="Completed">Completed</Select.Option>
+                  <Select.Option value="ACTIVE">Active</Select.Option>
+                  <Select.Option value="PAUSED">Paused</Select.Option>
+                  <Select.Option value="COMPLETED">Completed</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="budget" label="Budget" rules={[{ required: true, message: 'Please enter a budget' }]}>
-            <Input placeholder="e.g. ₹5.00L" />
-          </Form.Item>
+          
+          {platformWatch === 'Meta' ? (
+            <>
+              <Form.Item name="adAccount" label="Meta Ad Account (Integration)" rules={[{ required: true, message: 'Please select a connected Meta account' }]}>
+                <Select placeholder="Select integrated Meta account" loading={isLoadingFbIntegrations}>
+                  {fbIntegrations.map(fb => (
+                    <Select.Option key={fb.pageId} value={fb.pageId}>{fb.pageName} ({fb.pageId})</Select.Option>
+                  ))}
+                  {fbIntegrations.length === 0 && !isLoadingFbIntegrations && (
+                    <Select.Option disabled value="none">No Meta integrations found for this client</Select.Option>
+                  )}
+                </Select>
+              </Form.Item>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="objective" label="Campaign Objective" rules={[{ required: true, message: 'Required' }]}>
+                    <Select placeholder="Select Objective">
+                      <Select.Option value="OUTCOME_LEADS">Leads</Select.Option>
+                      <Select.Option value="OUTCOME_SALES">Sales</Select.Option>
+                      <Select.Option value="OUTCOME_AWARENESS">Awareness</Select.Option>
+                      <Select.Option value="OUTCOME_ENGAGEMENT">Engagement</Select.Option>
+                      <Select.Option value="OUTCOME_TRAFFIC">Traffic</Select.Option>
+                      <Select.Option value="OUTCOME_APP_PROMOTION">App Promotion</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="specialAdCategory" label="Special Ad Category" rules={[{ required: true, message: 'Required' }]} initialValue="NONE">
+                    <Select>
+                      <Select.Option value="NONE">None</Select.Option>
+                      <Select.Option value="CREDIT">Credit</Select.Option>
+                      <Select.Option value="EMPLOYMENT">Employment</Select.Option>
+                      <Select.Option value="HOUSING">Housing</Select.Option>
+                      <Select.Option value="ISSUES_ELECTIONS_POLITICS">Issues, Elections or Politics</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="buyingType" label="Buying Type" rules={[{ required: true, message: 'Required' }]} initialValue="AUCTION">
+                    <Select>
+                      <Select.Option value="AUCTION">Auction</Select.Option>
+                      <Select.Option value="RESERVATION">Reservation</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="budgetType" label="Budget Type" rules={[{ required: true, message: 'Required' }]} initialValue="daily_budget">
+                    <Select>
+                      <Select.Option value="daily_budget">Daily Budget</Select.Option>
+                      <Select.Option value="lifetime_budget">Lifetime Budget</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="budget" label="Budget (₹)" rules={[{ required: true, message: 'Required' }]}>
+                    <Input type="number" placeholder="e.g. 500" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          ) : (
+            <Form.Item name="budget" label="Budget Amount" rules={[{ required: true, message: 'Please enter a budget' }]}>
+              <Input placeholder="e.g. ₹5.00L" />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     </motion.div>
