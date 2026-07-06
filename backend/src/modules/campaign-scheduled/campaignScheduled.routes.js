@@ -97,8 +97,10 @@ async function resolveUserFromToken(token) {
   if (!token || !JWT_SECRET) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("[OAuth Debug] Token decoded:", decoded.id);
-    const user = await User.findById(decoded.id).select("-password").lean();
+    // auth.controller signs with _id (not id), so check both
+    const userId = decoded._id || decoded.id;
+    console.log("[OAuth Debug] Token decoded userId:", userId);
+    const user = await User.findById(userId).select("-password").lean();
     console.log("[OAuth Debug] User found:", user ? user._id : "null");
     return user;
   } catch (err) {
@@ -171,6 +173,55 @@ function buildPublicationMap(deliveries = []) {
 }
 
 // seedDemoPosts().catch(() => {});
+
+// ── DEBUG: Token resolution diagnostic endpoint ──
+router.get("/auth/debug-token", async (req, res) => {
+  const rawToken = String(req.query?.token || "").trim();
+  const jwt_secret_exists = !!JWT_SECRET;
+  const token_exists = !!rawToken;
+
+  if (!rawToken) {
+    return res.json({ ok: false, step: "no_token", msg: "No token provided in query ?token=..." });
+  }
+
+  let decoded = null;
+  try {
+    decoded = jwt.verify(rawToken, JWT_SECRET);
+  } catch (err) {
+    return res.json({ ok: false, step: "jwt_verify_failed", msg: err.message, jwt_secret_exists });
+  }
+
+  const userId = decoded._id || decoded.id;
+  if (!userId) {
+    return res.json({ ok: false, step: "no_user_id_in_token", decoded, jwt_secret_exists });
+  }
+
+  let user = null;
+  try {
+    user = await User.findById(userId).select("-password").lean();
+  } catch (err) {
+    return res.json({ ok: false, step: "db_lookup_failed", userId, msg: err.message });
+  }
+
+  if (!user) {
+    return res.json({ ok: false, step: "user_not_found", userId });
+  }
+
+  const companyId = user?.companyId || user?.agencyId || user?.brandId || user?.workspaceId || user?._id;
+
+  return res.json({
+    ok: true,
+    step: "success",
+    userId,
+    user_id_in_db: String(user._id),
+    role: user.role,
+    companyId: companyId ? String(companyId) : null,
+    agencyId: user.agencyId ? String(user.agencyId) : null,
+    brandId: user.brandId ? String(user.brandId) : null,
+    workspaceId: user.workspaceId ? String(user.workspaceId) : null,
+    token_keys: Object.keys(decoded),
+  });
+});
 
 router.get("/events", async (req, res) => {
   const scope = await resolveCompanyIdFromQueryToken(req);

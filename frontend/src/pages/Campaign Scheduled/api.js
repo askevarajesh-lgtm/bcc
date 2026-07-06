@@ -6,7 +6,7 @@ export function getCookie(name) {
 }
 
 function getAuthHeaders(extra = {}) {
-  const token = getCookie("token") || localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   return {
     ...(token ? { authorization: `Bearer ${token}` } : {}),
     ...extra,
@@ -205,21 +205,21 @@ export const campaignScheduledApi = {
     return data.scheduler;
   },
   startFacebookOAuth(clientCompanyId = null) {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/facebook?token=${encodeURIComponent(token)}${extra}`;
   },
   startInstagramOAuth(clientCompanyId = null) {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/instagram?token=${encodeURIComponent(token)}${extra}`;
   },
   startInstagramDirectOAuth: (clientCompanyId = "") => {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const query = [
       `token=${encodeURIComponent(token)}`,
       clientCompanyId
@@ -231,28 +231,28 @@ export const campaignScheduledApi = {
     window.location.href = `/api/campaign-scheduled/auth/instagram/direct${query ? `?${query}` : ""}`;
   },
   startLinkedinOAuth: (clientCompanyId = "") => {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/linkedin?token=${encodeURIComponent(token)}${extra}`;
   },
   startYoutubeOAuth(clientCompanyId = null) {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/youtube?token=${encodeURIComponent(token)}${extra}`;
   },
   startGoogleBusinessOAuth(clientCompanyId = null) {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/google-business?token=${encodeURIComponent(token)}${extra}`;
   },
   startPinterestOAuth(clientCompanyId = null) {
-    const token = getCookie("token") || localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "";
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";

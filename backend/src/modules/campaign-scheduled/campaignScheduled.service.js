@@ -26,7 +26,10 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const APP_URL = process.env.APP_URL || `https://tunepath.askeva.io`;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const APP_BASE_URL = APP_URL.replace(/\/+$/, "");
-const REDIRECT_URI = (process.env.REDIRECT_URI_FACEBOOK || APP_BASE_URL).trim();
+const REDIRECT_URI = (
+  process.env.REDIRECT_URI_FACEBOOK ||
+  `${APP_BASE_URL}/api/campaign-scheduled/auth/facebook/callback`
+).trim();
 const LINKEDIN_REDIRECT_URI = (
   process.env.REDIRECT_URI_LINKEDIN ||
   `${APP_BASE_URL}/api/campaign-scheduled/auth/linkedin/callback`
@@ -73,7 +76,9 @@ const YOUTUBE_SCOPES = [
 const PINTEREST_SCOPES = [
   "user_accounts:read",
   "boards:read",
+  "boards:write",
   "pins:read",
+  "pins:write",
   "ads:read",
   "catalogs:read",
 ].join(",");
@@ -1921,7 +1926,6 @@ async function refreshPinterestTokenIfNeeded(account) {
 }
 
 async function postToPinterest(account, post, options = {}) {
-  throw new Error("Publishing to Pinterest is currently disabled while we await Advanced Scope approval for write permissions. Read-only features (Analytics, Pins, Boards) remain active.");
   const token = await refreshPinterestTokenIfNeeded(account);
 
   const boardId = post.boards?.[account.id] || post.platform_options?.pinterest?.boardId || post.post_option?.pinterest?.boardId;
@@ -1972,13 +1976,10 @@ async function postToPinterest(account, post, options = {}) {
       throw new Error("Could not acquire public image URL for Pinterest");
   }
 
-  // For sandbox testing during app review, we must use a separate Sandbox token
-  const sandboxToken = process.env.PINTEREST_SANDBOX_TOKEN || "";
-  
-  // Create Pin in Sandbox
-  const pinRes = await axios.post("https://api-sandbox.pinterest.com/v5/pins", payload, {
+  // Create Pin in Production
+  const pinRes = await axios.post("https://api.pinterest.com/v5/pins", payload, {
     headers: {
-      Authorization: `Bearer ${sandboxToken}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const app = require('./src/app');
 const connectDB = require('./src/config/db');
 const startSlaScheduler = require('./src/modules/sla/sla.scheduler');
