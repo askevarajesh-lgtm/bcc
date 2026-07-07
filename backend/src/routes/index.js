@@ -117,5 +117,8 @@ router.use('/calendar', require('../modules/calendar/calendar.routes'));
 // Deliverables Mount
 router.use('/deliverables', require('../modules/deliverables/deliverables.routes'));
 
+// AI Studio Mount
+router.use('/ai-studio', require('../modules/aiStudio/aiStudio.routes'));
+
 module.exports = router;
 

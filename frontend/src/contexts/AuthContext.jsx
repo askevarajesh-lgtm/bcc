@@ -65,6 +65,8 @@ export const AuthProvider = ({ children }) => {
     setFeatures([]);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('original_token');
+    localStorage.removeItem('original_user');
     navigate('/signin');
   };
 

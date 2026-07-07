@@ -21,15 +21,15 @@ const SEO = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
   const renderTabContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 0: return <SEOTab itemVariants={itemVariants} />;
       case 1: return <AEOTab itemVariants={itemVariants} />;
       case 2: return <GEOTab itemVariants={itemVariants} />;
@@ -42,7 +42,7 @@ const SEO = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>SEO / AEO / GEO</Title>
           <Text type="secondary">Search - Answer Engine - Generative Engine — unified in one view.</Text>
         </div>
@@ -72,10 +72,10 @@ const SEO = () => {
           return (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%', cursor: 'pointer' }} onClick={() => setActiveTab(i)}>
-                <Card 
-                  bodyStyle={{ padding: 24, height: '100%' }} 
-                  style={{ 
-                    borderRadius: 16, 
+                <Card
+                  bodyStyle={{ padding: 24, height: '100%' }}
+                  style={{
+                    borderRadius: 16,
                     background: isActive ? 'var(--bg-primary)' : 'var(--bg-secondary)',
                     border: '1px solid var(--border-color)',
                     borderBottom: isActive ? `3px solid ${kpi.color}` : '1px solid var(--border-color)',
@@ -88,21 +88,21 @@ const SEO = () => {
                 >
                   {/* Radial Glow Aura */}
                   {isActive && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: kpi.glowPos.includes('top') ? '-20%' : 'auto', 
-                      bottom: kpi.glowPos.includes('bottom') ? '-20%' : 'auto', 
-                      left: kpi.glowPos.includes('left') ? '-20%' : 'auto', 
-                      right: kpi.glowPos.includes('right') ? '-20%' : 'auto', 
-                      width: '60%', 
-                      height: '60%', 
-                      background: `radial-gradient(circle, ${kpi.color} 0%, transparent 70%)`, 
+                    <div style={{
+                      position: 'absolute',
+                      top: kpi.glowPos.includes('top') ? '-20%' : 'auto',
+                      bottom: kpi.glowPos.includes('bottom') ? '-20%' : 'auto',
+                      left: kpi.glowPos.includes('left') ? '-20%' : 'auto',
+                      right: kpi.glowPos.includes('right') ? '-20%' : 'auto',
+                      width: '60%',
+                      height: '60%',
+                      background: `radial-gradient(circle, ${kpi.color} 0%, transparent 70%)`,
                       opacity: 0.15,
                       filter: 'blur(30px)',
                       pointerEvents: 'none'
                     }} />
                   )}
-                  
+
                   {kpi.isOverall ? (
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', height: '100%' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

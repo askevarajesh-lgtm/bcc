@@ -11,11 +11,11 @@ const Strategy = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState(null);
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [form] = Form.useForm();
-  
+
   const [isInitiativeModalOpen, setIsInitiativeModalOpen] = useState(false);
   const [isCreatingInitiative, setIsCreatingInitiative] = useState(false);
   const [initiativeForm] = Form.useForm();
@@ -85,7 +85,7 @@ const Strategy = () => {
   const handleCreateInitiative = async (values) => {
     try {
       setIsCreatingInitiative(true);
-      
+
       let timelineString = 'TBD';
       if (values.timeline && Array.isArray(values.timeline) && values.timeline.length === 2) {
         timelineString = `${values.timeline[0].format('MMM DD')} - ${values.timeline[1].format('MMM DD')}`;
@@ -175,7 +175,7 @@ const Strategy = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Strategy & Planning</Title>
           <Text type="secondary">Roadmaps, OKRs and briefs across every account — the brain that drives every campaign.</Text>
         </div>
@@ -196,9 +196,9 @@ const Strategy = () => {
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-              <Card 
-                bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', height: '100%' }} 
-                style={{ 
+              <Card
+                bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', height: '100%' }}
+                style={{
                   borderRadius: 16, height: '100%', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', borderLeft: `5px solid ${kpi.accentColor || kpi.color}`, position: 'relative', overflow: 'hidden'
                 }}
               >
@@ -221,8 +221,8 @@ const Strategy = () => {
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} xl={16}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Objectives & key results</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Quarterly OKRs by account</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Objectives & key results</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Quarterly OKRs by account</Text></div>}
               extra={
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                   <Button size="small" type="primary" style={{ background: 'var(--text-primary)', borderRadius: 16, padding: '0 16px', fontWeight: 600 }}>All</Button>
@@ -253,7 +253,7 @@ const Strategy = () => {
                         <div key={kr.title} style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'nowrap' }}>
                           <Text style={{ width: 250, fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0 }}>{kr.title}</Text>
                           <Text strong style={{ width: 100, fontSize: 13, textAlign: 'right', color: 'var(--text-primary)', flexShrink: 0 }}>{kr.current} / {kr.target}</Text>
-                          <Progress percent={Math.round((kr.current/kr.target)*100)} showInfo={false} strokeColor={okr.status === 'ON TRACK' ? 'var(--accent-secondary)' : 'var(--accent-warning)'} trailColor="var(--bg-tertiary)" style={{ flex: 1, minWidth: 100 }} size="small" />
+                          <Progress percent={Math.round((kr.current / kr.target) * 100)} showInfo={false} strokeColor={okr.status === 'ON TRACK' ? 'var(--accent-secondary)' : 'var(--accent-warning)'} trailColor="var(--bg-tertiary)" style={{ flex: 1, minWidth: 100 }} size="small" />
                         </div>
                       ))}
                     </div>
@@ -266,8 +266,8 @@ const Strategy = () => {
 
         <Col xs={24} xl={8}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Channel maturity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Agency Benchmarks</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Channel maturity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Agency Benchmarks</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ height: 300 }}>
@@ -295,8 +295,8 @@ const Strategy = () => {
       </Row>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Initiative roadmap</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>What's planned, in-flight and at risk this quarter</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Initiative roadmap</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>What's planned, in-flight and at risk this quarter</Text></div>}
           extra={
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <Button type="primary" onClick={() => setIsInitiativeModalOpen(true)} icon={<Plus size={16} />} size="small" style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-sm)' }}>Add Initiative</Button>
@@ -314,8 +314,8 @@ const Strategy = () => {
       <Row gutter={[24, 24]}>
         <Col xs={24} xl={16}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Planned investment by channel</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Q3 FY26 forecast</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Planned investment by channel</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Q3 FY26 forecast</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ height: 350 }}>
@@ -339,8 +339,8 @@ const Strategy = () => {
 
         <Col xs={24} xl={8}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Strategy briefs</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Living docs powering every campaign</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Strategy briefs</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Living docs powering every campaign</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -372,18 +372,18 @@ const Strategy = () => {
         <Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Strategic risk register</Title>
         <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>What could derail this quarter, and who owns mitigation</Text>
       </motion.div>
-      
+
       <Row gutter={[16, 16]}>
         {(data.risks || []).map((r, i) => {
           const colors = getRiskColors(r.level);
           return (
             <Col xs={24} xl={8} lg={8} key={i}>
               <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }} 
-                  style={{ 
-                    borderRadius: 16, 
-                    background: colors.bgColor, 
+                <Card
+                  bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}
+                  style={{
+                    borderRadius: 16,
+                    background: colors.bgColor,
                     border: `1px solid ${colors.borderColor}`,
                     boxShadow: 'var(--shadow-sm)',
                     height: '100%'

@@ -1,0 +1,1 @@
+const mongoose = require('mongoose'); mongoose.connect('mongodb+srv://askevarajesh_db_user:Lvh6bG5Ir6X8kHC6@bcc.hhhks6y.mongodb.net/bcc').then(async () => { const User = require('./src/modules/auth/user.model'); await User.updateMany({ role: 'user', brandId: null }, { \$set\: { brandId: '6a3b79d164fe6b4f7a937acc' } }); console.log('Fixed users'); process.exit(0); });

@@ -12,6 +12,9 @@ router.route('/')
 router.route('/dropdown')
   .get(userController.getUsersDropdown);
 
+router.route('/change-password')
+  .post(userController.changePassword);
+
 router.route('/:id')
   .get(userController.getUser)
   .put(userController.updateUser)

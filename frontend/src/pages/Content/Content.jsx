@@ -22,15 +22,15 @@ const Content = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
   const renderTabContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 0: return <AIStudioTab itemVariants={itemVariants} />;
       case 1: return <TrendsTab itemVariants={itemVariants} />;
       case 2: return <ListViewTab itemVariants={itemVariants} />;
@@ -43,7 +43,7 @@ const Content = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Content Marketing</Title>
           <Text type="secondary">Plan, produce, approve, and ship every content piece across channels.</Text>
         </div>
@@ -59,22 +59,22 @@ const Content = () => {
       {/* GRADIENT STROKE CARDS WITH FLOATING BADGE */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24, paddingTop: 16 }}>
         {[
-          { label: 'PUBLISHED THIS MONTH', val: '8', sub: 'Pieces shipped', colorStart: '#3b82f6', colorEnd: '#10b981', icon: <CheckCircle2 size={20}/> },
-          { label: 'IN REVIEW / PENDING', val: '4', sub: 'Awaiting approval', colorStart: '#f59e0b', colorEnd: '#ef4444', icon: <AlertCircle size={20}/> },
-          { label: 'SCHEDULED', val: '6', sub: 'Queued for go-live', colorStart: '#8b5cf6', colorEnd: '#3b82f6', icon: <PenTool size={20}/> },
-          { label: 'TOTAL PIPELINE', val: '24', sub: 'All statuses', colorStart: '#0d9488', colorEnd: '#0ea5e9', icon: <FileText size={20}/> }
+          { label: 'PUBLISHED THIS MONTH', val: '8', sub: 'Pieces shipped', colorStart: '#3b82f6', colorEnd: '#10b981', icon: <CheckCircle2 size={20} /> },
+          { label: 'IN REVIEW / PENDING', val: '4', sub: 'Awaiting approval', colorStart: '#f59e0b', colorEnd: '#ef4444', icon: <AlertCircle size={20} /> },
+          { label: 'SCHEDULED', val: '6', sub: 'Queued for go-live', colorStart: '#8b5cf6', colorEnd: '#3b82f6', icon: <PenTool size={20} /> },
+          { label: 'TOTAL PIPELINE', val: '24', sub: 'All statuses', colorStart: '#0d9488', colorEnd: '#0ea5e9', icon: <FileText size={20} /> }
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
               <div style={{ position: 'relative', height: '100%', paddingTop: 20 }}>
                 {/* Floating Badge */}
-                <div style={{ 
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 24, 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: '50%', 
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 24,
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
                   background: `linear-gradient(135deg, ${kpi.colorStart}, ${kpi.colorEnd})`,
                   display: 'flex',
                   alignItems: 'center',
@@ -85,18 +85,18 @@ const Content = () => {
                 }}>
                   {kpi.icon}
                 </div>
-                
+
                 {/* Gradient Border Card Wrapper */}
-                <div style={{ 
-                  padding: 2, 
-                  borderRadius: 16, 
+                <div style={{
+                  padding: 2,
+                  borderRadius: 16,
                   background: `linear-gradient(135deg, ${kpi.colorStart}, transparent, transparent, ${kpi.colorEnd})`,
                   height: 'calc(100% - 20px)'
                 }}>
-                  <Card 
-                    bodyStyle={{ padding: '28px 20px 20px', height: '100%', display: 'flex', flexDirection: 'column' }} 
-                    style={{ 
-                      borderRadius: 14, 
+                  <Card
+                    bodyStyle={{ padding: '28px 20px 20px', height: '100%', display: 'flex', flexDirection: 'column' }}
+                    style={{
+                      borderRadius: 14,
                       height: '100%',
                       background: 'var(--bg-primary)',
                       border: 'none',
@@ -114,14 +114,14 @@ const Content = () => {
       </Row>
 
       <motion.div variants={itemVariants}>
-        <div style={{ 
-          background: 'rgba(245, 158, 11, 0.05)', 
-          border: '1px solid rgba(245, 158, 11, 0.2)', 
-          padding: 20, 
-          borderRadius: 16, 
-          marginBottom: 24, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.05)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          padding: 20,
+          borderRadius: 16,
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 16,
@@ -146,15 +146,15 @@ const Content = () => {
       <motion.div variants={itemVariants}>
         <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border-color)', marginBottom: 24, overflowX: 'auto', paddingBottom: 2 }}>
           {['AI Studio', 'Trends', 'List View', 'Calendar View'].map((tab, i) => (
-            <div 
-              key={tab} 
+            <div
+              key={tab}
               onClick={() => setActiveTab(i)}
-              style={{ 
-                paddingBottom: 12, 
-                borderBottom: activeTab === i ? '2px solid var(--accent-secondary)' : '2px solid transparent', 
-                fontWeight: activeTab === i ? 700 : 500, 
-                color: activeTab === i ? 'var(--text-primary)' : 'var(--text-secondary)', 
-                cursor: 'pointer', 
+              style={{
+                paddingBottom: 12,
+                borderBottom: activeTab === i ? '2px solid var(--accent-secondary)' : '2px solid transparent',
+                fontWeight: activeTab === i ? 700 : 500,
+                color: activeTab === i ? 'var(--text-primary)' : 'var(--text-secondary)',
+                cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s ease'
               }}

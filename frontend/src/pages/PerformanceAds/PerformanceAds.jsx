@@ -146,17 +146,17 @@ const PerformanceAds = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Performance Ads</Title>
           <Text type="secondary">Paid media across Meta, Google & YouTube — unified attribution.</Text>
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-secondary)', padding: '6px 16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Client:</Text>
-            <Select 
-              value={selectedClient} 
+            <Select
+              value={selectedClient}
               onChange={setSelectedClient}
-              bordered={false} 
+              bordered={false}
               style={{ width: 180, fontWeight: 600 }}
               dropdownStyle={{ borderRadius: 12, padding: 8 }}
               loading={isLoadingClients}

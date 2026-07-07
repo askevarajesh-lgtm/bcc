@@ -68,7 +68,6 @@ const Analytics = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>INTELLIGENCE</Text>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>{activeTab === 'analytics' ? 'Analytics' : 'Attribution'}</Title>
           <Text type="secondary">
             {activeTab === 'analytics' ? 'Unified performance data across all channels and clients.' : 'Understand which channels and touchpoints drive conversions.'}

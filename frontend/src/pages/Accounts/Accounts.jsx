@@ -224,7 +224,6 @@ const Accounts = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 01 · CLIENTS</Text>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Agency Accounts</Title>
           <Text type="secondary">Manage your agency accounts and provision packages.</Text>
         </div>

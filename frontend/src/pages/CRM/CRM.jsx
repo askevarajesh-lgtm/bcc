@@ -17,9 +17,6 @@ const CRM = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexShrink: 0 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-            Administration
-          </Text>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>
             Leads Management Hub
           </Title>

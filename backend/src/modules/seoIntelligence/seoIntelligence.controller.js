@@ -457,21 +457,25 @@ exports.runAudit = async (req, res) => {
     const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '');
     
     // Use dedicated on-page audit method (creates task + fetches summary)
-    const auditResponse = await dataForSeoService.runOnPageAudit(domain, 100);
+    // Limits max crawl to 1 page (homepage) to ensure an ultra-fast response time (seconds instead of minutes)
+    const auditResponse = await dataForSeoService.runOnPageAudit(domain, 1);
     const result = auditResponse?.result;
     
     if (result) {
-      const score = Math.round(result.domain_info?.onpage_score || 0);
+      const score = Math.round(result.page_metrics?.onpage_score || 0);
       
       // Build structured issues from real crawl data
       const issues = [];
-      if (result.stat?.errors_4xx > 0) issues.push({ key: '4xx', severity: 'Error', type: '4xx Client Errors', count: result.stat.errors_4xx });
-      if (result.stat?.broken_links > 0) issues.push({ key: 'broken', severity: 'Error', type: 'Broken Links', count: result.stat.broken_links });
-      if (result.stat?.no_title > 0) issues.push({ key: 'no_title', severity: 'Error', type: 'Missing Title Tags', count: result.stat.no_title });
-      if (result.stat?.no_description > 0) issues.push({ key: 'no_desc', severity: 'Warning', type: 'Missing Meta Descriptions', count: result.stat.no_description });
-      if (result.stat?.no_h1_tag > 0) issues.push({ key: 'no_h1', severity: 'Error', type: 'Missing H1 Tags', count: result.stat.no_h1_tag });
-      if (result.stat?.duplicate_title > 0) issues.push({ key: 'dup_title', severity: 'Warning', type: 'Duplicate Title Tags', count: result.stat.duplicate_title });
-      if (result.stat?.slow_pages > 0) issues.push({ key: 'slow', severity: 'Warning', type: 'Slow Page Load > 3s', count: result.stat.slow_pages });
+      const metrics = result.page_metrics || {};
+      const checks = metrics.checks || {};
+      
+      if (checks.is_4xx_code > 0) issues.push({ key: '4xx', severity: 'Error', type: '4xx Client Errors', count: checks.is_4xx_code });
+      if (metrics.broken_links > 0) issues.push({ key: 'broken', severity: 'Error', type: 'Broken Links', count: metrics.broken_links });
+      if (checks.no_title > 0) issues.push({ key: 'no_title', severity: 'Error', type: 'Missing Title Tags', count: checks.no_title });
+      if (checks.no_description > 0) issues.push({ key: 'no_desc', severity: 'Warning', type: 'Missing Meta Descriptions', count: checks.no_description });
+      if (checks.no_h1_tag > 0) issues.push({ key: 'no_h1', severity: 'Error', type: 'Missing H1 Tags', count: checks.no_h1_tag });
+      if (metrics.duplicate_title > 0) issues.push({ key: 'dup_title', severity: 'Warning', type: 'Duplicate Title Tags', count: metrics.duplicate_title });
+      if (checks.high_loading_time > 0) issues.push({ key: 'slow', severity: 'Warning', type: 'Slow Page Load', count: checks.high_loading_time });
 
       // Persist score and sync timestamp
       await SeoWebsite.findByIdAndUpdate(projectId, {
@@ -484,7 +488,7 @@ exports.runAudit = async (req, res) => {
     }
   } catch (error) {
     console.error('Error running audit:', error);
-    res.status(500).json({ success: false, message: 'Server error running audit' });
+    res.status(500).json({ success: false, message: error.message || 'Server error running audit' });
   }
 };
 

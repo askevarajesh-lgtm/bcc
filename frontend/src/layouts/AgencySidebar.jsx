@@ -86,13 +86,13 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       { key: '/agency/performance', icon: getIcon(TrendingUp), label: 'Performance' },
       { key: '/agency/billing', icon: getIcon(CreditCard), label: 'Billing' },
       { key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' },
-      { key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' },
       { key: '/agency/users', icon: getIcon(Shield), label: 'User Management' },
       { key: '/agency/sla', icon: getIcon(Activity), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       { key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' },
       { key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' },
       { key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
       { key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' },
+      { key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' },
     ];
   } else {
     const feats = features || [];
@@ -116,11 +116,11 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     }
 
     const workspaceChildren = [];
-    if (feats.includes('settings') || feats.length === 0) workspaceChildren.push({ key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' });
-    if (feats.includes('strategy') || feats.length === 0) workspaceChildren.push({ key: '/agency/strategy', icon: getIcon(Target), label: 'Strategy' });
-    if (feats.includes('seo') || feats.length === 0) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
-    if (feats.includes('content') || feats.length === 0) workspaceChildren.push({ key: '/agency/content', icon: getIcon(PenTool), label: 'Content' });
-    if (feats.includes('aistudio') || feats.length === 0) workspaceChildren.push({ key: '/agency/ai-studio', icon: getIcon(Zap), label: 'AI Studio' });
+    
+    // if (feats.includes('strategy') || feats.length === 0) workspaceChildren.push({ key: '/agency/strategy', icon: getIcon(Target), label: 'Strategy' });
+    // if (feats.includes('seo') || feats.length === 0) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
+    // if (feats.includes('content') || feats.length === 0) workspaceChildren.push({ key: '/agency/content', icon: getIcon(PenTool), label: 'Content' });
+    // if (feats.includes('aistudio') || feats.length === 0) workspaceChildren.push({ key: '/agency/ai-studio', icon: getIcon(Zap), label: 'AI Studio' });
     if (feats.includes('social') || feats.length === 0) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
     if (feats.includes('ads') || feats.length === 0) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
 
@@ -131,12 +131,14 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
       workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
       workspaceChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
+      
     }
     if (feats.includes('automation') || feats.length === 0) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
     if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
     workspaceChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
     workspaceChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
     workspaceChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
+    if (feats.includes('settings') || feats.length === 0) workspaceChildren.push({ key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' });
 
     if (workspaceChildren.length > 0) {
       menuItems.push({

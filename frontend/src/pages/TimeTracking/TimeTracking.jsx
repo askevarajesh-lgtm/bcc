@@ -15,7 +15,7 @@ const TimeTracking = () => {
   const [timeByClient, setTimeByClient] = useState([]);
   const [recentEntries, setRecentEntries] = useState([]);
   const [teamPerformance, setTeamPerformance] = useState([]);
-  
+
   // Options state
   const [formOptions, setFormOptions] = useState({ employees: [], clients: [], tasks: [] });
 
@@ -28,13 +28,13 @@ const TimeTracking = () => {
         timeTrackingService.getFormOptions(),
         timeTrackingService.getTeamTaskPerformance()
       ]);
-      
+
       if (dashRes.success) {
         setKpis(dashRes.kpis);
         setTimesheetData(dashRes.timesheet);
         setTimeByClient(dashRes.timeByClient);
       }
-      
+
       if (recentRes.success) {
         setRecentEntries(recentRes.data);
       }
@@ -42,7 +42,7 @@ const TimeTracking = () => {
       if (optRes.success) {
         setFormOptions(optRes.data);
       }
-      
+
       if (perfRes.success) {
         setTeamPerformance(perfRes.data);
       }
@@ -95,15 +95,15 @@ const TimeTracking = () => {
     { title: 'TASK/DESC', dataIndex: 'task', key: 'task', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
     { title: 'HOURS', dataIndex: 'hours', key: 'hours', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}h</strong> },
     { title: 'BILLABLE', dataIndex: 'billable', key: 'billable', render: val => val ? <CheckCircle2 size={18} color="var(--accent-primary)" /> : <AlertCircle size={18} color="var(--text-tertiary)" /> },
-    { 
-      title: 'ACTIONS', 
-      key: 'actions', 
+    {
+      title: 'ACTIONS',
+      key: 'actions',
       render: () => (
         <div style={{ display: 'flex', gap: 16 }}>
           <a style={{ color: 'var(--text-tertiary)' }}><Edit3 size={16} /></a>
           <a style={{ color: 'var(--text-tertiary)' }}><Trash2 size={16} /></a>
         </div>
-      ) 
+      )
     }
   ];
 
@@ -121,7 +121,7 @@ const TimeTracking = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Time Tracking</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Log billable and non-billable hours across clients and campaigns.</Text>
         </div>
@@ -140,33 +140,33 @@ const TimeTracking = () => {
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
+                <Card
                   className="glassmorphism hover-bg"
-                  style={{ 
-                    borderRadius: 16, 
-                    border: '1px solid var(--border-color)', 
+                  style={{
+                    borderRadius: 16,
+                    border: '1px solid var(--border-color)',
                     height: '100%',
                     position: 'relative',
                     overflow: 'hidden'
-                  }} 
+                  }}
                   bodyStyle={{ padding: '24px 24px', display: 'flex', flexDirection: 'column', height: '100%' }}
                 >
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: kpi.color }} />
-                  
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5 }}>{kpi.label}</Text>
                     <div style={{ padding: 8, borderRadius: 10, backgroundColor: 'var(--bg-secondary)', color: kpi.color, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                       {kpi.icon}
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 'auto' }}>
                     <Title level={2} style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 800, lineHeight: 1 }}>{kpi.val}</Title>
                     {kpi.sub && <Text style={{ color: kpi.alert ? 'var(--accent-warning)' : kpi.pos ? 'var(--accent-primary)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 700 }}>{kpi.sub}</Text>}
                   </div>
-                  
+
                   <Text style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginTop: 8, fontWeight: 500 }}>{kpi.msg}</Text>
-                  
+
                   {kpi.prog !== undefined && <Progress percent={kpi.prog} showInfo={false} strokeColor={kpi.color} trailColor="var(--bg-tertiary)" size="small" style={{ marginTop: 16 }} />}
                 </Card>
               </motion.div>
@@ -176,9 +176,9 @@ const TimeTracking = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Weekly timesheet</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Current Week</Text></div>} 
-          extra={<div style={{ display: 'flex', gap: 16, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }}/> On target</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }}/> Partial</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }}/> Low</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--text-tertiary)' }}/> Off</span></div>}
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Weekly timesheet</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Current Week</Text></div>}
+          extra={<div style={{ display: 'flex', gap: 16, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }} /> On target</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }} /> Partial</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }} /> Low</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--text-tertiary)' }} /> Off</span></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={tsCols} dataSource={timesheetData} pagination={false} rowKey="name" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
@@ -186,8 +186,8 @@ const TimeTracking = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Task Performance</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Completed tasks and total working time based on task activity</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Task Performance</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Completed tasks and total working time based on task activity</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={perfCols} dataSource={teamPerformance} pagination={false} rowKey="userId" size="middle" scroll={{ x: 800 }} rowClassName={() => 'hover-bg'} />
@@ -195,8 +195,8 @@ const TimeTracking = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Time by client</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours logged this month — billable vs non-billable</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Time by client</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours logged this month — billable vs non-billable</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ height: 350 }}>
@@ -222,8 +222,8 @@ const TimeTracking = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Recent time entries</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Last 20 entries</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Recent time entries</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Last 20 entries</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={entryCols} dataSource={recentEntries} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />

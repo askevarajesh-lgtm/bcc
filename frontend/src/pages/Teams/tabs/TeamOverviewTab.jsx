@@ -19,7 +19,7 @@ const TeamOverviewTab = () => {
         const res = await hrmsService.getEmployees({});
         if (res.success) {
           const colors = ['var(--accent-warning)', 'var(--accent-primary)', 'var(--accent-info)', 'var(--accent-secondary)', 'var(--accent-danger)', 'var(--accent-success)'];
-          
+
           const mapped = res.data.map((emp, index) => ({
             id: emp._id,
             name: `${emp.firstName} ${emp.lastName}`,
@@ -58,10 +58,10 @@ const TeamOverviewTab = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
@@ -100,7 +100,7 @@ const TeamOverviewTab = () => {
   };
 
   const allocationCols = [
-    { title: 'MEMBER', dataIndex: 'name', key: 'name', render: (text) => <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Avatar size="small" style={{ backgroundColor: teamMembers.find(t=>t.name.includes(text))?.color, fontSize: 10, fontWeight: 700 }}>{teamMembers.find(t=>t.name.includes(text))?.initials}</Avatar> <strong style={{ color: 'var(--text-primary)' }}>{text}</strong></div> },
+    { title: 'MEMBER', dataIndex: 'name', key: 'name', render: (text) => <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Avatar size="small" style={{ backgroundColor: teamMembers.find(t => t.name.includes(text))?.color, fontSize: 10, fontWeight: 700 }}>{teamMembers.find(t => t.name.includes(text))?.initials}</Avatar> <strong style={{ color: 'var(--text-primary)' }}>{text}</strong></div> },
     { title: 'PRESTIGE', dataIndex: 'prestige', key: 'prestige', render: renderHeatmapCell },
     { title: 'BOAT', dataIndex: 'boat', key: 'boat', render: renderHeatmapCell },
     { title: 'RAPIDO', dataIndex: 'rapido', key: 'rapido', render: renderHeatmapCell },
@@ -118,7 +118,7 @@ const TeamOverviewTab = () => {
 
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Teams</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Your people, roles, capacity and performance — all in one place.</Text>
         </div>
@@ -161,8 +161,8 @@ const TeamOverviewTab = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
           <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>Team Members</Title>
           <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: 8, padding: 4, border: '1px solid var(--border-color)' }}>
-            <Button type={view === 'cards' ? 'primary' : 'text'} size="small" style={{ borderRadius: 6, height: 32, fontWeight: 600, background: view === 'cards' ? 'var(--bg-tertiary)' : 'transparent', color: view === 'cards' ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: view === 'cards' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setView('cards')}><LayoutGrid size={14} style={{ marginRight: 6 }}/> Cards</Button>
-            <Button type={view === 'list' ? 'primary' : 'text'} size="small" style={{ borderRadius: 6, height: 32, fontWeight: 600, background: view === 'list' ? 'var(--bg-tertiary)' : 'transparent', color: view === 'list' ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: view === 'list' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setView('list')}><List size={14} style={{ marginRight: 6 }}/> List</Button>
+            <Button type={view === 'cards' ? 'primary' : 'text'} size="small" style={{ borderRadius: 6, height: 32, fontWeight: 600, background: view === 'cards' ? 'var(--bg-tertiary)' : 'transparent', color: view === 'cards' ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: view === 'cards' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setView('cards')}><LayoutGrid size={14} style={{ marginRight: 6 }} /> Cards</Button>
+            <Button type={view === 'list' ? 'primary' : 'text'} size="small" style={{ borderRadius: 6, height: 32, fontWeight: 600, background: view === 'list' ? 'var(--bg-tertiary)' : 'transparent', color: view === 'list' ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: view === 'list' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setView('list')}><List size={14} style={{ marginRight: 6 }} /> List</Button>
           </div>
         </div>
 
@@ -170,91 +170,91 @@ const TeamOverviewTab = () => {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin size="large" /></div>
         ) : (
-        <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
-          {teamMembers.map((member, i) => (
-            <Col xs={24} lg={8} key={member.id || i}>
-              <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  style={{ 
-                    borderRadius: '160px 160px 16px 16px', // Arch shape
-                    border: '1px solid var(--border-color)', 
-                    height: '100%',
-                    background: 'var(--bg-secondary)',
-                    boxShadow: 'var(--shadow-md)',
-                    overflow: 'hidden'
-                  }} 
-                  bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
-                >
-                  {/* Top Arch Section */}
-                  <div style={{ 
-                    background: `radial-gradient(circle at top, ${member.color}25 0%, var(--bg-secondary) 70%)`,
-                    padding: '32px 24px 24px',
-                    textAlign: 'center',
-                    borderBottom: '1px solid var(--border-color)'
-                  }}>
-                    <Avatar size={96} style={{ backgroundColor: member.color, fontSize: 32, fontWeight: 800, border: '4px solid var(--bg-primary)', boxShadow: 'var(--shadow-md)', marginBottom: 16 }}>{member.initials}</Avatar>
-                    <strong style={{ fontSize: 20, display: 'block', color: 'var(--text-primary)', marginBottom: 4 }}>{member.name}</strong>
-                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{member.role} · BCC Martech</Text>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-                      <Tag style={{ margin: 0, borderRadius: 12, border: `1px solid ${member.color}`, color: member.color, background: 'transparent', fontWeight: 700, padding: '2px 10px' }}>{member.role}</Tag>
-                      <Tag style={{ margin: 0, borderRadius: 12, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, padding: '2px 10px' }}>{member.level}</Tag>
-                    </div>
-                  </div>
+          <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
+            {teamMembers.map((member, i) => (
+              <Col xs={24} lg={8} key={member.id || i}>
+                <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
+                  <Card
+                    style={{
+                      borderRadius: '160px 160px 16px 16px', // Arch shape
+                      border: '1px solid var(--border-color)',
+                      height: '100%',
+                      background: 'var(--bg-secondary)',
+                      boxShadow: 'var(--shadow-md)',
+                      overflow: 'hidden'
+                    }}
+                    bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+                  >
+                    {/* Top Arch Section */}
+                    <div style={{
+                      background: `radial-gradient(circle at top, ${member.color}25 0%, var(--bg-secondary) 70%)`,
+                      padding: '32px 24px 24px',
+                      textAlign: 'center',
+                      borderBottom: '1px solid var(--border-color)'
+                    }}>
+                      <Avatar size={96} style={{ backgroundColor: member.color, fontSize: 32, fontWeight: 800, border: '4px solid var(--bg-primary)', boxShadow: 'var(--shadow-md)', marginBottom: 16 }}>{member.initials}</Avatar>
+                      <strong style={{ fontSize: 20, display: 'block', color: 'var(--text-primary)', marginBottom: 4 }}>{member.name}</strong>
+                      <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{member.role} · BCC Martech</Text>
 
-                  {/* Body Section */}
-                  <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ marginBottom: 24 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
-                        <Text type="secondary" style={{ fontWeight: 600 }}>Utilisation — June 2026</Text>
-                        <strong><span style={{ color: member.color, fontWeight: 800 }}>{member.util}%</span> <span style={{ color: 'var(--text-secondary)' }}>· {member.totalHours}h / {member.capacity}h</span></strong>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+                        <Tag style={{ margin: 0, borderRadius: 12, border: `1px solid ${member.color}`, color: member.color, background: 'transparent', fontWeight: 700, padding: '2px 10px' }}>{member.role}</Tag>
+                        <Tag style={{ margin: 0, borderRadius: 12, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, padding: '2px 10px' }}>{member.level}</Tag>
                       </div>
-                      <Progress percent={member.util} showInfo={false} strokeColor={member.color} trailColor="var(--bg-tertiary)" size="small" />
                     </div>
 
-                    <div style={{ flex: 1, marginBottom: 24 }}>
-                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 12 }}>ASSIGNED CLIENTS</Text>
-                      {member.clients.map(c => (
-                        <div key={c} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>• {c}</span>
-                          <Text type="secondary" style={{ fontWeight: 600 }}>{Math.floor(Math.random() * 20 + 10)}h</Text>
+                    {/* Body Section */}
+                    <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
+                          <Text type="secondary" style={{ fontWeight: 600 }}>Utilisation — June 2026</Text>
+                          <strong><span style={{ color: member.color, fontWeight: 800 }}>{member.util}%</span> <span style={{ color: 'var(--text-secondary)' }}>· {member.totalHours}h / {member.capacity}h</span></strong>
                         </div>
-                      ))}
-                      <a style={{ fontSize: 13, color: 'var(--accent-secondary)', fontWeight: 700, display: 'block', marginTop: 8 }}>+ {member.numClients - 3} more</a>
+                        <Progress percent={member.util} showInfo={false} strokeColor={member.color} trailColor="var(--bg-tertiary)" size="small" />
+                      </div>
+
+                      <div style={{ flex: 1, marginBottom: 24 }}>
+                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 12 }}>ASSIGNED CLIENTS</Text>
+                        {member.clients.map(c => (
+                          <div key={c} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>• {c}</span>
+                            <Text type="secondary" style={{ fontWeight: 600 }}>{Math.floor(Math.random() * 20 + 10)}h</Text>
+                          </div>
+                        ))}
+                        <a style={{ fontSize: 13, color: 'var(--accent-secondary)', fontWeight: 700, display: 'block', marginTop: 8 }}>+ {member.numClients - 3} more</a>
+                      </div>
+
+                      <Row gutter={[16, 16]} style={{ marginBottom: 24, background: 'var(--bg-primary)', padding: '16px 0', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                        <Col span={8} style={{ textAlign: 'center' }}>
+                          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Tasks</Text>
+                          <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.tasks}</strong>
+                        </Col>
+                        <Col span={8} style={{ textAlign: 'center', borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' }}>
+                          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Avg resp.</Text>
+                          <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.avgHrs}h</strong>
+                        </Col>
+                        <Col span={8} style={{ textAlign: 'center' }}>
+                          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Clients</Text>
+                          <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.numClients}</strong>
+                        </Col>
+                      </Row>
+
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <Button style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>View Profile</Button>
+                        <Button type="primary" style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, background: 'var(--accent-secondary)', border: 'none' }}>Assign Task</Button>
+                      </div>
                     </div>
 
-                    <Row gutter={[16, 16]} style={{ marginBottom: 24, background: 'var(--bg-primary)', padding: '16px 0', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                      <Col span={8} style={{ textAlign: 'center' }}>
-                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Tasks</Text>
-                        <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.tasks}</strong>
-                      </Col>
-                      <Col span={8} style={{ textAlign: 'center', borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' }}>
-                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Avg resp.</Text>
-                        <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.avgHrs}h</strong>
-                      </Col>
-                      <Col span={8} style={{ textAlign: 'center' }}>
-                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Clients</Text>
-                        <strong style={{ display: 'block', fontSize: 18, color: 'var(--text-primary)' }}>{member.numClients}</strong>
-                      </Col>
-                    </Row>
-
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <Button style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>View Profile</Button>
-                      <Button type="primary" style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, background: 'var(--accent-secondary)', border: 'none' }}>Assign Task</Button>
-                    </div>
-                  </div>
-
-                </Card>
-              </motion.div>
-            </Col>
-          ))}
-        </Row>
+                  </Card>
+                </motion.div>
+              </Col>
+            ))}
+          </Row>
         )}
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Utilisation — This Month</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Billable vs non-billable hours per team member</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Utilisation — This Month</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Billable vs non-billable hours per team member</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ height: 350 }}>
@@ -274,8 +274,8 @@ const TeamOverviewTab = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Who Works on Which Clients</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours allocated this month — hover any cell to see details.</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Who Works on Which Clients</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours allocated this month — hover any cell to see details.</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', marginBottom: 40 }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={allocationCols} dataSource={teamAllocationData} pagination={false} rowKey="name" size="middle" scroll={{ x: 1200 }} rowClassName={() => 'hover-bg'} />

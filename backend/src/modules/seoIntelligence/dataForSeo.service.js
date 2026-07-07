@@ -43,6 +43,7 @@ class DataForSeoService {
       40100: 'Authentication failed – check DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD',
       40200: 'Insufficient API credits – top up your DataForSEO balance',
       40400: 'Resource not found on DataForSEO servers',
+      40602: 'Empty result (no data found in index)',
       50000: 'DataForSEO internal server error',
     };
     return map[code] || `DataForSEO error code ${code}`;
@@ -65,13 +66,22 @@ class DataForSeoService {
       console.info(`[DataForSEO] ${method} ${endpoint}`);
       const response = await this.client({ method, url: endpoint, data });
       const body = response.data;
+      
+      // Check root-level API errors (like 40100 Unauthorized)
+      if (body.status_code && body.status_code !== 20000 && body.status_code !== 20100) {
+         throw new Error(body.status_message || `DataForSEO API error: ${body.status_code}`);
+      }
 
       // Check task-level status codes
       if (body.tasks && body.tasks.length > 0) {
         for (const task of body.tasks) {
           if (task.status_code && task.status_code !== 20000 && task.status_code !== 20100) {
             const msg = this._classifyStatusCode(task.status_code);
-            console.error(`[DataForSEO] Task error on ${endpoint}: ${msg}`);
+            if (task.status_code !== 40602) {
+              console.error(`[DataForSEO] Task error on ${endpoint}: ${msg}`);
+            } else {
+              console.info(`[DataForSEO] ${endpoint}: ${msg}`);
+            }
           }
         }
       }
@@ -79,7 +89,7 @@ class DataForSeoService {
       return body;
     } catch (err) {
       this._handleAxiosError(endpoint, err);
-      return { tasks: [] }; // Graceful degradation – never crash the app
+      throw err; // Actually throw so the controller knows it failed
     }
   }
 
@@ -170,7 +180,7 @@ class DataForSeoService {
    */
   async getKeywordIdeas(keyword, locationCode = 2840, languageCode = 'en', limit = 50) {
     const payload = [{
-      keyword,
+      keywords: [keyword],
       location_code:  locationCode,
       language_code:  languageCode,
       limit
@@ -294,28 +304,51 @@ class DataForSeoService {
    * In production you'd poll for task completion; here we return the instant result.
    * Endpoint: POST /on_page/task_post
    */
-  async runOnPageAudit(domain, maxCrawlPages = 100) {
+  async runOnPageAudit(domain, maxCrawlPages = 5) {
     const targetDomain = domain.replace(/^https?:\/\/(www\.)?/, '');
 
     const payload = [{
       target:          targetDomain,
       max_crawl_pages: maxCrawlPages,
-      load_resources:  true,
+      load_resources:  false,
       enable_javascript: false,
       check_spell:     false
     }];
 
     const raw = await this.makeRequest('/on_page/task_post', 'POST', payload);
-    const taskId = raw.tasks?.[0]?.id;
+    const task = raw.tasks?.[0];
 
-    if (!taskId) {
+    if (!task || !task.id) {
       console.warn('[DataForSEO] On-Page task_post returned no task id');
       return null;
     }
 
-    // Fetch summary immediately (may be partial if crawl not finished)
-    const summaryRaw = await this.makeRequest(`/on_page/summary/${taskId}`, 'GET');
-    const result = summaryRaw.tasks?.[0]?.result?.[0] || null;
+    if (task.status_code && task.status_code !== 20000 && task.status_code !== 20100) {
+      throw new Error(`DataForSEO Error: ${task.status_message} (Check if your project domain is valid)`);
+    }
+
+    const taskId = task.id;
+
+    // Poll the summary endpoint indefinitely until the crawl is finished
+    let result = null;
+    
+    while (true) {
+      // Wait 10 seconds between polls to avoid spamming the API
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
+      const summaryRaw = await this.makeRequest(`/on_page/summary/${taskId}`, 'GET');
+      const currentResult = summaryRaw.tasks?.[0]?.result?.[0];
+      
+      if (currentResult && (currentResult.crawl_progress === 'finished' || currentResult.page_metrics)) {
+        result = currentResult;
+        break;
+      }
+    }
+
+    if (!result) {
+      throw new Error('The website audit is taking longer than expected. Please try again.');
+    }
+
     return { taskId, result };
   }
 

@@ -33,6 +33,8 @@ exports.getUsers = async (req, res, next) => {
       queryFilter.role = 'commander_admin';
     } else if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
+      queryFilter.agencyId = null;
+      queryFilter.brandId = null;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
       // If user is a brand admin/manager, only return users for their brand
       queryFilter.brandId = req.user.brandId;
@@ -43,6 +45,7 @@ exports.getUsers = async (req, res, next) => {
       }
     } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
       queryFilter.agencyId = req.user.agencyId;
+      queryFilter.brandId = null;
       if (req.user.role === 'agency_manager') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       } else {
@@ -67,6 +70,8 @@ exports.getUsersDropdown = async (req, res, next) => {
       queryFilter.role = 'commander_admin';
     } else if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
+      queryFilter.agencyId = null;
+      queryFilter.brandId = null;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
       queryFilter.brandId = req.user.brandId;
       if (req.user.role === 'brand_manager') {
@@ -76,6 +81,7 @@ exports.getUsersDropdown = async (req, res, next) => {
       }
     } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
       queryFilter.agencyId = req.user.agencyId;
+      queryFilter.brandId = null;
       if (req.user.role === 'agency_manager') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       } else {
@@ -125,7 +131,13 @@ exports.createUser = async (req, res, next) => {
     }
 
     // Default System Role Mapping based on Creator
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+    if (req.user.role === 'commander_admin') {
+      // Commander Admin can create platform-level users
+      userData.adminId = req.user._id;
+      userData.agencyId = null;
+      userData.brandId = null;
+      if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'user';
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       userData.brandId = req.user.brandId;
       userData.agencyId = req.user.agencyId;
       
@@ -134,19 +146,15 @@ exports.createUser = async (req, res, next) => {
       } else {
          userData.role = 'user'; // Brand Manager creates generic users (customRole determines their job)
       }
-    } else if (['commander_admin', 'agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
       // If created by an agency admin, assign agencyId
       userData.agencyId = req.user.agencyId || req.user._id; 
       if (req.user.adminId) userData.adminId = req.user.adminId;
+      userData.brandId = null; // Explicitly prevent brand leak
       
       // If custom role, base access is user
       if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'user'; 
       else if (!userData.role) userData.role = 'user';
-      
-    } else if (req.user.role === 'commander_admin') {
-      // Commander Admin can create roles in validRolesForAdmin
-      userData.adminId = req.user._id;
-      if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'user';
     }
 
     const user = await User.create(userData);
@@ -226,6 +234,33 @@ exports.deleteUser = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.status(200).json({ success: true, data: {} });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Please provide both current and new password' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid current password' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
     next(error);
   }

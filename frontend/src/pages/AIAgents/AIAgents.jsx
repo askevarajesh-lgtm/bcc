@@ -173,7 +173,6 @@ const AIAgents = () => {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
-        <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · INTELLIGENCE</Text>
         <Title level={2} style={{ margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 800 }}>
           AI Agent Marketplace 
         </Title>

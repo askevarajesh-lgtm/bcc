@@ -10,6 +10,7 @@ import {
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import api from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -31,6 +32,7 @@ const getRoleColor = (role) => {
 };
 
 const UserManagementTab = () => {
+  const { login } = useAuth();
   const [activeTab, setActiveTab] = useState('user');
   
   // States for data
@@ -54,24 +56,67 @@ const UserManagementTab = () => {
   const [roleModal, setRoleModal] = useState({ open: false, record: null });
   const [roleForm] = Form.useForm();
   
+  const [viewUserModal, setViewUserModal] = useState({ open: false, record: null });
+
   const [permissionRoleId, setPermissionRoleId] = useState(null);
   const [draftPermissions, setDraftPermissions] = useState({});
 
-  const permissionGroups = {
-    'General': ['Command Center', 'Settings'],
-    'Clients': ['Accounts', 'SLA & Success', 'Direct Brand'],
-    'Workspace': [
-      'Strategy', 
-      'SEO / AEO / GEO', 
-      'Content', 
-      'AI Studio', 
-      'Social Media', 
-      'Performance Ads', 
-      'CRM & Leads', 
-      'Automation', 
-      'Task Management'
-    ]
+  const getPermissionGroupsForRole = (currentRole) => {
+    if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(currentRole)) {
+      return {
+        'General': ['Command Center', 'Settings'],
+        'Clients': ['Accounts', 'SLA & Success', 'Direct Brand'],
+        'Workspace': [
+          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
+          'Social Media', 'Performance Ads', 'CRM & Leads', 
+          'Automation', 'Task Management', 'Websites'
+        ],
+        'Intelligence': [
+          'Analytics & Attribution', 'MOS Score', 'ChatGPT', 'Canva', 
+          'AI Agent', 'Benchmarks', 'Reports', 'SEO Intelligence'
+        ],
+        'Agency Ops': [
+          'People', 'Time Tracking', 'Resources', 'Sales Pipeline', 
+          'Business Intel', 'Global Meetings', 'Global Calendar', 'Global Deliverables'
+        ]
+      };
+    } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
+      return {
+        'General': ['Command Center', 'Settings'],
+        'Clients': ['Accounts', 'SLA & Success'],
+        'Workspace': [
+          'Social Media', 'Performance Ads', 'CRM & Leads', 'Proposals',
+          'Invoices', 'Projects', 'Master Item', 'Automation', 'Task Management',
+          'Meetings', 'Calendar', 'Deliverables'
+        ],
+        'Support': ['Support']
+      };
+    } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
+      return {
+        'General': ['Command Center', 'Settings'],
+        'Clients': ['Support'],
+        'Workspace': [
+          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
+          'Social Media', 'Performance Ads', 'CRM & Leads',
+          'Automation', 'Task Management', 'Websites',
+          'Meetings', 'Calendar', 'Deliverables'
+        ],
+        'Intelligence': [
+          'Analytics & Attribution', 'MOS Score', 'AI Co-Pilot', 'ChatGPT', 'Canva', 
+          'AI Agent', 'Benchmarks', 'Reports', 'SEO Intelligence'
+        ],
+        'Agency Ops': [
+          'People', 'Time Tracking', 'Resources', 'Finance', 
+          'Profitability', 'Sales Pipeline', 'Business Intel'
+        ]
+      };
+    }
+    return {
+      'General': ['Dashboard', 'Tasks', 'Settings']
+    };
   };
+
+  const permissionGroups = getPermissionGroupsForRole(useAuth().role);
 
   const fetchData = async () => {
     setLoading(true);
@@ -118,6 +163,28 @@ const UserManagementTab = () => {
     }
   };
 
+  const handleImpersonate = async (record) => {
+    try {
+      const currentToken = localStorage.getItem('token');
+      const currentUserStr = localStorage.getItem('user');
+
+      const res = await api.post(`/auth/impersonate/${record._id}`);
+      if (res.data && res.data.success) {
+        if (currentToken && currentUserStr) {
+          localStorage.setItem('original_token', currentToken);
+          localStorage.setItem('original_user', currentUserStr);
+        }
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        message.success(`Logged in as ${res.data.user.name}`);
+        login(res.data.user);
+      }
+    } catch (err) {
+      console.error('Impersonation error:', err);
+      message.error(err.response?.data?.error || 'Failed to login as user');
+    }
+  };
+
   // User Columns
   const userColumns = [
     { title: <strong style={{color:'var(--text-secondary)'}}>NAME</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
@@ -142,8 +209,8 @@ const UserManagementTab = () => {
       title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>View</Button>
-          <Button type="text" icon={<LoginOutlined />} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Login as User</Button>
+          <Button type="text" icon={<EyeOutlined />} onClick={() => setViewUserModal({ open: true, record })} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>View</Button>
+          <Button type="text" icon={<LoginOutlined />} onClick={() => handleImpersonate(record)} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Login as User</Button>
           <Button type="text" icon={<EditOutlined />} onClick={() => {
             setUserModal({ open: true, record });
             let formRole = record.role;
@@ -212,7 +279,10 @@ const UserManagementTab = () => {
         </Tag>
     )},
     { title: <strong style={{color:'var(--text-secondary)'}}>ACCESS</strong>, key: 'access', render: (_, record) => (
-        <Button type="text" icon={<SafetyCertificateOutlined />} onClick={() => setPermissionRoleId(record._id)} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>Configure Permissions</Button>
+        <Button type="text" icon={<SafetyCertificateOutlined />} onClick={() => {
+          setPermissionRoleId(record._id);
+          setDraftPermissions(record.permissions || {});
+        }} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>Configure Permissions</Button>
     )},
     {
       title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
@@ -237,6 +307,22 @@ const UserManagementTab = () => {
       )
     }
   ];
+
+  const handleSavePermissions = async () => {
+    try {
+      setSubmitLoading(true);
+      await api.put(`/roles/${permissionRoleId}`, { permissions: draftPermissions });
+      message.success('Permissions updated');
+      setPermissionRoleId(null);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      message.error('Error saving permissions');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
 
   const handleDeptSubmit = async () => {
     try {
@@ -529,7 +615,7 @@ const UserManagementTab = () => {
         onCancel={() => setPermissionRoleId(null)}
         footer={[
           <Button key="cancel" onClick={() => setPermissionRoleId(null)} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} size="large">Cancel</Button>,
-          <Button key="ok" onClick={() => setPermissionRoleId(null)} style={{ background: '#d9363e', borderColor: '#d9363e', borderRadius: 8, fontWeight: 700, padding: '0 32px' }} size="large" type="primary">OK</Button>
+          <Button key="ok" loading={submitLoading} onClick={handleSavePermissions} style={{ background: '#d9363e', borderColor: '#d9363e', borderRadius: 8, fontWeight: 700, padding: '0 32px' }} size="large" type="primary">OK</Button>
         ]}
         className="glassmorphism-modal"
         styles={{ body: { maxHeight: "70vh", overflowY: "auto", overflowX: "hidden" } }}
@@ -571,6 +657,49 @@ const UserManagementTab = () => {
           }))}
           tabBarStyle={{ marginBottom: 16 }}
         />
+      </Modal>
+
+      <Modal
+        title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>User Details</div>}
+        open={viewUserModal.open}
+        onCancel={() => setViewUserModal({ open: false, record: null })}
+        footer={[
+          <Button key="close" onClick={() => setViewUserModal({ open: false, record: null })} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} size="large">Close</Button>
+        ]}
+        className="glassmorphism-modal"
+      >
+        {viewUserModal.record && (
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Full Name</Text>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{viewUserModal.record.name}</div>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Email Address</Text>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{viewUserModal.record.email}</div>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Role</Text>
+              <div style={{ marginTop: 4 }}>
+                <Tag color={getRoleColor(viewUserModal.record.role)} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
+                  {(viewUserModal.record.roleName || viewUserModal.record.role).replace(/_/g, ' ').toUpperCase()}
+                </Tag>
+              </div>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Department</Text>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{viewUserModal.record.departmentName || '-'}</div>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Status</Text>
+              <div style={{ marginTop: 4 }}>
+                <Tag color={viewUserModal.record.isActive ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
+                  {viewUserModal.record.isActive ? 'ACTIVE' : 'INACTIVE'}
+                </Tag>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </motion.div>
   );

@@ -18,6 +18,11 @@ const notificationSchema = new mongoose.Schema(
       ref: "Meeting",
       index: true,
     },
+    slaRecordId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SlaRecord",
+      index: true,
+    },
     type: {
       type: String,
       required: true,
@@ -47,6 +52,10 @@ const notificationSchema = new mongoose.Schema(
         "meeting_rescheduled",
         "meeting_reminder",
         "meeting_followup_pending",
+        "sla_triggered",
+        "sla_assigned",
+        "sla_escalated",
+        "sla_status_changed",
       ],
     },
     title: {

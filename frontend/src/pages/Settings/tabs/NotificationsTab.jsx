@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Switch, Table, Button, Tabs, message, Spin, Space, Tag } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bell, Settings, Mail, Smartphone, MessageSquare } from 'lucide-react';
 import api from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +19,8 @@ const itemVariants = {
 
 const NotificationsTab = () => {
   const [activeTab, setActiveTab] = useState('notifications');
+  const navigate = useNavigate();
+  const { role } = useAuth();
   
   // Notifications List State
   const [notifications, setNotifications] = useState([]);
@@ -113,13 +117,30 @@ const NotificationsTab = () => {
       key: 'action', 
       align: 'right', 
       render: (_, record) => (
-        <Button 
-          type="text" 
-          disabled={record.isRead} 
-          onClick={() => handleMarkAsRead(record._id)}
-        >
-          {record.isRead ? 'Read' : 'Mark as Read'}
-        </Button>
+        <Space>
+          {(record.type?.startsWith('sla_') || record.type?.startsWith('task_')) && (
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => {
+                if (!record.isRead) handleMarkAsRead(record._id);
+                if (record.type.startsWith('sla_')) {
+                  navigate(role.includes('brand') || role === 'client' ? '/client/sla' : '/agency/sla');
+                }
+              }}
+            >
+              View
+            </Button>
+          )}
+          <Button 
+            type="text" 
+            size="small"
+            disabled={record.isRead} 
+            onClick={() => handleMarkAsRead(record._id)}
+          >
+            {record.isRead ? 'Read' : 'Mark as Read'}
+          </Button>
+        </Space>
       ) 
     }
   ];
