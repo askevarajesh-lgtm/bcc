@@ -11,8 +11,8 @@ exports.signin = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email })
-      .populate('agencyId', 'companyName name')
-      .populate('brandId', 'companyName name');
+      .populate('agencyId', 'companyName name logo')
+      .populate('brandId', 'companyName name logo');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
     }
@@ -67,6 +67,7 @@ exports.signin = async (req, res, next) => {
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
+        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions
@@ -93,8 +94,8 @@ exports.impersonate = async (req, res, next) => {
     }
 
     const user = await User.findById(targetUserId)
-      .populate('agencyId', 'companyName name')
-      .populate('brandId', 'companyName name');
+      .populate('agencyId', 'companyName name logo')
+      .populate('brandId', 'companyName name logo');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found.' });
@@ -143,6 +144,7 @@ exports.impersonate = async (req, res, next) => {
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
+        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions

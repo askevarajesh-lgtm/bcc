@@ -48,6 +48,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
       setCollapsed={setCollapsed}
       width={260}
       brandInitials="U"
+      brandLogo={user?.logo}
       brandTitle={user?.companyName || "Employee Panel"}
       brandSubtitle={user?.roleName || "M1 Platform"}
       accent="#8b5cf6"

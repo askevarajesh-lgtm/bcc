@@ -86,6 +86,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       { key: '/agency/performance', icon: getIcon(TrendingUp), label: 'Performance' },
       { key: '/agency/billing', icon: getIcon(CreditCard), label: 'Billing' },
       { key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' },
+      { key: '/agency/clients', icon: getIcon(Users), label: 'Clients' },
       { key: '/agency/users', icon: getIcon(Shield), label: 'User Management' },
       { key: '/agency/sla', icon: getIcon(Activity), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       { key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' },

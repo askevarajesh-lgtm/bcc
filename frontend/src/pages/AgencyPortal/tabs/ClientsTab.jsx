@@ -154,7 +154,7 @@ const ClientsTab = () => {
         <div>
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>All Clients</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
-            {dbClients.length} active · <span style={{color: 'var(--accent-primary)'}}>6 healthy</span> · <span style={{color: 'var(--accent-warning)'}}>5 at risk</span> · <span style={{color: 'var(--accent-danger)'}}>1 critical</span>
+            {dbClients.length} total active clients in your agency
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -180,41 +180,15 @@ const ClientsTab = () => {
           
           <Input 
             prefix={<Search size={18} style={{ color: 'var(--text-tertiary)' }} />} 
-            placeholder="Search clients..." 
+            placeholder="Search clients by name or email..." 
             style={{ 
-              maxWidth: 300, 
+              maxWidth: 400, 
               background: 'transparent', 
               border: 'none', 
               boxShadow: 'none',
               fontSize: 15
             }}
           />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
-            {/* Status Filters */}
-            <div style={{ display: 'flex', background: 'var(--bg-tertiary)', padding: 4, borderRadius: 12 }}>
-              <Button type="text" style={{ background: 'var(--accent-primary)', color: '#fff', borderRadius: 8, fontWeight: 700, padding: '4px 16px', height: 32 }}>All</Button>
-              <Button type="text" style={{ color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 16px', height: 32, display: 'flex', alignItems: 'center', gap: 6 }}>
-                Healthy <CheckCircle size={14} color="var(--accent-primary)" />
-              </Button>
-              <Button type="text" style={{ color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 16px', height: 32, display: 'flex', alignItems: 'center', gap: 6 }}>
-                At Risk <AlertTriangle size={14} color="var(--accent-warning)" />
-              </Button>
-              <Button type="text" style={{ color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 16px', height: 32, display: 'flex', alignItems: 'center', gap: 6 }}>
-                Critical <Circle size={14} fill="var(--accent-danger)" color="var(--accent-danger)" />
-              </Button>
-            </div>
-
-            <div style={{ width: 1, height: 24, background: 'var(--border-color)', margin: '0 8px' }} />
-
-            {/* AM Filters */}
-            <div style={{ display: 'flex', background: 'var(--bg-tertiary)', padding: 4, borderRadius: 12 }}>
-              <Button type="text" style={{ background: 'var(--accent-primary)', color: '#fff', borderRadius: 8, fontWeight: 700, padding: '4px 16px', height: 32 }}>All AMs</Button>
-              {['Arjun', 'Priya', 'Karan', 'Divya', 'Rahul'].map(am => (
-                <Button key={am} type="text" style={{ color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 16px', height: 32 }}>{am}</Button>
-              ))}
-            </div>
-          </div>
         </div>
       </motion.div>
 
@@ -244,7 +218,7 @@ const ClientsTab = () => {
                       </div>
                     </div>
                     <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                      Recently Added
+                      Created By: {client.createdBy ? client.createdBy.name : 'System'} ({client.createdBy?.role === 'agency_super_admin' ? 'Agency Admin' : client.createdBy?.role === 'agency_manager' ? 'Agency Manager' : 'Admin'})
                     </span>
                   </div>
                 </div>
@@ -399,55 +373,111 @@ const ClientsTab = () => {
       </Drawer>
 
       <Modal
-        title="Create New Client"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <Users size={20} />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Create New Client</Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>Provision a new workspace and admin account</Text>
+            </div>
+          </div>
+        }
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         footer={null}
+        width={520}
+        closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
+        styles={{ 
+          header: { padding: '24px 24px 16px 24px', borderBottom: '1px solid var(--border-color)' }, 
+          body: { padding: '24px' },
+          content: { borderRadius: 16, overflow: 'hidden' }
+        }}
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={handleCreateClient}
+          requiredMark={false}
         >
-          <Form.Item
-            name="name"
-            label="Client Name"
-            rules={[{ required: true, message: 'Please enter client name' }]}
-          >
-            <Input placeholder="e.g. Acme Corp" />
-          </Form.Item>
-          
-          <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Client User</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Create an initial login account for this client.</Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+                Company Details
+              </Text>
+              <Form.Item
+                name="name"
+                label={<span style={{ fontWeight: 600 }}>Client Company Name</span>}
+                rules={[{ required: true, message: 'Please enter client name' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input placeholder="e.g. Acme Corp" size="large" style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </div>
             
-            <Form.Item name="email" label="Client User Email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
-              <Input type="email" placeholder="manager@client.com" />
-            </Form.Item>
-            
-            <Form.Item name="password" label="Initial Password" rules={[{ required: true, message: 'Please enter a password' }]}>
-              <Input.Password placeholder="Enter a secure password" />
-            </Form.Item>
+            <div>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+                Admin Account
+              </Text>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item 
+                    name="email" 
+                    label={<span style={{ fontWeight: 600 }}>Admin Email</span>} 
+                    rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
+                  >
+                    <Input type="email" placeholder="manager@client.com" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item 
+                    name="password" 
+                    label={<span style={{ fontWeight: 600 }}>Initial Password</span>} 
+                    rules={[{ required: true, message: 'Please enter a password' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input.Password placeholder="Enter a secure password" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <div>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+                Subscription
+              </Text>
+              <Form.Item 
+                name="packageName" 
+                label={<span style={{ fontWeight: 600 }}>Assign Package</span>} 
+                rules={[{ required: true, message: 'Please select a package' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Select placeholder="Select a package" size="large" style={{ borderRadius: 8 }}>
+                  {packages.map(pkg => (
+                    <Select.Option key={pkg.name} value={pkg.name}>{pkg.name}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
           </div>
 
-          <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>Assign Package</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>Select a package to assign initial features to this client.</Text>
-            
-            <Form.Item name="packageName" label="Package" rules={[{ required: true, message: 'Please select a package' }]}>
-              <Select placeholder="Select a package">
-                {packages.map(pkg => (
-                  <Select.Option key={pkg.name} value={pkg.name}>{pkg.name}</Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </div>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block style={{ background: 'var(--accent-primary)', fontWeight: 700 }}>
-              Create Client
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <Button 
+              onClick={() => setIsCreateModalOpen(false)}
+              style={{ fontWeight: 600, borderRadius: 8, height: 44, padding: '0 24px' }}
+            >
+              Cancel
             </Button>
-          </Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={loading} 
+              style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 44, padding: '0 24px' }}
+            >
+              Provision Workspace
+            </Button>
+          </div>
         </Form>
       </Modal>
 

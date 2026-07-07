@@ -1,5 +1,5 @@
-import React from 'react';
-import { Typography, Row, Col, Card, Button, Table, Tag, Progress } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Table, Tag, Progress, Spin } from 'antd';
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, DollarSign, Activity, ArrowUpRight, ArrowDownRight, Briefcase } from 'lucide-react';
 import SlabCard from '../../../components/SlabCard';
@@ -7,6 +7,35 @@ import SlabCard from '../../../components/SlabCard';
 const { Title, Text } = Typography;
 
 const AgencyAdminDashboardTab = () => {
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    agencyMrr: '₹0L',
+    grossMargin: 'N/A',
+    activeClients: 0,
+    teamMembers: 0,
+    teamPerformance: []
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/agencies/dashboard-stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setDashboardData(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -18,17 +47,13 @@ const AgencyAdminDashboardTab = () => {
   };
 
   const stats = [
-    { label: 'AGENCY MRR', value: '₹42.8L', sub: '+12% MoM', trend: 'up', color: 'var(--accent-primary)', icon: <DollarSign size={20}/> },
-    { label: 'GROSS MARGIN', value: '42%', sub: '+2.1% MoM', trend: 'up', color: 'var(--accent-secondary)', icon: <TrendingUp size={20}/> },
-    { label: 'ACTIVE CLIENTS', value: '12', sub: '92% retention', trend: 'up', color: 'var(--accent-primary)', icon: <Briefcase size={20}/> },
-    { label: 'TEAM MEMBERS', value: '48', sub: '5 managers', trend: 'neutral', color: 'var(--accent-warning)', icon: <Users size={20}/> }
+    { label: 'AGENCY MRR', value: dashboardData.agencyMrr, sub: 'Current', trend: 'up', color: 'var(--accent-primary)', icon: <DollarSign size={20}/> },
+    { label: 'GROSS MARGIN', value: dashboardData.grossMargin, sub: 'Current', trend: 'up', color: 'var(--accent-secondary)', icon: <TrendingUp size={20}/> },
+    { label: 'ACTIVE CLIENTS', value: dashboardData.activeClients.toString(), sub: 'Managed', trend: 'up', color: 'var(--accent-primary)', icon: <Briefcase size={20}/> },
+    { label: 'TEAM MEMBERS', value: dashboardData.teamMembers.toString(), sub: 'Total', trend: 'neutral', color: 'var(--accent-warning)', icon: <Users size={20}/> }
   ];
 
-  const teamPerformance = [
-    { key: '1', name: 'Rahul S.', role: 'Agency Manager', clients: 4, mrr: '₹14.2L', mos: 82, status: 'Excellent' },
-    { key: '2', name: 'Priya N.', role: 'Agency Manager', clients: 5, mrr: '₹18.5L', mos: 78, status: 'Good' },
-    { key: '3', name: 'Amit K.', role: 'Agency Manager', clients: 3, mrr: '₹10.1L', mos: 64, status: 'Needs Review' },
-  ];
+  const teamPerformance = dashboardData.teamPerformance;
 
   const columns = [
     { title: 'Manager Name', dataIndex: 'name', key: 'name', render: (text) => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
@@ -46,6 +71,14 @@ const AgencyAdminDashboardTab = () => {
       return <span style={{ color, fontWeight: 700 }}>{status}</span>;
     }}
   ];
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >

@@ -22,7 +22,7 @@ exports.getBrands = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const brands = await User.find(filter).sort({ createdAt: -1 });
+    const brands = await User.find(filter).sort({ createdAt: -1 }).populate('createdBy', 'name role roleName');
 
     // Combine data
     const data = brands.map(brand => {
@@ -80,7 +80,8 @@ exports.createBrand = async (req, res, next) => {
       companyName: name,
       isDirect,
       packageName: packageName || null,
-      features: features || []
+      features: features || [],
+      createdBy: req.user._id
     });
 
     brand.brandId = brand._id;

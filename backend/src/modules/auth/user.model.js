@@ -38,6 +38,7 @@ const UserSchema = new mongoose.Schema({
   workspaceId: { type: mongoose.Schema.Types.ObjectId, default: null },
   customRoleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', default: null },
   roleName: { type: String, default: null },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
   // Agency Specific Fields
   logo: { type: String, default: null },

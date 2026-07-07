@@ -100,3 +100,58 @@ exports.deleteAgency = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getDashboardStats = async (req, res, next) => {
+  try {
+    const agencyId = req.user.agencyId || req.user._id;
+
+    // 1. Calculate Agency MRR (Sum of MRR from all clients)
+    const clients = await User.find({
+      agencyId,
+      role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] },
+      status: 'active'
+    });
+    
+    let totalMrr = 0;
+    clients.forEach(c => {
+      totalMrr += c.mrr || 0;
+    });
+    const activeClientsCount = clients.length;
+
+    // 2. Count Team Members (Excluding clients)
+    const teamMembersCount = await User.countDocuments({
+      $or: [{ agencyId }, { _id: agencyId }],
+      brandId: null,
+      role: { $nin: ['brand_super_admin', 'brand_manager', 'agency_client', 'superadmin', 'supreme_super_admin'] }
+    });
+
+    // 3. Team Performance (List of Agency Managers)
+    const managers = await User.find({
+      $or: [{ agencyId }, { _id: agencyId }],
+      role: 'agency_manager'
+    }).select('name role roleName status mrr');
+
+    const teamPerformance = managers.map(m => ({
+      key: m._id,
+      name: m.name,
+      role: m.roleName || 'Agency Manager',
+      clients: 0, // Not tracked yet in schema
+      mrr: `₹${((m.mrr || 0) / 100000).toFixed(1)}L`, // Just formatting
+      mos: 100, // Placeholder
+      status: m.status === 'active' ? 'Excellent' : 'Good'
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        agencyMrr: `₹${(totalMrr / 100000).toFixed(1)}L`,
+        grossMargin: 'N/A', // Cannot be computed without costs
+        activeClients: activeClientsCount,
+        teamMembers: teamMembersCount,
+        teamPerformance
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
