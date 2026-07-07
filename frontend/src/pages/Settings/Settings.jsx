@@ -10,13 +10,16 @@ import BackendConfigTab from './tabs/BackendConfigTab';
 import AccessMatrixTab from './tabs/AccessMatrixTab';
 import UserManagementTab from './tabs/UserManagementTab';
 import AgencyPackagesTab from './tabs/AgencyPackagesTab';
+import UserSettingsTab from '../UserPortal/SettingsTab';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 const SettingsPage = () => {
   const { role } = useAuth();
-  const [activeTab, setActiveTab] = useState('1');
+  const [activeTab, setActiveTab] = useState(() => {
+    return ['agency_manager', 'brand_manager'].includes(role) ? '7' : '1';
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -45,6 +48,7 @@ const SettingsPage = () => {
       case '6': return <AccessMatrixTab />;
       case '7': return <UserManagementTab />;
       case '8': return <AgencyPackagesTab />;
+      case '9': return <UserSettingsTab />;
       default: return <AgencyTab />;
     }
   };
@@ -57,24 +61,19 @@ const SettingsPage = () => {
     // { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
     // { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
+    { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
     ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
       { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> }
     ]),
   ];
 
   const tabItems = ['agency_manager', 'brand_manager'].includes(role) 
-    ? allTabs.filter(t => t.key === '7')
+    ? allTabs.filter(t => ['2', '7', '9'].includes(t.key))
     : allTabs;
-
-  // Ensure active tab defaults correctly if restricted
-  if (['agency_manager', 'brand_manager'].includes(role) && activeTab !== '7') {
-    setActiveTab('7');
-  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OPS / CONTROL CENTRE</Text>
         <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Settings</Title>
         <Text type="secondary" style={{ fontWeight: 500 }}>Configure how the M1 platform works for BCC Martech.</Text>
       </motion.div>

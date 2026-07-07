@@ -17,9 +17,7 @@ const UserLayout = () => {
         <Header />
         <Content className="app-content">
           <div className="app-content__inner">
-            <PageTransition>
-              <Outlet />
-            </PageTransition>
+            <Outlet />
           </div>
         </Content>
       </Layout>

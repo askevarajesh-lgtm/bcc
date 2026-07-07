@@ -18,28 +18,28 @@ const Profitability = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
   const revCostData = clientProfitabilityData.map(d => ({
     name: d.client.split(' ')[0], // short name
-    Revenue: parseFloat(d.revenue.replace(/[^0-9.-]+/g,"")) / 100000,
-    Cost: parseFloat(d.totalCost.replace(/[^0-9.-]+/g,"")) / 100000
+    Revenue: parseFloat(d.revenue.replace(/[^0-9.-]+/g, "")) / 100000,
+    Cost: parseFloat(d.totalCost.replace(/[^0-9.-]+/g, "")) / 100000
   }));
 
   const marginData = clientProfitabilityData.map(d => ({
     name: d.client.split(' ')[0],
     Margin: d.margin
-  })).sort((a,b) => b.Margin - a.Margin);
+  })).sort((a, b) => b.Margin - a.Margin);
 
   const getMarginColor = (val) => {
-    if (val >= 30) return 'var(--accent-primary)'; 
-    if (val >= 15) return 'var(--accent-warning)'; 
-    return 'var(--accent-danger)'; 
+    if (val >= 30) return 'var(--accent-primary)';
+    if (val >= 15) return 'var(--accent-warning)';
+    return 'var(--accent-danger)';
   };
 
   const profCols = [
@@ -65,7 +65,7 @@ const Profitability = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Profitability Engine</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Real-time margin analysis across clients, campaigns and team.</Text>
         </div>
@@ -78,28 +78,28 @@ const Profitability = () => {
 
       {/* NEW DOT-MATRIX TERMINAL BLOCK */}
       <motion.div variants={itemVariants}>
-        <Card 
-          style={{ 
-            borderRadius: 16, 
-            marginBottom: 32, 
-            background: 'var(--bg-tertiary)', 
+        <Card
+          style={{
+            borderRadius: 16,
+            marginBottom: 32,
+            background: 'var(--bg-tertiary)',
             backgroundImage: 'radial-gradient(var(--border-color) 1px, transparent 1px)',
             backgroundSize: '16px 16px',
-            border: '1px solid var(--border-color)', 
+            border: '1px solid var(--border-color)',
             boxShadow: 'inset 0 0 40px rgba(0,0,0,0.1), var(--shadow-md)',
             position: 'relative'
-          }} 
+          }}
           bodyStyle={{ padding: '32px 40px' }}
         >
           {/* Subtle overlay to soften the dots behind text */}
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--bg-secondary)', opacity: 0.4, borderRadius: 16, pointerEvents: 'none' }} />
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32, position: 'relative', zIndex: 1 }}>
             <div>
               <Text style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-secondary)' }}>AGENCY P&L · THIS MONTH</Text>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 600 }}>All clients · live calculation</div>
             </div>
-            <Tag style={{ borderRadius: 12, background: 'rgba(16, 185, 129, 0.15)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', fontWeight: 700, margin: 0, padding: '4px 12px', height: 'fit-content' }}><TrendingUp size={14} style={{ marginRight: 6, position: 'relative', top: 2 }}/> Gross margin improving</Tag>
+            <Tag style={{ borderRadius: 12, background: 'rgba(16, 185, 129, 0.15)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', fontWeight: 700, margin: 0, padding: '4px 12px', height: 'fit-content' }}><TrendingUp size={14} style={{ marginRight: 6, position: 'relative', top: 2 }} /> Gross margin improving</Tag>
           </div>
 
           <Row gutter={[48, 32]} style={{ position: 'relative', zIndex: 1 }}>
@@ -140,37 +140,37 @@ const Profitability = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <Button size="middle" style={{ borderRadius: 8, color: 'var(--text-primary)', borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }} icon={<Calendar size={14}/>}>Schedule review</Button>
-              <Button size="middle" style={{ borderRadius: 8, color: 'var(--text-primary)', borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }} icon={<Edit3 size={14}/>}>Adjust scope</Button>
-              <a style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 4 }}><X size={18}/></a>
+              <Button size="middle" style={{ borderRadius: 8, color: 'var(--text-primary)', borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }} icon={<Calendar size={14} />}>Schedule review</Button>
+              <Button size="middle" style={{ borderRadius: 8, color: 'var(--text-primary)', borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }} icon={<Edit3 size={14} />}>Adjust scope</Button>
+              <a style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 4 }}><X size={18} /></a>
             </div>
           </div>
         ))}
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client profitability</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Margin = (Revenue - Team cost - Vendor cost) / Revenue · blended rate ₹1,200/h</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client profitability</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Margin = (Revenue - Team cost - Vendor cost) / Revenue · blended rate ₹1,200/h</Text></div>}
           extra={<Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>6 active clients</Text>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={profCols} dataSource={clientProfitabilityData} pagination={false} rowKey="client" size="middle" scroll={{ x: 1200 }} rowClassName={() => 'hover-bg'}
-                 summary={() => (
-                   <Table.Summary fixed>
-                     <Table.Summary.Row style={{ background: 'var(--bg-tertiary)', fontWeight: 700 }}>
-                       <Table.Summary.Cell index={0}><strong style={{ color: 'var(--text-primary)' }}>Total</strong></Table.Summary.Cell>
-                       <Table.Summary.Cell index={1}>₹15,80,000</Table.Summary.Cell>
-                       <Table.Summary.Cell index={2}>₹10,18,000</Table.Summary.Cell>
-                       <Table.Summary.Cell index={3}>₹1,30,000</Table.Summary.Cell>
-                       <Table.Summary.Cell index={4}>₹11,48,000</Table.Summary.Cell>
-                       <Table.Summary.Cell index={5}><span style={{ color: 'var(--accent-primary)' }}>₹4,32,000</span></Table.Summary.Cell>
-                       <Table.Summary.Cell index={6}><Tag style={{ borderRadius: 12, background: 'var(--accent-primary)', color: '#fff', border: 'none', fontWeight: 800, margin: 0 }}>27.3%</Tag></Table.Summary.Cell>
-                       <Table.Summary.Cell index={7}>502h</Table.Summary.Cell>
-                       <Table.Summary.Cell index={8}>₹861</Table.Summary.Cell>
-                       <Table.Summary.Cell index={9}><span style={{ color: 'var(--accent-primary)', fontSize: 16 }}>↑</span></Table.Summary.Cell>
-                     </Table.Summary.Row>
-                   </Table.Summary>
-                 )}
+            summary={() => (
+              <Table.Summary fixed>
+                <Table.Summary.Row style={{ background: 'var(--bg-tertiary)', fontWeight: 700 }}>
+                  <Table.Summary.Cell index={0}><strong style={{ color: 'var(--text-primary)' }}>Total</strong></Table.Summary.Cell>
+                  <Table.Summary.Cell index={1}>₹15,80,000</Table.Summary.Cell>
+                  <Table.Summary.Cell index={2}>₹10,18,000</Table.Summary.Cell>
+                  <Table.Summary.Cell index={3}>₹1,30,000</Table.Summary.Cell>
+                  <Table.Summary.Cell index={4}>₹11,48,000</Table.Summary.Cell>
+                  <Table.Summary.Cell index={5}><span style={{ color: 'var(--accent-primary)' }}>₹4,32,000</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={6}><Tag style={{ borderRadius: 12, background: 'var(--accent-primary)', color: '#fff', border: 'none', fontWeight: 800, margin: 0 }}>27.3%</Tag></Table.Summary.Cell>
+                  <Table.Summary.Cell index={7}>502h</Table.Summary.Cell>
+                  <Table.Summary.Cell index={8}>₹861</Table.Summary.Cell>
+                  <Table.Summary.Cell index={9}><span style={{ color: 'var(--accent-primary)', fontSize: 16 }}>↑</span></Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            )}
           />
         </Card>
       </motion.div>
@@ -178,8 +178,8 @@ const Profitability = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[32, 32]} style={{ marginBottom: 40 }}>
           <Col xs={24} lg={12}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Revenue vs cost</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Per client · current period</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Revenue vs cost</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Per client · current period</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ height: 320 }}>
@@ -199,8 +199,8 @@ const Profitability = () => {
           </Col>
 
           <Col xs={24} lg={12}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Margin by client</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Color-coded · target ≥ 30%</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Margin by client</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Color-coded · target ≥ 30%</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ height: 280 }}>
@@ -219,9 +219,9 @@ const Profitability = () => {
                 </ResponsiveContainer>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginTop: 24 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }}/> ≥30%</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }}/> 15-29%</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }}/> {'<15%'}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }} /> ≥30%</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-warning)' }} /> 15-29%</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-danger)' }} /> {'<15%'}</span>
               </div>
             </Card>
           </Col>

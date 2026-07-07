@@ -189,7 +189,6 @@ const Benchmarks = () => {
       {/* Header */}
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40, flexWrap: 'wrap', gap: 24 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, display: 'block', marginBottom: 8 }}>INTELLIGENCE</Text>
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Benchmarking Engine</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>See how your clients perform vs industry standards and competitors.</Text>
         </div>

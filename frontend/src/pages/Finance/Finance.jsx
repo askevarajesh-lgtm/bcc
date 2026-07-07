@@ -18,10 +18,10 @@ const Finance = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
@@ -49,17 +49,17 @@ const Finance = () => {
     { title: 'Status', dataIndex: 'status', key: 'status', render: val => <Tag style={{ borderRadius: 12, border: '1px solid', color: val === 'PAID' ? 'var(--accent-primary)' : 'var(--accent-warning)', borderColor: val === 'PAID' ? 'var(--accent-primary)' : 'var(--accent-warning)', background: 'transparent', fontWeight: 600 }}>{val}</Tag> },
     { title: 'Method', dataIndex: 'method', key: 'method', render: val => <Tag style={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontWeight: 600 }}>{val}</Tag> },
     { title: 'Payment Link', dataIndex: 'link', key: 'link', render: val => val === 'Not sent' ? <Text style={{ fontSize: 12, color: 'var(--accent-warning)', fontWeight: 600 }}>Not sent</Text> : <Text type="secondary" style={{ fontWeight: 600 }}>—</Text> },
-    { 
-      title: 'Actions', 
-      key: 'actions', 
+    {
+      title: 'Actions',
+      key: 'actions',
       render: (_, r) => r.status === 'PAID' ? (
         <a style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}><Download size={14} /> Download PDF</a>
       ) : (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Button type="primary" size="small" style={{ borderRadius: 6, background: 'var(--accent-secondary)', border: 'none', fontSize: 11, fontWeight: 600, height: 26 }} icon={<LinkIcon size={12}/>}>Send Link</Button>
-          <Button size="small" style={{ borderRadius: 6, fontSize: 11, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', height: 26 }} icon={<QrCode size={12}/>}>QR</Button>
+          <Button type="primary" size="small" style={{ borderRadius: 6, background: 'var(--accent-secondary)', border: 'none', fontSize: 11, fontWeight: 600, height: 26 }} icon={<LinkIcon size={12} />}>Send Link</Button>
+          <Button size="small" style={{ borderRadius: 6, fontSize: 11, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', height: 26 }} icon={<QrCode size={12} />}>QR</Button>
           <a style={{ color: 'var(--text-secondary)', fontSize: 12, marginLeft: 8, fontWeight: 600 }}>Record</a>
-          <MoreHorizontal size={16} color="var(--text-tertiary)" style={{ cursor: 'pointer', marginLeft: 8 }}/>
+          <MoreHorizontal size={16} color="var(--text-tertiary)" style={{ cursor: 'pointer', marginLeft: 8 }} />
         </div>
       )
     }
@@ -69,12 +69,12 @@ const Finance = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Finance</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Invoicing, collections, and agency revenue management.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>This Month <ChevronDown size={14}/></Button>
+          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>This Month <ChevronDown size={14} /></Button>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Export</Button>
           <Button icon={<Settings size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Set Up Auto-Collection</Button>
           <Button type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New Invoice</Button>
@@ -93,15 +93,15 @@ const Finance = () => {
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  style={{ 
+                <Card
+                  style={{
                     borderRadius: 8, // Square-ish like a notebook page
-                    border: '1px solid var(--border-color)', 
+                    border: '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',
                     boxShadow: 'var(--shadow-sm)',
                     height: '100%',
                     overflow: 'hidden'
-                  }} 
+                  }}
                   bodyStyle={{ padding: 0, display: 'flex', height: '100%' }}
                 >
                   {/* Ledger Binding (Far Left) */}
@@ -133,11 +133,11 @@ const Finance = () => {
             <Col xs={24} lg={14}>
               <Card style={{ borderRadius: 12, marginBottom: 24, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <strong style={{ fontSize: 18, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 12 }}>Razorpay <Tag style={{ margin: 0, borderRadius: 12, fontSize: 11, fontWeight: 700, border: '1px solid var(--accent-primary)', background: 'transparent', color: 'var(--accent-primary)' }}><CheckCircle2 size={12} style={{ marginRight: 6, position: 'relative', top: 2 }}/> Connected</Tag></strong>
+                  <strong style={{ fontSize: 18, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 12 }}>Razorpay <Tag style={{ margin: 0, borderRadius: 12, fontSize: 11, fontWeight: 700, border: '1px solid var(--accent-primary)', background: 'transparent', color: 'var(--accent-primary)' }}><CheckCircle2 size={12} style={{ marginRight: 6, position: 'relative', top: 2 }} /> Connected</Tag></strong>
                   <a style={{ fontSize: 13, color: 'var(--accent-secondary)', fontWeight: 600 }}>Manage Razorpay Account ↗</a>
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                  <Text type="secondary" style={{ fontWeight: 500 }}>Account:</Text> <strong style={{ color: 'var(--text-primary)' }}>BCC Martech</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontWeight: 500 }}>Merchant ID:</Text> rzp_live_8n2EqA29Mz<br/>
+                  <Text type="secondary" style={{ fontWeight: 500 }}>Account:</Text> <strong style={{ color: 'var(--text-primary)' }}>BCC Martech</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontWeight: 500 }}>Merchant ID:</Text> rzp_live_8n2EqA29Mz<br />
                   <Text type="secondary" style={{ fontWeight: 500 }}>Settlement: T+2 business days to</Text> <strong style={{ color: 'var(--text-primary)' }}>HDFC ····4821</strong>
                 </div>
               </Card>
@@ -152,7 +152,7 @@ const Finance = () => {
                     <Radio value="auto" style={{ alignItems: 'flex-start' }}>
                       <div style={{ marginLeft: 12 }}>
                         <strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 15, marginBottom: 4 }}>Auto-collect via mandate (recommended)</strong>
-                        <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.6, display: 'block' }}>Client authorises once. We charge automatically each month.<br/>Mandate types: UPI Autopay · Card mandate · eNACH (Netbanking)</Text>
+                        <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.6, display: 'block' }}>Client authorises once. We charge automatically each month.<br />Mandate types: UPI Autopay · Card mandate · eNACH (Netbanking)</Text>
                       </div>
                     </Radio>
                   </div>
@@ -197,9 +197,9 @@ const Finance = () => {
                 </div>
               </div>
 
-              <Button type="primary" block icon={<LinkIcon size={18}/>} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', marginBottom: 16, height: 48, fontWeight: 700, fontSize: 14 }}>Send payment links to all pending</Button>
-              <Button block icon={<Settings size={18}/>} style={{ borderRadius: 8, marginBottom: 16, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Set up UPI Autopay mandates</Button>
-              <Button block icon={<QrCode size={18}/>} style={{ borderRadius: 8, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Generate UPI QR for outstanding</Button>
+              <Button type="primary" block icon={<LinkIcon size={18} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', marginBottom: 16, height: 48, fontWeight: 700, fontSize: 14 }}>Send payment links to all pending</Button>
+              <Button block icon={<Settings size={18} />} style={{ borderRadius: 8, marginBottom: 16, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Set up UPI Autopay mandates</Button>
+              <Button block icon={<QrCode size={18} />} style={{ borderRadius: 8, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Generate UPI QR for outstanding</Button>
             </Col>
           </Row>
         </Card>
@@ -208,8 +208,8 @@ const Finance = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[32, 32]} style={{ marginBottom: 40 }}>
           <Col xs={24} lg={12}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoice Status — June 2026</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Breakdown of invoiced amounts</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoice Status — June 2026</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Breakdown of invoiced amounts</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', height: 280 }}>
@@ -227,7 +227,7 @@ const Finance = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {pieData.map((d, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }}/> <Text type="secondary" style={{ fontWeight: 600 }}>{d.name}</Text></span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} /> <Text type="secondary" style={{ fontWeight: 600 }}>{d.name}</Text></span>
                         <span><strong style={{ color: 'var(--text-primary)' }}>{d.name === 'Paid' ? '₹38.4L' : d.name === 'Pending' ? '₹3.2L' : d.name === 'Draft' ? '₹1.2L' : '₹0'}</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{d.value}%</Text></span>
                       </div>
                     ))}
@@ -238,8 +238,8 @@ const Finance = () => {
           </Col>
 
           <Col xs={24} lg={12}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Monthly Revenue — Last 6 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs · growth vs previous month</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Monthly Revenue — Last 6 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs · growth vs previous month</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ height: 280 }}>
@@ -263,8 +263,8 @@ const Finance = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoices</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>12 of 12 invoices</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoices</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>12 of 12 invoices</Text></div>}
           extra={<Radio.Group defaultValue="All" size="middle"><Radio.Button value="All">All</Radio.Button><Radio.Button value="Paid">Paid</Radio.Button><Radio.Button value="Pending">Pending</Radio.Button><Radio.Button value="Overdue">Overdue</Radio.Button><Radio.Button value="Draft">Draft</Radio.Button></Radio.Group>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >

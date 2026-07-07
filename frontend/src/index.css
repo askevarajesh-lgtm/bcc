@@ -37,8 +37,22 @@ select {
   font: inherit;
 }
 
-button {
-  cursor: pointer;
+button,
+a,
+select,
+[role="button"],
+.ant-btn,
+.ant-select-selector,
+.ant-dropdown-trigger,
+.ant-dropdown-menu-item,
+.ant-menu-item,
+.ant-menu-submenu-title,
+.sidebar-partner-card,
+.app-header__icon-button,
+.app-header__user,
+.app-header__date-pill,
+svg {
+  cursor: pointer !important;
 }
 
 ::selection {

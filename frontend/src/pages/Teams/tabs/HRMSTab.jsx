@@ -73,7 +73,7 @@ const HRMSTab = () => {
       {/* Header */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>HRMS</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>People operations for BCC Martech — hire, manage, develop, retain.</Text>
         </div>
@@ -129,8 +129,8 @@ const HRMSTab = () => {
           ].map(tab => {
             const isActive = tab.id === activeTab;
             return (
-              <div 
-                key={tab.id} 
+              <div
+                key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 16, borderBottom: isActive ? '2px solid var(--accent-warning)' : '2px solid transparent', color: isActive ? 'var(--accent-warning)' : 'var(--text-secondary)', fontWeight: isActive ? 700 : 600, cursor: 'pointer' }}>
                 <span style={{ color: isActive ? 'inherit' : 'var(--text-tertiary)' }}>{tab.icon}</span>
@@ -154,9 +154,9 @@ const HRMSTab = () => {
         </motion.div>
       </AnimatePresence>
 
-      <AddEmployeeModal 
-        visible={isAddEmployeeModalVisible} 
-        onCancel={() => setIsAddEmployeeModalVisible(false)} 
+      <AddEmployeeModal
+        visible={isAddEmployeeModalVisible}
+        onCancel={() => setIsAddEmployeeModalVisible(false)}
         onSuccess={() => {
           setIsAddEmployeeModalVisible(false);
           // If active tab is people, it could auto-refresh if we lift state up, 

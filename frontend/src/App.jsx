@@ -30,8 +30,9 @@ import QREmbedView from './pages/WebsiteBuilder/tabs/QREmbedView';
 import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
+import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
 import Content from './pages/Content/Content';
-import Creative from './pages/Creative/Creative';
+import AIStudio from './pages/AIStudio/AIStudio';
 import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
 import PerformanceAds from './pages/PerformanceAds/PerformanceAds';
 import Accounts from './pages/Accounts/Accounts';
@@ -194,7 +195,7 @@ const AppRoutes = () => {
           <Route path="workspace/strategy" element={<Strategy />} />
           <Route path="workspace/seo" element={<SEO />} />
           <Route path="workspace/content" element={<Content />} />
-          <Route path="workspace/aistudio" element={<Creative />} />
+          <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
@@ -226,6 +227,7 @@ const AppRoutes = () => {
           <Route path="intelligence/agents" element={<AIAgents />} />
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
+          <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
           <Route path="ops/team" element={<Teams />} />
           <Route path="ops/time" element={<TimeTracking />} />
@@ -269,7 +271,7 @@ const AppRoutes = () => {
           <Route path="strategy" element={<Strategy />} />
           <Route path="seo" element={<SEO />} />
           <Route path="content" element={<Content />} />
-          <Route path="ai-studio" element={<Creative />} />
+          <Route path="ai-studio" element={<AIStudio />} />
           <Route path="social-media" element={<CampaignScheduledPage />} />
           <Route path="performance-ads" element={<PerformanceAds />} />
           <Route path="crm" element={<CRM />} />
@@ -320,7 +322,7 @@ const AppRoutes = () => {
           <Route path="workspace/strategy" element={<Strategy />} />
           <Route path="workspace/seo" element={<SEO />} />
           <Route path="workspace/content" element={<Content />} />
-          <Route path="workspace/aistudio" element={<Creative />} />
+          <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
@@ -353,6 +355,7 @@ const AppRoutes = () => {
           <Route path="intelligence/agents" element={<AIAgents />} />
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
+          <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
           <Route path="ops/team" element={<Teams />} />
           <Route path="ops/time" element={<TimeTracking />} />
@@ -398,7 +401,21 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<UserDashboardTab />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="tasks/:id/edit" element={<TaskForm />} />
-          <Route path="meetings" element={<MeetingsPage />} />
+          
+          {/* Dynamically Granted Modules */}
+          <Route path="workspace/strategy" element={<Strategy />} />
+          <Route path="workspace/seo" element={<SEO />} />
+          <Route path="workspace/content" element={<Content />} />
+          <Route path="workspace/aistudio" element={<AIStudio />} />
+          <Route path="workspace/social" element={<CampaignScheduledPage />} />
+          <Route path="workspace/ads" element={<PerformanceAds />} />
+          <Route path="workspace/crm" element={<CRM />} />
+          <Route path="workspace/website/*" element={<WebsiteBuilder />} />
+          
+          <Route path="intelligence/analytics" element={<Analytics />} />
+          <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
+          <Route path="intelligence/canva" element={<ClientCanvaPage />} />
+          
           <Route path="settings" element={<UserSettingsTab />} />
         </Route>
       </Route>

@@ -1,8 +1,7 @@
-import React from 'react';
-import { Avatar, Badge, Button, Dropdown, Grid, Layout } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Avatar, Badge, Button, Dropdown, Grid, Layout, Popover, List, Typography, Spin } from 'antd';
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
   LogOut,
   Menu as MenuIcon,
@@ -14,8 +13,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLayoutContext } from '../contexts/LayoutContext';
 import { useTheme } from '../contexts/ThemeContext';
+import api from '../services/api';
 
 const { Header: AntHeader } = Layout;
+const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const Header = () => {
@@ -25,6 +26,109 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const screens = useBreakpoint();
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [notifsVisible, setNotifsVisible] = useState(false);
+
+  useEffect(() => {
+    fetchNotifications();
+    // In a real app we might set up an interval or websocket here
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifs(true);
+      const res = await api.get('/tasks/notifications?limit=5');
+      if (res.data?.success) {
+        setNotifications(res.data.data.notifications || []);
+        setUnreadCount(res.data.data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error("Failed to load notifications", err);
+    } finally {
+      setLoadingNotifs(false);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.isRead) {
+        await api.put(`/tasks/notifications/${notification._id}/read`);
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
+      }
+      setNotifsVisible(false);
+
+      if (notification.type?.startsWith('sla_')) {
+        const basePath = role.includes('brand') || role === 'client' ? '/client/sla' : '/agency/sla';
+        navigate(basePath);
+      } else if (notification.taskId) {
+        // Handle task click
+      }
+    } catch (err) {
+      console.error("Failed to mark as read", err);
+    }
+  };
+
+  const notificationContent = (
+    <div style={{ width: 300 }}>
+      {loadingNotifs ? (
+        <div style={{ textAlign: 'center', padding: 20 }}><Spin /></div>
+      ) : (
+        <List
+          dataSource={notifications}
+          locale={{ emptyText: "No new notifications" }}
+          renderItem={(item) => (
+            <List.Item 
+              style={{ cursor: 'pointer', opacity: item.isRead ? 0.6 : 1, padding: '12px 0' }}
+              onClick={() => handleNotificationClick(item)}
+            >
+              <List.Item.Meta
+                title={<span style={{ fontWeight: item.isRead ? 'normal' : 'bold' }}>{item.title}</span>}
+                description={<Text type="secondary" style={{ fontSize: 12 }}>{item.message}</Text>}
+              />
+            </List.Item>
+          )}
+        />
+      )}
+      <Button type="link" block onClick={() => {
+        setNotifsVisible(false);
+        if (role.includes('brand') || role === 'client') navigate('/client/settings');
+        else navigate('/agency/settings'); // Notifications tab is inside settings
+      }}>
+        View All Notifications
+      </Button>
+    </div>
+  );
+
+  const handleRevertImpersonation = () => {
+    const origToken = localStorage.getItem('original_token');
+    const origUserStr = localStorage.getItem('original_user');
+    if (origToken && origUserStr) {
+      localStorage.setItem('token', origToken);
+      localStorage.setItem('user', origUserStr);
+      
+      const parsedUser = JSON.parse(origUserStr);
+      localStorage.setItem('userRole', parsedUser.role);
+
+      localStorage.removeItem('original_token');
+      localStorage.removeItem('original_user');
+      
+      if (parsedUser.role === 'supreme_super_admin') {
+        window.location.href = '/superadmin/dashboard';
+      } else if (parsedUser.role === 'commander_admin') {
+        window.location.href = '/dashboard';
+      } else if (['agency_super_admin', 'agency_manager'].includes(parsedUser.role)) {
+        window.location.href = '/agency/overview';
+      } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(parsedUser.role)) {
+        window.location.href = '/client/dashboard';
+      } else {
+        window.location.href = '/';
+      }
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -119,16 +223,20 @@ const Header = () => {
     };
   };
 
-  const formatDateRange = () => {
-    const end = new Date();
-    const start = new Date(end);
-    start.setDate(end.getDate() - 29);
-    const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-    const endFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return `${dateFormatter.format(start)} – ${endFormatter.format(end)}`;
-  };
-
   const headerCopy = getHeaderCopy();
+
+  const origUserStr = localStorage.getItem('original_user');
+  const origUser = origUserStr ? JSON.parse(origUserStr) : null;
+  let revertPanelName = '';
+  if (origUser) {
+    if (origUser.role === 'commander_admin') revertPanelName = 'Commander Admin';
+    else if (origUser.role === 'agency_manager' || origUser.role === 'agency') revertPanelName = 'Agency Manager';
+    else if (origUser.role === 'brand_manager') revertPanelName = 'Brand Manager';
+    else if (origUser.role === 'agency_super_admin') revertPanelName = 'Agency Admin';
+    else if (origUser.role === 'brand_super_admin') revertPanelName = 'Brand Admin';
+    else if (origUser.role === 'superadmin' || origUser.role === 'supreme_super_admin') revertPanelName = 'Super Admin';
+    else revertPanelName = 'Original Panel';
+  }
 
   const userMenuItems = [
     { key: 'profile', label: 'My Profile', icon: <User size={16} /> },
@@ -172,21 +280,24 @@ const Header = () => {
       </div>
 
       <div className="app-header__actions">
-        {role === 'supreme_super_admin' && !location.pathname.startsWith('/superadmin') && (
+        {origUser && (
+          <Button
+            type="primary"
+            onClick={handleRevertImpersonation}
+            style={{ background: '#d9363e', borderColor: '#d9363e' }}
+            className="app-header__super-button"
+          >
+            Back to {revertPanelName}
+          </Button>
+        )}
+
+        {role === 'supreme_super_admin' && !location.pathname.startsWith('/superadmin') && !origUser && (
           <Button
             type="primary"
             onClick={() => navigate('/superadmin/dashboard')}
             className="app-header__super-button"
           >
             Back to Super Admin
-          </Button>
-        )}
-
-        {screens.md && (
-          <Button className="app-header__date-pill">
-            <CalendarDays size={18} />
-            <span>{formatDateRange()}</span>
-            <ChevronDown size={16} />
           </Button>
         )}
 
@@ -198,14 +309,26 @@ const Header = () => {
           aria-label="Toggle theme"
         />
 
-        <Badge dot offset={[-5, 5]}>
-          <Button
-            type="text"
-            icon={<Bell size={19} />}
-            className="app-header__icon-button"
-            aria-label="Notifications"
-          />
-        </Badge>
+        <Popover
+          content={notificationContent}
+          title="Notifications"
+          trigger="click"
+          open={notifsVisible}
+          onOpenChange={(v) => {
+            setNotifsVisible(v);
+            if (v) fetchNotifications();
+          }}
+          placement="bottomRight"
+        >
+          <Badge count={unreadCount} offset={[-5, 5]}>
+            <Button
+              type="text"
+              icon={<Bell size={19} />}
+              className="app-header__icon-button"
+              aria-label="Notifications"
+            />
+          </Badge>
+        </Popover>
 
         <Dropdown
           menu={{ items: userMenuItems, onClick: handleUserMenuClick }}

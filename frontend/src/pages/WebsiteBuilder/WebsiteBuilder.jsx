@@ -50,7 +50,7 @@ const WebsiteBuilder = () => {
         console.error("Failed to fetch websites for dashboard", err);
       }
     };
-    
+
     fetchWebsites();
   }, []);
 
@@ -64,10 +64,10 @@ const WebsiteBuilder = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
@@ -86,7 +86,7 @@ const WebsiteBuilder = () => {
   const pathParts = location.pathname.split('/').filter(Boolean);
   const lastPart = pathParts[pathParts.length - 1];
   const { role } = useAuth();
-  
+
   const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : (role === 'agency_client' ? 'websites' : 'overview');
 
   const handleTabClick = (tabId) => {
@@ -106,12 +106,12 @@ const WebsiteBuilder = () => {
           { label: 'TOTAL WEBSITES', val: dashboardStats.totalWebsites.toString(), sub: 'Active projects', alert: 'Manage in Websites tab', color: 'var(--accent-secondary)' },
           { label: 'ACTIVE PAGES', val: dashboardStats.totalPages.toString(), sub: 'Across all websites', alert: 'Manage pages in builder', color: 'var(--accent-secondary)' },
         ].map((kpi, i) => (
-          <Col style={{ flex: '1 1 200px', minWidth: 200}} key={i}>
+          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-              <Card 
-                bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }} 
-                style={{ 
-                  borderRadius: 12, 
+              <Card
+                bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+                style={{
+                  borderRadius: 12,
                   height: '100%',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
@@ -119,12 +119,12 @@ const WebsiteBuilder = () => {
                   overflow: 'hidden'
                 }}
               >
-                <div style={{ 
-                  height: 32, 
-                  background: 'var(--bg-tertiary)', 
-                  borderBottom: '1px solid var(--border-color)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  height: 32,
+                  background: 'var(--bg-tertiary)',
+                  borderBottom: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
                   padding: '0 12px',
                   gap: 6
                 }}>
@@ -138,27 +138,27 @@ const WebsiteBuilder = () => {
 
                 <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>{kpi.label}</Text>
-                  
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                     <div>
                       <Title level={2} style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontWeight: 800 }}>{kpi.val}</Title>
                       {kpi.sub && <Text style={{ fontSize: 13, color: kpi.color, display: 'block', fontWeight: 600 }}>{kpi.sub}</Text>}
                     </div>
-                    
+
                     {kpi.showRing && (
-                      <div style={{ 
-                        width: 44, 
-                        height: 44, 
-                        borderRadius: '50%', 
-                        border: '4px solid var(--accent-primary)', 
-                        borderTopColor: 'transparent', 
-                        transform: 'rotate(45deg)' 
+                      <div style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        border: '4px solid var(--accent-primary)',
+                        borderTopColor: 'transparent',
+                        transform: 'rotate(45deg)'
                       }} />
                     )}
-                    
+
                     {kpi.badge && <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 8px', margin: 0 }}>{kpi.badge}</Tag>}
                   </div>
-                  
+
                   <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 'auto', paddingTop: 16, fontWeight: 500 }}>{kpi.alert}</Text>
                 </div>
               </Card>
@@ -184,7 +184,7 @@ const WebsiteBuilder = () => {
             <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
               <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><LayoutTemplate size={22} color="var(--accent-info)" /> Start from a Template</Title>
               <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>100+ professionally designed templates. Filter by industry and customize everything.</Text>
-              
+
               <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(59, 130, 246, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => { setWebsiteInitialAction('openTemplates'); handleTabClick('websites'); }}>
                 <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-info)' }}>Browse Templates →</Button>
               </div>
@@ -197,7 +197,7 @@ const WebsiteBuilder = () => {
             <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
               <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Code size={22} color="var(--accent-warning)" /> Import or Upload Code</Title>
               <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>Upload HTML/CSS/JS files, paste code, or import from Webflow, Figma, or WordPress.</Text>
-              
+
               <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(245, 158, 11, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => handleTabClick('websites')}>
                 <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-warning)' }}>Import Site →</Button>
               </div>
@@ -207,8 +207,8 @@ const WebsiteBuilder = () => {
       </Row>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Activity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Changes across all sites — last 7 days</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Recent Activity</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Changes across all sites — last 7 days</Text></div>}
           extra={<Button type="link" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-secondary)' }}>View Full History →</Button>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
         >
@@ -242,7 +242,7 @@ const WebsiteBuilder = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Websites</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with funnels, forms, and domain management built in.</Text>
         </div>
@@ -258,20 +258,20 @@ const WebsiteBuilder = () => {
 
       {/* Tabs Navigation */}
       {role !== 'agency_client' && (
-        <motion.div variants={itemVariants} style={{display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
+        <motion.div variants={itemVariants} style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
           {tabs.map((tab) => (
-            <div 
+            <div
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              style={{ 
-                padding: '12px 16px', 
+              style={{
+                padding: '12px 16px',
                 color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent', 
-                fontWeight: activeTab === tab.id ? 800 : 600, 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 8, 
-                cursor: 'pointer', 
+                borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent',
+                fontWeight: activeTab === tab.id ? 800 : 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 marginBottom: -1,
                 transition: 'all 0.2s',

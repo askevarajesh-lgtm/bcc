@@ -76,7 +76,6 @@ const AICopilot = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
       
       <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
-        <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 04 · INTELLIGENCE</Text>
         <Title level={2} style={{ margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 800, color: 'var(--text-primary)' }}>
           AI Co-Pilot 
           <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(139, 92, 246, 0.15)', color: 'var(--accent-info)', fontWeight: 700, fontSize: 12, margin: 0, padding: '4px 12px' }}>GPT-4o Integration</Tag>

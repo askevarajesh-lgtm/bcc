@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Form, Input, Button, message, Avatar, Divider } from 'antd';
+import { Typography, Card, Form, Input, Button, message, Avatar, Divider, Upload } from 'antd';
 import { motion } from 'framer-motion';
-import { User, Lock, Save, Mail, Building } from 'lucide-react';
+import { User, Lock, Save, Mail, Building, Camera } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
@@ -13,7 +13,9 @@ const UserSettingsTab = () => {
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const { user, setUser } = useAuth();
 
   useEffect(() => {
     form.setFieldsValue({
@@ -21,7 +23,10 @@ const UserSettingsTab = () => {
       email: user.email || '',
       companyName: user.companyName || ''
     });
-  }, []);
+    if (user.avatar) {
+      setAvatarPreview(user.avatar);
+    }
+  }, [user]);
 
   const handleUpdateProfile = async (values) => {
     setLoading(true);
@@ -29,7 +34,8 @@ const UserSettingsTab = () => {
       const res = await api.put(`/users/${user.id || user._id}`, values);
       message.success('Profile updated successfully');
       // Update local storage user
-      const updatedUser = { ...user, ...values };
+      const updatedUser = { ...user, ...res.data.data };
+      setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update profile');
@@ -38,14 +44,51 @@ const UserSettingsTab = () => {
     }
   };
 
+  const customUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'user-avatars');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setAvatarPreview(url);
+        
+        // Auto-save the avatar to the DB
+        const updateRes = await api.put(`/users/${user.id || user._id}`, { avatar: url });
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+
+        onSuccess(res.data);
+        message.success('Profile picture updated successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload profile picture');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleChangePassword = async (values) => {
     setPwdLoading(true);
     try {
-      // Sending both current password and new password is standard, but if no endpoint exists we just try to update
-      // Since the admin endpoint strips password, we might need to rely on a generic /users/change-password endpoint.
-      // Let's assume there is one or we add it later. For now we will hit /users/${user._id}/password or similar.
-      // Actually we will just show a success message to satisfy UI requirements if the endpoint doesn't exist yet.
-      
+      await api.post('/users/change-password', {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword
+      });
       message.success('Password updated successfully');
       passwordForm.resetFields();
     } catch (error) {
@@ -68,9 +111,27 @@ const UserSettingsTab = () => {
         bodyStyle={{ padding: 32 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
-          <Avatar size={80} style={{ backgroundColor: 'var(--accent-primary)', fontSize: 32, fontWeight: 800 }}>
-            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-          </Avatar>
+          <div style={{ position: 'relative' }}>
+            <Avatar src={avatarPreview} size={80} style={{ backgroundColor: 'var(--accent-primary)', fontSize: 32, fontWeight: 800 }}>
+              {!avatarPreview && (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+            </Avatar>
+            <Upload customRequest={customUpload} showUploadList={false} accept="image/*">
+              <Button 
+                shape="circle" 
+                icon={<Camera size={14} />} 
+                loading={uploadingAvatar}
+                style={{ 
+                  position: 'absolute', 
+                  bottom: 0, 
+                  right: -4, 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              />
+            </Upload>
+          </div>
           <div>
             <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{user.name || 'User'}</Title>
             <Text type="secondary" style={{ fontSize: 14 }}>{user.email}</Text>

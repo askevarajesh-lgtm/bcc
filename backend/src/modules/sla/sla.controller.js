@@ -1,5 +1,49 @@
 const SlaRecord = require('./sla.model');
 const mongoose = require('mongoose');
+const Notification = require('../tasks/notification.model');
+const User = require('../auth/user.model');
+
+// Helper to notify relevant users about SLA events
+const notifySlaEvent = async (sla, type, title, message, excludeUserId = null) => {
+  try {
+    const notifyUserIds = new Set();
+    
+    // Notify assignee
+    if (sla.assignedTo) notifyUserIds.add(sla.assignedTo.toString());
+    
+    // Notify admins of the agency/brand
+    const admins = await User.find({
+      $or: [
+        { agencyId: sla.agencyId },
+        { brandId: sla.clientId }
+      ],
+      role: { $in: ["agency_super_admin", "commander_admin", "brand_super_admin"] },
+      isActive: true
+    }).select('_id');
+    
+    admins.forEach(admin => notifyUserIds.add(admin._id.toString()));
+    
+    // Don't notify the person who triggered the event
+    if (excludeUserId) {
+      notifyUserIds.delete(excludeUserId.toString());
+    }
+
+    if (notifyUserIds.size === 0) return;
+
+    const notifications = Array.from(notifyUserIds).map(userId => ({
+      userId,
+      type,
+      title,
+      message,
+      slaRecordId: sla._id,
+      channels: { inApp: true, email: false }
+    }));
+
+    await Notification.insertMany(notifications);
+  } catch (err) {
+    console.error("Failed to send SLA notification", err);
+  }
+};
 
 // Utility to generate dynamic SLA dashboard stats
 exports.getSlaDashboardStats = async (req, res, next) => {
@@ -176,7 +220,11 @@ exports.updateSla = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'SLA Record not found' });
     }
 
+    let statusChanged = false;
+    let assigneeChanged = false;
+
     if (status && status !== sla.status) {
+      statusChanged = true;
       sla.activityTimeline.push({
         action: 'Status Changed',
         details: `Status changed from ${sla.status} to ${status}`,
@@ -196,6 +244,7 @@ exports.updateSla = async (req, res, next) => {
     }
 
     if (assignedTo && String(assignedTo) !== String(sla.assignedTo)) {
+      assigneeChanged = true;
       sla.activityTimeline.push({
         action: 'Assigned User Changed',
         details: `SLA assigned to new user`,
@@ -205,6 +254,14 @@ exports.updateSla = async (req, res, next) => {
     }
 
     await sla.save();
+
+    // Dispatch notifications
+    if (statusChanged) {
+      await notifySlaEvent(sla, 'sla_status_changed', 'SLA Status Updated', `SLA ${sla.slaId} status changed to ${status}`, req.user?._id);
+    }
+    if (assigneeChanged) {
+      await notifySlaEvent(sla, 'sla_assigned', 'SLA Assigned', `SLA ${sla.slaId} has been assigned`, req.user?._id);
+    }
 
     res.status(200).json({ success: true, data: sla });
   } catch (error) {
@@ -260,6 +317,8 @@ exports.escalateSla = async (req, res, next) => {
     });
 
     await sla.save();
+    
+    await notifySlaEvent(sla, 'sla_escalated', 'SLA Escalated', `SLA ${sla.slaId} has been escalated to Critical Priority`, req.user?._id);
 
     res.status(200).json({ success: true, data: sla });
   } catch (error) {
@@ -307,6 +366,8 @@ exports.createSla = async (req, res, next) => {
     });
 
     await newSla.save();
+
+    await notifySlaEvent(newSla, 'sla_triggered', 'New SLA Raised', `SLA ${newSla.slaId} has been raised: ${newSla.title}`, req.user?._id);
 
     res.status(201).json({ success: true, data: newSla });
   } catch (error) {

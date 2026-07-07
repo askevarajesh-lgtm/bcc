@@ -24,15 +24,15 @@ const Creative = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
   const renderTabContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'Design Work': return <DesignWorkTab itemVariants={itemVariants} />;
       case 'Video': return <VideoTab itemVariants={itemVariants} />;
       case 'Asset Library': return <AssetLibraryTab itemVariants={itemVariants} />;
@@ -46,7 +46,7 @@ const Creative = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>PILLAR 02 · EXECUTION</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Creative</Title>
           <Text type="secondary">Design, video, and visual assets — every deliverable for every client.</Text>
         </div>
@@ -68,11 +68,11 @@ const Creative = () => {
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-              <Card 
-                bodyStyle={{ padding: 20, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', zIndex: 2 }} 
-                style={{ 
-                  borderRadius: 16, 
-                  height: '100%', 
+              <Card
+                bodyStyle={{ padding: 20, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', zIndex: 2 }}
+                style={{
+                  borderRadius: 16,
+                  height: '100%',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   boxShadow: 'var(--shadow-sm)',
@@ -108,29 +108,29 @@ const Creative = () => {
           {/* Interactive Tabs */}
           <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border-color)', marginBottom: 24, overflowX: 'auto' }}>
             {[
-              { id: 'Design Work', icon: <Palette size={16}/> },
-              { id: 'Video', icon: <Video size={16}/> },
-              { id: 'Asset Library', icon: <FolderOpen size={16}/> },
-              { id: 'Brand Guidelines', icon: <BookOpen size={16}/> },
-              { id: 'Deliverables', icon: <LayoutGrid size={16}/> }
+              { id: 'Design Work', icon: <Palette size={16} /> },
+              { id: 'Video', icon: <Video size={16} /> },
+              { id: 'Asset Library', icon: <FolderOpen size={16} /> },
+              { id: 'Brand Guidelines', icon: <BookOpen size={16} /> },
+              { id: 'Deliverables', icon: <LayoutGrid size={16} /> }
             ].map(tab => (
-              <div 
+              <div
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={{ 
-                  paddingBottom: 12, 
-                  borderBottom: activeTab === tab.id ? '2px solid var(--accent-secondary)' : '2px solid transparent', 
-                  fontWeight: activeTab === tab.id ? 700 : 500, 
+                style={{
+                  paddingBottom: 12,
+                  borderBottom: activeTab === tab.id ? '2px solid var(--accent-secondary)' : '2px solid transparent',
+                  fontWeight: activeTab === tab.id ? 700 : 500,
                   color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  display: 'flex', 
-                  alignItems: 'center', 
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: 8,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s'
                 }}
               >
-                <span style={{ color: activeTab === tab.id ? 'var(--accent-secondary)' : 'var(--text-tertiary)' }}>{tab.icon}</span> 
+                <span style={{ color: activeTab === tab.id ? 'var(--accent-secondary)' : 'var(--text-tertiary)' }}>{tab.icon}</span>
                 {tab.id}
               </div>
             ))}

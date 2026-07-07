@@ -23,7 +23,7 @@ const Resources = () => {
         setKpis(res.data.kpis);
         setUtilBars(res.data.teamUtilisation);
         setTeamAllocationData(res.data.clientAllocation.data);
-        
+
         const dynamicCols = res.data.clientAllocation.columns.map(client => ({
           title: client,
           dataIndex: client,
@@ -73,7 +73,7 @@ const Resources = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Resource Management</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Capacity planning, workload balancing, and team availability.</Text>
         </div>
@@ -92,15 +92,15 @@ const Resources = () => {
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  style={{ 
-                    borderRadius: 16, 
-                    border: '1px solid var(--border-color)', 
+                <Card
+                  style={{
+                    borderRadius: 16,
+                    border: '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',
                     boxShadow: 'var(--shadow-sm)',
                     height: '100%',
                     overflow: 'hidden'
-                  }} 
+                  }}
                   bodyStyle={{ padding: 0, display: 'flex', height: '100%' }}
                 >
                   <div style={{ width: '35%', background: kpi.bg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px 12px', borderRight: '1px solid var(--border-color)' }}>
@@ -119,9 +119,9 @@ const Resources = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Utilisation</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours allocated this month — target 80%</Text></div>} 
-          extra={<div style={{ display: 'flex', gap: 16, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-secondary)' }}/> Billable</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(13, 148, 136, 0.4)' }}/> Non-billable</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}/> Available</span></div>}
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Team Utilisation</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours allocated this month — target 80%</Text></div>}
+          extra={<div style={{ display: 'flex', gap: 16, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-secondary)' }} /> Billable</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(13, 148, 136, 0.4)' }} /> Non-billable</span><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }} /> Available</span></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -132,8 +132,8 @@ const Resources = () => {
                   <div><strong style={{ color: 'var(--text-primary)' }}>{u.util}%</strong> <span style={{ color: 'var(--text-secondary)' }}>utilised ·</span> <Text type="secondary" style={{ fontWeight: 600 }}>{u.bill + u.nonBill} / {u.cap}h</Text></div>
                 </div>
                 <div style={{ height: 28, display: 'flex', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                  {u.bill > 0 && <div style={{ width: `${(u.bill/u.cap)*100}%`, background: 'var(--accent-secondary)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700, minWidth: 20 }}>{u.bill}h</div>}
-                  {u.nonBill > 0 && <div style={{ width: `${(u.nonBill/u.cap)*100}%`, background: 'rgba(13, 148, 136, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-primary)', fontSize: 11, fontWeight: 700, minWidth: 20 }}>{u.nonBill}h</div>}
+                  {u.bill > 0 && <div style={{ width: `${(u.bill / u.cap) * 100}%`, background: 'var(--accent-secondary)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700, minWidth: 20 }}>{u.bill}h</div>}
+                  {u.nonBill > 0 && <div style={{ width: `${(u.nonBill / u.cap) * 100}%`, background: 'rgba(13, 148, 136, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-primary)', fontSize: 11, fontWeight: 700, minWidth: 20 }}>{u.nonBill}h</div>}
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: 12, color: 'var(--text-tertiary)', fontSize: 11, fontWeight: 600 }}>{u.free}h free</div>
                 </div>
               </div>
@@ -144,8 +144,8 @@ const Resources = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client Allocation — {monthName}</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours each team member is committed to per client.</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client Allocation — {monthName}</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Hours each team member is committed to per client.</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
           <Table columns={allocationCols} dataSource={teamAllocationData} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
@@ -153,16 +153,16 @@ const Resources = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Availability Calendar — {monthName}</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Green = available · Amber = partial · Red = fully booked</Text></div>} 
-          extra={<div style={{ display: 'flex', gap: 12 }}><div style={{ display: 'flex', gap: 8 }}><Button size="middle" icon={<ChevronLeft size={16}/>} style={{ borderRadius: 8 }} onClick={() => { const d = new Date(selectedMonth); d.setMonth(d.getMonth()-1); setSelectedMonth(d.toISOString()); }} /><Button size="middle" icon={<ChevronRight size={16}/>} style={{ borderRadius: 8 }} onClick={() => { const d = new Date(selectedMonth); d.setMonth(d.getMonth()+1); setSelectedMonth(d.toISOString()); }} /></div></div>}
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Availability Calendar — {monthName}</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Green = available · Amber = partial · Red = fully booked</Text></div>}
+          extra={<div style={{ display: 'flex', gap: 12 }}><div style={{ display: 'flex', gap: 8 }}><Button size="middle" icon={<ChevronLeft size={16} />} style={{ borderRadius: 8 }} onClick={() => { const d = new Date(selectedMonth); d.setMonth(d.getMonth() - 1); setSelectedMonth(d.toISOString()); }} /><Button size="middle" icon={<ChevronRight size={16} />} style={{ borderRadius: 8 }} onClick={() => { const d = new Date(selectedMonth); d.setMonth(d.getMonth() + 1); setSelectedMonth(d.toISOString()); }} /></div></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 16 }}>
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => <div key={d} style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-tertiary)', letterSpacing: 1.5, marginBottom: 8 }}>{d}</div>)}
-            
+
             {emptyDays.map((_, i) => <div key={`empty-${i}`} style={{ minHeight: 100, border: '1px solid transparent' }} />)}
-            
+
             {calendarData.map((dayData, i) => (
               <div key={i} style={{ minHeight: 100, border: '1px solid var(--border-color)', borderRadius: 12, padding: 12, background: 'var(--bg-secondary)', position: 'relative', boxShadow: 'var(--shadow-sm)' }}>
                 <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>{dayData.day}</strong>

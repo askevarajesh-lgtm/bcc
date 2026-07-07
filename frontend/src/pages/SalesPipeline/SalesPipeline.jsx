@@ -159,7 +159,6 @@ const SalesPipeline = () => {
       {/* Top Header */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OPERATIONS</Text>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800, color: isDark ? '#fff' : '#000' }}>Sales Pipeline</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Real-time opportunity tracking, sales velocity, and revenue forecasting.</Text>
         </div>

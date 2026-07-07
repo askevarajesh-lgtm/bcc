@@ -64,12 +64,12 @@ const BusinessIntel = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>AGENCY OPS</Text>
+
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Business Intelligence</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Agency-level growth metrics, forecasting, and strategic insights.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Last 12 months <ChevronDown size={14} style={{marginLeft: 4}}/></Button>
+          <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Last 12 months <ChevronDown size={14} style={{ marginLeft: 4 }} /></Button>
           <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export Board</Button>
         </div>
       </motion.div>
@@ -77,17 +77,17 @@ const BusinessIntel = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[16, 24]} style={{ marginBottom: 40 }}>
           {[
-            { label: 'MRR', val: formatCurrency(kpis.mrr), sub: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}% MoM`, pos: kpis.mrrGrowthRate >= 0, icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
-            { label: 'ARR', val: formatCurrency(kpis.arr), sub: 'Annualised run rate', icon: <TrendingUp size={20}/>, color: 'var(--text-primary)' },
-            { label: 'MRR GROWTH RATE', val: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}%`, sub: 'Recent avg', color: kpis.mrrGrowthRate >= 0 ? 'var(--accent-primary)' : 'var(--accent-danger)', icon: <Activity size={20}/> },
-            { label: 'ARPU', val: formatCurrency(kpis.arpu), sub: `${kpis.activeClients} active clients`, icon: <Users size={20}/>, color: 'var(--text-primary)' },
-            { label: 'CLIENT LTV (AVG)', val: formatCurrency(kpis.ltv), sub: `${churnData.avgContractLength} months avg tenure`, icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
+            { label: 'MRR', val: formatCurrency(kpis.mrr), sub: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}% MoM`, pos: kpis.mrrGrowthRate >= 0, icon: <LinkIcon size={20} />, color: 'var(--text-primary)' },
+            { label: 'ARR', val: formatCurrency(kpis.arr), sub: 'Annualised run rate', icon: <TrendingUp size={20} />, color: 'var(--text-primary)' },
+            { label: 'MRR GROWTH RATE', val: `${kpis.mrrGrowthRate >= 0 ? '+' : ''}${kpis.mrrGrowthRate}%`, sub: 'Recent avg', color: kpis.mrrGrowthRate >= 0 ? 'var(--accent-primary)' : 'var(--accent-danger)', icon: <Activity size={20} /> },
+            { label: 'ARPU', val: formatCurrency(kpis.arpu), sub: `${kpis.activeClients} active clients`, icon: <Users size={20} />, color: 'var(--text-primary)' },
+            { label: 'CLIENT LTV (AVG)', val: formatCurrency(kpis.ltv), sub: `${churnData.avgContractLength} months avg tenure`, icon: <ShieldCheck size={20} />, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  bodyStyle={{ padding: '24px 20px' }} 
-                  style={{ 
+                <Card
+                  bodyStyle={{ padding: '24px 20px' }}
+                  style={{
                     borderRadius: '32px 6px 32px 6px',
                     height: '100%',
                     border: '1px solid var(--border-color)',
@@ -109,8 +109,8 @@ const BusinessIntel = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>MRR Growth — Last 12 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>MRR Growth — Last 12 Months</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>In ₹ Lakhs</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <div style={{ height: 420 }}>
@@ -118,8 +118,8 @@ const BusinessIntel = () => {
               <ComposedChart data={mrrGrowthData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAct" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-secondary)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--accent-secondary)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--accent-secondary)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--accent-secondary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
@@ -139,8 +139,8 @@ const BusinessIntel = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[32, 32]} style={{ marginBottom: 40 }}>
           <Col xs={24} lg={24} xl={24} xxl={16}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client Retention by Cohort</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>% of cohort still active each month after onboarding</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Client Retention by Cohort</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>% of cohort still active each month after onboarding</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowX: 'auto', paddingBottom: 16 }}>
@@ -176,16 +176,16 @@ const BusinessIntel = () => {
               </div>
               <div style={{ display: 'flex', gap: 24, fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginTop: 24, paddingLeft: 8 }}>
                 <span style={{ letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>SCALE:</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'rgba(245, 158, 11, 0.2)', borderRadius: 4 }}/> {'<85%'}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'rgba(16, 185, 129, 0.2)', borderRadius: 4 }}/> 85-94%</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'var(--accent-primary)', borderRadius: 4 }}/> 95%+</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'rgba(245, 158, 11, 0.2)', borderRadius: 4 }} /> {'<85%'}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'rgba(16, 185, 129, 0.2)', borderRadius: 4 }} /> 85-94%</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 16, height: 12, background: 'var(--accent-primary)', borderRadius: 4 }} /> 95%+</span>
               </div>
             </Card>
           </Col>
 
           <Col xs={24} lg={24} xl={24} xxl={8}>
-            <Card 
-              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Revenue by Client Age</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Contribution to MRR by tenure</Text></div>} 
+            <Card
+              title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Revenue by Client Age</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Contribution to MRR by tenure</Text></div>}
               className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', height: 280 }}>
@@ -209,7 +209,7 @@ const BusinessIntel = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {pieData.map((d, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }}/> <Text type="secondary" style={{ fontWeight: 600 }}>{d.name}</Text></span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} /> <Text type="secondary" style={{ fontWeight: 600 }}>{d.name}</Text></span>
                         <strong style={{ color: 'var(--text-primary)', fontSize: 14 }}>{d.value}%</strong>
                       </div>
                     ))}
@@ -222,8 +222,8 @@ const BusinessIntel = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Churn Analysis</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Health of the existing client book</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Churn Analysis</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Health of the existing client book</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <Row gutter={48}>
@@ -270,8 +270,8 @@ const BusinessIntel = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>90-Day Revenue Forecast</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Three scenarios extending current MRR through upcoming months</Text></div>} 
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>90-Day Revenue Forecast</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Three scenarios extending current MRR through upcoming months</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
           <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
@@ -324,16 +324,16 @@ const BusinessIntel = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[16, 24]} style={{ paddingBottom: 40 }}>
           {[
-            { label: 'LTV : CAC RATIO', val: ratios.ltvCac, sub: 'Healthy - target ≥ 3x', icon: <ShieldCheck size={20}/>, color: 'var(--text-primary)' },
-            { label: 'PAYBACK PERIOD', val: ratios.payback, sub: 'CAC recovered in <6 mo', icon: <RefreshCcw size={20}/>, color: 'var(--text-primary)' },
-            { label: 'NET REVENUE RETENTION', val: `${ratios.nrr}%`, sub: '↗ Expansion > churn', color: 'var(--accent-primary)', icon: <TrendingUp size={20}/> },
-            { label: 'AGENCY GROSS MARGIN', val: `${ratios.grossMargin}%`, sub: 'Service-business benchmark', icon: <LinkIcon size={20}/>, color: 'var(--text-primary)' },
+            { label: 'LTV : CAC RATIO', val: ratios.ltvCac, sub: 'Healthy - target ≥ 3x', icon: <ShieldCheck size={20} />, color: 'var(--text-primary)' },
+            { label: 'PAYBACK PERIOD', val: ratios.payback, sub: 'CAC recovered in <6 mo', icon: <RefreshCcw size={20} />, color: 'var(--text-primary)' },
+            { label: 'NET REVENUE RETENTION', val: `${ratios.nrr}%`, sub: '↗ Expansion > churn', color: 'var(--accent-primary)', icon: <TrendingUp size={20} /> },
+            { label: 'AGENCY GROSS MARGIN', val: `${ratios.grossMargin}%`, sub: 'Service-business benchmark', icon: <LinkIcon size={20} />, color: 'var(--text-primary)' },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -2, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-                <Card 
-                  bodyStyle={{ padding: '24px 20px' }} 
-                  style={{ 
+                <Card
+                  bodyStyle={{ padding: '24px 20px' }}
+                  style={{
                     borderRadius: '6px 32px 6px 32px',
                     height: '100%',
                     border: '1px solid var(--border-color)',
