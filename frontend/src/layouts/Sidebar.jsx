@@ -41,6 +41,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   
   const [slaCount, setSlaCount] = React.useState(0);
   const [accountsCount, setAccountsCount] = React.useState(0);
+  const [agenciesCount, setAgenciesCount] = React.useState(0);
 
   React.useEffect(() => {
     const fetchSlaCount = async () => {
@@ -59,7 +60,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       try {
         const res = await api.get('/brands', { params: { limit: 1 } });
         if (res && res.data) {
-          const count = res.data.pagination?.total || res.data.data?.length || 0;
+          const count = res.data.count ?? res.data.pagination?.total ?? res.data.data?.length ?? 0;
           setAccountsCount(count);
         }
       } catch (error) {
@@ -67,8 +68,21 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       }
     };
 
+    const fetchAgenciesCount = async () => {
+      try {
+        const res = await api.get('/agencies', { params: { limit: 1 } });
+        if (res && res.data) {
+          const count = res.data.count ?? res.data.pagination?.total ?? res.data.data?.length ?? 0;
+          setAgenciesCount(count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch agencies count for sidebar', error);
+      }
+    };
+
     fetchSlaCount();
     fetchAccountsCount();
+    fetchAgenciesCount();
   }, []);
 
   const getInitials = (name) => {
@@ -109,12 +123,12 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'CLI' : 'CLIENTS',
       children: [
         ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
-          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', accountsCount.toString()) },
+          { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', agenciesCount.toString()) },
         ]),
         ...(['commander_admin', 'agency_super_admin', 'agency_manager'].includes(role) ? [
           { key: '/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') }
         ] : []),
-        { key: '/clients/portal', icon: getIcon(Monitor), label: getLabel('Direct Brand', accountsCount.toString()) },
+        { key: '/clients/portal', icon: getIcon(Monitor), label: getLabel(role === 'commander_admin' ? 'Direct Brand' : 'Brands', accountsCount.toString()) },
       ],
     },
     {

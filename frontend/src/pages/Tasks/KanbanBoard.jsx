@@ -147,8 +147,14 @@ const TaskCardInner = ({
   kanbanStatuses,
   onMobileMoveToColumn,
   canUseMobileBoardMove,
+  user,
 }) => {
   const [mobileMoveSelectKey, setMobileMoveSelectKey] = useState(0);
+
+  const isCreator = task.createdBy && (task.createdBy._id === user?._id || task.createdBy === user?._id);
+  const canEditThisTask = canEdit && isCreator;
+  const canDeleteThisTask = canDelete && isCreator;
+
   const accentColor = getPriorityColor(task.priority);
   const projectColor = task.projectId?.color || accentColor;
 
@@ -849,7 +855,7 @@ const TaskCardInner = ({
               </div>
             )}
 
-          {canEdit && navigate && (
+          {canEditThisTask && navigate && (
             <>
               {((isOverdue || isCompleted) && !isAdmin) ||
               ["done", "validated", "completed", "complete"].includes(task.status) ? (
@@ -962,7 +968,7 @@ const TaskCardInner = ({
               </Tooltip>
             )}
 
-          {canDelete && (
+          {canDeleteThisTask && (
             <Tooltip title="Delete Task">
               <button
                 onClick={(e) => {
@@ -1035,6 +1041,7 @@ const TaskCard = ({
   isMobileKanbanUi,
   kanbanStatuses,
   onMobileMoveToColumn,
+  user,
 }) => {
   const { isDark } = useTheme();
   const isOverdue =
@@ -1108,6 +1115,7 @@ const TaskCard = ({
       kanbanStatuses={kanbanStatuses}
       onMobileMoveToColumn={onMobileMoveToColumn}
       canUseMobileBoardMove={!sortableDisabled}
+      user={user}
     />
   );
 };
@@ -1122,6 +1130,7 @@ const TaskCardWithReminder = ({
   showPendingOnly,
   onSendReminder,
   canEdit,
+  user,
 }) => {
   const { isDark } = useTheme();
   const isOverdue =
@@ -1183,6 +1192,7 @@ const TaskCardWithReminder = ({
       style={style}
       onClick={onClick}
       isDragging={isDragging}
+      user={user}
     />
   );
 };
@@ -1205,6 +1215,7 @@ const KanbanColumn = ({
   kanbanStatuses,
   onMobileMoveToColumn,
   onReopen,
+  user,
 }) => {
   const statusConfig = status;
   const taskIds = tasks.map((task) => task._id);
@@ -1482,7 +1493,16 @@ const KanbanBoard = ({
   const isSEOFullTime = false;
 
   const { hasPermission } = useActionPermissions("/tasks");
-  const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
+  const adminRoles = [
+    "supreme_super_admin",
+    "commander_admin",
+    "agency_super_admin",
+    "brand_super_admin",
+    "agency_manager",
+    "brand_manager"
+  ];
+  const kanbanIsAdmin = adminRoles.includes(userRole);
+  const canCreate = kanbanIsAdmin && hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const canDelete = hasPermission(PERMISSION_ACTIONS.DELETE_TASK);
   const canMoveStatus = true; // Drag functionality should always remain enabled by default for all users.

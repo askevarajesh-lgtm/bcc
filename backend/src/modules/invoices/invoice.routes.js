@@ -11,7 +11,8 @@ router.route('/')
 
 router.route('/:id')
   .get(invoiceController.getInvoice)
-  .put(invoiceController.updateInvoice);
+  .put(invoiceController.updateInvoice)
+  .delete(invoiceController.deleteInvoice);
 
 router.post('/:id/payment', invoiceController.updatePayment);
 router.get('/:id/pdf', invoiceController.generatePDF);

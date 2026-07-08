@@ -78,6 +78,10 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
   const canEditTaskDetails = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const canDelete = hasPermission(PERMISSION_ACTIONS.DELETE_TASK);
 
+  const isCreator = task?.createdBy && (task.createdBy._id === user?._id || task.createdBy === user?._id);
+  const canEditThisTask = canEdit && canEditTaskDetails && isCreator;
+  const canDeleteThisTask = canDelete && isCreator;
+
   const [updateScreenshot] = useUpdateTaskScreenshotMutation();
 
   const handleScreenshotUpdate = async (attachmentId, file) => {
@@ -677,8 +681,7 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
                   </Button>
                 )}
               {task &&
-                canEdit &&
-                canEditTaskDetails &&
+                canEditThisTask &&
                 !["done", "validated", "completed", "complete", "review"].includes(task.status?.toLowerCase()) && (
                   <Button
                     type="primary"
@@ -691,7 +694,7 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
                     Edit
                   </Button>
                 )}
-              {task && canDelete && (
+              {task && canDeleteThisTask && (
                 <Popconfirm
                   title="Are you sure you want to delete this task?"
                   onConfirm={handleDelete}

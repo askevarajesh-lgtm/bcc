@@ -40,13 +40,17 @@ import MasterItemDetailsCard from "../../components/common/MasterItemDetailsCard
 const { TextArea } = Input;
 const { Option } = Select;
 
-const parseHandlingDurationMonths = (duration) => {
-  if (!duration) return 0;
+const parseHandlingDuration = (duration) => {
+  if (!duration) return { amount: 0, unit: 'day' };
   const text = String(duration).trim().toLowerCase();
   const match = text.match(/(\d+)/);
-  if (!match) return 0;
-  const months = Number(match[1]) || 0;
-  return months > 0 ? months : 0;
+  if (!match) return { amount: 0, unit: 'day' };
+  const amount = Number(match[1]) || 0;
+  
+  if (text.includes('month')) return { amount, unit: 'month' };
+  if (text.includes('week')) return { amount, unit: 'week' };
+  if (text.includes('year')) return { amount, unit: 'year' };
+  return { amount, unit: 'day' }; // Default to days
 };
 
 const ProjectForm = () => {
@@ -296,9 +300,9 @@ const ProjectForm = () => {
       }
 
       const handlingDuration = item.handlingDuration || "";
-      const months = parseHandlingDurationMonths(handlingDuration);
+      const { amount, unit } = parseHandlingDuration(handlingDuration);
       let startDate = dayjs();
-      let endDate = months > 0 ? startDate.add(months, "month") : startDate;
+      let endDate = amount > 0 ? startDate.add(amount, unit) : startDate;
 
       if (item.startDate && item.endDate) {
         startDate = dayjs(item.startDate);
@@ -390,7 +394,7 @@ const ProjectForm = () => {
           remainingVideos: selectedInvoiceItem.numberOfVideos || getCategoryCount(["video", "videos"]),
           remainingShoots: selectedInvoiceItem.numberOfShoots || getCategoryCount(["shoot", "shoots"]),
           selectedCategories: (
-            selectedInvoiceItem.selectedCategories || []
+            selectedInvoiceItem.selectedCategories || selectedInvoiceItem.categories || []
           ).map((cat, idx) => {
             let catName = cat.name || cat.categoryName;
 
@@ -473,9 +477,9 @@ const ProjectForm = () => {
     billingType = selectedInvoiceItem.billingType;
     const item = selectedInvoiceItem;
     const handlingDuration = item.handlingDuration || "";
-    const months = parseHandlingDurationMonths(handlingDuration);
+    const { amount, unit } = parseHandlingDuration(handlingDuration);
     startDate = dayjs();
-    endDate = months > 0 ? startDate.add(months, "month") : startDate;
+    endDate = amount > 0 ? startDate.add(amount, unit) : startDate;
 
     if (item.startDate && item.endDate) {
       startDate = dayjs(item.startDate);

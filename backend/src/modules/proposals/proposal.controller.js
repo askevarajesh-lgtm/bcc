@@ -56,7 +56,7 @@ exports.getProposals = async (req, res, next) => {
     const total = await Proposal.countDocuments(queryFilter);
     const proposals = await Proposal.find(queryFilter)
       .populate('clientId', 'name email')
-      .populate('masterItems', 'name itemCode price categories')
+      .populate('masterItems', 'name itemCode price categories handlingDuration')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -79,7 +79,7 @@ exports.getProposal = async (req, res, next) => {
   try {
     const proposal = await Proposal.findOne({ _id: req.params.id, isDeleted: false })
       .populate('clientId', 'name email address phone')
-      .populate('masterItems', 'name itemCode category price duration description');
+      .populate('masterItems', 'name itemCode category price duration description handlingDuration');
     if (!proposal) {
       return res.status(404).json({ success: false, message: 'Proposal not found' });
     }

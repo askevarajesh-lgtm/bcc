@@ -54,6 +54,8 @@ const ROLES_WITH_FULL_TASK_ACCESS = [
   "agency_manager",
   "agency_client",
   "client",
+  "brand_super_admin",
+  "brand_manager",
 ];
 
 const toHyphenatedSlug = (value = "") =>
@@ -434,7 +436,7 @@ const getAllTasks = async (
   // ----------------------------------------------------
   // CREATOR-BASED TASK ISOLATION
   // ----------------------------------------------------
-  if (userId && userRole && !restrictToOwnAssignedTasks) {
+  if (userId && userRole && !restrictToOwnAssignedTasks && !['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(userRole)) {
     const currentUser = await User.findById(userId);
     let allowedCreatorRoles = [];
 
@@ -470,14 +472,14 @@ const getAllTasks = async (
       { assignedTo: userObjId },
       { watchers: userObjId },
     ];
-  } else if ((userRole === "client" || userRole === "agency_client") && userId) {
+  } else if (['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(userRole) && userId) {
     // Strict isolation for clients: only their own company data
     const user = await User.findById(userId).select("clientId");
     if (user && user.clientId) {
       additionalFilters.companyId = user.clientId;
     } else {
-      // If no clientId linked, return no tasks
-      additionalFilters._id = null;
+      // If no clientId linked, fallback to user ID as they are likely the client company itself
+      additionalFilters.companyId = userObjId;
     }
   } else if (restrictToOwnAssignedTasks) {
     // Regular assignee roles should only see tasks explicitly assigned to them
@@ -785,24 +787,24 @@ const getTaskById = async (
   }
 
   // Apply role-based data filtering: Strict isolation for clients
-  if (userRole === "client" && userId) {
+  if (['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(userRole) && userId) {
     const user = await User.findById(userId).select("clientId");
-    if (user && user.clientId) {
-      // Use both clientId (legacy) and companyId (ClientCompany ref) for check
-      const taskClientRef = task.companyId?._id || task.companyId;
-      const taskClientIdLegacy = task.clientId?._id || task.clientId;
+    
+    // The user's company is either their linked clientId, or their own userId (if they are the client company)
+    const userCompanyId = user?.clientId ? user.clientId.toString() : userId.toString();
 
-      const isAuthorized =
-        (taskClientRef &&
-          taskClientRef.toString() === user.clientId.toString()) ||
-        (taskClientIdLegacy &&
-          taskClientIdLegacy.toString() === user.clientId.toString());
+    // Use both clientId (legacy) and companyId (ClientCompany ref) for check
+    const taskClientRef = task.companyId?._id || task.companyId;
+    const taskClientIdLegacy = task.clientId?._id || task.clientId;
 
-      if (!isAuthorized) {
-        throw new Error(
-          "Access denied: You can only view tasks for your own company",
-        );
-      }
+    const isAuthorized =
+      (taskClientRef && taskClientRef.toString() === userCompanyId) ||
+      (taskClientIdLegacy && taskClientIdLegacy.toString() === userCompanyId);
+
+    if (!isAuthorized) {
+      throw new Error(
+        "Access denied: You can only view tasks for your own company",
+      );
     }
   }
 
@@ -858,8 +860,13 @@ const updateProjectCompletedCount = async (projectId, taskServiceType, increment
 
 const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
   const User = require("../auth/user.model");
-  const creator = await User.findById(createdByUserId).select("role");
+  const creator = await User.findById(createdByUserId).select("role clientId brandId");
   const isGlobalAdmin = creator && ["supreme_super_admin"].includes(creator.role);
+
+  // Auto-assign companyId if missing and the creator is a client/brand user
+  if (!taskData.companyId && creator && ['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(creator.role)) {
+    taskData.companyId = creator.clientId || creator.brandId || createdByUserId;
+  }
 
   // Verify that the client company belongs to the tenant company if provided
   let clientCompany = null;
