@@ -20,6 +20,9 @@ exports.getBrands = async (req, res, next) => {
       filter.agencyId = agencyId;
     } else {
       filter.isDirect = true;
+      if (req.user && req.user.role === 'commander_admin') {
+        filter.createdBy = req.user._id;
+      }
     }
 
     const brands = await User.find(filter).sort({ createdAt: -1 }).populate('createdBy', 'name role roleName');

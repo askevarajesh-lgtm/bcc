@@ -285,27 +285,26 @@ const ProjectForm = () => {
       invoiceDetails.proposalId?.masterItems[itemIndex]
     ) {
       const item = invoiceDetails.proposalId.masterItems[itemIndex];
-      const service = item.serviceId;
 
-      // Auto-populate project name from service with package name if available
-      let serviceName =
-        typeof service === "object" && service?.name
-          ? service.name
-          : item.description || "Unnamed Project";
+      // Auto-populate project name from item with package name if available
+      let serviceName = item.name || item.description || "Unnamed Project";
 
       // Add package name to project name if available
-      const packageName = getPackageName(service);
+      const packageName = getPackageName(item);
       if (packageName) {
         serviceName = `${serviceName} - ${packageName}`;
       }
 
-      // Auto-populate project dates from handling duration:
-      // start = today, end = start + handling duration months, renewal = end + 1 day
-      const handlingDuration =
-        (typeof service === "object" ? service?.handlingDuration : null) || "";
+      const handlingDuration = item.handlingDuration || "";
       const months = parseHandlingDurationMonths(handlingDuration);
-      const startDate = dayjs();
-      const endDate = months > 0 ? startDate.add(months, "month") : startDate;
+      let startDate = dayjs();
+      let endDate = months > 0 ? startDate.add(months, "month") : startDate;
+
+      if (item.startDate && item.endDate) {
+        startDate = dayjs(item.startDate);
+        endDate = dayjs(item.endDate);
+      }
+
       const renewalDate = endDate.add(1, "day");
 
       form.setFieldsValue({
@@ -396,15 +395,14 @@ const ProjectForm = () => {
             let catName = cat.name || cat.categoryName;
 
             // Resolve name from master item if missing
-            const master =
-              typeof selectedInvoiceItem.serviceId === "object"
-                ? selectedInvoiceItem.serviceId
-                : null;
+            const master = selectedInvoiceItem;
 
             if (!catName && master?.selectedCategories?.[idx]) {
               catName =
                 master.selectedCategories[idx].name ||
                 master.selectedCategories[idx].categoryName;
+            } else if (!catName && master?.categories?.[idx]) {
+              catName = master.categories[idx].name || master.categories[idx].categoryName;
             }
 
             // Type fallback
@@ -473,13 +471,17 @@ const ProjectForm = () => {
 
   if (selectedInvoiceItem) {
     billingType = selectedInvoiceItem.billingType;
-    const handlingDuration =
-      (typeof selectedInvoiceItem.serviceId === "object"
-        ? selectedInvoiceItem.serviceId?.handlingDuration
-        : "") || "";
+    const item = selectedInvoiceItem;
+    const handlingDuration = item.handlingDuration || "";
     const months = parseHandlingDurationMonths(handlingDuration);
     startDate = dayjs();
     endDate = months > 0 ? startDate.add(months, "month") : startDate;
+
+    if (item.startDate && item.endDate) {
+      startDate = dayjs(item.startDate);
+      endDate = dayjs(item.endDate);
+    }
+
     renewalDate = endDate.add(1, "day");
   }
 
@@ -793,27 +795,15 @@ const ProjectForm = () => {
                                   : "N/A"}
                               </Descriptions.Item>
                             </Descriptions>
-                            {selectedInvoiceItem.serviceId &&
-                              typeof selectedInvoiceItem.serviceId ===
-                                "object" && (
-                                <MasterItemDetailsCard
-                                  service={selectedInvoiceItem.serviceId}
-                                  packageName={getPackageName(
-                                    selectedInvoiceItem.serviceId,
-                                  )}
-                                  isDark={isDark}
-                                  selectedCategories={
-                                    selectedInvoiceItem.selectedCategories
-                                  }
-                                  overriddenHandlingAmount={
-                                    selectedInvoiceItem.handlingAmount
-                                  }
-                                  overriddenCampaignAmount={
-                                    selectedInvoiceItem.campaignAmount
-                                  }
-                                  overriddenBasePrice={selectedInvoiceItem.rate}
-                                />
-                              )}
+                            <MasterItemDetailsCard
+                              service={selectedInvoiceItem}
+                              packageName={getPackageName(selectedInvoiceItem)}
+                              isDark={isDark}
+                              selectedCategories={selectedInvoiceItem.selectedCategories || selectedInvoiceItem.categories}
+                              overriddenHandlingAmount={selectedInvoiceItem.handlingAmount}
+                              overriddenCampaignAmount={selectedInvoiceItem.campaignAmount}
+                              overriddenBasePrice={selectedInvoiceItem.price || selectedInvoiceItem.rate}
+                            />
                           </Card>
                         </>
                       )}

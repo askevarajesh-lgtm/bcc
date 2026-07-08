@@ -3,7 +3,11 @@ const User = require('../auth/user.model');
 exports.getAgencies = async (req, res, next) => {
   try {
     const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
-    const agencies = await User.find({ role: { $in: [targetRole] } }).populate('plan').sort({ createdAt: -1 });
+    let filter = { role: { $in: [targetRole] } };
+    if (req.user && req.user.role === 'commander_admin') {
+      filter.createdBy = req.user._id;
+    }
+    const agencies = await User.find(filter).populate('plan').sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: agencies.length, data: agencies });
   } catch (error) {
     next(error);
@@ -42,7 +46,8 @@ exports.createAgency = async (req, res, next) => {
       role: targetRole,
       companyName: name,
       plan: plan || packageId || null,
-      status: status || 'active'
+      status: status || 'active',
+      createdBy: req.user ? req.user._id : undefined
     });
 
     agencyUser.agencyId = agencyUser._id;

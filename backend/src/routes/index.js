@@ -122,5 +122,8 @@ router.use('/deliverables', require('../modules/deliverables/deliverables.routes
 // AI Studio Mount
 router.use('/ai-studio', require('../modules/aiStudio/aiStudio.routes'));
 
+// Content Module Mount
+router.use('/content', require('../modules/content/content.routes'));
+
 module.exports = router;
 

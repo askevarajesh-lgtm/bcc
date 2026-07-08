@@ -1,24 +1,124 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Input, Tag, Slider, Checkbox } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Input, Tag, Slider, Checkbox, message, Spin } from 'antd';
 import { motion } from 'framer-motion';
 import { FileText, Smartphone, Megaphone, Mail, Monitor, Edit3, Video, MessageCircle, Sparkles, Copy, Save, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { contentApi } from '../../../api/contentApi';
+import { useContentModule } from '../ContentModuleContext';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const contentTypes = [
-  { id: 'blog', title: 'Blog Post', desc: 'Long-form, SEO-optimised', icon: <FileText size={20} color="var(--accent-warning)" /> },
-  { id: 'social', title: 'Social Media Post', desc: 'Instagram / LinkedIn / Twitter', icon: <Smartphone size={20} color="var(--accent-secondary)" /> },
-  { id: 'ad', title: 'Ad Copy', desc: 'Google Ads / Meta Ads', icon: <Megaphone size={20} color="var(--accent-danger)" /> },
-  { id: 'email', title: 'Email', desc: 'Newsletter / Campaign', icon: <Mail size={20} color="var(--accent-primary)" /> },
-  { id: 'landing', title: 'Landing Page Copy', desc: 'Hero, features, CTA', icon: <Monitor size={20} color="#8b5cf6" /> },
-  { id: 'brief', title: 'Content Brief', desc: 'Brief for your writers', icon: <Edit3 size={20} color="var(--text-secondary)" /> },
-  { id: 'video', title: 'Video Script', desc: 'YouTube / Reel script', icon: <Video size={20} color="#ec4899" /> },
-  { id: 'whatsapp', title: 'WhatsApp Message', desc: 'Sales / Follow-up', icon: <MessageCircle size={20} color="var(--accent-info)" /> },
+  { id: 'blog-writer', title: 'Blog Writer', desc: 'Long-form, SEO-optimised articles', icon: <FileText size={20} color="var(--accent-warning)" /> },
+  { id: 'social-caption-writer', title: 'Social Caption Writer', desc: 'Instagram / LinkedIn / Twitter captions', icon: <Smartphone size={20} color="var(--accent-secondary)" /> },
+  { id: 'reel-scriptwriter', title: 'Reel Scriptwriter', desc: 'YouTube / Instagram Reel scripts', icon: <Video size={20} color="#ec4899" /> },
+  { id: 'creative-brief-writer', title: 'Creative Brief Writer', desc: 'Briefs for your design team', icon: <Edit3 size={20} color="var(--text-secondary)" /> }
 ];
 
 const AIStudioTab = ({ itemVariants }) => {
-  const [activeType, setActiveType] = useState('social');
+  const { refreshContent, refreshToken } = useContentModule();
+  const [activeType, setActiveType] = useState('social-caption-writer');
+  
+  // Form State
+  const [platform, setPlatform] = useState('Instagram');
+  const [topic, setTopic] = useState('New project launch — Prestige Whitefield');
+  const [tone, setTone] = useState('Professional');
+  const [brandVoice, setBrandVoice] = useState('Premium, aspirational, trustworthy');
+  const [keyMessage, setKeyMessage] = useState('');
+  const [includeOptions, setIncludeOptions] = useState(['Hashtags', 'CTA']);
+  const [characterLimit, setCharacterLimit] = useState(280);
+  const [variations, setVariations] = useState('1');
+
+  // Generation State
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState(null);
+
+  // Recent Items
+  const [recentItems, setRecentItems] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      setLoadingRecent(true);
+      try {
+        const res = await contentApi.getItems();
+        if (res.success && res.data.items) {
+          const sorted = [...res.data.items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setRecentItems(sorted.slice(0, 3));
+        }
+      } catch (err) {
+        console.error('Failed to load recent items');
+      } finally {
+        setLoadingRecent(false);
+      }
+    };
+    fetchRecent();
+  }, [refreshToken]);
+
+  const handleGenerate = async (isRegenerate = false) => {
+    if (!topic) return message.error('Topic is required');
+    
+    setIsGenerating(true);
+    try {
+      const payload = {
+        contentType: activeType,
+        platform,
+        topic,
+        tone,
+        brandVoice,
+        keyMessage,
+        includeOptions,
+        characterLimit,
+        variations: parseInt(variations)
+      };
+
+      const response = isRegenerate 
+        ? await contentApi.regenerateContent({ ...payload, regenerateOf: generatedContent?._id })
+        : await contentApi.generateContent(payload);
+        
+      if (response.success) {
+        setGeneratedContent(response.data);
+        message.success('Content generated successfully');
+        refreshContent(); // signal List and Calendar views to update
+      } else {
+        message.error(response.message || 'Generation failed');
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(error?.response?.data?.message || 'An error occurred during generation');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (generatedContent?.body) {
+      navigator.clipboard.writeText(generatedContent.body);
+      message.success('Copied to clipboard');
+    }
+  };
+
+  const handleSave = async () => {
+    if (generatedContent?._id) {
+      try {
+        const res = await contentApi.updateItem(generatedContent._id, { status: 'Draft' });
+        if (res.success) {
+          message.success('Draft saved');
+          refreshContent();
+        }
+      } catch (e) {
+        message.error('Failed to save draft');
+      }
+    }
+  };
+
+  const timeAgo = (dateStr) => {
+    const diff = new Date() - new Date(dateStr);
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return `${days}d ago`;
+  };
 
   return (
     <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }}>
@@ -28,7 +128,7 @@ const AIStudioTab = ({ itemVariants }) => {
             <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}>
               <Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>What do you want to create?</Title>
               <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <Sparkles size={14} color="var(--accent-secondary)"/> Routed through Lovable AI (Gemini 1.5 Pro). Server-side, no key needed.
+                <Sparkles size={14} color="var(--accent-secondary)"/> Routed through OpenAI (GPT-4o). Using your secure Workspace API Key.
               </Text>
               
               <Row gutter={[12, 12]} style={{ marginTop: 20, marginBottom: 24 }}>
@@ -68,63 +168,66 @@ const AIStudioTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>PLATFORM</Text>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {['Instagram', 'LinkedIn', 'Twitter/X', 'Facebook'].map(p => (
-                      <Tag key={p} style={{ padding: '6px 16px', borderRadius: 20, cursor: 'pointer', background: p === 'Instagram' ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === 'Instagram' ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === 'Instagram' ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 600, fontSize: 13 }}>{p}</Tag>
+                      <Tag key={p} onClick={() => setPlatform(p)} style={{ padding: '6px 16px', borderRadius: 20, cursor: 'pointer', background: p === platform ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === platform ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === platform ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 600, fontSize: 13 }}>{p}</Tag>
                     ))}
                   </div>
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>TOPIC</Text>
-                  <Input defaultValue="New project launch — Prestige Whitefield" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
+                  <Input value={topic} onChange={e => setTopic(e.target.value)} placeholder="New project launch — Prestige Whitefield" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>TONE</Text>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {['Professional', 'Casual', 'Excited', 'Inspiring'].map(p => (
-                      <Tag key={p} style={{ padding: '6px 16px', borderRadius: 20, cursor: 'pointer', background: p === 'Professional' ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === 'Professional' ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === 'Professional' ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 600, fontSize: 13 }}>{p}</Tag>
+                      <Tag key={p} onClick={() => setTone(p)} style={{ padding: '6px 16px', borderRadius: 20, cursor: 'pointer', background: p === tone ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === tone ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === tone ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 600, fontSize: 13 }}>{p}</Tag>
                     ))}
                   </div>
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>BRAND VOICE</Text>
-                  <Input defaultValue="Premium, aspirational, trustworthy" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
+                  <Input value={brandVoice} onChange={e => setBrandVoice(e.target.value)} placeholder="Premium, aspirational, trustworthy" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>KEY MESSAGE</Text>
-                  <TextArea rows={3} placeholder="The one thing readers should take away" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
+                  <TextArea value={keyMessage} onChange={e => setKeyMessage(e.target.value)} rows={3} placeholder="The one thing readers should take away" style={{ borderRadius: 8, padding: '8px 12px', fontSize: 14 }} />
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 12 }}>INCLUDE</Text>
-                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                    <Checkbox defaultChecked style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Hashtags</Checkbox>
-                    <Checkbox defaultChecked style={{ color: 'var(--text-primary)', fontWeight: 500 }}>CTA</Checkbox>
-                    <Checkbox style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Emojis</Checkbox>
-                    <Checkbox style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Mention @brand</Checkbox>
-                  </div>
+                  <Checkbox.Group value={includeOptions} onChange={setIncludeOptions} style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                      {['Hashtags', 'CTA', 'Emojis', 'Mention @brand'].map(opt => (
+                        <Checkbox key={opt} value={opt} style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{opt}</Checkbox>
+                      ))}
+                    </div>
+                  </Checkbox.Group>
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5 }}>CHARACTER LIMIT</Text>
-                    <Text strong style={{ color: 'var(--accent-secondary)' }}>280</Text>
+                    <Text strong style={{ color: 'var(--accent-secondary)' }}>{characterLimit}</Text>
                   </div>
-                  <Slider defaultValue={280} max={2200} trackStyle={{ background: 'var(--accent-secondary)' }} handleStyle={{ borderColor: 'var(--accent-secondary)' }} />
+                  <Slider value={characterLimit} onChange={setCharacterLimit} max={2200} trackStyle={{ background: 'var(--accent-secondary)' }} handleStyle={{ borderColor: 'var(--accent-secondary)' }} />
                 </div>
 
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>VARIATIONS</Text>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {['1', '2', '3'].map(p => (
-                      <Tag key={p} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', background: p === '1' ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === '1' ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === '1' ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 700, fontSize: 14, margin: 0 }}>{p}</Tag>
+                      <Tag key={p} onClick={() => setVariations(p)} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', background: p === variations ? 'var(--accent-secondary)' : 'var(--bg-primary)', color: p === variations ? 'var(--bg-primary)' : 'var(--text-secondary)', border: `1px solid ${p === variations ? 'var(--accent-secondary)' : 'var(--border-color)'}`, fontWeight: 700, fontSize: 14, margin: 0 }}>{p}</Tag>
                     ))}
                   </div>
                 </div>
 
-                <Button type="primary" size="large" icon={<Sparkles size={18} />} style={{ background: 'var(--accent-secondary)', width: '100%', marginTop: 12, height: 50, borderRadius: 12, fontSize: 16, fontWeight: 600, border: 'none', boxShadow: '0 4px 14px rgba(13, 148, 136, 0.4)' }}>Generate with Lovable AI</Button>
+                <Button loading={isGenerating} onClick={() => handleGenerate(false)} type="primary" size="large" icon={!isGenerating && <Sparkles size={18} />} style={{ background: 'var(--accent-secondary)', width: '100%', marginTop: 12, height: 50, borderRadius: 12, fontSize: 16, fontWeight: 600, border: 'none', boxShadow: '0 4px 14px rgba(13, 148, 136, 0.4)' }}>
+                  {isGenerating ? 'Generating...' : 'Generate Content'}
+                </Button>
               </div>
             </Card>
           </motion.div>
@@ -136,16 +239,34 @@ const AIStudioTab = ({ itemVariants }) => {
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                 <strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>Generated Content</strong>
                 <div style={{ display: 'flex', gap: 16 }}>
-                  <a style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Copy size={14}/> Copy All</a>
-                  <a style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Save size={14}/> Save</a>
-                  <a style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><RefreshCw size={14}/> Regenerate</a>
+                  <a onClick={handleCopy} style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Copy size={14}/> Copy All</a>
+                  <a onClick={handleSave} style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Save size={14}/> Save</a>
+                  <a onClick={() => handleGenerate(true)} style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><RefreshCw size={14}/> Regenerate</a>
                 </div>
               </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-tertiary)', padding: 40, minHeight: 400 }}>
-                <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 3 }}>
-                  <Sparkles size={48} style={{ marginBottom: 20, color: 'var(--accent-secondary)', opacity: 0.5 }} />
-                </motion.div>
-                <Text type="secondary" style={{ fontSize: 15 }}>Fill in the brief and hit <strong style={{ color: 'var(--text-primary)' }}>Generate</strong> to see real AI output here.</Text>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', minHeight: 400 }}>
+                {isGenerating ? (
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                     <Spin size="large" />
+                  </div>
+                ) : generatedContent ? (
+                  <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)', fontSize: 15, lineHeight: 1.6 }}>
+                    {generatedContent.title && <Title level={4}>{generatedContent.title}</Title>}
+                    {generatedContent.body}
+                    {generatedContent.hashtags && generatedContent.hashtags.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        {generatedContent.hashtags.map(h => <Text key={h} style={{ color: 'var(--accent-secondary)', marginRight: 8 }}>#{h.replace('#', '')}</Text>)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-tertiary)', padding: 40 }}>
+                    <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 3 }}>
+                      <Sparkles size={48} style={{ marginBottom: 20, color: 'var(--accent-secondary)', opacity: 0.5 }} />
+                    </motion.div>
+                    <Text type="secondary" style={{ fontSize: 15 }}>Fill in the brief and hit <strong style={{ color: 'var(--text-primary)' }}>Generate</strong> to see real AI output here.</Text>
+                  </div>
+                )}
               </div>
             </Card>
           </motion.div>
@@ -160,33 +281,48 @@ const AIStudioTab = ({ itemVariants }) => {
         <Button type="link" style={{ color: 'var(--accent-secondary)', fontSize: 14, fontWeight: 600, padding: 0 }}>View All in Content →</Button>
       </motion.div>
       
-      <Row gutter={[16, 16]}>
-        {[
-          { title: 'Whitefield launch hook', tags: ['Social', 'Prestige Estates', 'Today'] },
-          { title: 'NRI investor blog outline', tags: ['Blog', 'Prestige Estates', 'Yesterday'] },
-          { title: 'Summer RSA variants', tags: ['Ad Copy', 'Prestige Estates', '2d ago'] },
-        ].map((item, i) => (
-          <Col xs={24} lg={8} key={i}>
-            <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }}>
-              <Card 
-                bodyStyle={{ padding: '20px' }} 
-                style={{ 
-                  borderRadius: 16, 
-                  border: '1px solid var(--border-color)', 
-                  background: 'var(--bg-secondary)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <strong style={{ display: 'block', marginBottom: 16, fontSize: 15, color: 'var(--text-primary)' }}>{item.title}</strong>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                  {item.tags.map(t => <Tag key={t} style={{ borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, padding: '2px 10px', fontWeight: 500, margin: 0 }}>{t}</Tag>)}
-                </div>
-                <Button block style={{ height: 40, borderRadius: 8, fontWeight: 600, color: 'var(--text-primary)', borderColor: 'var(--border-color)' }} icon={<CheckCircle2 size={16} />}>Use Template</Button>
-              </Card>
-            </motion.div>
-          </Col>
-        ))}
-      </Row>
+      <Spin spinning={loadingRecent}>
+        <Row gutter={[16, 16]}>
+          {recentItems.length === 0 && !loadingRecent && (
+            <Col span={24}>
+              <Text type="secondary">No recently generated content.</Text>
+            </Col>
+          )}
+          {recentItems.map((item, i) => (
+            <Col xs={24} lg={8} key={i}>
+              <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }}>
+                <Card 
+                  bodyStyle={{ padding: '20px' }} 
+                  style={{ 
+                    borderRadius: 16, 
+                    border: '1px solid var(--border-color)', 
+                    background: 'var(--bg-secondary)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <strong style={{ display: 'block', marginBottom: 16, fontSize: 15, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</strong>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {[item.type, item.platform, timeAgo(item.createdAt)].filter(Boolean).map(t => (
+                      <Tag key={t} style={{ borderRadius: 12, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: 12, padding: '2px 10px', fontWeight: 500, margin: 0, textTransform: 'capitalize' }}>{t}</Tag>
+                    ))}
+                  </div>
+                  <Button 
+                    block 
+                    style={{ height: 40, borderRadius: 8, fontWeight: 600, color: 'var(--text-primary)', borderColor: 'var(--border-color)' }} 
+                    icon={<CheckCircle2 size={16} />}
+                    onClick={() => {
+                      setGeneratedContent(item);
+                      setActiveType(item.type);
+                    }}
+                  >
+                    View Draft
+                  </Button>
+                </Card>
+              </motion.div>
+            </Col>
+          ))}
+        </Row>
+      </Spin>
 
     </motion.div>
   );

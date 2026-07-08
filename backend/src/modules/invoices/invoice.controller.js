@@ -83,7 +83,7 @@ exports.getInvoices = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name price description status categories'
+          select: 'name price description status categories startDate endDate'
         }
       })
       .sort({ createdAt: -1 })
@@ -113,7 +113,7 @@ exports.getInvoice = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name itemCode category price duration description'
+          select: 'name itemCode category price duration description startDate endDate'
         }
       });
     if (!invoice) {
