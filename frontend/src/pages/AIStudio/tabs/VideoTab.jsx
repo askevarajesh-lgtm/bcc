@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, Input, Button, Card, Spin, message, Space } from 'antd';
+import { Typography, Input, Button, Card, Spin, message, Space, Select } from 'antd';
 import { Send, Video as VideoIcon, Save, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../../services/api';
@@ -11,6 +11,7 @@ const { TextArea } = Input;
 const VideoTab = () => {
   const { saveAsset, apiKey, setIsApiKeyModalVisible } = useAIStudio();
   const [prompt, setPrompt] = useState('');
+  const [selectedModel, setSelectedModel] = useState('GPT-5.5');
   const [loading, setLoading] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
 
@@ -23,9 +24,8 @@ const VideoTab = () => {
     
     setLoading(true);
     try {
-      const response = await api.post('/ai-studio/generate/video', { prompt }, {
-        headers: { 'x-ai-api-key': apiKey }
-      });
+      const response = await api.post('/ai-studio/generate/video', { prompt, model: selectedModel });
+
       if (response.data.success) {
         setGeneratedVideo(response.data.data.url);
         message.success('Video generated successfully');
@@ -56,13 +56,26 @@ const VideoTab = () => {
         <Text type="secondary">Describe your scene in detail to generate a short AI video.</Text>
         
         <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <TextArea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="E.g., A cinematic drone shot flying over a lush green valley with a river running through..."
-            autoSize={{ minRows: 3, maxRows: 6 }}
-            style={{ borderRadius: 8 }}
-          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Select 
+              value={selectedModel} 
+              onChange={setSelectedModel} 
+              style={{ width: 280 }}
+              size="large"
+              options={[
+                { value: 'GPT-5.5', label: 'GPT-5.5 (Highest Quality)' },
+                { value: 'GPT-5.4', label: 'GPT-5.4 (Fast & Efficient)' },
+                { value: 'GPT-5.4 mini', label: 'GPT-5.4 mini (Instant & Free)' }
+              ]}
+            />
+            <TextArea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="E.g., A cinematic drone shot flying over a lush green valley with a river running through..."
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
           <Button 
             type="primary" 
             icon={<Send size={16} />} 

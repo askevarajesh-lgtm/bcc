@@ -5,6 +5,8 @@ const startSlaScheduler = require('./src/modules/sla/sla.scheduler');
 const startMosScheduler = require('./src/modules/mos/mos.scheduler');
 const startReportScheduler = require('./src/modules/reports/report.scheduler');
 const startCalendarScheduler = require('./src/modules/calendar/calendar.scheduler');
+const seoCronService = require('./src/modules/seoIntelligence/services/cron.service');
+const workspaceCronService = require('./src/modules/seoWorkspace/services/workspaceCron.service');
 
 const PORT = process.env.PORT || 5500;
 
@@ -16,5 +18,7 @@ connectDB().then(() => {
     startMosScheduler();
     startReportScheduler();
     startCalendarScheduler();
+    seoCronService.start();
+    workspaceCronService.start();
   });
 });

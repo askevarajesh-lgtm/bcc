@@ -1,5 +1,13 @@
 const SeoWebsite = require('./models/seoProject.model');    // collection: seowebsites
 const SeoKeyword  = require('./models/seoKeyword.model');    // collection: seokeywords
+const SeoAudit = require('./models/seoAudit.model');
+const SeoStrategy = require('./models/seoStrategy.model');
+const SeoTask = require('./models/seoTask.model');
+const SeoReport = require('./models/seoReport.model');
+const AuditService = require('./services/audit.service');
+const AgentOrchestrator = require('./services/agentOrchestrator.service');
+const WordPressService = require('./services/wordPress.service');
+const GoogleService = require('./services/google.service');
 const dataForSeoService = require('./dataForSeo.service');
 
 /**
@@ -504,8 +512,7 @@ exports.getBacklinks = async (req, res) => {
     if (!website) {
       return res.status(404).json({ success: false, message: 'SEO website not found' });
     }
-
-    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '');
+    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
     
     // Use dedicated backlink service methods
     const [summary, referringDomains] = await Promise.all([
@@ -542,11 +549,19 @@ exports.getDomainOverview = async (req, res) => {
     const website = await SeoWebsite.findOne({ _id: projectId, companyId, isDeleted: false });
     if (!website) return res.status(404).json({ success: false, message: 'SEO website not found' });
 
-    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '');
+    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
     const locationCode = website.targetLocations[0]?.location_code || 2840;
     const languageCode = website.languages[0] || 'en';
 
-    const overview = await dataForSeoService.getDomainOverview(domain, locationCode, languageCode);
+    const [overview, backlinkSummary] = await Promise.all([
+      dataForSeoService.getDomainOverview(domain, locationCode, languageCode),
+      dataForSeoService.getBacklinkSummary(domain)
+    ]);
+
+    if (overview && overview.metrics && overview.metrics.organic) {
+      overview.metrics.organic.domain_trust = backlinkSummary ? (backlinkSummary.rank || 0) : 0;
+    }
+
     res.status(200).json({ success: true, data: overview });
   } catch (error) {
     console.error('Error fetching domain overview:', error);
@@ -564,7 +579,7 @@ exports.getCompetitors = async (req, res) => {
     const website = await SeoWebsite.findOne({ _id: projectId, companyId, isDeleted: false });
     if (!website) return res.status(404).json({ success: false, message: 'SEO website not found' });
 
-    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '');
+    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
     const locationCode = website.targetLocations[0]?.location_code || 2840;
     const languageCode = website.languages[0] || 'en';
 
@@ -645,5 +660,188 @@ exports.getContentAnalysis = async (req, res) => {
   } catch (error) {
     console.error('Error fetching content analysis:', error);
     res.status(500).json({ success: false, message: 'Server error fetching content analysis' });
+  }
+};
+exports.getAudits = async (req, res) => {
+  try {
+    const audits = await SeoAudit.find(req.params.projectId ? { projectId: req.params.projectId } : {}).populate('projectId', 'name').sort({ createdAt: -1 });
+    res.json(audits);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getKeywords = async (req, res) => {
+  try {
+    const keywords = await SeoKeyword.find(req.params.projectId ? { projectId: req.params.projectId } : {}).populate('projectId', 'name').sort({ 'metrics.searchVolume': -1 });
+    res.json(keywords);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getStrategies = async (req, res) => {
+  try {
+    const strategies = await SeoStrategy.find(req.params.projectId ? { projectId: req.params.projectId } : {}).populate('projectId', 'name').sort({ createdAt: -1 });
+    res.json(strategies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.generateStrategy = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const orchestrator = new AgentOrchestrator();
+    const result = await orchestrator.runOrchestration(projectId);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.publishStrategy = async (req, res) => {
+  try {
+    const { projectId, strategyId } = req.params;
+    
+    const project = await SeoWebsite.findById(projectId);
+    const strategy = await SeoStrategy.findById(strategyId);
+    
+    if (!project || !strategy) throw new Error('Project or Strategy not found');
+
+    const wpService = new WordPressService(
+      project.credentials?.wpRestApiUrl,
+      project.credentials?.wpUsername,
+      project.credentials?.wpAppPassword
+    );
+
+    const result = await wpService.publishDraft(strategy.title, strategy.content);
+    
+    strategy.status = 'Published';
+    await strategy.save();
+
+    res.json({ message: 'Published successfully to WordPress', data: result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getAnalytics = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const project = await SeoWebsite.findById(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
+
+    const gscPath = process.env.GSC_CREDENTIALS;
+    const ga4Path = process.env.GA4_CREDENTIALS;
+    const ga4PropertyId = process.env.GA4_PROPERTY_ID;
+    
+    const googleService = new GoogleService(gscPath || ga4Path);
+    
+    const [gscData, ga4Data] = await Promise.all([
+      googleService.getSearchConsoleData(project.siteUrl || project.domain, startDate, endDate),
+      ga4PropertyId ? googleService.getAnalyticsData(ga4PropertyId, startDate, endDate) : Promise.resolve({ sessions: 0, users: 0, conversions: 0, rows: [] })
+    ]);
+
+    res.json({
+      gsc: gscData,
+      ga4: ga4Data
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getTasks = async (req, res) => {
+  try {
+    const tasks = await SeoTask.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateTaskStatus = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body;
+    
+    let task = await SeoTask.findById(taskId);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    
+    task.status = status;
+    
+    if (status === 'Approved') {
+      const project = await SeoWebsite.findById(task.projectId);
+      if (project) {
+        const wpService = new WordPressService(
+          project.credentials?.wpRestApiUrl || process.env.WP_SITE_URL,
+          project.credentials?.wpUsername || process.env.WP_USER,
+          project.credentials?.wpAppPassword || process.env.WP_APP_PASSWORD
+        );
+        
+        try {
+          await wpService.publishTaskUpdate(task.taskType, task.proposedChanges);
+          task.status = 'Implemented';
+        } catch (wpError) {
+          console.error('WordPress publish failed for task:', wpError);
+          task.status = 'Failed';
+        }
+      }
+    }
+    
+    await task.save();
+    res.json(task);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getReports = async (req, res) => {
+  try {
+    const reports = await SeoReport.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.generateReport = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const auditDiff = await AuditService.compareAudits(projectId);
+    
+    if (auditDiff.message) {
+      return res.status(400).json({ error: auditDiff.message });
+    }
+
+    const orchestrator = new AgentOrchestrator();
+    const report = await orchestrator.generateFinalReport(projectId, auditDiff);
+    
+    res.json({ message: 'Report generated successfully', report });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateProjectSettings = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { settings } = req.body;
+    
+    const project = await SeoWebsite.findByIdAndUpdate(projectId, { settings }, { new: true });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

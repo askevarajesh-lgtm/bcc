@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const SeoReportSchema = new mongoose.Schema({
+const WorkspaceReportSchema = new mongoose.Schema({
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'SeoProject', default: null }, // Optional, could be an overarching agency report
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceProject', default: null }, // Optional, could be an overarching agency report
   
   name: { type: String, required: true },
   type: { type: String, enum: ['keyword_rankings', 'site_audit', 'backlinks', 'competitor_gap', 'comprehensive', 'executive_summary'], required: true },
@@ -23,6 +23,6 @@ const SeoReportSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
-SeoReportSchema.index({ agencyId: 1, createdAt: -1 });
+WorkspaceReportSchema.index({ agencyId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('SeoReport', SeoReportSchema);
+module.exports = mongoose.model('WorkspaceReport', WorkspaceReportSchema, 'workspace_reports');

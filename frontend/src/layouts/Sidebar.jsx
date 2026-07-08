@@ -128,7 +128,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },
         { key: '/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
         { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142') },
-        { key: '/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
+        // { key: '/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
         ...(role === 'commander_admin' ? [] : [
           { key: '/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
           { key: '/workspace/invoices', icon: getIcon(DollarSign), label: 'Invoices' },

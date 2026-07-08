@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
-const SeoAuditSchema = new mongoose.Schema({
-  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'SeoProject', required: true, index: true },
+const WorkspaceAuditSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceProject', required: true, index: true },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   
-  taskId: { type: String, required: true }, // DataForSEO task ID
+  taskId: { type: String, required: false }, // DataForSEO task ID
   
   status: { type: String, enum: ['pending', 'in_progress', 'completed', 'failed'], default: 'pending' },
   
@@ -35,12 +35,11 @@ const SeoAuditSchema = new mongoose.Schema({
     sslIssues: { type: Number, default: 0 }
   },
 
-  // We can store a detailed JSON dump of the crawl if needed, or rely on fetching from DataForSEO API via taskId
   rawResponseUrl: { type: String, default: null }, // S3 link or similar if we cache the full JSON payload
   
   completedAt: { type: Date, default: null },
 }, { timestamps: true });
 
-SeoAuditSchema.index({ projectId: 1, createdAt: -1 });
+WorkspaceAuditSchema.index({ projectId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('SeoAudit', SeoAuditSchema);
+module.exports = mongoose.model('WorkspaceAudit', WorkspaceAuditSchema, 'workspace_audits');

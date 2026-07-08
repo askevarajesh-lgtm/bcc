@@ -16,15 +16,19 @@ const AIStudioContent = () => {
     activeTab, 
     setActiveTab, 
     apiKey, 
+    isApiKeyConfigured,
     saveApiKey, 
     isApiKeyModalVisible, 
     setIsApiKeyModalVisible 
   } = useAIStudio();
-  const [tempKey, setTempKey] = React.useState(apiKey);
+  const [tempKey, setTempKey] = React.useState('');
 
+  // When the modal opens, reset the tempKey input. We don't want to show the masked key in the input field.
   React.useEffect(() => {
-    setTempKey(apiKey);
-  }, [apiKey, isApiKeyModalVisible]);
+    if (isApiKeyModalVisible) {
+      setTempKey('');
+    }
+  }, [isApiKeyModalVisible]);
 
   const tabItems = [
     {
@@ -78,8 +82,9 @@ const AIStudioContent = () => {
           icon={<Key size={16} />} 
           onClick={() => setIsApiKeyModalVisible(true)}
           style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
+          type={isApiKeyConfigured ? 'default' : 'primary'}
         >
-          API Settings
+          {isApiKeyConfigured ? 'Update API Key' : 'Connect AI Provider'}
         </Button>
       </div>
 
@@ -96,13 +101,20 @@ const AIStudioContent = () => {
         open={isApiKeyModalVisible}
         onCancel={() => setIsApiKeyModalVisible(false)}
         onOk={() => {
-          saveApiKey(tempKey);
+          if (tempKey.trim() !== '') {
+            saveApiKey(tempKey);
+          }
           setIsApiKeyModalVisible(false);
         }}
         okText="Save API Key"
       >
         <div style={{ marginBottom: 16 }}>
           <Text>Enter your OpenAI API Key to enable AI Generation features.</Text>
+          {isApiKeyConfigured && (
+            <div style={{ marginTop: 8, padding: '8px 12px', background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 4 }}>
+              <Text type="success">✓ API Key is currently configured ({apiKey})</Text>
+            </div>
+          )}
         </div>
         <Input.Password 
           placeholder="sk-..." 
@@ -110,7 +122,7 @@ const AIStudioContent = () => {
           onChange={e => setTempKey(e.target.value)} 
         />
         <div style={{ marginTop: 8 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>Your key is stored securely in your browser's local storage and sent directly to the server during generation.</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>Your key is encrypted securely in your workspace database. It is never stored in your browser.</Text>
         </div>
       </Modal>
     </motion.div>

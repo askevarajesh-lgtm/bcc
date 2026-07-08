@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   Button,
   Drawer,
   Empty,
@@ -16,7 +17,9 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined,
+  CopyOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   FileImageOutlined,
   GlobalOutlined,
@@ -34,14 +37,159 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 
+import api from "../../services/api";
+
 // Mocking APIs that don't exist in the current project structure yet
-const useDeleteAiSessionMutation = () => [async () => ({}), { isLoading: false }];
-const useGetAiHistoryQuery = () => ({ data: [], isLoading: false });
-const useGetAiSettingsQuery = () => ({ data: {}, isLoading: false });
-const useLazyGetAiSessionQuery = () => [async () => ({}), { isFetching: false }];
-const useSendAiMessageMutation = () => [async () => ({}), { isLoading: false }];
-const useUpdateAiSettingsMutation = () => [async () => ({}), { isLoading: false }];
-const useUploadAiFileMutation = () => [async () => ({}), { isLoading: false }];
+const useDeleteAiSessionMutation = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const mutate = (sessionId) => {
+    setIsLoading(true);
+    const promise = (async () => {
+      try {
+        const response = await api.delete(`/ai-studio/chat/session/${sessionId}`);
+        setIsLoading(false);
+        return response.data;
+      } catch (e) {
+        setIsLoading(false);
+        const errorObj = { data: e.response?.data || { message: e.message } };
+        throw errorObj;
+      }
+    })();
+    promise.unwrap = () => promise;
+    return promise;
+  };
+  return [mutate, { isLoading }];
+};
+
+const useGetAiHistoryQuery = () => {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const refetch = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/ai-studio/chat/history');
+      setData(response.data?.data || []);
+      setError(null);
+    } catch (e) {
+      console.error(e);
+      setError(e);
+    }
+    setIsLoading(false);
+  };
+  useEffect(() => { refetch(); }, []);
+  return { data, isLoading, error, refetch };
+};
+
+const useGetAiSettingsQuery = () => {
+  const [data, setData] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const refetch = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/ai-studio/settings');
+      setData(response.data?.data || {});
+    } catch (e) {
+      console.error(e);
+    }
+    setIsLoading(false);
+  };
+  useEffect(() => { refetch(); }, []);
+  return { data, isLoading, refetch };
+};
+
+const useLazyGetAiSessionQuery = () => {
+  const [isFetching, setIsFetching] = useState(false);
+  const trigger = (sessionId) => {
+    setIsFetching(true);
+    const promise = (async () => {
+      try {
+        const response = await api.get(`/ai-studio/chat/session/${sessionId}`);
+        setIsFetching(false);
+        return response.data;
+      } catch (e) {
+        setIsFetching(false);
+        const errorObj = { data: e.response?.data || { message: e.message } };
+        throw errorObj;
+      }
+    })();
+    promise.unwrap = () => promise;
+    return promise;
+  };
+  return [trigger, { isFetching }];
+};
+
+const useSendAiMessageMutation = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const mutate = (payload) => {
+    setIsLoading(true);
+    const promise = (async () => {
+      try {
+        const response = await api.post('/ai-studio/chat/message', payload);
+        setIsLoading(false);
+        return response.data.data;
+      } catch (e) {
+        setIsLoading(false);
+        const errorObj = { data: e.response?.data || { message: e.message } };
+        throw errorObj;
+      }
+    })();
+    promise.unwrap = () => promise;
+    return promise;
+  };
+  return [mutate, { isLoading }];
+};
+
+const useUpdateAiSettingsMutation = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const mutate = (payload) => {
+    setIsLoading(true);
+    const promise = (async () => {
+      try {
+        const dataToSent = { ...payload };
+        if (payload.apiKey !== undefined) dataToSent.openaiApiKey = payload.apiKey;
+        const response = await api.post('/ai-studio/settings', dataToSent);
+        setIsLoading(false);
+        return response.data;
+      } catch (e) {
+        setIsLoading(false);
+        const errorObj = { data: e.response?.data || { message: e.message } };
+        throw errorObj;
+      }
+    })();
+    promise.unwrap = () => promise;
+    return promise;
+  };
+  return [mutate, { isLoading }];
+};
+
+const useUploadAiFileMutation = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const mutate = (file) => {
+    setIsLoading(true);
+    const promise = (async () => {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Use standard axios if api wrapper doesn't support FormData well,
+        // but typically it handles FormData correctly if Content-Type is multipart/form-data 
+        // or let the browser set it automatically.
+        const response = await api.post('/ai-studio/chat/upload', formData);
+        
+        setIsLoading(false);
+        return response.data.data;
+      } catch (e) {
+        setIsLoading(false);
+        const errorObj = { data: e.response?.data || { message: e.message } };
+        throw errorObj;
+      }
+    })();
+    promise.unwrap = () => promise;
+    return promise;
+  };
+  return [mutate, { isLoading }];
+};
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -110,7 +258,7 @@ const pageStyles = `
     position: relative;
     display: grid;
     grid-template-columns: 280px minmax(0, 1fr);
-    min-height: calc(100vh - 118px);
+    height: calc(100vh - 118px);
     background:
       radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 18%),
       linear-gradient(180deg, #202020 0%, #171717 100%);
@@ -1304,7 +1452,14 @@ const extractConversation = (payload) =>
   payload?.data?.data?.conversation ||
   null;
 
-const extractSettings = (payload) => payload?.data || payload || {};
+const extractSettings = (payload) => {
+  const data = payload?.data || payload || {};
+  return {
+    ...data,
+    hasCustomKey: data.isConfigured || false,
+    maskedApiKey: data.maskedKey || ""
+  };
+};
 
 const formatTimestamp = (value) =>
   value ? dayjs(value).format("DD MMM, h:mm A") : "";
@@ -2137,17 +2292,48 @@ const ClientChatGPTPage = () => {
                                     ) : null}
                                     <AttachmentChip attachment={entry.attachment} />
                                     {entry.imageUrl && (
-                                      <a
-                                        className="cgpt-image-output"
-                                        href={entry.imageUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                      >
-                                        <img
+                                      <div className="cgpt-image-output">
+                                        <Image
                                           src={entry.imageUrl}
                                           alt="Generated response"
+                                          style={{ borderRadius: "8px" }}
                                         />
-                                      </a>
+                                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                                          <Button
+                                            icon={<DownloadOutlined />}
+                                            size="small"
+                                            onClick={() => {
+                                              const a = document.createElement("a");
+                                              a.href = entry.imageUrl;
+                                              a.download = `generated-image-${Date.now()}.png`;
+                                              a.click();
+                                            }}
+                                          >
+                                            Download
+                                          </Button>
+                                          <Button
+                                            icon={<CopyOutlined />}
+                                            size="small"
+                                            onClick={async () => {
+                                              try {
+                                                const response = await fetch(entry.imageUrl);
+                                                const blob = await response.blob();
+                                                await navigator.clipboard.write([
+                                                  new ClipboardItem({
+                                                    [blob.type]: blob
+                                                  })
+                                                ]);
+                                                message.success("Image copied to clipboard!");
+                                              } catch (err) {
+                                                console.error("Copy failed:", err);
+                                                message.error("Failed to copy image");
+                                              }
+                                            }}
+                                          >
+                                            Copy Image
+                                          </Button>
+                                        </div>
+                                      </div>
                                     )}
                                   </>
                                 )}

@@ -45,4 +45,6 @@ router.post('/websites/:projectId/page-speed',        seoController.getPageSpeed
 router.get('/websites/:projectId/local-seo',          seoController.getLocalSeo);
 router.post('/websites/:projectId/content-analysis',  seoController.getContentAnalysis);
 
+// Removed AI Agent and Workspace routes (moved to seoWorkspace module)
+
 module.exports = router;

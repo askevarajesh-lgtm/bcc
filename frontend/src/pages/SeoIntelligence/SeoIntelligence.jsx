@@ -28,6 +28,12 @@ const SiteAuditTab = ({ projects, refetchProjects }) => {
   const [runAudit, { isLoading: isAuditing }] = useRunAuditMutation();
   const [auditData, setAuditData] = useState(null);
 
+  React.useEffect(() => {
+    if (!selectedProject && projects?.length > 0) {
+      setSelectedProject(projects[0]._id);
+    }
+  }, [projects, selectedProject]);
+
   const handleRunAudit = async () => {
     if (!selectedProject) return message.warning('Select a project first');
     try {
@@ -65,7 +71,7 @@ const SiteAuditTab = ({ projects, refetchProjects }) => {
             <div style={{ marginTop: 24, textAlign: 'center' }}>
               <Progress 
                 type="dashboard" 
-                percent={auditData?.page_metrics?.onpage_score || project?.stats?.lastAuditScore || 0} 
+                percent={Math.round(auditData?.page_metrics?.onpage_score || project?.stats?.lastAuditScore || 0)} 
                 strokeColor={
                   (auditData?.page_metrics?.onpage_score || project?.stats?.lastAuditScore || 0) > 80 ? '#10b981' : 
                   (auditData?.page_metrics?.onpage_score || project?.stats?.lastAuditScore || 0) > 50 ? '#f59e0b' : '#ef4444'
@@ -94,17 +100,17 @@ const SiteAuditTab = ({ projects, refetchProjects }) => {
               <Row gutter={[16, 16]}>
                 <Col span={8}>
                   <Card size="small" style={{ background: 'var(--bg-secondary)', border: 0, borderRadius: 8 }}>
-                    <Statistic title="Pages Crawled" value={auditData.stat?.pages_crawled || 0} />
+                    <Statistic title="Pages Crawled" value={auditData.crawl_status?.pages_crawled || 0} />
                   </Card>
                 </Col>
                 <Col span={8}>
                   <Card size="small" style={{ background: '#fef2f2', border: 0, borderRadius: 8 }}>
-                    <Statistic title={<span style={{ color: '#ef4444' }}>Critical Errors</span>} value={auditData.stat?.errors || 0} valueStyle={{ color: '#ef4444', fontWeight: 700 }} />
+                    <Statistic title={<span style={{ color: '#ef4444' }}>Critical Errors</span>} value={auditData.issues?.filter(i => i.severity === 'Error').reduce((sum, i) => sum + (i.count || 0), 0) || 0} valueStyle={{ color: '#ef4444', fontWeight: 700 }} />
                   </Card>
                 </Col>
                 <Col span={8}>
                   <Card size="small" style={{ background: '#fffbeb', border: 0, borderRadius: 8 }}>
-                    <Statistic title={<span style={{ color: '#f59e0b' }}>Warnings</span>} value={auditData.stat?.warnings || 0} valueStyle={{ color: '#f59e0b', fontWeight: 700 }} />
+                    <Statistic title={<span style={{ color: '#f59e0b' }}>Warnings</span>} value={auditData.issues?.filter(i => i.severity === 'Warning').reduce((sum, i) => sum + (i.count || 0), 0) || 0} valueStyle={{ color: '#f59e0b', fontWeight: 700 }} />
                   </Card>
                 </Col>
                 
@@ -140,6 +146,12 @@ const SiteAuditTab = ({ projects, refetchProjects }) => {
 const BacklinkTab = ({ projects }) => {
   const [selectedProject, setSelectedProject] = useState(projects[0]?._id);
   const [hasRun, setHasRun] = useState(false);
+  
+  React.useEffect(() => {
+    if (!selectedProject && projects?.length > 0) {
+      setSelectedProject(projects[0]._id);
+    }
+  }, [projects, selectedProject]);
   
   const { data: backlinkData, isLoading: isFetchingBacklinks } = useGetBacklinksQuery(selectedProject, { skip: !selectedProject || !hasRun });
   
@@ -248,6 +260,12 @@ const KeywordIntelligenceTab = ({ projects, isLoadingProjects, refetchProjects }
   const [researchKeywords, { isLoading: isSearching }] = useResearchKeywordsMutation();
   const [addKeywords, { isLoading: isAdding }] = useAddKeywordsMutation();
   const [refreshRankings, { isLoading: isRefreshing }] = useRefreshRankingsMutation();
+  
+  React.useEffect(() => {
+    if (!selectedProject && projects?.length > 0) {
+      setSelectedProject(projects[0]._id);
+    }
+  }, [projects, selectedProject]);
   
   const [searchResults, setSearchResults] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -714,7 +732,7 @@ const SeoIntelligence = () => {
             )}
           </Space>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {isConfigured ? `API Credits Balance: ${credits.remaining.toLocaleString()}` : 'API: No credentials configured'}
+            {isConfigured ? `API Credits Balance: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: credits.currency || 'USD' }).format(credits.remaining || 0)}` : 'API: No credentials configured'}
           </Text>
         </Space>
       </motion.div>

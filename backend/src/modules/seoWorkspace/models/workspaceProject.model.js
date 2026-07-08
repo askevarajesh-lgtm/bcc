@@ -1,13 +1,6 @@
 const mongoose = require('mongoose');
 
-/**
- * SeoWebsite – stores SEO-specific configuration and cached stats
- * for a website that is tracked under an existing CRM Project.
- *
- * Linked to the existing `projects` collection via `projectId`.
- * Uses `companyId` to match the existing CRM tenant field (not agencyId).
- */
-const SeoWebsiteSchema = new mongoose.Schema({
+const WorkspaceProjectSchema = new mongoose.Schema({
   // Link to existing CRM project (projects collection)
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: false, index: true, default: null },
 
@@ -67,7 +60,7 @@ const SeoWebsiteSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
-SeoWebsiteSchema.index({ companyId: 1, clientId: 1, isDeleted: 1 });
-SeoWebsiteSchema.index({ domain: 1, companyId: 1, clientId: 1 }, { unique: true });
+WorkspaceProjectSchema.index({ companyId: 1, clientId: 1, isDeleted: 1 });
+WorkspaceProjectSchema.index({ domain: 1, companyId: 1, clientId: 1 }, { unique: true });
 
-module.exports = mongoose.model('SeoWebsite', SeoWebsiteSchema);
+module.exports = mongoose.model('WorkspaceProject', WorkspaceProjectSchema, 'workspace_projects');

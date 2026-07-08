@@ -10,13 +10,37 @@ export const AIStudioProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('design');
   const [assets, setAssets] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('ai_studio_api_key') || '');
+  
+  // apiKey will store the masked key (e.g. sk-...8TVX) from the server
+  const [apiKey, setApiKey] = useState('');
+  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(false);
   const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
 
-  const saveApiKey = (key) => {
-    setApiKey(key);
-    localStorage.setItem('ai_studio_api_key', key);
-    message.success('API Key saved successfully');
+  const checkApiKeyStatus = async () => {
+    try {
+      const response = await api.get('/ai-studio/settings');
+      if (response.data.success) {
+        setIsApiKeyConfigured(response.data.data.isConfigured);
+        if (response.data.data.isConfigured) {
+          setApiKey(response.data.data.maskedKey);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch API key status', error);
+    }
+  };
+
+  const saveApiKey = async (key) => {
+    try {
+      const response = await api.post('/ai-studio/settings', { openaiApiKey: key });
+      if (response.data.success) {
+        message.success('API Key saved securely');
+        await checkApiKeyStatus();
+      }
+    } catch (error) {
+      console.error('Failed to save API key', error);
+      message.error('Failed to save API Key');
+    }
   };
 
   const fetchAssets = async () => {
@@ -35,6 +59,7 @@ export const AIStudioProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    checkApiKeyStatus();
     fetchAssets();
   }, []);
 
@@ -79,6 +104,7 @@ export const AIStudioProvider = ({ children }) => {
         saveAsset,
         deleteAsset,
         apiKey,
+        isApiKeyConfigured,
         saveApiKey,
         isApiKeyModalVisible,
         setIsApiKeyModalVisible

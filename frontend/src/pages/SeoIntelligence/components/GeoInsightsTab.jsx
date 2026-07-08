@@ -10,6 +10,12 @@ const GeoInsightsTab = ({ projects }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasRun, setHasRun] = useState(false);
 
+  React.useEffect(() => {
+    if (!selectedProject && projects?.length > 0) {
+      setSelectedProject(projects[0]._id);
+    }
+  }, [projects, selectedProject]);
+
   const { data: localData, isLoading } = useGetLocalSeoQuery(
     { websiteId: selectedProject, keyword: searchQuery }, 
     { skip: !hasRun || !selectedProject || !searchQuery }

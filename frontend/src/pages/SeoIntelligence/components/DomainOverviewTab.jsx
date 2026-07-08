@@ -9,6 +9,12 @@ const DomainOverviewTab = ({ projects }) => {
   const [selectedProject, setSelectedProject] = useState(projects[0]?._id);
   const [hasRun, setHasRun] = useState(false);
 
+  React.useEffect(() => {
+    if (!selectedProject && projects?.length > 0) {
+      setSelectedProject(projects[0]._id);
+    }
+  }, [projects, selectedProject]);
+
   const { data: overviewData, isLoading, error } = useGetDomainOverviewQuery(
     selectedProject, 
     { skip: !hasRun || !selectedProject }
@@ -91,7 +97,7 @@ const DomainOverviewTab = ({ projects }) => {
                         <Card size="small" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12 }}>
                           <Statistic 
                             title={<Space><TrendingUp size={14} color="#16a34a" /><Text strong style={{ color: '#16a34a' }}>Organic Traffic</Text></Space>} 
-                            value={metrics.etv || 0} 
+                            value={Math.round(metrics.etv || 0).toLocaleString()} 
                             valueStyle={{ fontWeight: 700, fontSize: 24 }}
                           />
                         </Card>
