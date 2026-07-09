@@ -37,16 +37,16 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
       icon: getIcon(Users),
       label: 'User Management',
     },
-    {
-      key: 'platform-views',
-      icon: getIcon(Globe),
-      label: 'Platform Views',
-      children: [
-        { key: '/dashboard', label: 'Admin Portal' },
-        { key: '/agency/overview', label: 'Agency Portal' },
-        { key: '/client/dashboard', label: 'Client Portal' },
-      ],
-    },
+    // {
+    //   key: 'platform-views',
+    //   icon: getIcon(Globe),
+    //   label: 'Platform Views',
+    //   children: [
+    //     { key: '/dashboard', label: 'Admin Portal' },
+    //     { key: '/agency/overview', label: 'Agency Portal' },
+    //     { key: '/client/dashboard', label: 'Client Portal' },
+    //   ],
+    // },
   ];
 
   const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
