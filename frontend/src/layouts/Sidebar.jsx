@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';

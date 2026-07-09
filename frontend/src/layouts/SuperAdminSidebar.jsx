@@ -9,9 +9,9 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
+  const getIcon = React.useCallback((IconCmp) => <IconCmp size={18} strokeWidth={2} />, []);
 
-  const menuItems = [
+  const menuItems = React.useMemo(() => [
     {
       key: '/superadmin/dashboard',
       icon: getIcon(LayoutDashboard),
@@ -47,18 +47,18 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
     //     { key: '/client/dashboard', label: 'Client Portal' },
     //   ],
     // },
-  ];
+  ], [getIcon]);
 
-  const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
+  const flattenItems = React.useCallback((items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item), []);
 
-  const getSelectedKeys = () => {
+  const selectedKeys = React.useMemo(() => {
     const flatItems = flattenItems(menuItems);
     const match = flatItems
-      .filter((item) => item.key.startsWith('/'))
+      .filter((item) => item.key && item.key.startsWith('/'))
       .sort((a, b) => b.key.length - a.key.length)
       .find((item) => location.pathname.startsWith(item.key));
     return [match?.key || '/superadmin/dashboard'];
-  };
+  }, [menuItems, location.pathname, flattenItems]);
 
   return (
     <PortalSidebar
@@ -70,7 +70,7 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
       accent="#7c3aed"
       accentSoft="rgba(124, 58, 237, 0.12)"
       menuItems={menuItems}
-      selectedKeys={getSelectedKeys()}
+      selectedKeys={selectedKeys}
       defaultOpenKeys={['platform-views']}
       onNavigate={navigate}
       partner={{
