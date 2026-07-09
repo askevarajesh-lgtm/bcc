@@ -17,6 +17,7 @@ import {
   Checkbox,
   Radio,
   Alert,
+  Tabs,
 } from "antd";
 import {
   HeartOutlined,
@@ -31,11 +32,8 @@ import {
   YoutubeFilled,
   ShopOutlined,
 } from "@ant-design/icons";
-import { Tabs } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
-import { useMemo } from "react";
-import { useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 const { Text } = Typography;
 
@@ -224,6 +222,7 @@ export default function PostEditor({
   const [pinterestBoardsData, setPinterestBoardsData] = useState({});
   const [selectedBoards, setSelectedBoards] = useState({});
   const [loadingBoards, setLoadingBoards] = useState(false);
+  const fetchedPinterestAccountIds = useRef(new Set());
 
   const accountOptions = useMemo(() => {
     const grouped = (accounts || []).reduce((acc, account) => {
@@ -315,31 +314,28 @@ export default function PostEditor({
     const fetchPinterestBoards = async () => {
       const pinterestAccountIds = (accounts || []).filter(a => selectedPlatformIds.includes(a.id) && a.platform === "pinterest").map(a => a.id);
       
-      const newBoardsData = { ...pinterestBoardsData };
-      let fetchNeeded = false;
-      for (const p_id of pinterestAccountIds) {
-         if (!newBoardsData[p_id]) {
-            fetchNeeded = true;
-         }
-      }
+      const missingAccountIds = pinterestAccountIds.filter(id => !fetchedPinterestAccountIds.current.has(id));
       
-      if (!fetchNeeded) return;
+      if (missingAccountIds.length === 0) return;
 
       setLoadingBoards(true);
       try {
         const { campaignScheduledApi } = await import("./api.js");
-        for (const p_id of pinterestAccountIds) {
-          if (!newBoardsData[p_id]) {
-            try {
-              const boards = await campaignScheduledApi.getPinterestBoards(p_id, activeClientId);
-              newBoardsData[p_id] = boards || [];
-            } catch (err) {
-              console.error("Failed to fetch boards for account " + p_id, err);
-              newBoardsData[p_id] = []; // fallback to prevent infinite re-fetches
-            }
+        const newFetchedBoards = {};
+        for (const p_id of missingAccountIds) {
+          try {
+            const boards = await campaignScheduledApi.getPinterestBoards(p_id, activeClientId);
+            newFetchedBoards[p_id] = boards || [];
+            fetchedPinterestAccountIds.current.add(p_id);
+          } catch (err) {
+            console.error("Failed to fetch boards for account " + p_id, err);
+            newFetchedBoards[p_id] = []; // fallback to prevent infinite re-fetches
+            fetchedPinterestAccountIds.current.add(p_id);
           }
         }
-        if (!cancelled) setPinterestBoardsData(newBoardsData);
+        if (!cancelled) {
+          setPinterestBoardsData(prev => ({ ...prev, ...newFetchedBoards }));
+        }
       } catch (err) {
         if (!cancelled) message.error("Failed to fetch Pinterest boards");
       } finally {
@@ -348,7 +344,7 @@ export default function PostEditor({
     };
     fetchPinterestBoards();
     return () => { cancelled = true; };
-  }, [selectedPlatformIds, accounts, activeClientId, pinterestBoardsData]);
+  }, [selectedPlatformIds, accounts, activeClientId]);
 
   useEffect(() => {
     if (
