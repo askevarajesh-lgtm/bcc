@@ -330,8 +330,13 @@ export default function PostEditor({
         const { campaignScheduledApi } = await import("./api.js");
         for (const p_id of pinterestAccountIds) {
           if (!newBoardsData[p_id]) {
-            const boards = await campaignScheduledApi.getPinterestBoards(p_id, activeClientId);
-            newBoardsData[p_id] = boards;
+            try {
+              const boards = await campaignScheduledApi.getPinterestBoards(p_id, activeClientId);
+              newBoardsData[p_id] = boards || [];
+            } catch (err) {
+              console.error("Failed to fetch boards for account " + p_id, err);
+              newBoardsData[p_id] = []; // fallback to prevent infinite re-fetches
+            }
           }
         }
         if (!cancelled) setPinterestBoardsData(newBoardsData);
