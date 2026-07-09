@@ -122,6 +122,28 @@ function ScrollToTop() {
   return null;
 }
 
+function OAuthRedirectHandler() {
+  const { search } = useLocation();
+  const { role } = useAuth();
+  
+  if (!role) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  let target = "/dashboard";
+  if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(role)) {
+      target = "/workspace/social";
+  } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
+      target = "/agency/social-media";
+  } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role)) {
+      target = "/client/workspace/social";
+  } else {
+      target = "/user/workspace/social";
+  }
+  
+  return <Navigate to={`${target}${search}`} replace />;
+}
+
 // Protected Route Component
 const ProtectedRoute = ({ allowedRoles }) => {
   const { role } = useAuth();
@@ -421,6 +443,9 @@ const AppRoutes = () => {
       </Route>
 
 
+
+      {/* OAuth Redirect Handler for Social Media */}
+      <Route path="/campaigns-scheduled" element={<OAuthRedirectHandler />} />
 
       {/* Catch all - Redirect to sign in if no role, otherwise to respective dashboard */}
       <Route path="*" element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'agency', 'client']} />} />
