@@ -2482,7 +2482,7 @@ const KanbanBoard = ({
       notifyError('move', pendingStatusChange?.taskId || 'status-change', "Please enter a command.");
       return;
     }
-    if (isDigitalMarketing && isInProgressToReview && !screenshotFile) {
+    if (isInProgressToReview && !screenshotFile) {
       notifyError('move', pendingStatusChange?.taskId || 'status-change', "Please upload a file before moving task to Review.");
       return;
     }
@@ -3165,12 +3165,12 @@ const KanbanBoard = ({
           const shouldShowCommand =
             !isInProgressToReview && !isToDoToInProgress && !isReviewToApproved;
           const shouldHideScreenshot =
-            !isDigitalMarketing ||
+            (!isDigitalMarketing && !isInProgressToReview) ||
             isToDoToInProgress ||
             isReviewToInProgress ||
             isReviewToToDo;
           const isFileRequired =
-            isDigitalMarketing && (isInProgressToReview || isReviewToApproved);
+            isInProgressToReview || (isDigitalMarketing && isReviewToApproved);
           return (
             <Form
               form={statusForm}

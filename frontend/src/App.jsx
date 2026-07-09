@@ -289,6 +289,7 @@ const AppRoutes = () => {
           <Route path="support" element={<AgencySupportTab />} />
           
           {/* Agency Manager Dynamic Modules */}
+          <Route path="marketplace" element={<Marketplace />} />
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
           <Route path="seo" element={<SEO />} />
@@ -392,7 +393,7 @@ const AppRoutes = () => {
             role === 'agency_client' ? <ClientSettingsTab /> : 
             <SettingsPage />
           } />
-          <Route path="settings/marketplace" element={<Marketplace />} />
+          <Route path="marketplace" element={<Marketplace />} />
           <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
           <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
           <Route path="settings/integrations" element={<PlaceholderPage title="Integrations" description="Connect third-party apps and APIs." icon={Zap} />} />
@@ -404,7 +405,7 @@ const AppRoutes = () => {
           <Route path="website/*" element={<ClientWebsiteTab />} />
           <Route path="team" element={<TeamTab />} />
           <Route path="tasks" element={<ClientTasksTab />} />
-          <Route path="store" element={<ClientStoreTab />} />
+
           <Route path="billing" element={<ClientBillingTab />} />
           <Route path="reports" element={<ClientReportsTab />} />
           <Route path="support" element={<ClientSupportTab />} />

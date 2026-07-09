@@ -32,6 +32,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
 import { slaApi } from '../api/slaApi';
+import { sidebarApi } from '../api/sidebarApi';
 import api from '../services/api';
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
@@ -42,6 +43,12 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const [slaCount, setSlaCount] = React.useState(0);
   const [accountsCount, setAccountsCount] = React.useState(0);
   const [agenciesCount, setAgenciesCount] = React.useState(0);
+  
+  // Dynamic counts
+  const [peopleCount, setPeopleCount] = React.useState('...');
+  const [leadsCount, setLeadsCount] = React.useState('...');
+  const [pipelineCount, setPipelineCount] = React.useState('...');
+  const [mosScore, setMosScore] = React.useState('...');
 
   React.useEffect(() => {
     const fetchSlaCount = async () => {
@@ -80,9 +87,25 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       }
     };
 
+    const fetchSidebarCounts = async () => {
+      try {
+        const res = await sidebarApi.getCounts();
+        if (res?.data?.success) {
+          const { people, leads, pipeline, mosScore: mos } = res.data.data;
+          setPeopleCount(people.toString());
+          setLeadsCount(leads.toString());
+          setPipelineCount(pipeline.toString());
+          setMosScore(mos.toString());
+        }
+      } catch (error) {
+        console.error('Failed to fetch dynamic sidebar counts', error);
+      }
+    };
+
     fetchSlaCount();
     fetchAccountsCount();
     fetchAgenciesCount();
+    fetchSidebarCounts();
   }, []);
 
   const getInitials = (name) => {
@@ -141,7 +164,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/workspace/aistudio', icon: getIcon(Palette), label: 'AI Studio' },
         { key: '/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },
         { key: '/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
-        { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142') },
+        { key: '/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', leadsCount) },
         // { key: '/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
         ...(role === 'commander_admin' ? [] : [
           { key: '/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
@@ -157,7 +180,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'INT' : 'INTELLIGENCE',
       children: [
         { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
-        { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', '68', 'warning') },
+        { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', mosScore, 'warning') },
         // { key: '/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
         { key: '/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
         { key: '/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
@@ -176,14 +199,14 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
       children: [
-        { key: '/ops/team', icon: getIcon(Users), label: getLabel('People', '5') },
+        { key: '/ops/team', icon: getIcon(Users), label: getLabel('People') },
         { key: '/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
         ...(role === 'commander_admin' ? [] : [
           { key: '/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
           { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
         ]),
-        { key: '/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', '8') },
+        { key: '/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', pipelineCount) },
         { key: '/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
         { key: '/ops/meetings', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Meetings' : 'Meetings' },
         { key: '/ops/calendar', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Calendar' : 'Calendar' },

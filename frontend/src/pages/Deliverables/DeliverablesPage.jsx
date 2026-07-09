@@ -8,6 +8,7 @@ import {
 import { useGetProjectsQuery } from '../../api/projectApi';
 import { useGetTasksQuery } from '../../api/taskApi';
 import TaskDetailDrawer from '../Tasks/TaskDetailDrawer';
+import TaskCompletionCelebrate from '../Tasks/TaskCompletionCelebrate';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import dayjs from 'dayjs';
@@ -19,6 +20,7 @@ const DeliverablesPage = () => {
   const { user } = useAuth();
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   
   // Fetch all projects (populated with clientId)
   const { data: projectsResponse, isLoading } = useGetProjectsQuery({ limit: 1000 });
@@ -387,6 +389,15 @@ const DeliverablesPage = () => {
               key: 'dueDate', 
               render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : 'N/A' 
             },
+            {
+              title: 'Action',
+              key: 'action',
+              render: (_, record) => (
+                <Button size="small" type="primary" onClick={() => setSelectedTaskDetails(record)}>
+                  View Task
+                </Button>
+              )
+            }
           ]}
         />
       </Drawer>
@@ -395,6 +406,12 @@ const DeliverablesPage = () => {
         task={selectedTaskDetails}
         visible={!!selectedTaskDetails}
         onClose={() => setSelectedTaskDetails(null)}
+        onTaskCompleted={() => setShowCelebration(true)}
+      />
+
+      <TaskCompletionCelebrate
+        isActive={showCelebration}
+        onComplete={() => setShowCelebration(false)}
       />
     </div>
   );

@@ -36,6 +36,7 @@ import { useNavigate } from "react-router-dom";
 import {
   useGetTaskCommentsQuery,
   useGetTaskActivityQuery,
+  useGetTaskByIdQuery,
   useAddCommentMutation,
   useDeleteTaskMutation,
   useUpdateTaskScreenshotMutation,
@@ -51,7 +52,7 @@ import TaskReopenModal from "./TaskReopenModal";
 
 const { TextArea } = Input;
 
-const TaskDetailDrawer = ({ task, visible, onClose }) => {
+const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
   const navigate = useNavigate();
   const [commentText, setCommentText] = useState("");
   const [activeTab, setActiveTab] = useState("details");
@@ -102,6 +103,12 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
     }
     return false; // Prevent default upload behavior
   };
+
+  // Always fetch fresh task data when drawer is open so attachments/files are up-to-date
+  const { data: freshTaskData } = useGetTaskByIdQuery(task?._id, {
+    skip: !task?._id || !visible,
+  });
+  const liveTask = freshTaskData?.data?.task || freshTaskData?.data || task;
 
   const { data: commentsData, isLoading: isLoadingComments } =
     useGetTaskCommentsQuery(task?._id, {
@@ -194,6 +201,20 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
       onClose();
     } catch (err) {
       notifyError('hold', task._id, err.data?.message || "Failed to hold task");
+    }
+  };
+
+  const handleClientAction = async (newStatus) => {
+    const taskId = liveTask?._id || task._id;
+    try {
+      await updateTask({ id: taskId, status: newStatus }).unwrap();
+      notifySuccess('task', taskId, `Task ${newStatus === 'complete' ? 'approved' : 'rejected'} successfully`);
+      if (newStatus === 'complete' && typeof onTaskCompleted === 'function') {
+        onTaskCompleted();
+      }
+      onClose();
+    } catch (err) {
+      notifyError('task', taskId, err.data?.message || "Failed to update task");
     }
   };
 
@@ -555,8 +576,8 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
       ),
       children: (
         <div>
-          {task?.attachments &&
-          task.attachments.filter(
+          {liveTask?.attachments &&
+          liveTask.attachments.filter(
             (a) => a.isScreenshot || a.fileName?.includes("screenshot"),
           ).length > 0 ? (
             <div
@@ -566,7 +587,7 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
                 gap: 16,
               }}
             >
-              {task.attachments
+              {liveTask.attachments
                 .filter(
                   (a) => a.isScreenshot || a.fileName?.includes("screenshot"),
                 )
@@ -626,7 +647,7 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
                       >
                         View
                       </Button>
-                      {isDurationTrackingTask(task) &&
+                      {isDurationTrackingTask(liveTask) &&
                         !["admin", "digital_marketing_coordinator"].includes(
                           userRole,
                         ) &&
@@ -667,8 +688,34 @@ const TaskDetailDrawer = ({ task, visible, onClose }) => {
               width: "100%",
             }}
           >
-            <span>{task?.title || "Task Details"}</span>
+            <span>{liveTask?.title || task?.title || "Task Details"}</span>
             <Space>
+              {liveTask &&
+                ['brand_super_admin', 'brand_manager', 'agency_client', 'client', 'brand_team_user'].includes(userRole) &&
+                ['review', 'sent_for_client_review', 'in_review'].includes(liveTask.status?.toLowerCase()) && (
+                  <>
+                    <Button
+                      type="primary"
+                      style={{ background: "#52c41a", borderColor: "#52c41a" }}
+                      onClick={() => handleClientAction("complete")}
+                    >
+                      Approve
+                    </Button>
+                    <Popconfirm
+                      title="Are you sure you want to reject this task?"
+                      onConfirm={() => handleClientAction('rejected')}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button
+                        type="primary"
+                        danger
+                      >
+                        Reject
+                      </Button>
+                    </Popconfirm>
+                  </>
+                )}
               {task &&
                 (canEditTaskDetails || (task.assignedTo && (task.assignedTo._id === user._id || task.assignedTo === user._id))) &&
                 task.status !== "hold" &&

@@ -1,11 +1,13 @@
-import React from 'react';
-import { Typography, Row, Col, Switch, Button, Tag } from 'antd';
+import React, { useState } from 'react';
+import { Typography, Row, Col, Switch, Button, Tag, Spin } from 'antd';
 import { motion } from 'framer-motion';
-import { MessageCircle, MessageSquare, Mail, Users, Globe, ArrowRight, Settings } from 'lucide-react';
+import { Globe, ArrowRight, Settings } from 'lucide-react';
+import WebsiteConfigPage from '../../integrations/WebsiteConfigPage';
+import { useGetIntegrationsQuery, useUpdateIntegrationMutation } from '../../../api/integrationApi';
 
 const { Title, Text } = Typography;
 
-const IntegrationCard = ({ title, description, icon: Icon, active, configured, buttonText }) => {
+const IntegrationCard = ({ title, description, icon: Icon, active, configured, buttonText, onConfigure, onToggle }) => {
   return (
     <div style={{
       border: '1px solid var(--border-color)',
@@ -40,7 +42,7 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
           }}>
             <Icon size={24} color="#fff" />
           </div>
-          <Switch checked={active} style={{ background: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }} />
+          <Switch checked={active} onChange={onToggle} style={{ background: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }} />
         </div>
       </div>
       
@@ -64,7 +66,7 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
         </Text>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-          <Button type="primary" icon={<Settings size={14} />} style={{ background: '#1d4ed8', borderRadius: 8, fontWeight: 600, padding: '0 20px', border: 'none', height: 36 }}>
+          <Button onClick={onConfigure} type="primary" icon={<Settings size={14} />} style={{ background: '#1d4ed8', borderRadius: 8, fontWeight: 600, padding: '0 20px', border: 'none', height: 36 }}>
             {buttonText}
           </Button>
           <ArrowRight size={18} color="var(--text-tertiary)" />
@@ -75,6 +77,13 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
 };
 
 const ClientIntegrationsTab = () => {
+  const [selectedConfig, setSelectedConfig] = useState(null);
+  const { data, refetch, isLoading } = useGetIntegrationsQuery();
+  const [updateIntegration] = useUpdateIntegrationMutation();
+
+  const integrations = data?.data?.integrations || [];
+  const websiteIntegration = integrations.find((i) => i.type === "website");
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -85,6 +94,31 @@ const ClientIntegrationsTab = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+  const handleToggle = async (checked) => {
+    try {
+      if (websiteIntegration) {
+        await updateIntegration({
+          id: websiteIntegration._id,
+          isActive: checked,
+        }).unwrap();
+      }
+      refetch();
+    } catch (error) {
+      console.error("Failed to toggle integration", error);
+    }
+  };
+
+  if (selectedConfig === 'website') {
+    return <WebsiteConfigPage integrationId={websiteIntegration?._id || 'new'} onBack={() => { setSelectedConfig(null); refetch(); }} />;
+  }
+
+  if (isLoading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  }
+
+  const isActive = websiteIntegration?.isActive || false;
+  const isConfigured = Boolean(websiteIntegration?.config && Object.keys(websiteIntegration.config).length > 0);
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ padding: '0' }}>
       <Row gutter={[24, 24]}>
@@ -94,9 +128,11 @@ const ClientIntegrationsTab = () => {
               title="Lead Management Integration" 
               description="Configure and manage lead integrations from Website forms and WhatsApp" 
               icon={Globe} 
-              active={true} 
-              configured={true} 
+              active={isActive} 
+              configured={isConfigured} 
               buttonText="Configure" 
+              onConfigure={() => setSelectedConfig('website')}
+              onToggle={handleToggle}
             />
           </motion.div>
         </Col>

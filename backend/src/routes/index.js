@@ -17,6 +17,7 @@ const subscriptionRoutes = require('../modules/subscriptions/subscription.routes
 const integrationRoutes = require('../modules/integrations/integration.routes');
 const userRoutes = require('../modules/auth/user.routes');
 const superadminRoutes = require('../modules/superadmin/superadmin.routes');
+const commanderRoutes = require('../modules/commander/commander.routes');
 const agencyPackageRoutes = require('../modules/agencyPackages/agencyPackage.routes');
 const brandRoutes = require('../modules/accounts/brand.routes');
 const departmentRoutes = require('../modules/departments/department.routes');
@@ -92,6 +93,7 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/integrations', integrationRoutes);
 router.use('/users', userRoutes);
 router.use('/superadmin', superadminRoutes);
+router.use('/commander', commanderRoutes);
 router.use('/agency-packages', agencyPackageRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/roles', roleRoutes);
@@ -122,8 +124,10 @@ router.use('/deliverables', require('../modules/deliverables/deliverables.routes
 // AI Studio Mount
 router.use('/ai-studio', require('../modules/aiStudio/aiStudio.routes'));
 
-// Content Module Mount
+// Content Mount
 router.use('/content', require('../modules/content/content.routes'));
 
-module.exports = router;
+// Sidebar Mount
+router.use('/sidebar', require('../modules/sidebar/sidebar.routes'));
 
+module.exports = router;

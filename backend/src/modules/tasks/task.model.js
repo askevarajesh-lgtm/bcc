@@ -401,6 +401,9 @@ taskSchema.pre("save", function (next) {
     TASK_STATUS.VALIDATED,
     TASK_STATUS.DONE,
     TASK_STATUS.COMPLETE,
+    "review",
+    "in_review",
+    "sent_for_client_review"
   ].includes(this.status);
 
   if (isFinished && !this.workCompletedAt) {

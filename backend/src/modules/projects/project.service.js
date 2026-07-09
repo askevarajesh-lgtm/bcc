@@ -356,10 +356,6 @@ const buildProjectReportData = (projects = []) => {
 const COMPLETED_TASK_STATUSES = new Set([
   "completed",
   "validated",
-  "review",
-  "in_review",
-  "in review",
-  "reviewing",
   "done",
   "complete",
 ]);
@@ -607,10 +603,10 @@ const reconcileProjectTaskCounts = async (
   if (!project || !tenantCompanyId) return projectOrId;
 
   if (!project.save || !project._id || projectNeedsReload) {
-    project = await Project.findOne({
-      _id: project?._id || projectOrId,
-      companyId: tenantCompanyId,
-    }).populate("masterItemId", "selectedCategories");
+    // Find project by _id only — companyId on a project is the client company,
+    // while tenantCompanyId is the agency. Filtering by companyId here would miss the project.
+    project = await Project.findById(project?._id || projectOrId)
+      .populate("masterItemId", "selectedCategories");
   }
 
   if (!project) return null;

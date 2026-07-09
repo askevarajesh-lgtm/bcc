@@ -227,7 +227,7 @@ const uploadPostingProof = async (req, res) => {
     // Include Cloudinary URL if file was uploaded
     const postingData = {
       ...req.body,
-      screenshot: req.cloudinaryResult?.url || req.body.screenshot || null,
+      screenshot: req.file?.path || req.cloudinaryResult?.url || req.body.screenshot || null,
     };
 
     const project = await projectReviewService.uploadPostingProof(
@@ -245,7 +245,7 @@ const addBulkPostingProofs = async (req, res) => {
   try {
     const bulkData = {
       ...req.body,
-      screenshot: req.cloudinaryResult?.url || null, // Cloudinary URL from middleware
+      screenshot: req.file?.path || req.cloudinaryResult?.url || null, // Cloudinary URL from middleware
     };
 
     const project = await projectReviewService.addBulkPostingProofs(
@@ -265,7 +265,9 @@ const updatePostingProof = async (req, res) => {
       ...req.body,
     };
 
-    if (req.cloudinaryResult) {
+    if (req.file) {
+      updateData.screenshot = req.file.path;
+    } else if (req.cloudinaryResult) {
       updateData.screenshot = req.cloudinaryResult.url;
     }
 

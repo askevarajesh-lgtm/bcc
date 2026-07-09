@@ -18,8 +18,7 @@ exports.calculateAgencyMOS = async (agencyId) => {
   // Get active brands for the agency
   const brands = await User.find({
     agencyId,
-    role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] },
-    status: 'active'
+    role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }
   });
 
   // If no brands are found (e.g. fresh environment or sandbox), inject some mock brands for demonstration

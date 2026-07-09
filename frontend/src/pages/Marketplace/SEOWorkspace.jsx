@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Typography, Card, Button, Table, Modal, Form, Input, message, Spin, Tag, Select, Statistic, Switch, Tabs } from 'antd';
 import { Search, Activity, FileText, CheckCircle, BarChart2, Plus, Globe, TrendingUp, Users, MousePointer2, Settings as SettingsIcon } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../../contexts/AuthContext';
 import './SEOWorkspace.css';
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -35,14 +36,29 @@ const SEOWorkspace = () => {
   const [selectedSettingsProject, setSelectedSettingsProject] = useState(null);
   const [form] = Form.useForm();
   
+  const { role } = useAuth();
+  const isViewOnly = ['agency_client', 'client', 'brand_manager', 'brand_super_admin', 'brand_team_user'].includes(role);
+  
+  const [agencyClients, setAgencyClients] = useState([]);
+
+  useEffect(() => {
+    if (!isViewOnly) {
+      axios.get('/brands')
+        .then(res => {
+          setAgencyClients(res.data.data || res.data || []);
+        })
+        .catch(err => console.error('Failed to load clients', err));
+    }
+  }, [isViewOnly]);
+  
   const fetchWorkspaceData = async () => {
     try {
       setLoading(true);
       const [projectsRes, auditsRes, keywordsRes, strategiesRes] = await Promise.all([
-        axios.get('/api/seo-workspace/projects'),
-        axios.get('/api/seo-workspace/audits'),
-        axios.get('/api/seo-workspace/keywords'),
-        axios.get('/api/seo-workspace/strategies')
+        axios.get('/seo-workspace/projects'),
+        axios.get('/seo-workspace/audits'),
+        axios.get('/seo-workspace/keywords'),
+        axios.get('/seo-workspace/strategies')
       ]);
       setProjects(projectsRes.data.data || []);
       setAudits(auditsRes.data);
@@ -69,7 +85,7 @@ const SEOWorkspace = () => {
   const fetchAnalytics = async (projectId) => {
     try {
       setLoadingAnalytics(true);
-      const res = await axios.get(`/api/seo-workspace/projects/${projectId}/analytics`);
+      const res = await axios.get(`/seo-workspace/projects/${projectId}/analytics`);
       setAnalyticsData(res.data);
     } catch (error) {
       console.error(error);
@@ -88,7 +104,7 @@ const SEOWorkspace = () => {
   const fetchTasks = async (projectId) => {
     try {
       setLoadingTasks(true);
-      const res = await axios.get(`/api/seo-workspace/projects/${projectId}/tasks`);
+      const res = await axios.get(`/seo-workspace/projects/${projectId}/tasks`);
       setTasks(res.data);
     } catch (error) {
       console.error(error);
@@ -100,7 +116,7 @@ const SEOWorkspace = () => {
 
   const handleUpdateTaskStatus = async (taskId, status) => {
     try {
-      await axios.put(`/api/seo-workspace/projects/${selectedTaskProject}/tasks/${taskId}/status`, { status });
+      await axios.put(`/seo-workspace/projects/${selectedTaskProject}/tasks/${taskId}/status`, { status });
       message.success(`Task ${status} successfully`);
       fetchTasks(selectedTaskProject);
     } catch (error) {
@@ -118,7 +134,7 @@ const SEOWorkspace = () => {
   const fetchReports = async (projectId) => {
     try {
       setLoadingReports(true);
-      const res = await axios.get(`/api/seo-workspace/projects/${projectId}/reports`);
+      const res = await axios.get(`/seo-workspace/projects/${projectId}/reports`);
       setReports(res.data);
     } catch (error) {
       console.error(error);
@@ -133,7 +149,7 @@ const SEOWorkspace = () => {
     try {
       setLoadingReports(true);
       message.loading({ content: 'AI is analyzing before/after audits...', key: 'report', duration: 0 });
-      await axios.post(`/api/seo-workspace/projects/${selectedReportProject}/generate-report`);
+      await axios.post(`/seo-workspace/projects/${selectedReportProject}/generate-report`);
       message.success({ content: 'Report generated successfully!', key: 'report' });
       fetchReports(selectedReportProject);
     } catch (error) {
@@ -145,7 +161,7 @@ const SEOWorkspace = () => {
 
   const handleUpdateSettings = async (projectId, settings) => {
     try {
-      await axios.put(`/api/seo-workspace/projects/${projectId}/settings`, { settings });
+      await axios.put(`/seo-workspace/projects/${projectId}/settings`, { settings });
       message.success('Settings updated successfully');
       fetchWorkspaceData(); // Refresh project data to reflect new settings
     } catch (error) {
@@ -156,9 +172,10 @@ const SEOWorkspace = () => {
 
   const handleCreateProject = async (values) => {
     try {
-      await axios.post('/api/seo-workspace/projects', {
+      await axios.post('/seo-workspace/projects', {
         name: values.name,
         siteUrl: values.siteUrl,
+        clientId: values.clientId,
         targets: {
           primary_keywords: [],
           competitors: [],
@@ -180,7 +197,7 @@ const SEOWorkspace = () => {
     try {
       setLoading(true);
       message.loading({ content: 'Running crawler...', key: 'audit' });
-      await axios.post(`/api/seo-workspace/projects/${projectId}/audit`);
+      await axios.post(`/seo-workspace/projects/${projectId}/audit`);
       message.success({ content: 'Audit completed successfully!', key: 'audit' });
       fetchWorkspaceData();
     } catch (error) {
@@ -194,7 +211,7 @@ const SEOWorkspace = () => {
     try {
       setLoading(true);
       message.loading({ content: 'AI Agents are analyzing data and generating strategy...', key: 'strategy', duration: 0 });
-      await axios.post(`/api/seo-workspace/projects/${projectId}/generate-strategy`);
+      await axios.post(`/seo-workspace/projects/${projectId}/generate-strategy`);
       message.success({ content: 'Strategy generated successfully!', key: 'strategy' });
       fetchWorkspaceData();
     } catch (error) {
@@ -209,7 +226,7 @@ const SEOWorkspace = () => {
     try {
       setLoading(true);
       message.loading({ content: 'Publishing to WordPress...', key: 'publish' });
-      await axios.post(`/api/seo-workspace/projects/${activeStrategy.projectId?._id || activeStrategy.projectId}/strategies/${activeStrategy._id}/publish`);
+      await axios.post(`/seo-workspace/projects/${activeStrategy.projectId?._id || activeStrategy.projectId}/strategies/${activeStrategy._id}/publish`);
       message.success({ content: 'Strategy published successfully to WordPress!', key: 'publish' });
       setStrategyModalVisible(false);
       fetchWorkspaceData();
@@ -221,16 +238,20 @@ const SEOWorkspace = () => {
   };
 
   // Tables Columns Configuration
-  const projectColumns = [
+  const baseProjectColumns = [
     { title: 'Project Name', dataIndex: 'name', key: 'name', render: (text) => <strong>{text}</strong> },
     { title: 'Site URL', dataIndex: 'domain', key: 'domain', render: (text) => <a href={`https://${text}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>{text}</a> },
     { title: 'Phase', dataIndex: 'phase', key: 'phase', render: phase => <Tag color="blue">{phase.toUpperCase()}</Tag> },
+  ];
+  
+  const projectColumns = isViewOnly ? baseProjectColumns : [
+    ...baseProjectColumns,
     { title: 'Action', key: 'action', render: (_, record) => (
       <div style={{ display: 'flex', gap: '8px' }}>
         <Button type="primary" size="small" onClick={() => triggerAudit(record._id)}>1. Audit</Button>
         <Button type="default" size="small" onClick={() => triggerStrategy(record._id)} disabled={record.phase === 'intake'}>2. Strategy</Button>
       </div>
-    ) },
+    ) }
   ];
 
   const auditColumns = [
@@ -303,13 +324,13 @@ const SEOWorkspace = () => {
                 <Activity className="seo-empty-icon" />
                 <Title level={3} style={{ marginBottom: 8 }}>Welcome to the SEO Agent Team Workspace</Title>
                 <Text className="seo-empty-text" style={{ display: 'block', marginBottom: 24 }}>Connect a project to start auditing and building AI SEO strategies.</Text>
-                <Button type="primary" size="large" icon={<Plus size={18}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>Create New SEO Project</Button>
+                {!isViewOnly && <Button type="primary" size="large" icon={<Plus size={18}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>Create New SEO Project</Button>}
               </Card>
             ) : (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                   <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Your Projects</Title>
-                  <Button type="primary" icon={<Plus size={16}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>New Project</Button>
+                  {!isViewOnly && <Button type="primary" icon={<Plus size={16}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>New Project</Button>}
                 </div>
                 <Row gutter={[24, 24]}>
                   {projects.map(project => (
@@ -325,10 +346,12 @@ const SEOWorkspace = () => {
                         <Text type="secondary" style={{ fontSize: 13 }}>{(project.siteUrl || project.domain)}</Text>
                         <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border-color)', paddingTop: 16 }}>
                           <Text type="secondary" style={{ fontSize: 12 }}>Created {new Date(project.createdAt).toLocaleDateString()}</Text>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <Button type="primary" size="small" onClick={() => triggerAudit(project._id)} className="seo-glow-btn">1. Audit</Button>
-                            <Button type="default" size="small" onClick={() => triggerStrategy(project._id)} disabled={project.phase === 'intake'} className="seo-glow-btn-secondary">2. Strategy</Button>
-                          </div>
+                          {!isViewOnly && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <Button type="primary" size="small" onClick={() => triggerAudit(project._id)} className="seo-glow-btn">1. Audit</Button>
+                              <Button type="default" size="small" onClick={() => triggerStrategy(project._id)} disabled={project.phase === 'intake'} className="seo-glow-btn-secondary">2. Strategy</Button>
+                            </div>
+                          )}
                         </div>
                       </Card>
                     </Col>
@@ -345,7 +368,7 @@ const SEOWorkspace = () => {
         <Card className="seo-glass-panel seo-table">
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
             <Title level={4} style={{ margin: 0 }}>All Projects</Title>
-            <Button type="primary" icon={<Plus size={16}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>New Project</Button>
+            {!isViewOnly && <Button type="primary" icon={<Plus size={16}/>} className="seo-glow-btn" onClick={() => setIsModalVisible(true)}>New Project</Button>}
           </div>
           <Table dataSource={projects} columns={projectColumns} rowKey="_id" loading={loading} />
         </Card>
@@ -662,9 +685,20 @@ const SEOWorkspace = () => {
           <Form.Item label="Website URL" name="siteUrl" rules={[{ required: true, type: 'url', message: 'Please enter a valid URL' }]}>
             <Input size="large" placeholder="https://example.com" style={{ borderRadius: 8 }} />
           </Form.Item>
+          {(!isViewOnly) && (
+            <Form.Item name="clientId" label="Assign to Client" rules={[{ required: true, message: 'Please select a client' }]}>
+              <Select placeholder="Select a client" size="large">
+                {agencyClients.map(client => (
+                  <Option key={client._id || client.id} value={client._id || client.id}>
+                    {client.name || client.companyName || 'Unknown Client'}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
           <Form.Item style={{ marginBottom: 0, textAlign: 'right', marginTop: 32 }}>
             <Button onClick={() => setIsModalVisible(false)} className="seo-glow-btn-secondary" style={{ marginRight: 12 }}>Cancel</Button>
-            <Button type="primary" htmlType="submit" className="seo-glow-btn">Create Project</Button>
+            <Button type="primary" htmlType="submit" className="seo-glow-btn">Create Project & Start Analysis</Button>
           </Form.Item>
         </Form>
       </Modal>

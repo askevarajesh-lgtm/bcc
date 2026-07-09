@@ -256,22 +256,11 @@ const TasksPage = () => {
     // Small delay to ensure DB consistency before refetching stats
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    try {
-      const result = await refetchTodayStats();
-      // Handle the nested structure from our sendSuccess wrapper
-      const statsResponse = result.data?.data || result.data;
-      const stats = statsResponse || { completedToday: 0, totalToday: 0 };
+    // ALWAYS trigger celebration for the employee when a task is completed/moved to Review
+    setShowCelebration(true);
 
-      // Only show toast/celebration if there are tasks assigned for today
-      if (stats.totalToday > 0) {
-        if (stats.completedToday >= stats.totalToday) {
-          setShowCelebration(true);
-        } else {
-          setToastCount(stats.completedToday);
-          setToastTotal(stats.totalToday);
-          setShowToast(true);
-        }
-      }
+    try {
+      await refetchTodayStats();
     } catch (error) {
       console.error("Error fetching stats:", error);
     }

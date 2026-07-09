@@ -14,8 +14,9 @@ exports.getProjects = async (req, res) => {
   try {
     const companyId = req.user.companyId || req.user.agencyId || req.user._id;
     const query = { companyId, isDeleted: false };
-    if (req.user.role === 'agency_client') {
-      query.clientId = req.user._id;
+    const isClientRole = ['agency_client', 'client', 'brand_manager', 'brand_super_admin', 'brand_team_user'].includes(req.user.role);
+    if (isClientRole) {
+      query.clientId = req.user.brandId || req.user._id;
     } else if (req.query.clientId) {
       query.clientId = req.query.clientId;
     }

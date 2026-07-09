@@ -530,206 +530,206 @@
 }
 
 /* Dark mode */
-.dark .campaign-scheduler-layout {
+[data-theme='dark'] .campaign-scheduler-layout {
   border-color: hsl(var(--border));
   background: linear-gradient(180deg, hsl(222 42% 12%) 0%, hsl(222 38% 11%) 40%);
 }
 
-.dark .campaign-scheduler-shell.ant-card {
+[data-theme='dark'] .campaign-scheduler-shell.ant-card {
   border-color: hsl(var(--border));
   background: hsl(var(--card));
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
 }
 
-.dark .campaign-scheduler-sidebar {
+[data-theme='dark'] .campaign-scheduler-sidebar {
   border-right-color: hsl(var(--border));
   background: linear-gradient(180deg, hsl(222 35% 14%) 0%, hsl(222 32% 12%) 100%);
 }
 
-.dark .campaign-scheduler-menu.ant-menu {
+[data-theme='dark'] .campaign-scheduler-menu.ant-menu {
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-scheduler-menu .ant-menu-item {
+[data-theme='dark'] .campaign-scheduler-menu .ant-menu-item {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-scheduler-menu .ant-menu-item:hover {
+[data-theme='dark'] .campaign-scheduler-menu .ant-menu-item:hover {
   color: hsl(var(--foreground));
   background: rgba(255, 255, 255, 0.04);
 }
 
-.dark .campaign-scheduler-menu .ant-menu-item-selected {
+[data-theme='dark'] .campaign-scheduler-menu .ant-menu-item-selected {
   color: #fff;
   background: linear-gradient(135deg, #1677ff, #0958d9);
   box-shadow: 0 8px 18px rgba(22, 119, 255, 0.35);
 }
 
-.dark .campaign-scheduler-surface {
+[data-theme='dark'] .campaign-scheduler-surface {
   background: hsl(var(--card));
   border-color: hsl(var(--border));
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
-.dark .campaign-scheduler-empty-icon {
+[data-theme='dark'] .campaign-scheduler-empty-icon {
   color: #69b1ff;
   background: rgba(105, 177, 255, 0.16);
 }
 
-.dark .campaign-scheduler-status-card {
+[data-theme='dark'] .campaign-scheduler-status-card {
   background: linear-gradient(90deg, rgba(82, 196, 26, 0.14) 0%, rgba(22, 119, 255, 0.2) 100%);
   border-color: rgba(145, 202, 255, 0.25);
 }
 
-.dark .campaign-scheduler-metric-card {
+[data-theme='dark'] .campaign-scheduler-metric-card {
   border-color: hsl(var(--border));
   background: linear-gradient(145deg, hsl(223 29% 15%) 0%, hsl(223 24% 13%) 100%);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
-.dark .campaign-scheduler-metric-title.ant-typography {
+[data-theme='dark'] .campaign-scheduler-metric-title.ant-typography {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-scheduler-metric-value.ant-typography {
+[data-theme='dark'] .campaign-scheduler-metric-value.ant-typography {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark .campaign-scheduler-metric-meta.ant-typography {
+[data-theme='dark'] .campaign-scheduler-metric-meta.ant-typography {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-scheduler-metric-icon {
+[data-theme='dark'] .campaign-scheduler-metric-icon {
   background: rgba(105, 177, 255, 0.18);
   color: #91caff;
 }
 
-.dark .campaign-scheduler-metric-card-success .campaign-scheduler-metric-icon {
+[data-theme='dark'] .campaign-scheduler-metric-card-success .campaign-scheduler-metric-icon {
   background: rgba(54, 207, 152, 0.2);
   color: #66f0bf;
 }
 
-.dark .campaign-scheduler-inner-post-card {
+[data-theme='dark'] .campaign-scheduler-inner-post-card {
   border-color: hsl(var(--border));
   background: rgba(255, 255, 255, 0.02);
 }
 
-.dark .campaign-scheduler-inner-post-card:hover {
+[data-theme='dark'] .campaign-scheduler-inner-post-card:hover {
   border-color: #69b1ff;
   box-shadow: 0 10px 18px rgba(22, 119, 255, 0.22);
 }
 
-.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-thead>tr>th {
+[data-theme='dark'] .campaign-scheduler-surface .ant-table-wrapper .ant-table-thead>tr>th {
   background: rgba(255, 255, 255, 0.04);
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-tbody>tr>td {
+[data-theme='dark'] .campaign-scheduler-surface .ant-table-wrapper .ant-table-tbody>tr>td {
   border-bottom-color: hsl(var(--border));
 }
 
-.dark .campaign-scheduler-surface .ant-table-wrapper .ant-table-row:hover>td {
+[data-theme='dark'] .campaign-scheduler-surface .ant-table-wrapper .ant-table-row:hover>td {
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
-.dark .campaign-scheduler-actions .ant-btn-default {
+[data-theme='dark'] .campaign-scheduler-actions .ant-btn-default {
   background: hsl(222 26% 16%);
   border-color: hsl(var(--border));
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-scheduler-actions .ant-btn-default:hover {
+[data-theme='dark'] .campaign-scheduler-actions .ant-btn-default:hover {
   background: hsl(222 26% 20%);
   border-color: #1677ff;
   color: #91caff;
 }
 
-.dark .campaign-scheduler-view-modal .ant-modal-content {
+[data-theme='dark'] .campaign-scheduler-view-modal .ant-modal-content {
   background: hsl(var(--card));
 }
 
-.dark .campaign-scheduler-view-kicker.ant-typography,
-.dark .campaign-scheduler-view-label.ant-typography {
+[data-theme='dark'] .campaign-scheduler-view-kicker.ant-typography,
+[data-theme='dark'] .campaign-scheduler-view-label.ant-typography {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-scheduler-view-title,
-.dark .campaign-scheduler-view-value.ant-typography {
+[data-theme='dark'] .campaign-scheduler-view-title,
+[data-theme='dark'] .campaign-scheduler-view-value.ant-typography {
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-scheduler-view-card {
+[data-theme='dark'] .campaign-scheduler-view-card {
   background: linear-gradient(145deg, hsl(223 29% 15%) 0%, hsl(223 24% 13%) 100%);
   border-color: hsl(var(--border));
 }
 
-.dark .campaign-log-metric-item {
+[data-theme='dark'] .campaign-log-metric-item {
   border-color: hsl(var(--border));
   background: rgba(255, 255, 255, 0.02);
 }
 
-.dark .campaign-logs-summary-card {
+[data-theme='dark'] .campaign-logs-summary-card {
   background: linear-gradient(145deg, hsl(223 28% 15%) 0%, hsl(223 24% 13%) 100%);
 }
 
-.dark .campaign-logs-summary-item {
+[data-theme='dark'] .campaign-logs-summary-item {
   background: rgba(255, 255, 255, 0.03);
   border-color: hsl(var(--border));
 }
 
-.dark .campaign-logs-summary-icon {
+[data-theme='dark'] .campaign-logs-summary-icon {
   background: rgba(105, 177, 255, 0.15);
   color: #91caff;
 }
 
-.dark .campaign-log-id.ant-typography,
-.dark .campaign-log-date.ant-typography {
+[data-theme='dark'] .campaign-log-id.ant-typography,
+[data-theme='dark'] .campaign-log-date.ant-typography {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-log-caption.ant-typography {
+[data-theme='dark'] .campaign-log-caption.ant-typography {
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-log-platform-tag {
+[data-theme='dark'] .campaign-log-platform-tag {
   background: rgba(255, 255, 255, 0.05);
   border-color: hsl(var(--border));
   color: hsl(var(--foreground));
 }
 
-.dark .campaign-log-metric-group {
+[data-theme='dark'] .campaign-log-metric-group {
   background: rgba(255, 255, 255, 0.02);
   border-color: hsl(var(--border));
 }
 
-.dark .campaign-log-metric-stat:not(:last-child) {
+[data-theme='dark'] .campaign-log-metric-stat:not(:last-child) {
   border-right-color: hsl(var(--border));
 }
 
-.dark .campaign-log-metric-info .ant-typography-strong {
+[data-theme='dark'] .campaign-log-metric-info .ant-typography-strong {
   color: hsl(var(--foreground));
 }
 
-.dark .metric-label {
+[data-theme='dark'] .metric-label {
   color: hsl(var(--muted-foreground));
 }
 
-.dark .campaign-log-metric-icon-small.like {
+[data-theme='dark'] .campaign-log-metric-icon-small.like {
   background: rgba(105, 177, 255, 0.16);
   color: #91caff;
 }
 
-.dark .campaign-log-metric-icon-small.comment {
+[data-theme='dark'] .campaign-log-metric-icon-small.comment {
   background: rgba(102, 240, 191, 0.16);
   color: #66f0bf;
 }
 
-.dark .campaign-log-metric-icon-small.share {
+[data-theme='dark'] .campaign-log-metric-icon-small.share {
   background: rgba(154, 140, 255, 0.18);
   color: #b8a7ff;
 }
 
-.dark .campaign-scheduler-view-caption.ant-typography {
+[data-theme='dark'] .campaign-scheduler-view-caption.ant-typography {
   border-bottom-color: hsl(var(--border));
 }
 
@@ -840,7 +840,7 @@
     border-bottom: 1px solid #e2e8f4;
   }
 
-  .dark .campaign-log-metric-stat:not(:last-child) {
+  [data-theme='dark'] .campaign-log-metric-stat:not(:last-child) {
     border-bottom-color: hsl(var(--border));
   }
 }
@@ -936,30 +936,30 @@
   font-size: 18px;
 }
 
-.dark .post-preview-container {
+[data-theme='dark'] .post-preview-container {
   background: #0f172a;
   border-color: #1e293b;
 }
 
-.dark .post-preview-card {
+[data-theme='dark'] .post-preview-card {
   background: #1e293b;
   border-color: #334155;
 }
 
-.dark .post-preview-avatar {
+[data-theme='dark'] .post-preview-avatar {
   background: #334155;
   color: #94a3b8;
 }
 
-.dark .post-preview-username {
+[data-theme='dark'] .post-preview-username {
   color: #f1f5f9;
 }
 
-.dark .post-preview-caption {
+[data-theme='dark'] .post-preview-caption {
   color: #cbd5e1;
 }
 
-.dark .post-preview-footer {
+[data-theme='dark'] .post-preview-footer {
   border-top-color: #334155;
 }
 
@@ -985,15 +985,15 @@
   box-shadow: 0 8px 16px rgba(188, 24, 136, 0.2);
 }
 
-.dark .instagram-choice-card {
+[data-theme='dark'] .instagram-choice-card {
   background: hsl(223 29% 15%);
   border-color: hsl(var(--border));
 }
 
-.dark .instagram-choice-card:hover {
+[data-theme='dark'] .instagram-choice-card:hover {
   border-color: #1677ff;
 }
 
-.dark .instagram-choice-card .ant-typography-secondary {
+[data-theme='dark'] .instagram-choice-card .ant-typography-secondary {
   color: hsl(var(--muted-foreground));
 }

@@ -1626,8 +1626,10 @@ const updateTask = async (
     ];
     const requesterRole = cleanedTaskData._requesterRole || null;
 
-     // COMPLETION LOCK: Block non-admin users from editing tasks that are already completed
-    const isCompleted = ["completed", "validated", "done", "complete"].includes(task.status);
+    // COMPLETION LOCK: Block non-admin users from editing tasks that are already completed
+    const isCompleted = ["completed", "validated", "done", "complete"].includes(oldStatus);
+    const isClientRole = ["agency_client", "brand_super_admin", "brand_manager", "brand_team_user", "client"].includes(requesterRole);
+
     if (isCompleted && !adminRoles.includes(requesterRole)) {
       throw new Error(
         "Completed tasks cannot be edited. Please contact an admin if changes are required.",
@@ -1645,10 +1647,11 @@ const updateTask = async (
     if (
       isTaskOverdue &&
       isMovingToCompleted &&
-      !adminRoles.includes(requesterRole)
+      !adminRoles.includes(requesterRole) &&
+      !isClientRole
     ) {
       throw new Error(
-        "Overdue tasks cannot be marked as completed. Please contact an admin to update the due date first.",
+        "Overdue tasks cannot be marked as completed by non-admins. Please contact an admin to verify.",
       );
     }
   }
@@ -1779,7 +1782,7 @@ const updateTask = async (
       if (!task.startDate) task.startDate = now;
     }
 
-    const wasCompletedStatus = ["completed", "validated", "done", "complete"].includes(oldStatus);
+    const wasCompletedStatus = ["completed", "validated", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(oldStatus);
     if (wasCompletedStatus && task.status === "in_progress") {
       task.workStartedAt = new Date();
       task.workCompletedAt = null;
@@ -3234,6 +3237,17 @@ const updateTaskStatusAndOrder = async (
   // ── [CUMULATIVE TIMING LOGIC] ──────────────────────────────────────────────
   const now = new Date();
 
+  const wasCompletedStatus = ["completed", "validated", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(oldStatus);
+  if (wasCompletedStatus && finalStatus === "in_progress") {
+    task.workStartedAt = new Date();
+    task.workCompletedAt = null;
+    task.workDurationMinutes = null;
+  } else if (wasCompletedStatus && (finalStatus === "assigned" || finalStatus === "to_do" || finalStatus === "backlog")) {
+    task.workStartedAt = null;
+    task.workCompletedAt = null;
+    task.workDurationMinutes = null;
+  }
+
   // If moving FROM in_progress TO something else -> Add elapsed time to total
   if (oldStatus === "in_progress" && finalStatus !== "in_progress") {
     if (task.workStartedAt) {
@@ -3255,7 +3269,7 @@ const updateTaskStatusAndOrder = async (
 
   const isTerminalStatus = ["validated", "completed", "done", "complete"].includes(finalStatus);
   // If moving TO terminal status -> Set final completion timestamp
-  if (isTerminalStatus) {
+  if (isTerminalStatus && !task.workCompletedAt) {
     task.workCompletedAt = now;
   }
 
@@ -3294,7 +3308,7 @@ const updateTaskStatusAndOrder = async (
   await task.save();
 
   // ── [UPDATE PROJECT COMPLETED COUNTS] ───────────────────────────────────
-  const completedStatuses = ["completed", "validated", "review", "in_review", "in review", "reviewing", "done", "complete"];
+  const completedStatuses = ["completed", "validated", "done", "complete"];
   const isNowCompleted = completedStatuses.includes(finalStatus);
   const wasPreviouslyCompleted = completedStatuses.includes(oldStatus);
   const taskProjectId = task.projectId?._id || task.projectId || null;
@@ -4917,23 +4931,35 @@ const deleteTask = async (taskId, tenantCompanyId) => {
     throw new Error("Task not found");
   }
 
-  // Restore counts if applicable
-  if (task.projectId && task.serviceType) {
+  const wasCompleted = ["completed", "validated", "done", "complete"].includes(task.status);
+
+  // Restore/reconcile counts if task was linked to a project
+  if (task.projectId) {
     const Project = require('./shimProjectModel');
     const project = await Project.findById(task.projectId);
-    if (project) {
+    if (project && task.serviceType) {
       const standardTypes = ["poster", "video", "shoot"];
       if (standardTypes.includes(task.serviceType)) {
-        // Restore legacy standard type counts
+        // Always restore the remaining count (task slot opens up again)
         if (task.serviceType === "poster") {
           project.remainingPosters = (project.remainingPosters || 0) + 1;
+          // If it was completed, also decrement the completed count
+          if (wasCompleted && project.completedPosters > 0) {
+            project.completedPosters = (project.completedPosters || 1) - 1;
+          }
         } else if (task.serviceType === "video") {
           project.remainingVideos = (project.remainingVideos || 0) + 1;
+          if (wasCompleted && project.completedVideos > 0) {
+            project.completedVideos = (project.completedVideos || 1) - 1;
+          }
         } else if (task.serviceType === "shoot") {
           project.remainingShoots = (project.remainingShoots || 0) + 1;
+          if (wasCompleted && project.completedShoots > 0) {
+            project.completedShoots = (project.completedShoots || 1) - 1;
+          }
         }
         logger.info(
-          `Restored ${task.serviceType} count for project ${project._id} due to task deletion.`,
+          `Restored ${task.serviceType} count for project ${project._id} due to task deletion (wasCompleted: ${wasCompleted}).`,
         );
       } else {
         // Restore dynamic category remaining count
@@ -4944,6 +4970,9 @@ const deleteTask = async (taskId, tenantCompanyId) => {
         if (catIndex > -1) {
           const cat = project.selectedCategories[catIndex];
           cat.remaining = (cat.remaining || 0) + 1;
+          if (wasCompleted && cat.completed > 0) {
+            cat.completed = (cat.completed || 1) - 1;
+          }
           project.markModified("selectedCategories");
           logger.info(
             `Restored dynamic category "${task.serviceType}" count for project ${project._id} due to task deletion. New remaining: ${cat.remaining}`,
@@ -4952,16 +4981,13 @@ const deleteTask = async (taskId, tenantCompanyId) => {
       }
 
       await project.save();
-      const {
-        checkAndMarkProjectCompleted,
-      } = require('./shimProjectService');
-      await checkAndMarkProjectCompleted(project._id, null, tenantCompanyId);
     }
   }
 
   // Hard delete
   await Task.findByIdAndDelete(taskId);
 
+  // Reconcile after deletion so counts are accurate based on remaining tasks
   if (task.projectId) {
     const {
       reconcileProjectTaskCounts,

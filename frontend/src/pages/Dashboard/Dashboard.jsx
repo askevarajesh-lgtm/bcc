@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieCha
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { superadminApi } from '../../api/superadminApi';
+import { commanderApi } from '../../api/commanderApi';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -29,7 +29,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await superadminApi.getCommandCenterData();
+        const res = await commanderApi.getCommandCenterData();
         if (res && res.data) {
           setData(res.data.data || res.data);
         }

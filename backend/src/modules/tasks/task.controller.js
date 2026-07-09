@@ -291,7 +291,7 @@ const updateTaskStatusAndOrder = async (req, res) => {
       boardEndDate: req.body.boardEndDate || null,
       boardDateField: req.body.boardDateField || null,
     };
-    const screenshotUrl = req.cloudinaryResult?.url || null;
+    const screenshotUrl = req.file?.path || req.cloudinaryResult?.url || null;
 
     const task = await taskService.updateTaskStatusAndOrder(
       id,
@@ -314,7 +314,7 @@ const updateTaskStatusAndOrder = async (req, res) => {
 const updateScreenshot = async (req, res) => {
   try {
     const { id, attachmentId } = req.params;
-    const screenshotUrl = req.cloudinaryResult?.url || null;
+    const screenshotUrl = req.file?.path || req.cloudinaryResult?.url || null;
 
     if (!screenshotUrl) {
       return sendError(res, 400, "Screenshot file is required");
