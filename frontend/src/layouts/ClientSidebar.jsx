@@ -100,29 +100,25 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     },
   ];
 
-  if (role === 'brand_super_admin') {
-    allMenuItems.push(
-      {
+  if (role === 'brand_super_admin' || role === 'brand_manager') {
+    if (role === 'brand_super_admin') {
+      allMenuItems.push({
         key: 'clients',
         label: collapsed ? 'CLI' : 'CLIENTS',
         children: [
           { key: '/client/users', icon: getIcon(Users), label: 'Users' },
           { key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' },
         ],
-      },
+      });
+    }
+
+    allMenuItems.push(
       {
-        key: 'calendar-group',
-        label: collapsed ? 'CAL' : 'CALENDAR',
+        key: 'workspace',
+        label: collapsed ? 'WRK' : 'WORKSPACE',
         children: [
-          { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
-          { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
-        ],
-      },
-      {
-        key: 'projects-group',
-        label: collapsed ? 'PRJ' : 'PROJECTS',
-        children: [
-          { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
+          { key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142') },
+          { key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
         ],
       },
       {
@@ -134,55 +130,10 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         ],
       },
       {
-        key: 'settings',
-        label: collapsed ? 'SET' : 'SETTINGS',
-        children: [
-          { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
-        ],
-      },
-      {
-        key: 'support-group',
-        label: collapsed ? 'SUP' : 'SUPPORT',
-        children: [
-          { key: '/client/support', icon: getIcon(HelpCircle), label: 'Support', featureId: 'support' },
-        ],
-      }
-    );
-  } else if (role === 'brand_manager') {
-    allMenuItems.push(
-      
-      {
-        key: 'workspace',
-        label: collapsed ? 'WRK' : 'WORKSPACE',
-        children: [
-          // { key: '/client/workspace/strategy', icon: getIcon(Target), label: 'Strategy' },
-          // { key: '/client/workspace/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' },
-          // { key: '/client/workspace/content', icon: getIcon(FileText), label: 'Content' },
-          // { key: '/client/workspace/aistudio', icon: getIcon(Palette), label: 'AI Studio' },
-          // { key: '/client/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },
-          // { key: '/client/workspace/ads', icon: getIcon(BarChart2), label: 'Performance Ads' },
-          { key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', '142') },
-          // { key: '/client/workspace/automation', icon: getIcon(Zap), label: 'Automation' },
-          { key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
-          { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
-          { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
-          { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
-        ],
-      },
-      {
-        key: 'intelligence',
-        label: collapsed ? 'INT' : 'INTELLIGENCE',
-        children: [
-          // { key: '/client/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
-          // { key: '/client/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', '68', 'warning') },
-          // { key: '/client/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
-          // { key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
-          // { key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
-          // { key: '/client/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
-          // { key: '/client/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
-          // { key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
-          // { key: '/client/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
-        ],
+        key: '/client/support',
+        icon: getIcon(HelpCircle),
+        label: 'Support',
+        featureId: 'support'
       },
       {
         key: 'ops',
@@ -192,9 +143,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
           { key: '/client/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
           { key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
           { key: '/client/ops/finance', icon: getIcon(CreditCard), label: 'Finance' },
-          // { key: '/client/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
-          // { key: '/client/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', '8') },
-          // { key: '/client/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
+          { key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' },
+          { key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' },
+          { key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' },
         ],
       },
       {
@@ -202,9 +153,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         label: collapsed ? 'SET' : 'SETTINGS',
         children: [
           { key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
-          { key: '/client/support', icon: getIcon(HelpCircle), label: 'Support', featureId: 'support' },
         ],
-      },
+      }
     );
   } else if (role === 'agency_client') {
     allMenuItems.push(

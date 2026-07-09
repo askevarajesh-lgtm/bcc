@@ -83,7 +83,7 @@ exports.getInvoices = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name price description status categories startDate endDate'
+          select: 'name price description status categories startDate endDate handlingDuration'
         }
       })
       .sort({ createdAt: -1 })
@@ -113,7 +113,7 @@ exports.getInvoice = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name itemCode category price duration description startDate endDate'
+          select: 'name itemCode category price duration description startDate endDate handlingDuration'
         }
       });
     if (!invoice) {
@@ -153,6 +153,24 @@ exports.updatePayment = async (req, res, next) => {
 exports.generatePDF = async (req, res, next) => {
   try {
     res.status(200).json({ success: true, url: '/dummy-invoice.pdf' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete Invoice
+exports.deleteInvoice = async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false });
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+    
+    invoice.isDeleted = true;
+    invoice.updatedBy = req.user._id;
+    await invoice.save();
+    
+    res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
   } catch (error) {
     next(error);
   }

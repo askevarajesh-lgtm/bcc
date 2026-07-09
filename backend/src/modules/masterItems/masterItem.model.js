@@ -19,11 +19,9 @@ const masterItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  startDate: {
-    type: Date
-  },
-  endDate: {
-    type: Date
+  handlingDuration: {
+    type: String,
+    trim: true
   },
   status: {
     type: String,

@@ -194,7 +194,7 @@ const ProposalForm = () => {
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Handling Duration">
-                  1 Month
+                  {selectedMasterItem.handlingDuration || 'N/A'}
                 </Descriptions.Item>
                 
                 {selectedMasterItem.categories?.map((cat, index) => (

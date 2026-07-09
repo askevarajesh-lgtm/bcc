@@ -77,7 +77,16 @@ const TaskForm = () => {
   const { hasPermission } = useActionPermissions("/tasks");
   const isSEO = hasPermission(PERMISSION_ACTIONS.VIEW_SEO_PANEL);
   const isSEOUser = false; // Default-Allow: do not restrict project dropdowns
-  const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
+  const adminRoles = [
+    "supreme_super_admin",
+    "commander_admin",
+    "agency_super_admin",
+    "brand_super_admin",
+    "agency_manager",
+    "brand_manager"
+  ];
+  const isAdmin = adminRoles.includes(userRole);
+  const canCreate = isAdmin && hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEditTaskDetails = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const isRestricted = isEdit ? !canEditTaskDetails : !canCreate;
 
@@ -98,6 +107,17 @@ const TaskForm = () => {
   const { data: taskData, isLoading: isLoadingTask } = useGetTaskByIdQuery(id, {
     skip: !isEdit,
   });
+
+  useEffect(() => {
+    if (isEdit && taskData?.data?.task) {
+      const task = taskData.data.task;
+      const isCreator = task.createdBy && (task.createdBy._id === currentUser?._id || task.createdBy === currentUser?._id);
+      if (!isCreator) {
+        notifyError('permission', 'global', "Only the creator of this task can edit its details.");
+        navigate(`${getBaseRoute()}/tasks`);
+      }
+    }
+  }, [isEdit, taskData, currentUser, navigate]);
 
   // Compute taskTarget and hideCompanyProject after taskData is available.
   // When creating: use navigation state (set by Create Task button choosing 'own_brand').
@@ -300,9 +320,19 @@ const TaskForm = () => {
   const [absentEmails, setAbsentEmails] = useState([]);
 
   // For SEO members creating/editing tasks: show only SEO users in Assigned To (so they can assign to other SEOs or interns)
-  // Filter users by department for "Assigned To" field
+  // Filter users by department for "Assigned To" field, excluding admins and managers
   const usersForAssignees = useMemo(() => {
-    return users || [];
+    const excludedRoles = [
+      "supreme_super_admin",
+      "commander_admin",
+      "agency_super_admin",
+      "brand_super_admin",
+      "agency_manager",
+      "brand_manager",
+      "admin",
+      "super_admin"
+    ];
+    return (users || []).filter(u => !excludedRoles.includes(u.role));
   }, [users]);
 
   const absentEmailSet = useMemo(() => {
@@ -1077,7 +1107,7 @@ const TaskForm = () => {
                   return {
                     ...cat,
                     name,
-                    value: cat.value || cat._id || name,
+                    value: cat.value || name,
                     remaining: cat.remaining !== undefined ? cat.remaining : (cat.quantity || 0),
                   };
                 });

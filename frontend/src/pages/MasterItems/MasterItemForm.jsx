@@ -1,13 +1,11 @@
 import React from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, DatePicker, Row, Col, message } from 'antd';
-import dayjs from 'dayjs';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Row, Col, message } from 'antd';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 
 const MasterItemForm = () => {
   const [form] = Form.useForm();
@@ -55,7 +53,7 @@ const MasterItemForm = () => {
           status: item.status,
           categories,
           categoryCounts,
-          dateRange: item.startDate && item.endDate ? [dayjs(item.startDate), dayjs(item.endDate)] : null,
+          handlingDuration: item.handlingDuration || "1 Month",
         });
       } else {
         message.error("Failed to load item");
@@ -84,8 +82,7 @@ const MasterItemForm = () => {
         description: values.description,
         price: values.price,
         status: values.status,
-        startDate: values.dateRange ? values.dateRange[0].toISOString() : null,
-        endDate: values.dateRange ? values.dateRange[1].toISOString() : null,
+        handlingDuration: values.handlingDuration,
       };
 
       const token = localStorage.getItem("token");
@@ -161,8 +158,16 @@ const MasterItemForm = () => {
             <InputNumber style={{ width: '100%' }} prefix="₹" />
           </Form.Item>
 
-          <Form.Item label="Duration" name="dateRange">
-            <RangePicker style={{ width: '100%' }} />
+          <Form.Item label="Handling Duration" name="handlingDuration" rules={[{ required: true }]}>
+            <Select>
+              <Option value="1 Week">1 Week</Option>
+              <Option value="15 Days">15 Days</Option>
+              <Option value="1 Month">1 Month</Option>
+              <Option value="2 Months">2 Months</Option>
+              <Option value="3 Months">3 Months</Option>
+              <Option value="6 Months">6 Months</Option>
+              <Option value="1 Year">1 Year</Option>
+            </Select>
           </Form.Item>
 
           <Form.Item label="Status" name="status" initialValue="active">

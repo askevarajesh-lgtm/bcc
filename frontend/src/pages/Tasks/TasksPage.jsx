@@ -69,15 +69,21 @@ const TasksPage = () => {
   const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
   const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
 
-  const isAdmin = true; // Default-Allow model
-
-  // Intern type must not see Create Task regardless of role
+  const adminRoles = [
+    "supreme_super_admin",
+    "commander_admin",
+    "agency_super_admin",
+    "brand_super_admin",
+    "agency_manager",
+    "brand_manager"
+  ];
+  const isAdmin = adminRoles.includes(userRole);
   const userType = (user?.type || "").toLowerCase().trim();
   const isIntern = userType === "intern";
   const isSEO = false; // Default-Allow model
   const isSEOFullTime = false;
 
-  const canCreateTask = !isIntern && canCreate && (!isSEO || isSEOFullTime);
+  const canCreateTask = isAdmin && !isIntern && canCreate && (!isSEO || isSEOFullTime);
 
   // Define roles that can view tasks (all regular users + admins)
   const rolesWithTaskAccess = [

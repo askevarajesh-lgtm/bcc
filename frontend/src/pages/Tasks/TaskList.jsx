@@ -66,8 +66,18 @@ const TaskList = () => {
   const isSEO = userRole === "seo";
   const isSEOFullTime = isSEO && userType === "full_time";
 
+  const adminRoles = [
+    "supreme_super_admin",
+    "commander_admin",
+    "agency_super_admin",
+    "brand_super_admin",
+    "agency_manager",
+    "brand_manager"
+  ];
+  const isAdmin = adminRoles.includes(userRole);
+
   const canCreate =
-    !isIntern && canCreatePermission && (!isSEO || isSEOFullTime);
+    isAdmin && !isIntern && canCreatePermission && (!isSEO || isSEOFullTime);
   const canEdit = !isIntern && canEditPermission && (!isSEO || isSEOFullTime);
   const canDelete =
     !isIntern && canDeletePermission && (!isSEO || isSEOFullTime);
@@ -244,42 +254,47 @@ const TaskList = () => {
       title: "Actions",
       key: "actions",
       align: "center",
-      render: (_, record) => (
-        <Space className="table-actions">
-          {canView && (
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => navigate(`/tasks/${record._id}`)}
-            >
-              <span className="hide-on-mobile">View</span>
-            </Button>
-          )}
-          {canEdit &&
-            !isIntern &&
-            !["done", "validated", "completed", "complete", "review"].includes(record.status?.toLowerCase()) && (
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => navigate(getTaskEditUrl(record._id))}
-            >
-              <span className="hide-on-mobile">Edit</span>
-            </Button>
-          )}
-          {canDelete && (
-            <Popconfirm
-              title="Are you sure you want to delete this task?"
-              onConfirm={() => handleDelete(record._id)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                <span className="hide-on-mobile">Delete</span>
+      render: (_, record) => {
+        const isCreator = record.createdBy && (record.createdBy._id === user?._id || record.createdBy === user?._id);
+        const canEditThisTask = canEdit && !isIntern && isCreator;
+        const canDeleteThisTask = canDelete && isCreator;
+
+        return (
+          <Space className="table-actions">
+            {canView && (
+              <Button
+                type="link"
+                icon={<EyeOutlined />}
+                onClick={() => navigate(`/tasks/${record._id}`)}
+              >
+                <span className="hide-on-mobile">View</span>
               </Button>
-            </Popconfirm>
-          )}
-        </Space>
-      ),
+            )}
+            {canEditThisTask &&
+              !["done", "validated", "completed", "complete", "review"].includes(record.status?.toLowerCase()) && (
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => navigate(getTaskEditUrl(record._id))}
+              >
+                <span className="hide-on-mobile">Edit</span>
+              </Button>
+            )}
+            {canDeleteThisTask && (
+              <Popconfirm
+                title="Are you sure you want to delete this task?"
+                onConfirm={() => handleDelete(record._id)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="link" danger icon={<DeleteOutlined />}>
+                  <span className="hide-on-mobile">Delete</span>
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 

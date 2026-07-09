@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Button, Table, Tag, Space, message } from 'antd';
-import { FilePdfOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Typography, Button, Table, Tag, Space, message, Popconfirm, Modal, Descriptions } from 'antd';
+import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -10,6 +10,13 @@ const InvoicesList = () => {
   const location = useLocation();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const handleView = (invoice) => {
+    setSelectedInvoice(invoice);
+    setViewModalVisible(true);
+  };
 
   useEffect(() => {
     fetchInvoices();
@@ -31,6 +38,26 @@ const InvoicesList = () => {
       message.error('Failed to load invoices');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/invoices/${id}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('Invoice deleted successfully');
+        fetchInvoices();
+      } else {
+        message.error(data.message || 'Failed to delete invoice');
+      }
+    } catch (error) {
+      console.error('Failed to delete invoice:', error);
+      message.error('Failed to delete invoice');
     }
   };
 
@@ -63,15 +90,48 @@ const InvoicesList = () => {
             { title: 'Payment', dataIndex: 'paymentStatus', key: 'paymentStatus', render: (status) => <Tag color={status === 'Paid' ? 'green' : 'red'}>{status}</Tag> },
             { title: 'Actions', key: 'actions', render: (_, record) => (
               <Space>
+                <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} title="View Invoice" />
                 <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${getBaseRoute()}/invoices/${record._id}`)} title="Edit Invoice" />
-                <Button type="text" icon={<CheckCircleOutlined />} title="Update Payment" />
-                <Button type="text" icon={<FilePdfOutlined />} title="Download PDF" />
+                <Popconfirm title="Delete Invoice" onConfirm={() => handleDelete(record._id)}>
+                  <Button type="text" danger icon={<DeleteOutlined />} title="Delete Invoice" />
+                </Popconfirm>
               </Space>
             )}
           ]} 
           dataSource={invoices} 
         />
       </Card>
+      
+      <Modal
+        title="Invoice Details"
+        open={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setViewModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={700}
+      >
+        {selectedInvoice && (
+          <div>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Invoice Number">{selectedInvoice.invoiceNumber}</Descriptions.Item>
+              <Descriptions.Item label="Date">{selectedInvoice.invoiceDate ? new Date(selectedInvoice.invoiceDate).toLocaleDateString() : 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Client">{selectedInvoice.clientId?.name || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Amount">₹{selectedInvoice.grandTotal?.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="Status"><Tag color={selectedInvoice.invoiceStatus === 'Paid' ? 'green' : 'orange'}>{selectedInvoice.invoiceStatus}</Tag></Descriptions.Item>
+              <Descriptions.Item label="Payment Status"><Tag color={selectedInvoice.paymentStatus === 'Paid' ? 'green' : 'red'}>{selectedInvoice.paymentStatus}</Tag></Descriptions.Item>
+              {selectedInvoice.paymentMode && (
+                <Descriptions.Item label="Payment Mode">{selectedInvoice.paymentMode}</Descriptions.Item>
+              )}
+              {selectedInvoice.transactionId && (
+                <Descriptions.Item label="Transaction ID">{selectedInvoice.transactionId}</Descriptions.Item>
+              )}
+            </Descriptions>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

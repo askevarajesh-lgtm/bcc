@@ -469,6 +469,10 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
       fixed: window.innerWidth <= 768 ? false : "right",
       width: 100,
       render: (_, record) => {
+        const isCreator = record.createdBy && (record.createdBy._id === user._id || record.createdBy === user._id);
+        const canEditThisTask = canEdit && canEditTaskDetails && isCreator;
+        const canDeleteThisTask = canDelete && isCreator;
+
         // Unified action menu for all roles based on permissions
         const items = [
           {
@@ -477,15 +481,14 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
             icon: <EyeOutlined />,
             onClick: () => onTaskClick(record),
           },
-            canEdit &&
-            canEditTaskDetails &&
+            canEditThisTask &&
             !["done", "validated", "completed", "complete", "review"].includes(record.status?.toLowerCase()) && {
               key: "edit",
               label: "Edit",
               icon: <EditOutlined />,
               onClick: () => navigate(`/tasks/${record._id}/edit`),
             },
-          canDelete && {
+          canDeleteThisTask && {
             key: "delete",
             label: "Delete",
             icon: <DeleteOutlined />,

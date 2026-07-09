@@ -740,7 +740,7 @@ const resolveProjectListQueryOptions = async (
   let clientIdFilter = null;
   const isGlobalAdmin = ["supreme_super_admin"].includes(userRole);
   
-  if (userRole === "client" && userId) {
+  if (['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(userRole) && userId) {
     clientIdFilter = userId;
   }
   
