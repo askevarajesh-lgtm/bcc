@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { AlertTriangle, Activity, Calendar, DollarSign, ArrowUpRight, ArrowDownRight, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import SlabCard from '../../../components/SlabCard';
-import axios from 'axios';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -22,8 +22,8 @@ const OverviewTab = () => {
       try {
         setLoading(true);
         const [mosRes, slaRes] = await Promise.all([
-          axios.get('/api/mos/dashboard'),
-          axios.get('/api/sla-success/dashboard-stats')
+          api.get('/mos/dashboard'),
+          api.get('/sla-success/dashboard-stats')
         ]);
         
         const clientsData = mosRes.data?.data?.clients || [];

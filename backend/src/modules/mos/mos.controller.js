@@ -67,7 +67,7 @@ exports.getMosDashboard = async (req, res, next) => {
         rev: score.signals.revenue,
         cx: score.signals.cx,
         mom: '+2', // Mocking MoM for now, can be calculated dynamically
-        weakestSignals: score.weakestSignals
+        weakestSignals: score.weakestSignals ? score.weakestSignals.map(s => s.signalName || s) : []
       };
     });
 
