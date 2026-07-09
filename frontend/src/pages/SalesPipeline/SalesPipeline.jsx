@@ -13,9 +13,10 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
+import { useTheme } from '../../contexts/ThemeContext';
 
 const SalesPipeline = () => {
-  const isDark = document.body.classList.contains('dark') || document.body.classList.contains('dark-theme');
+  const { isDark } = useTheme();
   
   // States
   const [filterStage, setFilterStage] = useState(undefined);

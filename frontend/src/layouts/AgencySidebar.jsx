@@ -111,7 +111,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
     workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
   }
-  if (feats.includes('automation') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
+  // if (feats.includes('automation') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
   if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
   if (feats.includes('marketplace') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
 
