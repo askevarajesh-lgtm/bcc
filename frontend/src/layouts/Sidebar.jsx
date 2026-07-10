@@ -160,7 +160,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'WRK' : 'WORKSPACE',
       children: [
         { key: '/workspace/strategy', icon: getIcon(Target), label: 'Strategy' },
-        { key: '/workspace/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' },
         { key: '/workspace/content', icon: getIcon(FileText), label: 'Content' },
         { key: '/workspace/aistudio', icon: getIcon(Palette), label: 'AI Studio' },
         { key: '/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' },

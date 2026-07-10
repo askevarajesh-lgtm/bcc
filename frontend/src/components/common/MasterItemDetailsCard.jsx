@@ -99,25 +99,25 @@ const MasterItemDetailsCard = ({
           {formatCurrency(campaignAmt)}
         </Descriptions.Item>
         
-        {(posters > 0 || remainingPosters !== undefined) && (
+        {posters > 0 && (
           <Descriptions.Item label="Number of Posters">
-            <Text strong>{posters ?? 0}</Text>
+            <Text strong>{posters}</Text>
             {remainingPosters !== undefined && remainingPosters !== null && (
               <Tag color="cyan" style={{ marginLeft: 8 }}>Remaining: {remainingPosters}</Tag>
             )}
           </Descriptions.Item>
         )}
         
-        {(videos > 0 || remainingVideos !== undefined) && (
+        {videos > 0 && (
           <Descriptions.Item label="Number of Videos">
-            <Text strong>{videos ?? 0}</Text>
+            <Text strong>{videos}</Text>
             {remainingVideos !== undefined && remainingVideos !== null && (
               <Tag color="cyan" style={{ marginLeft: 8 }}>Remaining: {remainingVideos}</Tag>
             )}
           </Descriptions.Item>
         )}
         
-        {(shoots > 0 || remainingShoots !== undefined) && (
+        {shoots > 0 && (
           <Descriptions.Item label="Number of Shoots">
             <Text strong>{shoots ?? 0}</Text>
             {remainingShoots !== undefined && remainingShoots !== null && (

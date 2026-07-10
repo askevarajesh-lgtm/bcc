@@ -35,22 +35,17 @@ exports.getUsers = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
       queryFilter.agencyId = null;
       queryFilter.brandId = null;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
-      // If user is a brand admin/manager, only return users for their brand
-      queryFilter.brandId = req.user.brandId;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      queryFilter.brandId = req.user.brandId || req.user._id;
       if (req.user.role === 'brand_manager') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'brand_super_admin'] };
       } else {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       }
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
-      queryFilter.agencyId = req.user.agencyId;
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
       queryFilter.brandId = null;
-      if (req.user.role === 'agency_manager') {
-        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
-      } else {
-        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
-      }
+      queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
     }
 
     const users = await User.find(queryFilter).select('-password').sort({ createdAt: -1 });
@@ -72,21 +67,17 @@ exports.getUsersDropdown = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
       queryFilter.agencyId = null;
       queryFilter.brandId = null;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
-      queryFilter.brandId = req.user.brandId;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      queryFilter.brandId = req.user.brandId || req.user._id;
       if (req.user.role === 'brand_manager') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'brand_super_admin'] };
       } else {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       }
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
-      queryFilter.agencyId = req.user.agencyId;
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
       queryFilter.brandId = null;
-      if (req.user.role === 'agency_manager') {
-        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
-      } else {
-        queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
-      }
+      queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
     }
 
     const users = await User.find(queryFilter).select('name email role').sort({ name: 1 });
@@ -146,9 +137,9 @@ exports.createUser = async (req, res, next) => {
       } else {
          userData.role = 'user'; // Brand Manager creates generic users (customRole determines their job)
       }
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      // If created by an agency admin, assign agencyId
-      userData.agencyId = req.user.agencyId || req.user._id; 
+    } else {
+      // If created by any other agency user (e.g., Operation Head), assign agencyId
+      userData.agencyId = req.companyId || req.user.agencyId || req.user._id;
       if (req.user.adminId) userData.adminId = req.user.adminId;
       userData.brandId = null; // Explicitly prevent brand leak
       

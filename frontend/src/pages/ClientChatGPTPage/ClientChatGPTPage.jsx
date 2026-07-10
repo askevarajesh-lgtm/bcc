@@ -1664,6 +1664,8 @@ const normalizeSessionSearch = (sessions, keyword) => {
   return sessions.filter((session) => pattern.test(session?.title || ""));
 };
 
+import { useActionPermissions } from "../../hooks/useActionPermissions";
+
 const ClientChatGPTPage = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -1671,6 +1673,8 @@ const ClientChatGPTPage = () => {
   const [settingsForm] = Form.useForm();
   const fileInputRef = useRef(null);
   const bottomRef = useRef(null);
+
+  const { canAdd, canDelete, canView, canEdit } = useActionPermissions('/chatgpt');
 
   const {
     data: historyPayload,
@@ -1947,6 +1951,7 @@ const ClientChatGPTPage = () => {
               className="cgpt-tool-button"
               icon={<PlusOutlined />}
               onClick={handleStartNewChat}
+              style={{ display: canAdd ? 'inline-block' : 'none' }}
             >
               New chat
             </Button>
@@ -2028,14 +2033,16 @@ const ClientChatGPTPage = () => {
               />
             </div>
 
-            <Button
-              className="cgpt-new-chat"
-              icon={<PlusOutlined />}
-              block
-              onClick={handleStartNewChat}
-            >
-              New chat
-            </Button>
+            {canAdd && (
+              <Button
+                className="cgpt-new-chat"
+                icon={<PlusOutlined />}
+                block
+                onClick={handleStartNewChat}
+              >
+                New chat
+              </Button>
+            )}
 
             <Input
               className="cgpt-sidebar-search"

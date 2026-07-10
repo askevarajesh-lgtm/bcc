@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Button, Avatar, Select, Spin, message } from 'antd';
+import axios from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Play, Search, MessageSquare, Sparkles, Target } from 'lucide-react';
 import SEOTab from './tabs/SEOTab';
@@ -10,6 +11,68 @@ const { Title, Text } = Typography;
 
 const SEO = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [workspaceData, setWorkspaceData] = useState({ audits: [], keywords: [], strategies: [] });
+  const [analytics, setAnalytics] = useState(null);
+
+  useEffect(() => {
+    fetchWorkspaceData();
+  }, []);
+
+  const fetchWorkspaceData = async () => {
+    try {
+      setLoading(true);
+      const [projectsRes, auditsRes, keywordsRes, strategiesRes] = await Promise.all([
+        axios.get('/seo-workspace/projects'),
+        axios.get('/seo-workspace/audits'),
+        axios.get('/seo-workspace/keywords'),
+        axios.get('/seo-workspace/strategies')
+      ]);
+      const fetchedProjects = projectsRes.data.data || [];
+      setProjects(fetchedProjects);
+      setWorkspaceData({
+        audits: auditsRes.data || [],
+        keywords: keywordsRes.data || [],
+        strategies: strategiesRes.data || []
+      });
+      if (fetchedProjects.length > 0) {
+        setSelectedProjectId(fetchedProjects[0]._id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch workspace data', error);
+      message.error('Failed to load SEO workspace data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchAnalytics(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  const fetchAnalytics = async (projectId) => {
+    try {
+      const res = await axios.get(`/seo-workspace/projects/${projectId}/analytics`);
+      setAnalytics(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const selectedProject = projects.find(p => p._id === selectedProjectId);
+  const projectAudits = workspaceData.audits.filter(a => (a.projectId?._id || a.projectId) === selectedProjectId);
+  const projectKeywords = workspaceData.keywords.filter(k => (k.projectId?._id || k.projectId) === selectedProjectId);
+  const projectStrategies = workspaceData.strategies.filter(s => (s.projectId?._id || s.projectId) === selectedProjectId);
+
+  const latestAudit = projectAudits.length > 0 ? projectAudits[0] : null;
+  const seoScore = latestAudit?.summary?.score || latestAudit?.metrics?.performance || 0;
+  const aeoScore = analytics?.aeoScore || 0;
+  const geoScore = analytics?.geoVisibilityScore || 0;
+  const unifiedScore = analytics?.unifiedScore || Math.round((seoScore + aeoScore + geoScore) / 3) || 0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -29,12 +92,24 @@ const SEO = () => {
   };
 
   const renderTabContent = () => {
+    if (loading) return <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>;
+    if (!selectedProject) return <div style={{ textAlign: 'center', padding: 40 }}>No SEO projects found.</div>;
+
+    const commonProps = {
+      itemVariants,
+      project: selectedProject,
+      analytics,
+      audits: projectAudits,
+      keywords: projectKeywords,
+      strategies: projectStrategies
+    };
+
     switch (activeTab) {
-      case 0: return <SEOTab itemVariants={itemVariants} />;
-      case 1: return <AEOTab itemVariants={itemVariants} />;
-      case 2: return <GEOTab itemVariants={itemVariants} />;
-      case 3: return <SEOTab itemVariants={itemVariants} />; // Placeholder for Unified Search
-      default: return <SEOTab itemVariants={itemVariants} />;
+      case 0: return <SEOTab {...commonProps} />;
+      case 1: return <AEOTab {...commonProps} />;
+      case 2: return <GEOTab {...commonProps} />;
+      case 3: return <SEOTab {...commonProps} />; // Placeholder for Unified Search
+      default: return <SEOTab {...commonProps} />;
     }
   };
 
@@ -48,11 +123,14 @@ const SEO = () => {
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 16, borderRight: '1px solid var(--border-color)' }}>
-            <Avatar size="default" style={{ backgroundColor: 'var(--accent-secondary)', fontWeight: 700 }}>PE</Avatar>
-            <div style={{ lineHeight: 1.2 }}>
-              <strong style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>Prestige Estates</strong>
-              <Text type="secondary" style={{ fontSize: 11 }}>Synced 4 mins ago</Text>
-            </div>
+            <Select 
+              value={selectedProjectId}
+              onChange={val => setSelectedProjectId(val)}
+              style={{ width: 250 }}
+              options={projects.map(p => ({ label: p.name, value: p._id }))}
+              placeholder="Select Project"
+              loading={loading}
+            />
           </div>
           <Button icon={<Play size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>Run Full Audit</Button>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>Export Report</Button>
@@ -63,10 +141,10 @@ const SEO = () => {
       {/* NEW INNER GLOW AURA CARDS / TABS */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'SEO', title: 'SEO HEALTH', val: '88', sub: '▲ +3', color: 'var(--accent-secondary)', icon: <Search size={24} />, glowPos: 'top-left', subText: 'Search Engine Optimisation' },
-          { label: 'AEO', title: 'ANSWER ENGINE', val: '74', sub: '▲ +5', color: 'var(--accent-primary)', icon: <MessageSquare size={24} />, glowPos: 'bottom-right', subText: 'Answer Engine Optimisation' },
-          { label: 'GEO', title: 'GENERATIVE ENGINE', val: '72', sub: '▲ +8', color: 'var(--accent-info)', icon: <Sparkles size={24} />, glowPos: 'top-right', subText: 'Generative Engine Optimisation' },
-          { label: 'UNIFIED SEARCH', title: 'UNIFIED SEARCH', val: '78', sub: 'Top 21% in Real Estate', color: 'var(--accent-warning)', icon: <Target size={24} />, glowPos: 'bottom-left', isOverall: true }
+          { label: 'SEO', title: 'SEO HEALTH', val: seoScore, sub: '', color: 'var(--accent-secondary)', icon: <Search size={24} />, glowPos: 'top-left', subText: 'Search Engine Optimisation' },
+          { label: 'AEO', title: 'ANSWER ENGINE', val: aeoScore, sub: '', color: 'var(--accent-primary)', icon: <MessageSquare size={24} />, glowPos: 'bottom-right', subText: 'Answer Engine Optimisation' },
+          { label: 'GEO', title: 'GENERATIVE ENGINE', val: geoScore, sub: '', color: 'var(--accent-info)', icon: <Sparkles size={24} />, glowPos: 'top-right', subText: 'Generative Engine Optimisation' },
+          { label: 'UNIFIED SEARCH', title: 'UNIFIED SEARCH', val: unifiedScore, sub: selectedProject ? `Avg. Unified Score` : 'No Project', color: 'var(--accent-warning)', icon: <Target size={24} />, glowPos: 'bottom-left', isOverall: true }
         ].map((kpi, i) => {
           const isActive = activeTab === i;
           return (

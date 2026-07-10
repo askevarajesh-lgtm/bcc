@@ -34,6 +34,7 @@ const SEOWorkspace = () => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [activeReport, setActiveReport] = useState(null);
   const [selectedSettingsProject, setSelectedSettingsProject] = useState(null);
+  const [selectedKeywordProject, setSelectedKeywordProject] = useState(null);
   const [form] = Form.useForm();
   
   const { role } = useAuth();
@@ -385,8 +386,33 @@ const SEOWorkspace = () => {
       {/* Keywords Tab */}
       {activeSubTab === 'keywords' && (
         <Card className="seo-glass-panel seo-table">
-          <Title level={4} style={{ margin: '0 0 16px 0' }}>Keyword Tracking</Title>
-          <Table dataSource={keywords} columns={keywordColumns} rowKey="_id" loading={loading} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
+            <Title level={4} style={{ margin: 0 }}>Keyword Tracking</Title>
+            <Select 
+              placeholder="Select a project" 
+              style={{ width: 250 }} 
+              onChange={setSelectedKeywordProject}
+              value={selectedKeywordProject}
+            >
+              {projects.map(p => (
+                <Option key={p._id} value={p._id}>{p.name}</Option>
+              ))}
+            </Select>
+          </div>
+
+          {!selectedKeywordProject ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <CheckCircle size={48} color="#ccc" style={{ marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>Select a project to view its keywords</Text>
+            </div>
+          ) : (
+            <Table 
+              dataSource={keywords.filter(k => (k.projectId?._id || k.projectId) === selectedKeywordProject)} 
+              columns={keywordColumns} 
+              rowKey="_id" 
+              loading={loading} 
+            />
+          )}
         </Card>
       )}
 

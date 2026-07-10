@@ -5,10 +5,10 @@ exports.getRoles = async (req, res, next) => {
     let queryFilter = {};
     if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
-      queryFilter.brandId = req.user.brandId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
-      queryFilter.agencyId = req.user.agencyId;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      queryFilter.brandId = req.user.brandId || req.user._id;
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
     }
     const roles = await Role.find(queryFilter).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: roles });
@@ -20,15 +20,15 @@ exports.getRoles = async (req, res, next) => {
 exports.createRole = async (req, res, next) => {
   try {
     const data = { ...req.body };
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      data.brandId = req.user.brandId;
-      data.agencyId = req.user.agencyId;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      data.agencyId = req.user.agencyId || req.user._id;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (req.user.role === 'commander_admin') {
+    if (req.user.role === 'commander_admin') {
       data.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      data.brandId = req.user.brandId || req.user._id;
+      data.agencyId = req.companyId || req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else {
+      data.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
     }
     const role = await Role.create(data);
     res.status(201).json({ success: true, data: role });

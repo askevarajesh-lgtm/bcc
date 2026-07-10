@@ -35,7 +35,7 @@ import TaskReopenModal from "./TaskReopenModal";
 const { Option } = Select;
 const { Search } = Input;
 
-const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
+const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted, clientId }) => {
   const navigate = useNavigate();
   const [deleteTask] = useDeleteTaskMutation();
   const [sortBy, setSortBy] = useState("createdAt");
@@ -117,7 +117,7 @@ const TaskListView = ({ onTaskClick, departmentFilter, onTaskCompleted }) => {
   }, [departmentFilter]);
 
   const { user: user } = useAuth();
-  const selectedClientId = null;
+  const selectedClientId = clientId || null;
   const userRole = user?.role;
 
   // Check permissions and roles

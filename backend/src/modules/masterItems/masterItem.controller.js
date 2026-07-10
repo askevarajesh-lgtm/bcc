@@ -7,15 +7,15 @@ exports.createMasterItem = async (req, res, next) => {
     data.createdBy = req.user._id;
 
     // Tenant logic similar to department
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      data.brandId = req.user.brandId;
-      data.agencyId = req.user.agencyId;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      data.agencyId = req.user.agencyId || req.user._id;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (req.user.role === 'commander_admin') {
+    if (req.user.role === 'commander_admin') {
       data.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      data.brandId = req.user.brandId || req.user._id;
+      data.agencyId = req.companyId || req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else {
+      data.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
     }
 
     // Duplicate name check within the tenant
@@ -56,14 +56,15 @@ exports.getMasterItems = async (req, res, next) => {
     // Tenant filtering
     if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role) && req.user.brandId) {
-      queryFilter.brandId = req.user.brandId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) && req.user.agencyId) {
-      queryFilter.agencyId = req.user.agencyId;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      queryFilter.brandId = req.user.brandId || req.user._id;
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
     }
 
     const total = await MasterItem.countDocuments(queryFilter);
     const masterItems = await MasterItem.find(queryFilter)
+      .populate('createdBy', 'name email roleName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

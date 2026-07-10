@@ -64,6 +64,7 @@ const ProjectForm = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
   const [form] = Form.useForm();
@@ -370,10 +371,9 @@ const ProjectForm = () => {
 
         const getCategoryCount = (nameKeywords) => {
           if (!selectedInvoiceItem.categories) return 0;
-          const cat = selectedInvoiceItem.categories.find(c => 
-            nameKeywords.some(keyword => (c.name || c.categoryName || '').toLowerCase().includes(keyword.toLowerCase()))
-          );
-          return cat ? (cat.count || cat.quantity || 0) : 0;
+          return selectedInvoiceItem.categories
+            .filter(c => nameKeywords.some(keyword => (c.name || c.categoryName || '').toLowerCase().includes(keyword.toLowerCase())))
+            .reduce((sum, cat) => sum + (cat.count || cat.quantity || 0), 0);
         };
 
         const projectData = {
@@ -414,10 +414,18 @@ const ProjectForm = () => {
               catName = cat.type.charAt(0).toUpperCase() + cat.type.slice(1);
             }
 
+            // quantity comes from cat.quantity (selectedCategories format) OR cat.count (categories format)
+            const quantity = cat.quantity !== undefined ? cat.quantity : (cat.count || 0);
+            // remaining: use existing remaining if present, otherwise default to full quantity
+            const remaining = cat.remaining !== undefined ? cat.remaining : quantity;
+
             return {
               ...cat,
               name: catName || `Item ${idx + 1}`,
               categoryName: catName || `Item ${idx + 1}`,
+              quantity,
+              remaining,
+              completed: cat.completed || 0,
             };
           }),
           // Explicitly exclude companyId - it will be derived from the invoice

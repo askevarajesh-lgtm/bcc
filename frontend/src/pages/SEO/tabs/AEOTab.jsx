@@ -6,38 +6,34 @@ import { CheckCircle2, AlertTriangle, MessageSquare, Info, X, ChevronRight, Edit
 
 const { Title, Text } = Typography;
 
-const snippetData = [
-  { id: 1, query: 'best luxury apartments bangalore', type: 'Paragraph', pos: '#1', volume: '8,100', preview: 'Prestige Estates offers...', risk: 'Low' },
-  { id: 2, query: 'prestige group track record', type: 'Paragraph', pos: '#1', volume: '4,400', preview: 'Founded in 1986, Prestige...', risk: 'Low' },
-  { id: 3, query: 'how to buy apartment bangalore', type: 'List', pos: '#1', volume: '6,800', preview: '1. Choose location 2. Set budg...', risk: 'Medium' },
-  { id: 4, query: 'whitefield property rates 2026', type: 'Table', pos: '#1', volume: '3,200', preview: 'Price table shown', risk: 'High' },
-  { id: 5, query: 'luxury villa checklist', type: 'List', pos: '#2', volume: '2,900', preview: 'Competitor owns #1', risk: 'Medium' },
-  { id: 6, query: 'real estate agent bangalore', type: 'Paragraph', pos: '#1', volume: '5,400', preview: 'BCC Martech certified...', risk: 'Low' },
-  { id: 7, query: 'prestige somerville review', type: 'Rich', pos: '#1', volume: '3,800', preview: '4.8★ (124 reviews)', risk: 'Low' },
-  { id: 8, query: 'apartment loan eligibility', type: 'Paragraph', pos: '#3', volume: '12,000', preview: 'Competitor owns #1', risk: 'High' }
-];
-
-const paaQueries = [
-  { id: 1, q: 'What is the price of Prestige Estates apartments in Bangalore?', status: 'We own the answer', triggers: '4,200 monthly triggers', color: 'success' },
-  { id: 2, q: 'Is Prestige Group a good builder?', status: 'We own the answer', triggers: '3,500 monthly triggers', color: 'success' },
-  { id: 3, q: 'Which is the best area to buy flat in Bangalore?', status: 'Competitor appears first', triggers: '8,100 monthly triggers', color: 'warning', btn: 'Optimize' },
-  { id: 4, q: 'What is the minimum budget for an apartment in Bangalore?', status: 'We own the answer', triggers: '2,900 monthly triggers', color: 'success' },
-  { id: 5, q: 'How long does property registration take in Karnataka?', status: 'Not ranking', triggers: '1,800 monthly triggers', color: 'error', btn: 'Create Content' },
-];
-
-const schemaList = [
-  { name: 'Organization schema', status: 'check' },
-  { name: 'LocalBusiness schema', status: 'check' },
-  { name: 'FAQPage schema (8 pages)', status: 'check' },
-  { name: 'BreadcrumbList', status: 'check' },
-  { name: 'Review / AggregateRating', status: 'check' },
-  { name: 'HowTo schema (3 pages missing)', status: 'warning', action: 'Implement' },
-  { name: 'VideoObject schema', status: 'warning', action: 'Implement' },
-  { name: 'SpeakableSpecification (voice)', status: 'error', action: 'Add' },
-];
-
-const AEOTab = ({ itemVariants }) => {
+const AEOTab = ({ itemVariants, project, analytics, audits, keywords, strategies }) => {
   const [showInfo, setShowInfo] = useState(true);
+  
+  const snippetData = (keywords || []).filter(k => k.ranking?.isFeaturedSnippet).map((k, idx) => ({
+    id: k._id || idx,
+    query: k.keyword,
+    type: k.ranking?.snippetType || 'Paragraph',
+    pos: `#${k.ranking?.currentRank}`,
+    volume: k.metrics?.searchVolume || '-',
+    preview: k.ranking?.snippetPreview || 'View snippet...',
+    risk: k.metrics?.keywordDifficulty > 60 ? 'High' : (k.metrics?.keywordDifficulty > 30 ? 'Medium' : 'Low')
+  }));
+
+  const paaQueries = []; // Derive from strategy/audit if available in the future
+  
+  const latestAudit = audits && audits.length > 0 ? audits[0] : null;
+  const schemaList = (latestAudit?.details?.schema || []).map((s, idx) => ({
+    name: s.name || s,
+    status: s.status || 'check',
+    action: s.action || null
+  }));
+
+  const snippetsOwned = snippetData.length;
+  const snippetsOpportunities = (keywords || []).length;
+  const paaCount = paaQueries.length;
+  const isKnowledgePanelActive = analytics?.knowledgePanelActive ?? true;
+  const voiceSearchCoverage = analytics?.voiceSearchCoverage ?? '0%';
+  const faqImpressions = analytics?.faqImpressions ?? '0';
 
   const snippetCols = [
     { title: 'QUERY', dataIndex: 'query', key: 'query', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
@@ -85,11 +81,11 @@ const AEOTab = ({ itemVariants }) => {
       {/* 5 Small Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {[
-          { label: 'FEATURED SNIPPETS OWNED', val: '28', sub: '▲ +6', text: 'of 84 opportunities', color: 'var(--accent-primary)' },
-          { label: 'PEOPLE ALSO ASK', val: '47', sub: '▲ +9', text: 'PAA box appearances', color: 'var(--accent-info)' },
-          { label: 'KNOWLEDGE PANEL', val: 'ACTIVE ✓', sub: '', text: 'Google Business + entity', color: 'var(--accent-secondary)', isTag: true, tagColor: 'success' },
-          { label: 'VOICE SEARCH COVERAGE', val: '61%', sub: '▲ +4%', text: 'of conversational queries', color: 'var(--accent-warning)' },
-          { label: 'FAQ IMPRESSIONS', val: '12.4K', sub: '▲ +12%', text: 'FAQ schema triggers/mo', color: 'var(--accent-info)' },
+          { label: 'FEATURED SNIPPETS OWNED', val: snippetsOwned.toString(), sub: '', text: `of ${snippetsOpportunities} opportunities`, color: 'var(--accent-primary)' },
+          { label: 'PEOPLE ALSO ASK', val: paaCount.toString(), sub: '', text: 'PAA box appearances', color: 'var(--accent-info)' },
+          { label: 'KNOWLEDGE PANEL', val: isKnowledgePanelActive ? 'ACTIVE ✓' : 'MISSING', sub: '', text: 'Google Business + entity', color: isKnowledgePanelActive ? 'var(--accent-secondary)' : 'var(--accent-danger)', isTag: true, tagColor: isKnowledgePanelActive ? 'success' : 'error' },
+          { label: 'VOICE SEARCH COVERAGE', val: voiceSearchCoverage, sub: '', text: 'of conversational queries', color: 'var(--accent-warning)' },
+          { label: 'FAQ IMPRESSIONS', val: faqImpressions, sub: '', text: 'FAQ schema triggers/mo', color: 'var(--accent-info)' },
         ].map((kpi, i) => (
           <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} key={i} style={{ height: '100%' }}>
             <Card 
@@ -140,24 +136,28 @@ const AEOTab = ({ itemVariants }) => {
               title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>People Also Ask — Top Queries</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Questions where your content appears in PAA boxes</Text></div>} 
               className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {paaQueries.map((item, i) => (
-                  <div key={i} style={{ padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <ChevronRight size={16} />
-                        <strong style={{ color: 'var(--text-primary)', fontSize: 14 }}>{item.q}</strong>
+              {paaQueries.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No PAA data available for this project.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {paaQueries.map((item, i) => (
+                    <div key={i} style={{ padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <ChevronRight size={16} />
+                          <strong style={{ color: 'var(--text-primary)', fontSize: 14 }}>{item.q}</strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {item.color === 'success' ? <CheckCircle2 size={14} color="var(--accent-secondary)"/> : item.color === 'warning' ? <AlertTriangle size={14} color="var(--accent-warning)"/> : <X size={14} color="var(--accent-danger)"/>}
+                          <Text style={{ color: `var(--accent-${item.color === 'success' ? 'secondary' : item.color === 'warning' ? 'warning' : 'danger'})`, fontWeight: 600, fontSize: 12 }}>{item.status}</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>— {item.triggers}</Text>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {item.color === 'success' ? <CheckCircle2 size={14} color="var(--accent-secondary)"/> : item.color === 'warning' ? <AlertTriangle size={14} color="var(--accent-warning)"/> : <X size={14} color="var(--accent-danger)"/>}
-                        <Text style={{ color: `var(--accent-${item.color === 'success' ? 'secondary' : item.color === 'warning' ? 'warning' : 'danger'})`, fontWeight: 600, fontSize: 12 }}>{item.status}</Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>— {item.triggers}</Text>
-                      </div>
+                      {item.btn && <Button size="small" style={{ borderRadius: 8, fontWeight: 600 }}>{item.btn}</Button>}
                     </div>
-                    {item.btn && <Button size="small" style={{ borderRadius: 8, fontWeight: 600 }}>{item.btn}</Button>}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </motion.div>
         </Col>
@@ -167,17 +167,21 @@ const AEOTab = ({ itemVariants }) => {
             <Card title={<Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Schema Markup</Title>} className="glassmorphism" style={{ borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 16 }}>
               <Text type="secondary" style={{ display: 'block', marginBottom: 16, fontSize: 12 }}>Structured data implementation</Text>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                {schemaList.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-                      {item.status === 'check' ? <CheckCircle2 size={16} color="var(--accent-secondary)"/> : item.status === 'warning' ? <AlertTriangle size={16} color="var(--accent-warning)"/> : <X size={16} color="var(--accent-danger)"/>}
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.name}</span>
+              {schemaList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-secondary)' }}>No schema data found in latest audit.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                  {schemaList.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                        {item.status === 'check' ? <CheckCircle2 size={16} color="var(--accent-secondary)"/> : item.status === 'warning' ? <AlertTriangle size={16} color="var(--accent-warning)"/> : <X size={16} color="var(--accent-danger)"/>}
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.name}</span>
+                      </div>
+                      {item.action && <a style={{ color: item.status === 'warning' ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600, fontSize: 12 }}>{item.action}</a>}
                     </div>
-                    {item.action && <a style={{ color: item.status === 'warning' ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600, fontSize: 12 }}>{item.action}</a>}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
@@ -191,66 +195,77 @@ const AEOTab = ({ itemVariants }) => {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card title={<Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Knowledge Panel</Title>} extra={<Tag color="success" style={{ borderRadius: 12, fontWeight: 600 }}>Active & Verified</Tag>} className="glassmorphism" style={{ borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 20 }}>
-              <strong style={{ fontSize: 16, display: 'block', color: 'var(--text-primary)' }}>Prestige Estates</strong>
-              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>Real estate developer</Text>
-              <Text style={{ fontSize: 13, display: 'block', marginBottom: 16, color: 'var(--text-primary)' }}>Prestige Estates Projects Limited is...</Text>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 12 }}>
-                <Text type="secondary">Founded: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>1986</span></Text>
-                <Text type="secondary">HQ: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Bangalore</span></Text>
-              </div>
-              <Text style={{ color: 'var(--accent-warning)', fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 600 }}>★★★★☆ 4.2 (2,641 reviews)</Text>
-              
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                  <Text type="secondary">Entity Authority</Text>
-                  <Tag color="success" style={{ borderRadius: 12, fontWeight: 600, margin: 0 }}>✓ Strong</Tag>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                  <Text type="secondary">Wikipedia</Text>
-                  <strong style={{ color: 'var(--accent-secondary)' }}>✓ Exists</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                  <Text type="secondary">Google Business</Text>
-                  <strong style={{ color: 'var(--accent-secondary)' }}>✓ Verified</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                  <Text type="secondary">Wikidata ID</Text>
-                  <strong style={{ color: 'var(--accent-secondary)' }}>✓ Linked</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, fontSize: 13 }}>
-                  <Text type="secondary">Updated</Text>
-                  <strong style={{ color: 'var(--accent-secondary)' }}>✓ 2 weeks ago</strong>
-                </div>
-                <Button block style={{ borderRadius: 8, fontWeight: 600 }}>Edit Entity Data</Button>
-              </div>
+            <Card title={<Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Knowledge Panel</Title>} extra={<Tag color={analytics?.knowledgePanel ? 'success' : 'error'} style={{ borderRadius: 12, fontWeight: 600 }}>{analytics?.knowledgePanel ? 'Active & Verified' : 'Missing'}</Tag>} className="glassmorphism" style={{ borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 20 }}>
+              {!analytics?.knowledgePanel ? (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-secondary)' }}>No Knowledge Panel data available for this project.</div>
+              ) : (
+                <>
+                  <strong style={{ fontSize: 16, display: 'block', color: 'var(--text-primary)' }}>{analytics.knowledgePanel.name || project?.name || 'Project Name'}</strong>
+                  <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>{analytics.knowledgePanel.type || 'Business'}</Text>
+                  <Text style={{ fontSize: 13, display: 'block', marginBottom: 16, color: 'var(--text-primary)' }}>{analytics.knowledgePanel.description || ''}</Text>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 12 }}>
+                    <Text type="secondary">Founded: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{analytics.knowledgePanel.founded || '-'}</span></Text>
+                    <Text type="secondary">HQ: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{analytics.knowledgePanel.hq || '-'}</span></Text>
+                  </div>
+                  {analytics.knowledgePanel.rating && (
+                    <Text style={{ color: 'var(--accent-warning)', fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 600 }}>★★★★☆ {analytics.knowledgePanel.rating}</Text>
+                  )}
+                  
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                      <Text type="secondary">Entity Authority</Text>
+                      <Tag color="success" style={{ borderRadius: 12, fontWeight: 600, margin: 0 }}>✓ {analytics.knowledgePanel.entityAuthority || 'Strong'}</Tag>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                      <Text type="secondary">Wikipedia</Text>
+                      <strong style={{ color: 'var(--accent-secondary)' }}>{analytics.knowledgePanel.wikipedia ? '✓ Exists' : '✗ Missing'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                      <Text type="secondary">Google Business</Text>
+                      <strong style={{ color: 'var(--accent-secondary)' }}>{analytics.knowledgePanel.googleBusiness ? '✓ Verified' : '✗ Unverified'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                      <Text type="secondary">Wikidata ID</Text>
+                      <strong style={{ color: 'var(--accent-secondary)' }}>{analytics.knowledgePanel.wikidata ? '✓ Linked' : '✗ Missing'}</strong>
+                    </div>
+                    <Button block style={{ borderRadius: 8, fontWeight: 600, marginTop: 12 }}>Edit Entity Data</Button>
+                  </div>
+                </>
+              )}
             </Card>
           </motion.div>
 
           <motion.div variants={itemVariants}>
             <Card title={<Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Voice Search Readiness</Title>} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ height: 160, display: 'flex', justifyContent: 'center', position: 'relative', marginBottom: 20 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={[{ value: 61, fill: 'var(--accent-primary)' }, { value: 39, fill: 'var(--bg-tertiary)' }]} innerRadius={50} outerRadius={70} dataKey="value" startAngle={90} endAngle={-270} stroke="none" />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                  <Title level={1} style={{ margin: 0, fontSize: 32, fontWeight: 800, color: 'var(--text-primary)' }}>61</Title>
-                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>/100</Text>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12, marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle2 size={14} color="var(--accent-secondary)"/> <Text type="secondary">Conversational keywords targeted (28/45)</Text></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle2 size={14} color="var(--accent-secondary)"/> <Text type="secondary">FAQ schema on key pages</Text></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><AlertTriangle size={14} color="var(--accent-warning)"/> <Text type="secondary">Page load &lt; 2s (4 pages failing)</Text></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><AlertTriangle size={14} color="var(--accent-warning)"/> <Text type="secondary">Local business schema complete</Text></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><X size={14} color="var(--accent-danger)"/> <Text type="secondary">SpeakableSpecification missing</Text></div>
-              </div>
+              {!analytics?.voiceScore && !analytics?.voiceMetrics ? (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-secondary)' }}>No Voice Search Readiness data available.</div>
+              ) : (
+                <>
+                  <div style={{ height: 160, display: 'flex', justifyContent: 'center', position: 'relative', marginBottom: 20 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={[{ value: analytics?.voiceScore || 0, fill: 'var(--accent-primary)' }, { value: 100 - (analytics?.voiceScore || 0), fill: 'var(--bg-tertiary)' }]} innerRadius={50} outerRadius={70} dataKey="value" startAngle={90} endAngle={-270} stroke="none" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <Title level={1} style={{ margin: 0, fontSize: 32, fontWeight: 800, color: 'var(--text-primary)' }}>{analytics?.voiceScore || 0}</Title>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>/100</Text>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12, marginBottom: 20 }}>
+                    {(analytics?.voiceMetrics || []).map((metric, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {metric.status === 'success' ? <CheckCircle2 size={14} color="var(--accent-secondary)"/> : metric.status === 'warning' ? <AlertTriangle size={14} color="var(--accent-warning)"/> : <X size={14} color="var(--accent-danger)"/>}
+                        <Text type="secondary">{metric.text}</Text>
+                      </div>
+                    ))}
+                  </div>
 
-              <Button type="primary" block icon={<MessageSquare size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600 }}>Improve Voice Score</Button>
+                  <Button type="primary" block icon={<MessageSquare size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600 }}>Improve Voice Score</Button>
+                </>
+              )}
             </Card>
           </motion.div>
         </Col>

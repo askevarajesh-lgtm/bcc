@@ -6,15 +6,15 @@ exports.createInvoice = async (req, res, next) => {
     const data = { ...req.body };
     data.createdBy = req.user._id;
 
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      data.brandId = req.user.brandId;
-      data.agencyId = req.user.agencyId;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      data.agencyId = req.user.agencyId || req.user._id;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (req.user.role === 'commander_admin') {
+    if (req.user.role === 'commander_admin') {
       data.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      data.brandId = req.user.brandId || req.user._id;
+      data.agencyId = req.companyId || req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else {
+      data.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
     }
 
     const invoice = await Invoice.create(data);
@@ -71,8 +71,10 @@ exports.getInvoices = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       queryFilter.brandId = req.user.brandId || req.user._id;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      queryFilter.agencyId = req.user.agencyId || req.user._id;
+      // Clients should not see draft invoices
+      queryFilter.invoiceStatus = { $ne: 'Draft' };
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
     }
 
     const total = await Invoice.countDocuments(queryFilter);
@@ -86,6 +88,7 @@ exports.getInvoices = async (req, res, next) => {
           select: 'name price description status categories startDate endDate handlingDuration'
         }
       })
+      .populate('createdBy', 'name email roleName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -113,7 +116,7 @@ exports.getInvoice = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name itemCode category price duration description startDate endDate handlingDuration'
+          select: 'name itemCode category categories price duration description startDate endDate handlingDuration'
         }
       });
     if (!invoice) {
@@ -171,6 +174,45 @@ exports.deleteInvoice = async (req, res, next) => {
     await invoice.save();
     
     res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Send Invoice to Client
+exports.sendInvoice = async (req, res, next) => {
+  try {
+    const { method } = req.body;
+    const invoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false });
+    
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    if (method === 'email') {
+      console.log(`[Email Integration] Sending invoice ${invoice.invoiceNumber} to client via Email...`);
+      // TODO: Connect actual email integration
+    } else if (method === 'whatsapp') {
+      console.log(`[WhatsApp Integration] Sending invoice ${invoice.invoiceNumber} to client via WhatsApp...`);
+      // TODO: Connect actual WhatsApp integration
+    } else if (method === 'dashboard') {
+      console.log(`[Dashboard Integration] Making invoice ${invoice.invoiceNumber} available on Client Dashboard...`);
+      // Simply updating status handles this due to our query filter logic
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid delivery method' });
+    }
+
+    // Change status from Draft to Sent (or leave as Pending/Paid if already updated)
+    if (invoice.invoiceStatus === 'Draft') {
+      invoice.invoiceStatus = 'Sent';
+      await invoice.save();
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Invoice successfully sent via ${method}`,
+      data: invoice
+    });
   } catch (error) {
     next(error);
   }

@@ -4,10 +4,14 @@ import { motion } from 'framer-motion';
 import { Download, CreditCard, Landmark, Wallet, ArrowUpRight, Calendar } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import BubbleCard from '../../../components/BubbleCard';
+import { useGetInvoicesQuery } from '../../../api/invoiceApi';
+import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 const BillingTab = () => {
+  const navigate = useNavigate();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -33,18 +37,23 @@ const BillingTab = () => {
     { name: 'Jun 2026', value: 3.2 },
   ];
 
-  const invoices = [
-    { id: '1', invoice: 'INV-2026-06', period: 'June 2026', amount: '₹3,20,000', dueDate: '1 Jul 2026', status: 'Upcoming' },
-    { id: '2', invoice: 'INV-2026-05', period: 'May 2026', amount: '₹3,20,000', dueDate: '1 Jun 2026', status: 'Paid' },
-    { id: '3', invoice: 'INV-2026-04', period: 'April 2026', amount: '₹3,20,000', dueDate: '1 May 2026', status: 'Paid' },
-    { id: '4', invoice: 'INV-2026-03', period: 'March 2026', amount: '₹3,00,000', dueDate: '1 Apr 2026', status: 'Paid' },
-    { id: '5', invoice: 'INV-2026-02', period: 'February 2026', amount: '₹3,00,000', dueDate: '1 Mar 2026', status: 'Paid' },
-    { id: '6', invoice: 'INV-2026-01', period: 'January 2026', amount: '₹3,00,000', dueDate: '1 Feb 2026', status: 'Paid' },
-    { id: '7', invoice: 'INV-2025-12', period: 'December 2025', amount: '₹3,00,000', dueDate: '1 Jan 2026', status: 'Paid' },
-    { id: '8', invoice: 'INV-2025-11', period: 'November 2025', amount: '₹2,80,000', dueDate: '1 Dec 2025', status: 'Paid' },
-    { id: '9', invoice: 'INV-2025-10', period: 'October 2025', amount: '₹2,80,000', dueDate: '1 Nov 2025', status: 'Paid' },
-    { id: '10', invoice: 'INV-2025-09', period: 'September 2025', amount: '₹2,80,000', dueDate: '1 Oct 2025', status: 'Paid' },
-  ];
+  const { data: invoicesData } = useGetInvoicesQuery({});
+  const allInvoices = Array.isArray(invoicesData) ? invoicesData : (invoicesData?.data || []);
+  
+  const invoices = allInvoices
+    .filter(i => i.invoiceStatus !== 'Draft')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const latestInvoice = [...invoices].filter(i => i.paymentStatus !== 'Paid')[0];
+
+  const tableData = invoices.map((inv, index) => ({
+    id: inv._id,
+    invoice: inv.invoiceNumber,
+    period: dayjs(inv.invoiceDate || inv.createdAt).format('MMMM YYYY'),
+    amount: `₹${(inv.grandTotal || 0).toLocaleString()}`,
+    dueDate: dayjs(inv.dueDate || inv.createdAt).format('D MMM YYYY'),
+    status: inv.paymentStatus || 'Pending'
+  }));
 
   const columns = [
     { title: 'INVOICE #', dataIndex: 'invoice', key: 'invoice', render: (val) => <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{val}</span> },
@@ -107,21 +116,31 @@ const BillingTab = () => {
                 </Tag>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-                <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>₹3,20,000</span>
+                <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  {latestInvoice ? `₹${(latestInvoice.grandTotal || 0).toLocaleString()}` : invoices.length > 0 ? `₹${(invoices[0].grandTotal || 0).toLocaleString()}` : '—'}
+                </span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>/mo</span>
               </div>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Active since Aug 2024 · 12-month contract</Text>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                {invoices.length > 0 ? `Active since ${dayjs(invoices[invoices.length - 1]?.createdAt).format('MMM YYYY')} · ${invoices.length} invoice${invoices.length !== 1 ? 's' : ''} total` : 'No invoices yet'}
+              </Text>
             </BubbleCard>
           </Col>
           <Col xs={24} lg={24} xl={24} xxl={14}>
             <BubbleCard bodyStyle={{ padding: 32, display: 'flex', height: '100%', gap: 32 }}>
               <div style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: 1, display: 'block', marginBottom: 16 }}>NEXT INVOICE</Text>
-                <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, display: 'block', marginBottom: 8 }}>₹3,20,000</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={14} color="var(--text-secondary)" />
-                  <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Due 1 Jul 2026</Text>
-                </div>
+                {latestInvoice ? (
+                  <>
+                    <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, display: 'block', marginBottom: 8 }}>₹{(latestInvoice.grandTotal || 0).toLocaleString()}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Calendar size={14} color="var(--text-secondary)" />
+                      <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Due {dayjs(latestInvoice.dueDate || latestInvoice.createdAt).format('D MMM YYYY')}</Text>
+                    </div>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-secondary)' }}>No pending invoices</Text>
+                )}
               </div>
               <div style={{ width: 1, background: 'var(--border-color)' }} />
               <div style={{ flex: 1 }}>
@@ -151,19 +170,31 @@ const BillingTab = () => {
       </motion.div>
 
       {/* Warning Banner */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
-        <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 16, padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Text style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-warning)', letterSpacing: 1, display: 'block', marginBottom: 8 }}>NEXT INVOICE</Text>
-            <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>INV-2026-06 · June 2026 · ₹3,20,000</Text>
-            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Due 1 Jul 2026 · <span style={{ color: 'var(--accent-warning)' }}>32 days away</span></Text>
-            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Payment method: Visa •••• 4821</Text>
+      {latestInvoice && (
+        <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
+          <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 16, padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-warning)', letterSpacing: 1, display: 'block', marginBottom: 8 }}>NEXT INVOICE</Text>
+              <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>
+                {latestInvoice.invoiceNumber} · {dayjs(latestInvoice.invoiceDate || latestInvoice.createdAt).format('MMMM YYYY')} · ₹{(latestInvoice.grandTotal || 0).toLocaleString()}
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                Due {dayjs(latestInvoice.dueDate || latestInvoice.createdAt).format('D MMM YYYY')} · <span style={{ color: 'var(--accent-warning)' }}>
+                  {dayjs(latestInvoice.dueDate || latestInvoice.createdAt).diff(dayjs(), 'day')} days away
+                </span>
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Payment method: {latestInvoice.paymentMode || 'Bank Transfer'}</Text>
+            </div>
+            <Button 
+              type="primary" 
+              style={{ background: 'var(--accent-secondary)', fontWeight: 800, borderRadius: 8, height: 44, padding: '0 24px', fontSize: 15 }}
+              onClick={() => navigate(`/client/workspace/invoices/${latestInvoice._id}/view`)}
+            >
+              View Invoice
+            </Button>
           </div>
-          <Button type="primary" style={{ background: 'var(--accent-secondary)', fontWeight: 800, borderRadius: 8, height: 44, padding: '0 24px', fontSize: 15 }}>
-            Pay Now
-          </Button>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Retainer History Chart */}
       <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
@@ -201,47 +232,45 @@ const BillingTab = () => {
             <Button icon={<Download size={14} />} style={{ fontWeight: 600, borderRadius: 8, color: 'var(--text-secondary)' }}>Export all</Button>
           </div>
           <Table 
-            dataSource={invoices} 
             columns={columns} 
-            pagination={false} 
+            dataSource={tableData} 
+            pagination={false}
             rowKey="id"
+            rowClassName="billing-table-row"
             style={{ width: '100%' }}
             className="custom-table"
           />
         </BubbleCard>
       </motion.div>
 
-      {/* Upcoming */}
       <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
         <BubbleCard bodyStyle={{ padding: 32 }}>
           <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800, fontSize: 16 }}>Upcoming</Title>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <Calendar size={20} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-                <div>
-                  <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>Jul 2026</Text>
-                  <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Due 1 Aug 2026</Text>
-                </div>
+            {invoices.filter(i => i.paymentStatus !== 'Paid').length > 0 ? (
+              invoices
+                .filter(i => i.paymentStatus !== 'Paid')
+                .slice(0, 3)
+                .map((inv) => (
+                  <div key={inv._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <Calendar size={20} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                      <div>
+                        <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>{inv.invoiceNumber}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Due {dayjs(inv.dueDate || inv.createdAt).format('D MMM YYYY')}</Text>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>₹{(inv.grandTotal || 0).toLocaleString()}</Text>
+                      <Tag style={{ margin: 0, fontWeight: 700, borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: 'var(--accent-warning)', border: 'none', padding: '2px 10px' }}>Pending</Tag>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                No pending invoices
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>₹3,20,000</Text>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Upcoming</Text>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <Calendar size={20} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-                <div>
-                  <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>Aug 2026</Text>
-                  <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Due 1 Sep 2026</Text>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>₹3,20,000</Text>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Upcoming</Text>
-              </div>
-            </div>
+            )}
           </div>
           <Text style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-secondary)', fontWeight: 500 }}>Invoices auto-generate on the 1st of each month.</Text>
         </BubbleCard>
@@ -250,7 +279,9 @@ const BillingTab = () => {
       <motion.div variants={itemVariants}>
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>
-            Outstanding balance: <strong style={{ color: 'var(--accent-secondary)' }}>₹0</strong> · For any billing queries, contact <a href="mailto:finance@bccmartech.com" style={{ color: 'var(--accent-secondary)' }}>finance@bccmartech.com</a>
+            Outstanding balance: <strong style={{ color: 'var(--accent-secondary)' }}>
+              ₹{invoices.filter(i => i.paymentStatus !== 'Paid').reduce((sum, i) => sum + (i.grandTotal || 0), 0).toLocaleString()}
+            </strong> · For any billing queries, contact <a href="mailto:finance@bccmartech.com" style={{ color: 'var(--accent-secondary)' }}>finance@bccmartech.com</a>
           </Text>
         </div>
       </motion.div>

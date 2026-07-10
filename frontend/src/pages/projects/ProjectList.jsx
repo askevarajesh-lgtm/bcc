@@ -59,6 +59,7 @@ const ProjectList = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
 
@@ -363,6 +364,12 @@ const ProjectList = () => {
       className: "hide-on-mobile",
     },
     {
+      title: "Created By",
+      dataIndex: "createdBy",
+      key: "createdBy",
+      render: (user) => (user?.name || "Unknown"),
+    },
+    {
       title: "Actions",
       key: "actions",
       align: "center",
@@ -499,113 +506,18 @@ const ProjectList = () => {
               Download Excel
             </Button>
           )}
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate(`${getBaseRoute()}/projects/new`)}
-          >
-            Create Project
-          </Button>
+          {canCreate && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate(`${getBaseRoute()}/projects/new`)}
+            >
+              Create Project
+            </Button>
+          )}
         </Space>
       </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card
-            size="small"
-            className="project-stat-card posters"
-            hoverable
-            onClick={() => openInsightModal("posters")}
-          >
-            <Statistic
-              title="Posters"
-              value={pendingPostersCount}
-              loading={isSummaryLoading}
-              prefix={
-                <span className="project-stat-icon">
-                  <PictureOutlined />
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card
-            size="small"
-            className="project-stat-card videos"
-            hoverable
-            onClick={() => openInsightModal("videos")}
-          >
-            <Statistic
-              title="Videos"
-              value={pendingVideosCount}
-              loading={isSummaryLoading}
-              prefix={
-                <span className="project-stat-icon">
-                  <VideoCameraOutlined />
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card
-            size="small"
-            className="project-stat-card shoots"
-            hoverable
-            onClick={() => openInsightModal("shoots")}
-          >
-            <Statistic
-              title="Shoots"
-              value={pendingShootsCount}
-              loading={isSummaryLoading}
-              prefix={
-                <span className="project-stat-icon">
-                  <CameraOutlined />
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card
-            size="small"
-            className="project-stat-card dynamic"
-            hoverable
-            onClick={() => openInsightModal("dynamic")}
-          >
-            <Statistic
-              title="Others"
-              value={pendingDynamicCount}
-              loading={isSummaryLoading}
-              prefix={
-                <span className="project-stat-icon">
-                  <AppstoreOutlined />
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={8}>
-          <Card
-            size="small"
-            className="project-stat-card in-progress"
-            hoverable
-            onClick={() => openInsightModal("in-progress")}
-          >
-            <Statistic
-              title="Projects In Progress"
-              value={inProgressProjectsCount}
-              loading={isSummaryLoading}
-              prefix={
-                <span className="project-stat-icon">
-                  <SyncOutlined />
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-      </Row>
 
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16} style={{ marginBottom: 16 }}>

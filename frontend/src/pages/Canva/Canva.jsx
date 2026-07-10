@@ -1168,9 +1168,14 @@ const ConnectPrompt = ({ onConnect, loading }) => (
   </div>
 );
 
+import { useActionPermissions } from "../../hooks/useActionPermissions";
+
 const ClientCanvaPage = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  
+  const { canAdd, canView } = useActionPermissions('/canva');
   const [searchParams, setSearchParams] = useSearchParams();
   const [workspaceView, setWorkspaceView] = useState("home");
   const [searchValue, setSearchValue] = useState("");
@@ -1895,9 +1900,11 @@ const ClientCanvaPage = () => {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description="You need at least one synced design before exporting."
           >
-            <Button type="primary" onClick={() => setWorkspaceView("create")}>
-              Create a design
-            </Button>
+            {canAdd && (
+              <Button type="primary" onClick={() => setWorkspaceView("create")}>
+                Create a design
+              </Button>
+            )}
           </Empty>
         </div>
       ) : (
@@ -2283,10 +2290,12 @@ const ClientCanvaPage = () => {
       <div className="canva-ui-shell">
         <aside className="canva-left-rail">
           <div className="canva-left-brand">C</div>
-          <button className="canva-create-button" onClick={() => setWorkspaceView("create")}>
-            <PlusOutlined />
-          </button>
-
+          {canAdd && (
+            <button className="canva-create-button" onClick={() => setWorkspaceView("create")}>
+              <PlusOutlined style={{ marginRight: 8 }} />
+              Create design
+            </button>
+          )}
           <div className="canva-rail-nav">
             {WORKSPACE_NAV.map((item) => (
               <button

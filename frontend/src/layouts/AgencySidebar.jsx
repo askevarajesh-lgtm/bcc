@@ -113,7 +113,10 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
   // if (feats.includes('automation') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
   if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
-  if (feats.includes('marketplace') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
+  if (feats.includes('marketplace') || feats.length === 0 || hasAgencyFullAccess) {
+    workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
+    workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
+  }
 
   if (workspaceChildren.length > 0) {
     menuItems.push({

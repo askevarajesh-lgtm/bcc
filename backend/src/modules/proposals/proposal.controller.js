@@ -7,15 +7,15 @@ exports.createProposal = async (req, res, next) => {
     const data = { ...req.body };
     data.createdBy = req.user._id;
 
-    if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      data.brandId = req.user.brandId;
-      data.agencyId = req.user.agencyId;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      data.agencyId = req.user.agencyId || req.user._id;
-      if (req.user.adminId) data.adminId = req.user.adminId;
-    } else if (req.user.role === 'commander_admin') {
+    if (req.user.role === 'commander_admin') {
       data.adminId = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      data.brandId = req.user.brandId || req.user._id;
+      data.agencyId = req.companyId || req.user.agencyId;
+      if (req.user.adminId) data.adminId = req.user.adminId;
+    } else {
+      data.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId) data.adminId = req.user.adminId;
     }
 
     const proposal = await Proposal.create(data);
@@ -49,14 +49,15 @@ exports.getProposals = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       queryFilter.brandId = req.user.brandId || req.user._id;
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-      queryFilter.agencyId = req.user.agencyId || req.user._id;
+    } else {
+      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
     }
 
     const total = await Proposal.countDocuments(queryFilter);
     const proposals = await Proposal.find(queryFilter)
       .populate('clientId', 'name email')
       .populate('masterItems', 'name itemCode price categories handlingDuration')
+      .populate('createdBy', 'name email roleName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -79,7 +80,7 @@ exports.getProposal = async (req, res, next) => {
   try {
     const proposal = await Proposal.findOne({ _id: req.params.id, isDeleted: false })
       .populate('clientId', 'name email address phone')
-      .populate('masterItems', 'name itemCode category price duration description handlingDuration');
+      .populate('masterItems', 'name itemCode category categories price duration description handlingDuration');
     if (!proposal) {
       return res.status(404).json({ success: false, message: 'Proposal not found' });
     }

@@ -9,11 +9,13 @@ import ListViewTab from './tabs/ListViewTab';
 import CalendarViewTab from './tabs/CalendarViewTab';
 import { contentApi } from '../../api/contentApi';
 import { useContentModule } from './ContentModuleContext';
+import { useActionPermissions } from '../../hooks/useActionPermissions';
 
 const { Title, Text } = Typography;
 
 const Content = () => {
   const { refreshToken } = useContentModule();
+  const { canAdd, canView } = useActionPermissions('/content');
   const [activeTab, setActiveTab] = useState(0);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -94,7 +96,9 @@ const Content = () => {
           <Text type="secondary">End-to-end AI workflow from intake and planning to QA and delivery.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Button type="primary" onClick={handleExport} icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export Pipeline</Button>
+          {canView && (
+            <Button type="primary" onClick={handleExport} icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export Pipeline</Button>
+          )}
         </div>
       </motion.div>
 

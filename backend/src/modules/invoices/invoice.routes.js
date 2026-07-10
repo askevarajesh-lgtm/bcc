@@ -15,6 +15,7 @@ router.route('/:id')
   .delete(invoiceController.deleteInvoice);
 
 router.post('/:id/payment', invoiceController.updatePayment);
+router.post('/:id/send', invoiceController.sendInvoice);
 router.get('/:id/pdf', invoiceController.generatePDF);
 
 module.exports = router;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button, Table, Tag, Space, message, Popconfirm, Modal, Descriptions } from 'antd';
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useActionPermissions } from '../../hooks/useActionPermissions';
 
 const { Title, Text } = Typography;
 
@@ -12,6 +13,8 @@ const ProposalsList = () => {
   const [loading, setLoading] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
+
+  const { canAdd, canEdit, canDelete, canView } = useActionPermissions('/proposals');
 
   const handleView = (proposal) => {
     setSelectedProposal(proposal);
@@ -65,6 +68,7 @@ const ProposalsList = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
   return (
@@ -74,9 +78,11 @@ const ProposalsList = () => {
           <Title level={3} style={{ margin: 0 }}>Proposals</Title>
           <Text type="secondary">Manage client proposals</Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('new')}>
-          Create Proposal
-        </Button>
+        {canAdd && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('new')}>
+            Create Proposal
+          </Button>
+        )}
       </div>
       <Card>
         <Table 
@@ -88,13 +94,16 @@ const ProposalsList = () => {
             { title: 'Client', dataIndex: 'clientId', key: 'client', render: (client) => client?.name || 'Unknown' },
             { title: 'Amount', dataIndex: 'grandTotal', key: 'grandTotal', render: (val) => `₹${val?.toLocaleString()}` },
             { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={status === 'Approved' ? 'green' : 'blue'}>{status}</Tag> },
+            { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
             { title: 'Actions', key: 'actions', render: (_, record) => (
               <Space>
-                <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} title="View Proposal" />
-                <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${getBaseRoute()}/proposals/${record._id}`)} title="Edit Proposal" />
-                <Popconfirm title="Delete Proposal" onConfirm={() => handleDelete(record._id)}>
-                  <Button type="text" danger icon={<DeleteOutlined />} title="Delete Proposal" />
-                </Popconfirm>
+                {canView && <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} title="View Proposal" />}
+                {canEdit && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${getBaseRoute()}/proposals/${record._id}`)} title="Edit Proposal" />}
+                {canDelete && (
+                  <Popconfirm title="Delete Proposal" onConfirm={() => handleDelete(record._id)}>
+                    <Button type="text" danger icon={<DeleteOutlined />} title="Delete Proposal" />
+                  </Popconfirm>
+                )}
               </Space>
             )}
           ]} 

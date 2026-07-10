@@ -51,6 +51,7 @@ import ProposalsList from './pages/Proposals/ProposalsList';
 import ProposalForm from './pages/Proposals/ProposalForm';
 import InvoicesList from './pages/Invoices/InvoicesList';
 import InvoiceForm from './pages/Invoices/InvoiceForm';
+import InvoiceViewPage from './pages/Invoices/InvoiceViewPage';
 import MeetingsPage from './pages/Meetings/MeetingsPage';
 import CalendarPage from './pages/Calendar/CalendarPage';
 import DeliverablesPage from './pages/Deliverables/DeliverablesPage';
@@ -215,7 +216,6 @@ const AppRoutes = () => {
           <Route path="clients/portal" element={<PortalSettings />} />
 
           <Route path="workspace/strategy" element={<Strategy />} />
-          <Route path="workspace/seo" element={<SEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
@@ -238,6 +238,7 @@ const AppRoutes = () => {
           <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/invoices/new" element={<InvoiceForm />} />
           <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
+          <Route path="workspace/invoices/:id/view" element={<InvoiceViewPage />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
 
@@ -308,6 +309,7 @@ const AppRoutes = () => {
           <Route path="invoices" element={<InvoicesList />} />
           <Route path="invoices/new" element={<InvoiceForm />} />
           <Route path="invoices/:id" element={<InvoiceForm />} />
+          <Route path="invoices/:id/view" element={<InvoiceViewPage />} />
           <Route path="projects" element={<ProjectList />} />
           <Route path="projects/new" element={<ProjectForm />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
@@ -366,6 +368,7 @@ const AppRoutes = () => {
           <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/invoices/new" element={<InvoiceForm />} />
           <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
+          <Route path="workspace/invoices/:id/view" element={<InvoiceViewPage />} />
           
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
@@ -423,7 +426,11 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/user/dashboard" replace />} />
           <Route path="dashboard" element={<UserDashboardTab />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="tasks/new" element={<TaskForm />} />
           <Route path="tasks/:id/edit" element={<TaskForm />} />
+          <Route path="workspace/tasks" element={<TasksPage />} />
+          <Route path="workspace/tasks/new" element={<TaskForm />} />
+          <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
           
           {/* Dynamically Granted Modules */}
           <Route path="workspace/strategy" element={<Strategy />} />
@@ -433,7 +440,24 @@ const AppRoutes = () => {
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
           <Route path="workspace/ads" element={<PerformanceAds />} />
           <Route path="workspace/crm" element={<CRM />} />
+          <Route path="workspace/master-items" element={<MasterItemsList />} />
+          <Route path="workspace/master-items/new" element={<MasterItemForm />} />
+          <Route path="workspace/master-items/:id" element={<MasterItemForm />} />
+          <Route path="workspace/proposals" element={<ProposalsList />} />
+          <Route path="workspace/proposals/new" element={<ProposalForm />} />
+          <Route path="workspace/proposals/:id" element={<ProposalForm />} />
+          <Route path="workspace/invoices" element={<InvoicesList />} />
+          <Route path="workspace/invoices/new" element={<InvoiceForm />} />
+          <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
+          <Route path="workspace/invoices/:id/view" element={<InvoiceViewPage />} />
+          <Route path="workspace/projects" element={<ProjectList />} />
+          <Route path="workspace/projects/new" element={<ProjectForm />} />
+          <Route path="workspace/projects/:id" element={<ProjectDetail />} />
+          <Route path="workspace/projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
+          <Route path="workspace/meetings" element={<MeetingsPage />} />
+          <Route path="workspace/calendar" element={<CalendarPage />} />
+          <Route path="workspace/deliverables" element={<DeliverablesPage />} />
           
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />

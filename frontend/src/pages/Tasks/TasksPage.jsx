@@ -62,6 +62,7 @@ const TasksPage = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency/workspace";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
 
@@ -83,7 +84,8 @@ const TasksPage = () => {
   const isSEO = false; // Default-Allow model
   const isSEOFullTime = false;
 
-  const canCreateTask = isAdmin && !isIntern && canCreate && (!isSEO || isSEOFullTime);
+  // Allow create if: admin role with create permission, OR any role (including 'user'/employee) that has explicit Create permission
+  const canCreateTask = !isIntern && canCreate && (isAdmin || userRole === 'user') && (!isSEO || isSEOFullTime);
 
   // Define roles that can view tasks (all regular users + admins)
   const rolesWithTaskAccess = [

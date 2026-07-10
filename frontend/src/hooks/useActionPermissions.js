@@ -1,19 +1,81 @@
-/**
- * useActionPermissions hook
- * Checks if the current user has permission to perform a specific action on a given path.
- * Updated to Default-Allow model as per user request.
- */
 import { useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+// Roles that always get full Create/Edit/Delete/View access without needing permissions configured
+const ALWAYS_FULL_ACCESS_ROLES = [
+  'supreme_super_admin', 'superadmin', 'agency_super_admin',
+  'agency_manager', 'admin', 'brand_admin', 'brand_manager'
+];
+
+// Roles that are Employee-type (permission-controlled via their role's permission matrix)
+const EMPLOYEE_ROLES = ['user'];
+
 export function useActionPermissions(path) {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+
+  let moduleName = path;
+  if (path === '/projects') moduleName = 'Workspace-Projects';
+  if (path === '/tasks') moduleName = 'Workspace-Task Management';
+  if (path === '/proposals') moduleName = 'Workspace-Proposals';
+  if (path === '/invoices') moduleName = 'Workspace-Invoices';
+  if (path === '/master-items') moduleName = 'Workspace-Master Item';
+  if (path === '/strategy') moduleName = 'Workspace-Strategy';
+  if (path === '/seo') moduleName = 'Workspace-SEO / AEO / GEO';
+  if (path === '/content') moduleName = 'Workspace-Content';
+  if (path === '/aistudio') moduleName = 'Workspace-AI Studio';
+  if (path === '/social') moduleName = 'Workspace-Social Media';
+  if (path === '/ads') moduleName = 'Workspace-Performance Ads';
+  if (path === '/crm') moduleName = 'Workspace-CRM & Leads';
+  if (path === '/automation') moduleName = 'Workspace-Automation';
+  if (path === '/website') moduleName = 'Workspace-Websites';
+  if (path === '/meetings') moduleName = 'Workspace-Meetings';
+  if (path === '/calendar') moduleName = 'Workspace-Calendar';
+  if (path === '/deliverables') moduleName = 'Workspace-Deliverables';
+
+  if (path === '/analytics') moduleName = 'Intelligence-Analytics & Attribution';
+  if (path === '/mos') moduleName = 'Intelligence-MOS Score';
+  if (path === '/chatgpt') moduleName = 'Intelligence-ChatGPT';
+  if (path === '/canva') moduleName = 'Intelligence-Canva';
+  if (path === '/agents') moduleName = 'Intelligence-AI Agent';
+  if (path === '/benchmarks') moduleName = 'Intelligence-Benchmarks';
+  if (path === '/reporting') moduleName = 'Intelligence-Reports';
+  if (path === '/seointelligence') moduleName = 'Intelligence-SEO Intelligence';
 
   const hasPermission = useCallback((action) => {
-    return true; // Default-Allow all actions
-  }, [user]);
+    // Agency Managers, Admins, and Super Admins always have FULL access
+    if (ALWAYS_FULL_ACCESS_ROLES.includes(role)) return true;
 
-  return { 
+    const actionKey = action.charAt(0).toUpperCase() + action.slice(1);
+
+    // Employee (user) role: controlled strictly by permissions object
+    if (EMPLOYEE_ROLES.includes(role)) {
+      if (!user || !user.permissions) return false;
+      const permissions = user.permissions[moduleName];
+      if (!permissions) return false;
+      return !!permissions[actionKey];
+    }
+
+    // Any other custom role: check the permissions object
+    if (!user || !user.permissions) return true;
+
+    const permissions = user.permissions[moduleName];
+    if (!permissions) {
+      const knownModules = [
+        'Workspace-Projects', 'Workspace-Task Management', 'Workspace-Proposals', 'Workspace-Invoices', 'Workspace-Master Item',
+        'Workspace-Strategy', 'Workspace-SEO / AEO / GEO', 'Workspace-Content', 'Workspace-AI Studio', 'Workspace-Social Media',
+        'Workspace-Performance Ads', 'Workspace-CRM & Leads', 'Workspace-Automation', 'Workspace-Websites',
+        'Workspace-Meetings', 'Workspace-Calendar', 'Workspace-Deliverables',
+        'Intelligence-Analytics & Attribution', 'Intelligence-MOS Score', 'Intelligence-ChatGPT', 'Intelligence-Canva',
+        'Intelligence-AI Agent', 'Intelligence-Benchmarks', 'Intelligence-Reports', 'Intelligence-SEO Intelligence'
+      ];
+      if (knownModules.includes(moduleName)) return false;
+      return true;
+    }
+
+    return !!permissions[actionKey];
+  }, [user, role, moduleName]);
+
+  return {
     hasPermission,
     canAdd: hasPermission('create'),
     canEdit: hasPermission('edit'),

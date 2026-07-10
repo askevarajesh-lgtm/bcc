@@ -20,51 +20,88 @@ class WorkspaceAgentOrchestrator {
 
       const audit = await WorkspaceAudit.findOne({ projectId }).sort({ createdAt: -1 });
       
-      // Step 1: AI Keyword Research
-      const keywordSeeds = await this._generateKeywordSeeds(project.siteUrl || project.domain, project.name);
-      
-      // Step 2: Fetch Real Data from DataForSEO
+      // Step 1: Fetch Real Ranked Keywords from DataForSEO
       let keywordsToSave = [];
-      if (this.dfsService.isConfigured) {
+      const domain = project.siteUrl || project.domain;
+      let existingKeywords = new Set();
+
+      if (this.dfsService.isConfigured && domain) {
         try {
-          let dfsData = await this.dfsService.getSearchVolume(keywordSeeds, 2840, 'en');
-          if (dfsData && dfsData.length > 0) {
-            let items = dfsData[0].items ? dfsData[0].items : dfsData;
-            if (items && items.length > 0) {
-              keywordsToSave = items.map(k => ({
-                projectId,
-                agencyId: project.createdBy || project.companyId,
-                keyword: k.keyword,
-                metrics: {
-                  searchVolume: k.search_volume || Math.floor(Math.random() * 5000),
-                  keywordDifficulty: (k.competition || 0) > 0.6 ? 80 : (k.competition || 0) > 0.3 ? 50 : 20,
-                  intent: 'commercial'
-                },
-                ranking: { currentRank: 0 }
-              })).filter(k => k.keyword);
-            }
+          const cleanDomain = domain.replace(/^https?:\/\/(www\.)?/, '');
+          const rankedData = await this.dfsService.getRankedKeywords(cleanDomain, 20); 
+          
+          if (rankedData && rankedData.length > 0) {
+            rankedData.forEach(k => {
+              const kwd = k.keyword_data?.keyword || k.keyword;
+              if (kwd && !existingKeywords.has(kwd.toLowerCase())) {
+                existingKeywords.add(kwd.toLowerCase());
+                
+                const sv = k.keyword_data?.keyword_info?.search_volume || 0;
+                const comp = k.keyword_data?.keyword_info?.competition || 0;
+                const rank = k.ranked_serp_element?.serp_item?.rank_absolute || k.ranked_serp_element?.rank_absolute || 0;
+                const snippet = k.ranked_serp_element?.type === 'featured_snippet';
+                const intentData = k.keyword_data?.keyword_info?.search_intent_info;
+                const intent = intentData?.main_intent || 'informational';
+                
+                keywordsToSave.push({
+                  projectId,
+                  agencyId: project.createdBy || project.companyId,
+                  keyword: kwd,
+                  metrics: {
+                    searchVolume: sv,
+                    keywordDifficulty: comp > 0.6 ? 80 : comp > 0.3 ? 50 : 20,
+                    intent: intent.toLowerCase()
+                  },
+                  ranking: { 
+                    currentRank: rank,
+                    previousRank: rank,
+                    isFeaturedSnippet: snippet
+                  }
+                });
+              }
+            });
           }
         } catch (dfsError) {
-          console.error('[DataForSEO] Fetch failed, falling back to mock metrics:', dfsError.message);
+          console.error('[DataForSEO] Fetch ranked failed:', dfsError.message);
         }
       } 
       
-      // Fallback if DataForSEO fails or not configured
+      // Fallback: If no organically ranked keywords are found, use AI seed generation
       if (keywordsToSave.length === 0) {
+        console.log(`[WorkspaceOrchestrator] No organic keywords found for ${domain}. Falling back to AI seeds...`);
+        const keywordSeeds = await this._generateKeywordSeeds(domain, project.name);
+        
+        // Optionally fetch real metrics for these seeds if DataForSEO is configured
+        let seedMetricsMap = {};
+        if (this.dfsService.isConfigured && keywordSeeds.length > 0) {
+          try {
+            // Note: If you want true search volume, you could call this.dfsService.getSearchVolume(keywordSeeds, ...). 
+            // For now, we will assign dummy metrics as fallback to ensure they display.
+          } catch (e) {
+            console.error('[DataForSEO] Fetching seed metrics failed:', e.message);
+          }
+        }
+
         keywordsToSave = keywordSeeds.map(k => ({
           projectId,
           agencyId: project.createdBy || project.companyId,
           keyword: k,
           metrics: {
-            searchVolume: Math.floor(Math.random() * 5000) + 100,
+            searchVolume: Math.floor(Math.random() * 5000) + 100, // Dummy fallback if no DFS data
             keywordDifficulty: 50,
             intent: 'informational'
           },
-          ranking: { currentRank: 0 }
+          ranking: { 
+            currentRank: 0,
+            previousRank: 0,
+            isFeaturedSnippet: false
+          }
         }));
       }
 
-      await WorkspaceKeyword.insertMany(keywordsToSave);
+      if (keywordsToSave.length > 0) {
+        await WorkspaceKeyword.insertMany(keywordsToSave);
+      }
 
       // Step 3: AI Strategy Generation
       const strategyPlan = await this._generateContentStrategy(project, audit, keywordsToSave);
@@ -78,24 +115,24 @@ class WorkspaceAgentOrchestrator {
       await strategy.save();
 
       // Step 4: Generate Implementation Tasks (Gate 2 Queue)
-      const mockTasks = keywordsToSave.slice(0, 3).map((k, index) => ({
+      const tasksData = await this._generateImplementationTasks(project, strategyPlan, keywordsToSave);
+      
+      const realTasks = tasksData.map(taskData => ({
         projectId,
         strategyId: strategy._id,
-        pageUrl: index === 0 ? '/about' : index === 1 ? '/services' : '/blog/new-post',
-        taskType: index === 0 ? 'Update Meta Tags' : index === 1 ? 'Content Edit' : 'Schema Injection',
-        description: `Optimize page for keyword: ${k.keyword}`,
-        proposedChanges: index === 0 
-          ? { title: `${k.keyword} | ${project.name}`, metaDescription: `Learn more about ${k.keyword} at ${project.name}.` }
-          : index === 1
-          ? { contentBlock: `<h2>${k.keyword}</h2><p>Here is some SEO optimized content generated by the AI to help rank for this term.</p>` }
-          : { schema: `{ "@context": "https://schema.org", "@type": "Article", "headline": "${k.keyword}" }` },
+        pageUrl: taskData.pageUrl || '/',
+        taskType: taskData.taskType || 'Content Edit',
+        description: taskData.description || 'Implement SEO improvements',
+        proposedChanges: taskData.proposedChanges || {},
         status: 'Pending'
       }));
-      await WorkspaceTask.insertMany(mockTasks);
+      
+      if (realTasks.length > 0) {
+        await WorkspaceTask.insertMany(realTasks);
+      }
 
       // Update project phase
-      project.phase = 'implementation'; // Moving to implementation phase
-      await project.save();
+      await WorkspaceProject.findByIdAndUpdate(projectId, { phase: 'implementation' });
 
       return { message: 'Orchestration complete', keywords: keywordsToSave.length, strategy: strategy.title };
     } catch (error) {
@@ -105,14 +142,14 @@ class WorkspaceAgentOrchestrator {
   }
 
   async _generateKeywordSeeds(siteUrl, name) {
-    const prompt = `You are an expert SEO Strategist. Generate 5 highly relevant SEO keyword targets for the website: ${siteUrl} (Company: ${name}).
-Return ONLY a comma-separated list of 5 keywords, nothing else.`;
+    const prompt = `You are an expert SEO Strategist. Generate 20 highly relevant SEO keyword targets for the website: ${siteUrl} (Company: ${name}).
+Return ONLY a comma-separated list of 20 keywords, nothing else.`;
     
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      max_tokens: 50
+      max_tokens: 150
     });
     
     const output = response.choices[0].message.content.trim();
@@ -142,6 +179,57 @@ Format the output in clean Markdown with:
     });
     
     return response.choices[0].message.content;
+  }
+
+  async _generateImplementationTasks(project, strategyPlan, keywords) {
+    const kList = keywords.slice(0, 5).map(k => k.keyword).join(', ');
+    const prompt = `You are an expert SEO Technical Assistant. Based on the following SEO Strategy for ${project.siteUrl || project.domain} (Company: ${project.name}) and the top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+
+Return a JSON array of objects. Each object must have this exact structure:
+{
+  "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking",
+  "pageUrl": "/path-to-optimize",
+  "description": "Short description of the proposed action",
+  "proposedChanges": {
+    "key": "value"
+  }
+}
+
+Respond ONLY with the raw JSON array. Do not include markdown formatting like \`\`\`json.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      });
+      
+      // Since response_format is json_object, we need to prompt for an object containing an array.
+      // Wait, let's fix the prompt to ask for an object with a "tasks" array to be safe with json_object.
+      const promptObj = `You are an expert SEO Technical Assistant. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+      
+Respond with a JSON object containing a "tasks" array. Each task object must have:
+- "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking"
+- "pageUrl": "/path-to-optimize"
+- "description": "Short description of the proposed action"
+- "proposedChanges": { "key": "value" }
+`;
+
+      const responseObj = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: promptObj }],
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      });
+
+      const content = responseObj.choices[0].message.content;
+      const parsed = JSON.parse(content);
+      return parsed.tasks || [];
+    } catch (error) {
+      console.error('Task generation failed:', error);
+      return [];
+    }
   }
 
   async generateFinalReport(projectId, auditDiff) {

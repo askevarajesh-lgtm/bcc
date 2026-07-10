@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button, Table, Tag, Space, message, Popconfirm, Modal, Descriptions } from 'antd';
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useActionPermissions } from '../../hooks/useActionPermissions';
 
 const { Title, Text } = Typography;
 
@@ -10,12 +11,11 @@ const InvoicesList = () => {
   const location = useLocation();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [viewModalVisible, setViewModalVisible] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const { canAdd, canEdit, canDelete, canView } = useActionPermissions('/invoices');
 
   const handleView = (invoice) => {
-    setSelectedInvoice(invoice);
-    setViewModalVisible(true);
+    navigate(`${getBaseRoute()}/invoices/${invoice._id}/view`);
   };
 
   useEffect(() => {
@@ -64,6 +64,7 @@ const InvoicesList = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
 
@@ -74,9 +75,11 @@ const InvoicesList = () => {
           <Title level={3} style={{ margin: 0 }}>Invoices</Title>
           <Text type="secondary">Manage client invoices and payments</Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(`${getBaseRoute()}/invoices/new`)}>
-          Create Invoice
-        </Button>
+        {canAdd && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(`${getBaseRoute()}/invoices/new`)}>
+            Create Invoice
+          </Button>
+        )}
       </div>
       <Card>
         <Table 
@@ -88,50 +91,22 @@ const InvoicesList = () => {
             { title: 'Amount', dataIndex: 'grandTotal', key: 'grandTotal', render: (val) => `₹${val?.toLocaleString()}` },
             { title: 'Status', dataIndex: 'invoiceStatus', key: 'status', render: (status) => <Tag color={status === 'Paid' ? 'green' : 'orange'}>{status}</Tag> },
             { title: 'Payment', dataIndex: 'paymentStatus', key: 'paymentStatus', render: (status) => <Tag color={status === 'Paid' ? 'green' : 'red'}>{status}</Tag> },
+            { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
             { title: 'Actions', key: 'actions', render: (_, record) => (
               <Space>
-                <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} title="View Invoice" />
-                <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${getBaseRoute()}/invoices/${record._id}`)} title="Edit Invoice" />
-                <Popconfirm title="Delete Invoice" onConfirm={() => handleDelete(record._id)}>
-                  <Button type="text" danger icon={<DeleteOutlined />} title="Delete Invoice" />
-                </Popconfirm>
+                {canView && <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} title="View Invoice" />}
+                {canEdit && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${getBaseRoute()}/invoices/${record._id}`)} title="Edit Invoice" />}
+                {canDelete && (
+                  <Popconfirm title="Delete Invoice" onConfirm={() => handleDelete(record._id)}>
+                    <Button type="text" danger icon={<DeleteOutlined />} title="Delete Invoice" />
+                  </Popconfirm>
+                )}
               </Space>
             )}
           ]} 
           dataSource={invoices} 
         />
       </Card>
-      
-      <Modal
-        title="Invoice Details"
-        open={viewModalVisible}
-        onCancel={() => setViewModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setViewModalVisible(false)}>
-            Close
-          </Button>
-        ]}
-        width={700}
-      >
-        {selectedInvoice && (
-          <div>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="Invoice Number">{selectedInvoice.invoiceNumber}</Descriptions.Item>
-              <Descriptions.Item label="Date">{selectedInvoice.invoiceDate ? new Date(selectedInvoice.invoiceDate).toLocaleDateString() : 'N/A'}</Descriptions.Item>
-              <Descriptions.Item label="Client">{selectedInvoice.clientId?.name || 'N/A'}</Descriptions.Item>
-              <Descriptions.Item label="Amount">₹{selectedInvoice.grandTotal?.toLocaleString()}</Descriptions.Item>
-              <Descriptions.Item label="Status"><Tag color={selectedInvoice.invoiceStatus === 'Paid' ? 'green' : 'orange'}>{selectedInvoice.invoiceStatus}</Tag></Descriptions.Item>
-              <Descriptions.Item label="Payment Status"><Tag color={selectedInvoice.paymentStatus === 'Paid' ? 'green' : 'red'}>{selectedInvoice.paymentStatus}</Tag></Descriptions.Item>
-              {selectedInvoice.paymentMode && (
-                <Descriptions.Item label="Payment Mode">{selectedInvoice.paymentMode}</Descriptions.Item>
-              )}
-              {selectedInvoice.transactionId && (
-                <Descriptions.Item label="Transaction ID">{selectedInvoice.transactionId}</Descriptions.Item>
-              )}
-            </Descriptions>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

@@ -633,16 +633,51 @@ const reconcileProjectTaskCounts = async (
   };
 
   const syncStandardCounts = (key, totalField, remainingField, completedField) => {
-    const total = Math.max(0, Number(project[totalField]) || 0);
+    let currentTotal = Math.max(0, Number(project[totalField]) || 0);
+    
+    // Recovery logic: Calculate total from categories if the current total is 0 or seems too low
+    const masterCats = Array.isArray(project.masterItemIds) && project.masterItemIds.length > 0 
+      ? project.masterItemIds[0].categories || [] 
+      : [];
+    const projCats = Array.isArray(project.selectedCategories) ? project.selectedCategories : [];
+    
+    let sumFromProj = 0;
+    projCats.forEach(cat => {
+      const name = (cat.name || cat.categoryName || '').toLowerCase();
+      if (name.includes(key) && !name.includes("categories")) {
+        sumFromProj += Math.max(0, Number(cat.quantity) || Number(cat.count) || 0);
+      }
+    });
+
+    let sumFromMaster = 0;
+    masterCats.forEach(cat => {
+      const name = (cat.name || cat.categoryName || '').toLowerCase();
+      if (name.includes(key) && !name.includes("categories")) {
+        sumFromMaster += Math.max(0, Number(cat.quantity) || Number(cat.count) || 0);
+      }
+    });
+
+    // Use the max of all found totals
+    const total = Math.max(currentTotal, sumFromProj, sumFromMaster);
+    if (total !== currentTotal) {
+      project[totalField] = total;
+      changed = true;
+    }
+
     const assigned = assignedCounts.get(key) || 0;
     const completed = completedCounts.get(key) || 0;
 
     const maxAllowedRemaining = Math.max(0, total - completed);
     const currentRemaining = project[remainingField];
     
+    const isUninitialized = (currentRemaining === 0 || currentRemaining === null || currentRemaining === undefined) 
+      && total > 0 
+      && assigned === 0 
+      && completed === 0;
+      
     // If undefined or greater than max allowed, fix it to maxAllowed.
     // Otherwise, preserve the current (potentially manually lowered) value.
-    const nextRemaining = (currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
+    const nextRemaining = (isUninitialized || currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
       ? maxAllowedRemaining
       : Math.max(0, Number(currentRemaining));
 
@@ -686,14 +721,34 @@ const reconcileProjectTaskCounts = async (
 
     if (!matchedKey) return;
 
-    const quantity = Math.max(0, Number(category.quantity) || 0);
+    // Recovery logic: if quantity is 0 and we lost the 'count' field, check original master item
+    let quantity = Math.max(0, Number(category.quantity) || Number(category.count) || 0);
+    if (quantity === 0 && Array.isArray(project.masterItemIds) && project.masterItemIds.length > 0) {
+      const originalCat = (project.masterItemIds[0].categories || []).find(c => 
+        (c.name || '').toLowerCase() === (category.name || category.categoryName || '').toLowerCase()
+      );
+      if (originalCat) {
+        quantity = Math.max(0, Number(originalCat.count) || Number(originalCat.quantity) || 0);
+        // Persist the recovered quantity
+        category.quantity = quantity;
+        selectedCategoriesChanged = true;
+      }
+    }
+
     const assigned = assignedCounts.get(matchedKey) || 0;
     const completed = completedCounts.get(matchedKey) || 0;
     
     const maxAllowedRemaining = Math.max(0, quantity - completed);
     const currentRemaining = category.remaining;
     
-    const nextRemaining = (currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
+    // If remaining is undefined/null OR greater than max allowed, fix it
+    // Also fix remaining=0 when quantity>0 and no tasks exist yet (uninitialized projects)
+    const isUninitialized = (currentRemaining === 0 || currentRemaining === null || currentRemaining === undefined) 
+      && quantity > 0 
+      && assigned === 0 
+      && completed === 0;
+
+    const nextRemaining = (isUninitialized || currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
       ? maxAllowedRemaining
       : Math.max(0, Number(currentRemaining));
       
@@ -827,7 +882,7 @@ const getAllProjects = async (
   const result = await executePaginatedQuery(Project, resolved.queryOptions, [
     { path: "clientId", select: "name email phone address status" },
     { path: "companyId", select: "name email phone address status" },
-    { path: "createdBy", select: "name email" },
+    { path: "createdBy", select: "name email roleName" },
     { path: "invoiceId", select: "invoiceNumber type status" },
     {
       path: "masterItemId",
@@ -1212,9 +1267,9 @@ const getProjectById = async (
     .populate("workflowRevisionRequestedBy", "name email")
     .populate(
       "masterItemId",
-      "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories isActive",
+      "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories categories isActive",
     )
-    .populate("masterItemIds", "name itemCode category price duration description")
+    .populate("masterItemIds", "name itemCode category categories price duration description")
     .populate("planId", "name")
     .populate("milestones.completedBy", "name email");
 

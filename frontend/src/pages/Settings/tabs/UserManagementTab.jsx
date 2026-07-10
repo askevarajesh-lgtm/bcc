@@ -395,6 +395,9 @@ const UserManagementTab = () => {
     (u.email || '').toLowerCase().includes((userSearch || '').toLowerCase())
   );
 
+  const activeRoleForMatrix = roles.find(r => r._id === permissionRoleId);
+  const isManagerRole = activeRoleForMatrix && ['agency_manager', 'admin', 'brand_admin', 'brand_manager'].includes(activeRoleForMatrix.roleKey);
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -639,8 +642,14 @@ const UserManagementTab = () => {
                     align: 'center',
                     render: (_, record) => (
                       <Checkbox 
-                        checked={!!draftPermissions[`${group}-${record.module}`]?.[field] || (record.module === 'Dashboard' && field === 'Read')}
-                        disabled={record.module === 'Dashboard' && field === 'Read'}
+                        checked={
+                          (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
+                          (!!draftPermissions[`${group}-${record.module}`]?.[field] || (record.module === 'Dashboard' && field === 'Read'))
+                        }
+                        disabled={
+                          (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
+                          (record.module === 'Dashboard' && field === 'Read')
+                        }
                         onChange={(e) => setDraftPermissions(prev => ({
                           ...prev,
                           [`${group}-${record.module}`]: {

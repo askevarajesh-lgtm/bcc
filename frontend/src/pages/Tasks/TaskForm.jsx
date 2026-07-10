@@ -64,6 +64,7 @@ const TaskForm = () => {
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency/workspace";
+    if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
 

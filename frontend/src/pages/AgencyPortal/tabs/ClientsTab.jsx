@@ -4,6 +4,8 @@ import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circl
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
 import { useFeatures } from '../../../contexts/FeatureContext';
+import TaskListView from '../../Tasks/TaskListView';
+import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
 
 const { Title, Text } = Typography;
 
@@ -12,6 +14,8 @@ const ClientsTab = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dbClients, setDbClients] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskDrawerVisible, setTaskDrawerVisible] = useState(false);
   const [form] = Form.useForm();
   
   const { getClientData, updateClientFeatures, packages, createPackage, updatePackage } = useFeatures();
@@ -364,7 +368,17 @@ const ClientsTab = () => {
                   );
                 })()}
               </Tabs.TabPane>
-              <Tabs.TabPane tab="Tasks" key="3" />
+              <Tabs.TabPane tab="Tasks" key="3">
+                <div style={{ marginTop: 16 }}>
+                  <TaskListView 
+                    clientId={selectedClient?.id || selectedClient?._id} 
+                    onTaskClick={(task) => {
+                      setSelectedTask(task);
+                      setTaskDrawerVisible(true);
+                    }} 
+                  />
+                </div>
+              </Tabs.TabPane>
               <Tabs.TabPane tab="Billing" key="4" />
               <Tabs.TabPane tab="Activity" key="5" />
             </Tabs>
@@ -532,6 +546,17 @@ const ClientsTab = () => {
         </div>
       </Drawer>
 
+      <TaskDetailDrawer
+        visible={taskDrawerVisible}
+        onClose={() => {
+          setTaskDrawerVisible(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onTaskUpdated={() => {
+          // Optionally trigger a refetch here if needed
+        }}
+      />
     </motion.div>
   );
 };

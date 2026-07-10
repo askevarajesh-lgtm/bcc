@@ -247,6 +247,21 @@ class DataForSeoService {
   // ─────────────────────────────────────────────────────
 
   /**
+   * Ranked keywords for a domain.
+   * Endpoint: POST /dataforseo_labs/google/ranked_keywords/live
+   */
+  async getRankedKeywords(domain, limit = 10, locationCode = 2840, languageCode = 'en') {
+    const payload = [{
+      target:        domain,
+      location_code: locationCode,
+      language_code: languageCode,
+      limit:         limit
+    }];
+    const raw = await this.makeRequest('/dataforseo_labs/google/ranked_keywords/live', 'POST', payload);
+    return raw.tasks?.[0]?.result?.[0]?.items || [];
+  }
+
+  /**
    * Domain organic rank overview (traffic, keyword count, ETV etc.)
    * Endpoint: POST /dataforseo_labs/google/domain_rank_overview/live
    */

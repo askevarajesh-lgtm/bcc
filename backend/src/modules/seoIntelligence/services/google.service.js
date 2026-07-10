@@ -64,6 +64,38 @@ class GoogleService {
   }
 
   /**
+   * Fetches Google Search Console Keywords (Queries)
+   */
+  async getSearchConsoleKeywords(siteUrl, startDate, endDate, limit = 50) {
+    if (!this.configured) return [];
+
+    try {
+      const searchconsole = google.webmasters({ version: 'v3', auth: this.auth });
+      const response = await searchconsole.searchanalytics.query({
+        siteUrl: siteUrl,
+        requestBody: {
+          startDate: startDate,
+          endDate: endDate,
+          dimensions: ['query'],
+          rowLimit: limit
+        }
+      });
+
+      const rows = response.data.rows || [];
+      return rows.map(r => ({
+        keyword: r.keys[0],
+        clicks: r.clicks,
+        impressions: r.impressions,
+        ctr: r.ctr,
+        position: r.position
+      }));
+    } catch (error) {
+      console.error('[GoogleService] GSC Keywords Error:', error.message);
+      return [];
+    }
+  }
+
+  /**
    * Fetches Google Analytics 4 data (Sessions, Users, Conversions)
    */
   async getAnalyticsData(propertyId, startDate, endDate) {

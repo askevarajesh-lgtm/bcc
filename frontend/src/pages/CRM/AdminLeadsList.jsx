@@ -14,6 +14,7 @@ import {
   useAddLeadReminderMutation
 } from '../../api/leadApi';
 import dayjs from 'dayjs';
+import { useActionPermissions } from "../../hooks/useActionPermissions";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -26,6 +27,7 @@ const CustomLabel = ({ text }) => (
 );
 
 const AdminLeadsList = ({ leads = [], refetch }) => {
+  const { canAdd, canEdit, canDelete, canView } = useActionPermissions('/crm');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [viewingLead, setViewingLead] = useState(null);
@@ -64,10 +66,10 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     { 
       title: <strong style={{ color: 'var(--text-secondary)' }}>Action</strong>, key: 'action', fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)' }} onClick={() => setViewingLead(record)} />
-          <Button type="text" icon={<EditOutlined />} style={{ color: 'var(--accent-secondary)' }} onClick={() => handleEditClick(record)} />
-          <Button type="text" icon={<DeleteOutlined />} danger onClick={() => handleDeleteClick(record)} />
+        <Space size="middle">
+          {canView && <Button type="text" icon={<EyeOutlined />} style={{ color: 'var(--accent-info)' }} onClick={() => setViewingLead(record)} />}
+          {canEdit && <Button type="text" icon={<EditOutlined />} style={{ color: 'var(--accent-secondary)' }} onClick={() => handleEditClick(record)} />}
+          {canDelete && <Button type="text" icon={<DeleteOutlined />} danger onClick={() => handleDeleteClick(record)} />}
         </Space>
       )
     }
@@ -210,11 +212,17 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
           </Space>
           
           <Space>
-            <Upload beforeUpload={handleImport} showUploadList={false} accept=".csv">
-              <Button icon={<UploadOutlined />} loading={isImporting} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
-            </Upload>
-            <Button icon={<DownloadOutlined />} loading={isExporting} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Export</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingLead(null); form.resetFields(); setIsModalOpen(true); }} style={{ borderRadius: 8, fontWeight: 600, background: '#0e4ca2', border: 'none' }}>Add Lead</Button>
+            {canView && (
+              <>
+                <Upload accept=".csv" showUploadList={false} customRequest={({ file }) => handleImport(file)}>
+                  <Button icon={<UploadOutlined />} loading={isImporting} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
+                </Upload>
+                <Button icon={<DownloadOutlined />} loading={isExporting} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Export</Button>
+              </>
+            )}
+            {canAdd && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingLead(null); form.resetFields(); setIsModalOpen(true); }} style={{ borderRadius: 8, fontWeight: 600, background: '#0e4ca2', border: 'none' }}>Add Lead</Button>
+            )}
           </Space>
         </div>
         

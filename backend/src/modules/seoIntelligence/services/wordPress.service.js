@@ -38,7 +38,25 @@ class WordPressService {
     }
   }
 
-  async publishTaskUpdate(taskType, proposedChanges) {
+  async _getPostIdBySlug(slug, headers) {
+    if (!slug || slug === '/') return null;
+    const cleanSlug = slug.replace(/^\/|\/$/g, '');
+    
+    try {
+      // Check pages first
+      const pagesRes = await axios.get(`${this.wpRestApiUrl}/wp/v2/pages?slug=${cleanSlug}`, { headers, timeout: 5000 });
+      if (pagesRes.data && pagesRes.data.length > 0) return { id: pagesRes.data[0].id, type: 'pages' };
+      
+      // Check posts if not found in pages
+      const postsRes = await axios.get(`${this.wpRestApiUrl}/wp/v2/posts?slug=${cleanSlug}`, { headers, timeout: 5000 });
+      if (postsRes.data && postsRes.data.length > 0) return { id: postsRes.data[0].id, type: 'posts' };
+    } catch (e) {
+      console.warn(`[WordPressService] Could not resolve slug ${slug}:`, e.message);
+    }
+    return null;
+  }
+
+  async publishTaskUpdate(taskType, pageUrl, proposedChanges) {
     if (!this.configured) {
       console.warn('[WordPressService] Not configured! Mocking task update success.');
       return { success: true, mocked: true };
@@ -50,10 +68,6 @@ class WordPressService {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json'
       };
-
-      // Since we don't have the actual WP Page ID, for demo/phase 3 we will create a new draft 
-      // or if we had a page ID we'd use PUT /wp/v2/pages/:id
-      // We will emulate updating by creating a draft post containing the updates for review.
 
       let updatePayload = {};
 
@@ -67,21 +81,36 @@ class WordPressService {
             rank_math_title: proposedChanges.title,
             rank_math_description: proposedChanges.metaDescription
           },
-          status: 'draft'
+          status: 'publish' // Push live immediately
         };
       } else if (taskType === 'Content Edit') {
         updatePayload = {
           content: proposedChanges.contentBlock,
-          status: 'draft'
+          status: 'publish' // Push live immediately
         };
       } else {
         return { success: false, reason: 'Unsupported task type for automated WP publish' };
       }
 
-      const response = await axios.post(`${this.wpRestApiUrl}/wp/v2/pages`, updatePayload, {
-        headers,
-        timeout: 10000
-      });
+      // Try to find the actual page by slug
+      const target = await this._getPostIdBySlug(pageUrl, headers);
+      
+      let response;
+      if (target && target.id) {
+        // Live update existing page/post
+        response = await axios.put(`${this.wpRestApiUrl}/wp/v2/${target.type}/${target.id}`, updatePayload, {
+          headers,
+          timeout: 10000
+        });
+      } else {
+        // Fallback: create a new draft if page not found
+        console.warn(`[WordPressService] Page URL ${pageUrl} not found. Creating new draft instead.`);
+        updatePayload.status = 'draft';
+        response = await axios.post(`${this.wpRestApiUrl}/wp/v2/pages`, updatePayload, {
+          headers,
+          timeout: 10000
+        });
+      }
 
       return response.data;
     } catch (error) {
