@@ -32,7 +32,7 @@ const { Option } = Select;
 // Custom styling for premium UI feel
 const cardStyle = (isDark) => ({
   borderRadius: '12px',
-  background: isDark ? '#1f1f1f' : '#ffffff',
+  background: isDark ? '#111c31' : '#ffffff',
   boxShadow: isDark ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 4px 12px rgba(0, 0, 0, 0.05)',
   border: isDark ? '1px solid #303030' : '1px solid #f0f0f0',
   marginBottom: '24px',
@@ -439,12 +439,12 @@ const MeetingsPage = () => {
   ];
 
   return (
-    <div style={{minHeight: '100vh', background: isDark ? '#141414' : '#f5f7fa' }}>
+    <div style={{minHeight: '100vh', background: isDark ? '#0b1220' : '#f5f7fa' }}>
       
       {/* Top Header Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: isDark ? '#ffffff' : '#1f1f1f' }}>
+          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: isDark ? '#ffffff' : '#111c31' }}>
             Meetings Hub
           </h1>
           <p style={{ margin: 0, color: '#8c8c8c' }}>
@@ -465,44 +465,49 @@ const MeetingsPage = () => {
       </div>
 
       {/* KPI Stats Cards */}
-      <Row gutter={16}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Total Meetings" 
-              value={analytics?.total || meetings.length} 
-              prefix={<CalendarTwoTone twoToneColor="#1890ff" />} 
-            />
+          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid #3b82f6', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
+            <div style={{ padding: '16px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', flexShrink: 0 }}>
+              <CalendarTwoTone style={{ fontSize: 28 }} twoToneColor="#3b82f6" />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total Meetings</div>
+              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.total || meetings.length}</div>
+            </div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Upcoming" 
-              value={analytics?.statusStats?.upcoming || meetings.filter(m => m.status === 'upcoming').length} 
-              valueStyle={{ color: '#1890ff' }}
-              prefix={<ClockCircleOutlined />} 
-            />
+          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid #14b8a6', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
+            <div style={{ padding: '16px', borderRadius: '50%', background: 'rgba(20, 184, 166, 0.1)', color: '#14b8a6', display: 'flex', flexShrink: 0 }}>
+              <ClockCircleOutlined style={{ fontSize: 28 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Upcoming</div>
+              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.statusStats?.upcoming || meetings.filter(m => m.status === 'upcoming').length}</div>
+            </div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Completed" 
-              value={analytics?.statusStats?.completed || meetings.filter(m => m.status === 'completed').length} 
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<CheckCircleOutlined />} 
-            />
+          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid #f59e0b', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
+            <div style={{ padding: '16px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', flexShrink: 0 }}>
+              <CheckCircleOutlined style={{ fontSize: 28 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Completed</div>
+              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.statusStats?.completed || meetings.filter(m => m.status === 'completed').length}</div>
+            </div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Action Item Rate" 
-              value={analytics?.followUpCompletionRate || 0} 
-              suffix="%" 
-              prefix={<Progress type="circle" percent={analytics?.followUpCompletionRate || 0} width={30} showInfo={false} />} 
-            />
+          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid #d946ef', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
+            <div style={{ flexShrink: 0 }}>
+              <Progress type="circle" percent={analytics?.followUpCompletionRate || 0} width={60} strokeColor="#d946ef" />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Action Item Rate</div>
+              <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.followUpCompletionRate || 0}%</div>
+            </div>
           </Card>
         </Col>
       </Row>

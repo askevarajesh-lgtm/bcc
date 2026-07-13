@@ -184,7 +184,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         // { key: '/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
         { key: '/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
         { key: '/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
-        { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
+        // { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
         { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },

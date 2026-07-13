@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Table, Button, Form, Input, DatePicker, Select, InputNumber, Drawer, 
-  Modal, Tabs, Card, Row, Col, Statistic, Space, Tag, Timeline, List, 
+import {
+  Table, Button, Form, Input, DatePicker, Select, InputNumber, Drawer,
+  Modal, Tabs, Card, Row, Col, Statistic, Space, Tag, Timeline, List,
   Divider, Popconfirm, Calendar, Tooltip, Badge, Avatar, Progress, Checkbox,
   message
 } from 'antd';
-import { 
-  PlusOutlined, SearchOutlined, CalendarOutlined, UnorderedListOutlined, 
-  BarChartOutlined, PaperClipOutlined, FileTextOutlined, TeamOutlined, 
-  UserOutlined, ClockCircleOutlined, LinkOutlined, DeleteOutlined, 
+import {
+  PlusOutlined, SearchOutlined, CalendarOutlined, UnorderedListOutlined,
+  BarChartOutlined, PaperClipOutlined, FileTextOutlined, TeamOutlined,
+  UserOutlined, ClockCircleOutlined, LinkOutlined, DeleteOutlined,
   EditOutlined, CheckCircleOutlined, InfoCircleOutlined, CloseCircleOutlined,
   CalendarTwoTone, WarningOutlined, FileAddOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { 
-  useGetEventsQuery, useGetEventByIdQuery, useGetCalendarAnalyticsQuery, 
-  useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation, 
-  useUpdateEventStatusMutation, useAddEventNoteMutation, 
-  useAddEventAttachmentMutation 
+import {
+  useGetEventsQuery, useGetEventByIdQuery, useGetCalendarAnalyticsQuery,
+  useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
+  useUpdateEventStatusMutation, useAddEventNoteMutation,
+  useAddEventAttachmentMutation
 } from '../../api/calendarApi';
 import { useGetUsersDropdownQuery } from '../../api/userApi';
 import { useGetCompaniesDropdownQuery } from '../../api/companyApi';
@@ -64,7 +64,7 @@ const CalendarPage = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
-  
+
   // Note/Attachment inputs
   const [noteContent, setNoteContent] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
@@ -80,9 +80,9 @@ const CalendarPage = () => {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate
   });
-  
+
   const { data: analyticsResponse, refetch: refetchAnalytics } = useGetCalendarAnalyticsQuery({});
-  
+
   const { data: detailResponse, refetch: refetchDetail } = useGetEventByIdQuery(selectedEventId, {
     skip: !selectedEventId
   });
@@ -277,13 +277,13 @@ const CalendarPage = () => {
         {listData.map(item => (
           <li key={item._id} style={{ margin: '2px 0' }}>
             <Tooltip title={`${item.title} (${dayjs(item.startDateTime).format('h:mm a')})`}>
-              <Badge 
+              <Badge
                 status={
                   item.source === 'meeting' ? 'processing' :
-                  item.source === 'task' ? 'warning' : 'success'
-                } 
+                    item.source === 'task' ? 'warning' : 'success'
+                }
                 text={
-                  <span 
+                  <span
                     style={{ fontSize: '11px', display: 'inline-block', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -293,7 +293,7 @@ const CalendarPage = () => {
                   >
                     {item.title}
                   </span>
-                } 
+                }
               />
             </Tooltip>
           </li>
@@ -318,7 +318,7 @@ const CalendarPage = () => {
       key: 'title',
       render: (text, record) => (
         <div>
-          <span 
+          <span
             style={{ fontWeight: 600, color: '#1890ff', cursor: 'pointer' }}
             onClick={() => {
               setSelectedEventId(record._id);
@@ -387,10 +387,10 @@ const CalendarPage = () => {
         <Space size="small">
           {record.meetingLink && (
             <Tooltip title="Join Meeting">
-              <Button 
-                type="link" 
-                icon={<LinkOutlined />} 
-                href={record.meetingLink} 
+              <Button
+                type="link"
+                icon={<LinkOutlined />}
+                href={record.meetingLink}
                 target="_blank"
                 style={{ color: '#52c41a' }}
               />
@@ -399,10 +399,10 @@ const CalendarPage = () => {
           {record.source === 'custom' && ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
             <>
               <Tooltip title="Edit">
-                <Button 
-                  type="link" 
-                  icon={<EditOutlined />} 
-                  onClick={() => openEditDrawer(record)} 
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => openEditDrawer(record)}
                 />
               </Tooltip>
               <Popconfirm
@@ -412,10 +412,10 @@ const CalendarPage = () => {
                 cancelText="No"
               >
                 <Tooltip title="Delete">
-                  <Button 
-                    type="link" 
-                    danger 
-                    icon={<DeleteOutlined />} 
+                  <Button
+                    type="link"
+                    danger
+                    icon={<DeleteOutlined />}
                   />
                 </Tooltip>
               </Popconfirm>
@@ -427,8 +427,8 @@ const CalendarPage = () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? '#141414' : '#f5f7fa' }}>
-      
+    <div style={{ minHeight: '100vh', background: isDark ? '#0d1526' : '#f5f7fa' }}>
+
       {/* Top Header Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
@@ -440,10 +440,10 @@ const CalendarPage = () => {
           </p>
         </div>
         {['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
-          <Button 
-            type="primary" 
-            size="large" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
             onClick={openCreateDrawer}
             style={{ borderRadius: '8px', background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
           >
@@ -453,51 +453,48 @@ const CalendarPage = () => {
       </div>
 
       {/* KPI Stats Cards */}
-      <Row gutter={16}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 24, marginTop: 16 }}>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Total Calendar Events" 
-              value={analytics?.totalEvents || events.length} 
-              prefix={<CalendarTwoTone twoToneColor="#1890ff" />} 
-            />
+          <Card bodyStyle={{ padding: '30px 24px 24px', textAlign: 'center', position: 'relative' }} style={{ borderRadius: 16, background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', border: 'none', marginTop: 15 }}>
+            <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(67, 56, 202, 0.4)' }}>
+              <CalendarTwoTone style={{ fontSize: 24 }} twoToneColor="#ffffff" />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 12 }}>Total Events</div>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.totalEvents || events.length}</div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Upcoming events" 
-              value={analytics?.statusStats?.upcoming || events.filter(e => e.status === 'upcoming').length} 
-              valueStyle={{ color: '#1890ff' }}
-              prefix={<ClockCircleOutlined />} 
-            />
+          <Card bodyStyle={{ padding: '30px 24px 24px', textAlign: 'center', position: 'relative' }} style={{ borderRadius: 16, background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', border: 'none', marginTop: 15 }}>
+            <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #115e59 0%, #0d9488 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.4)' }}>
+              <ClockCircleOutlined style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 12 }}>Upcoming</div>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.statusStats?.upcoming || events.filter(e => e.status === 'upcoming').length}</div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Meetings Count" 
-              value={analytics?.meetingsCount || 0} 
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<TeamOutlined />} 
-            />
+          <Card bodyStyle={{ padding: '30px 24px 24px', textAlign: 'center', position: 'relative' }} style={{ borderRadius: 16, background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', border: 'none', marginTop: 15 }}>
+            <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #701a75 0%, #a21caf 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(162, 28, 175, 0.4)' }}>
+              <TeamOutlined style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 12 }}>Meetings</div>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.meetingsCount || 0}</div>
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card style={cardStyle(isDark)}>
-            <Statistic 
-              title="Task Deadlines" 
-              value={analytics?.tasksCount || 0} 
-              valueStyle={{ color: '#722ed1' }}
-              prefix={<CheckCircleOutlined />} 
-            />
+          <Card bodyStyle={{ padding: '30px 24px 24px', textAlign: 'center', position: 'relative' }} style={{ borderRadius: 16, background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', border: 'none', marginTop: 15 }}>
+            <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #831843 0%, #be123c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(190, 18, 60, 0.4)' }}>
+              <CheckCircleOutlined style={{ fontSize: 24, color: '#fff' }} />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 12 }}>Task Deadlines</div>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{analytics?.tasksCount || 0}</div>
           </Card>
         </Col>
       </Row>
 
       {/* Main Tabs */}
-      <Tabs 
-        activeKey={activeTab} 
+      <Tabs
+        activeKey={activeTab}
         onChange={setActiveTab}
         type="card"
         style={{ marginBottom: '24px' }}
@@ -547,7 +544,7 @@ const CalendarPage = () => {
                   </Select>
                 </div>
 
-                <Calendar 
+                <Calendar
                   dateCellRender={calendarDateCellRender}
                   onPanelChange={handlePanelChange}
                 />
@@ -612,9 +609,9 @@ const CalendarPage = () => {
             <Button onClick={closeDrawer} style={{ marginRight: 8 }}>
               Cancel
             </Button>
-            <Button 
-              onClick={() => form.submit()} 
-              type="primary" 
+            <Button
+              onClick={() => form.submit()}
+              type="primary"
               loading={isCreating || isUpdating}
             >
               {editingEvent ? "Save Changes" : "Create Event"}
@@ -622,9 +619,9 @@ const CalendarPage = () => {
           </div>
         }
       >
-        <Form 
-          form={form} 
-          layout="vertical" 
+        <Form
+          form={form}
+          layout="vertical"
           onFinish={handleFormSubmit}
         >
           <Form.Item
@@ -758,14 +755,14 @@ const CalendarPage = () => {
                 <Col span={14}>
                   <p><strong>Description:</strong></p>
                   <p>{detailData.event.notes || 'No notes provided.'}</p>
-                  
+
                   <p><strong>Schedule:</strong> {dayjs(detailData.event.startDateTime).format('MMMM DD, YYYY')} at {dayjs(detailData.event.startDateTime).format('h:mm a')} - {dayjs(detailData.event.endDateTime).format('h:mm a')}</p>
-                  
+
                   {detailData.event.meetingLink && (
-                    <Button 
-                      type="primary" 
-                      icon={<LinkOutlined />} 
-                      href={detailData.event.meetingLink} 
+                    <Button
+                      type="primary"
+                      icon={<LinkOutlined />}
+                      href={detailData.event.meetingLink}
                       target="_blank"
                       style={{ marginBottom: '16px' }}
                     >
@@ -774,7 +771,7 @@ const CalendarPage = () => {
                   )}
 
                   <Divider />
-                  
+
                   <p><strong>Host:</strong> {detailData.event.host?.name || 'N/A'}</p>
                   <p><strong>Attendees:</strong></p>
                   <List
@@ -819,15 +816,15 @@ const CalendarPage = () => {
                   />
                   <Divider />
                   <Form.Item label="Add note / comment">
-                    <TextArea 
-                      rows={3} 
-                      value={noteContent} 
-                      onChange={e => setNoteContent(e.target.value)} 
+                    <TextArea
+                      rows={3}
+                      value={noteContent}
+                      onChange={e => setNoteContent(e.target.value)}
                       placeholder="Type details or discussions..."
                     />
-                    <Button 
-                      type="primary" 
-                      style={{ marginTop: 12 }} 
+                    <Button
+                      type="primary"
+                      style={{ marginTop: 12 }}
                       onClick={handleAddNote}
                       loading={isAddingNote}
                     >

@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Typography, Row, Col, Card, Button, Table, Tag, Avatar, Progress, Drawer, Modal, Form, Input, Select, InputNumber, Divider, Timeline, Space, message, Badge, DatePicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Plus, Target, FileText, TrendingUp, Mail, ExternalLink, Clock, Trash2, CheckCircle2, XCircle, Briefcase, Calendar, User, MessageSquare, AlertCircle, Award } from 'lucide-react';
-import { 
-  useGetDealsQuery, 
-  useGetPipelineAnalyticsQuery, 
-  useCreateDealMutation, 
-  useUpdateDealMutation, 
-  useDeleteDealMutation, 
-  useAddDealNoteMutation 
+import {
+  useGetDealsQuery,
+  useGetPipelineAnalyticsQuery,
+  useCreateDealMutation,
+  useUpdateDealMutation,
+  useDeleteDealMutation,
+  useAddDealNoteMutation
 } from '../../api/salesPipelineApi';
 
 const { Title, Text, Paragraph } = Typography;
@@ -21,7 +21,7 @@ const SalesPipeline = () => {
   const { isDark } = useTheme();
   const { role } = useAuth();
   const { canAdd, canEdit, canDelete } = useActionPermissions(role === 'agency_manager' || role === 'agency' ? '/agency/salespipeline' : '/ops/salespipeline');
-  
+
   // States
   const [filterStage, setFilterStage] = useState(undefined);
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,13 +32,13 @@ const SalesPipeline = () => {
 
   // Forms
   const [form] = Form.useForm();
-  
+
   // API Queries
   const { data: dealsResponse, isLoading: dealsLoading, refetch: refetchDeals } = useGetDealsQuery({
     stage: filterStage,
     search: searchTerm || undefined
   });
-  
+
   const { data: analyticsResponse, isLoading: analyticsLoading, refetch: refetchAnalytics } = useGetPipelineAnalyticsQuery();
 
   // API Mutations
@@ -159,8 +159,8 @@ const SalesPipeline = () => {
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ minHeight: '100vh', background: isDark ? '#141414' : '#f5f7fa' }}>
-      
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ minHeight: '100vh', background: isDark ? '#0d1526' : '#f5f7fa' }}>
+
       {/* Top Header */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
@@ -168,16 +168,16 @@ const SalesPipeline = () => {
           <Text type="secondary" style={{ fontWeight: 500 }}>Real-time opportunity tracking, sales velocity, and revenue forecasting.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Input 
-            placeholder="Search deals, reps..." 
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)} 
+          <Input
+            placeholder="Search deals, reps..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
             style={{ width: 220, borderRadius: 8, height: 40 }}
           />
-          <Select 
-            placeholder="Filter Stage" 
-            allowClear 
-            value={filterStage} 
+          <Select
+            placeholder="Filter Stage"
+            allowClear
+            value={filterStage}
             onChange={setFilterStage}
             style={{ width: 150, height: 40 }}
           >
@@ -189,9 +189,9 @@ const SalesPipeline = () => {
             <Option value="lost">Lost</Option>
           </Select>
           {canAdd && (
-            <Button 
-              type="primary" 
-              icon={<Plus size={16} />} 
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
               onClick={() => setIsCreateOpen(true)}
               style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}
             >
@@ -215,8 +215,8 @@ const SalesPipeline = () => {
                 <div style={{ display: 'inline-block', background: isDark ? '#1f1f1f' : '#e6f4ea', padding: '6px 16px', borderRadius: '10px 10px 0 0', border: '1px solid var(--border-color)', borderBottom: 'none', marginLeft: 16 }}>
                   <Text type="secondary" style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.2 }}>{kpi.label}</Text>
                 </div>
-                <Card 
-                  style={{ borderRadius: 16, borderTopLeftRadius: 0, border: '1px solid var(--border-color)', background: isDark ? '#1d1d1d' : '#fff', boxShadow: 'var(--shadow-sm)', marginTop: '-1px' }} 
+                <Card
+                  style={{ borderRadius: 16, borderTopLeftRadius: 0, border: '1px solid var(--border-color)', background: isDark ? '#1d1d1d' : '#fff', boxShadow: 'var(--shadow-sm)', marginTop: '-1px' }}
                   bodyStyle={{ padding: '20px 24px' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
@@ -244,8 +244,8 @@ const SalesPipeline = () => {
             const totalVal = stageDeals.reduce((sum, d) => sum + d.value, 0);
 
             return (
-              <div 
-                key={stage.id} 
+              <div
+                key={stage.id}
                 onDragOver={handleDragOver}
                 onDrop={(e) => canEdit && handleDrop(e, stage.id)}
                 style={{ flex: 1, minWidth: 290, background: isDark ? '#1a1a1a' : '#f8f9fa', borderRadius: 16, padding: 16, border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 12 }}
@@ -260,7 +260,7 @@ const SalesPipeline = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', minHeight: 400 }}>
                   {stageDeals.map(deal => (
-                    <Card 
+                    <Card
                       key={deal._id}
                       bodyStyle={{ padding: 16 }}
                       onClick={() => { setSelectedDealId(deal._id); setIsDetailOpen(true); }}
@@ -274,7 +274,7 @@ const SalesPipeline = () => {
                         <Avatar size="small" style={{ backgroundColor: stage.color, fontSize: 10, fontWeight: 700 }}>{deal.ownerInit}</Avatar>
                       </div>
                       <Tag style={{ borderRadius: 12, fontSize: 10, border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', marginBottom: 12 }}>{deal.category}</Tag>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 16, fontWeight: 800, color: stage.color }}>{formatPrice(deal.value)}</span>
                         {deal.priority && (
@@ -285,8 +285,8 @@ const SalesPipeline = () => {
                       <Divider style={{ margin: '12px 0' }} />
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8c8c8c' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><User size={12}/> {deal.rep}</span>
-                        {deal.follow && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-warning)' }}><Clock size={12}/> {deal.follow}</span>}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><User size={12} /> {deal.rep}</span>
+                        {deal.follow && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-warning)' }}><Clock size={12} /> {deal.follow}</span>}
                       </div>
                     </Card>
                   ))}
@@ -348,7 +348,7 @@ const SalesPipeline = () => {
       {/* Analytics, Stalled Deals & Top Performers */}
       <motion.div variants={itemVariants}>
         <Row gutter={[24, 24]}>
-          
+
           {/* Conversion Funnel */}
           <Col xs={24} md={12} lg={8}>
             <Card title="Conversion Funnel" className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)' }}>
@@ -426,9 +426,9 @@ const SalesPipeline = () => {
         open={isDetailOpen}
         extra={
           selectedDeal && canDelete && (
-            <Button 
-              danger 
-              icon={<Trash2 size={16} />} 
+            <Button
+              danger
+              icon={<Trash2 size={16} />}
               onClick={() => handleDeleteDeal(selectedDeal._id)}
             >
               Delete
@@ -456,8 +456,8 @@ const SalesPipeline = () => {
                 <Title level={5} style={{ marginBottom: 12 }}>Change Pipeline Stage</Title>
                 <Space wrap>
                   {['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'].map(stg => (
-                    <Button 
-                      key={stg} 
+                    <Button
+                      key={stg}
                       type={selectedDeal.stage === stg ? 'primary' : 'default'}
                       onClick={() => handleStageChange(selectedDeal._id, stg)}
                       style={{ borderRadius: 8, fontSize: 12 }}
@@ -472,19 +472,19 @@ const SalesPipeline = () => {
 
             {/* Notes Section */}
             <div>
-              <Title level={5} style={{ marginBottom: 12 }}><MessageSquare size={16} style={{ marginRight: 6 }}/> Notes</Title>
+              <Title level={5} style={{ marginBottom: 12 }}><MessageSquare size={16} style={{ marginRight: 6 }} /> Notes</Title>
               {canEdit && (
                 <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                  <Input.TextArea 
-                    rows={2} 
-                    value={newNote} 
-                    onChange={e => setNewNote(e.target.value)} 
-                    placeholder="Type notes or follow-up logs..." 
+                  <Input.TextArea
+                    rows={2}
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Type notes or follow-up logs..."
                   />
-                  <Button 
-                    type="primary" 
-                    loading={isAddingNote} 
-                    onClick={handleAddNote} 
+                  <Button
+                    type="primary"
+                    loading={isAddingNote}
+                    onClick={handleAddNote}
                     style={{ height: 'auto', background: 'var(--accent-secondary)', borderRadius: 8 }}
                   >
                     Save
@@ -510,7 +510,7 @@ const SalesPipeline = () => {
 
             {/* Activity History Timeline */}
             <div>
-              <Title level={5} style={{ marginBottom: 16 }}><Clock size={16} style={{ marginRight: 6 }}/> Activity History</Title>
+              <Title level={5} style={{ marginBottom: 16 }}><Clock size={16} style={{ marginRight: 6 }} /> Activity History</Title>
               <Timeline mode="left">
                 {selectedDeal.activityLogs.map((log, idx) => (
                   <Timeline.Item key={idx} label={new Date(log.createdAt).toLocaleDateString()} color="teal">
@@ -536,16 +536,16 @@ const SalesPipeline = () => {
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={500}
       >
-        <Form 
-          form={form} 
-          layout="vertical" 
+        <Form
+          form={form}
+          layout="vertical"
           onFinish={handleCreate}
           initialValues={{ stage: 'lead', priority: 'medium', probability: 20 }}
           style={{ marginTop: 16 }}
         >
-          <Form.Item 
-            label="Prospect/Client Name" 
-            name="name" 
+          <Form.Item
+            label="Prospect/Client Name"
+            name="name"
             rules={[{ required: true, message: 'Please enter prospect name' }]}
           >
             <Input placeholder="e.g. HealthKart" />
@@ -553,18 +553,18 @@ const SalesPipeline = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item 
-                label="Industry Category" 
-                name="category" 
+              <Form.Item
+                label="Industry Category"
+                name="category"
                 rules={[{ required: true, message: 'Please enter category' }]}
               >
                 <Input placeholder="e.g. Health & Wellness" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item 
-                label="MRR Potential (Value)" 
-                name="value" 
+              <Form.Item
+                label="MRR Potential (Value)"
+                name="value"
                 rules={[{ required: true, message: 'Please enter monthly value' }]}
               >
                 <InputNumber min={0} style={{ width: '100%' }} placeholder="₹ value per month" />
@@ -597,9 +597,9 @@ const SalesPipeline = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item 
-                label="Assigned Rep (Owner)" 
-                name="rep" 
+              <Form.Item
+                label="Assigned Rep (Owner)"
+                name="rep"
                 rules={[{ required: true, message: 'Please select or type rep name' }]}
               >
                 <Input placeholder="e.g. Amit Jain" />

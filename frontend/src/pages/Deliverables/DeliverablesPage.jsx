@@ -255,7 +255,7 @@ const DeliverablesPage = () => {
     ];
 
     return (
-      <div style={{ padding: '16px 24px', background: isDark ? '#1f1f1f' : '#f9f9f9', borderRadius: '8px' }}>
+      <div style={{ padding: '16px 24px', background: isDark ? '#111c31' : '#f9f9f9', borderRadius: '8px' }}>
         <Text strong style={{ marginBottom: 16, display: 'block' }}>Client Projects Breakdown</Text>
         <Table 
           columns={projectCols} 
@@ -264,7 +264,7 @@ const DeliverablesPage = () => {
           rowKey="_id"
           size="small"
           bordered
-          style={{ background: isDark ? '#141414' : '#ffffff' }}
+          style={{ background: isDark ? '#0b1220' : '#ffffff' }}
         />
       </div>
     );
@@ -283,35 +283,38 @@ const DeliverablesPage = () => {
         </div>
       </div>
 
-      <Row gutter={24} style={{ marginBottom: 24 }}>
+      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Card bordered={false} style={{ background: isDark ? '#141414' : '#ffffff', borderRadius: 12 }}>
-            <Statistic
-              title="Total Global Deliverables"
-              value={totalGlobal}
-              prefix={<ProfileOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff', fontWeight: 'bold' }}
-            />
+          <Card bodyStyle={{ padding: 0, display: 'flex', height: '100%' }} style={{ borderRadius: 16, border: 'none', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: '35%', background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+              <ProfileOutlined style={{ fontSize: 40, color: '#fff' }} />
+            </div>
+            <div style={{ width: '65%', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Total Global Deliverables</div>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{totalGlobal}</div>
+            </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false} style={{ background: isDark ? '#141414' : '#ffffff', borderRadius: 12 }}>
-            <Statistic
-              title="Global Completed"
-              value={completedGlobal}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
-            />
+          <Card bodyStyle={{ padding: 0, display: 'flex', height: '100%' }} style={{ borderRadius: 16, border: 'none', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: '35%', background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+              <CheckCircleOutlined style={{ fontSize: 40, color: '#fff' }} />
+            </div>
+            <div style={{ width: '65%', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Global Completed</div>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{completedGlobal}</div>
+            </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false} style={{ background: isDark ? '#141414' : '#ffffff', borderRadius: 12 }}>
-            <Statistic
-              title="Global Remaining"
-              value={remainingGlobal}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontWeight: 'bold' }}
-            />
+          <Card bodyStyle={{ padding: 0, display: 'flex', height: '100%' }} style={{ borderRadius: 16, border: 'none', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: '35%', background: 'linear-gradient(135deg, #c2410c 0%, #ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+              <ClockCircleOutlined style={{ fontSize: 40, color: '#fff' }} />
+            </div>
+            <div style={{ width: '65%', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Global Remaining</div>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#111c31' }}>{remainingGlobal}</div>
+            </div>
           </Card>
         </Col>
       </Row>
@@ -319,7 +322,7 @@ const DeliverablesPage = () => {
       <Card 
         style={{ 
           borderRadius: 12, 
-          background: isDark ? '#141414' : '#ffffff',
+          background: isDark ? '#0b1220' : '#ffffff',
           borderColor: isDark ? '#303030' : '#f0f0f0' 
         }}
         bodyStyle={{ padding: 0 }}

@@ -6,6 +6,7 @@ const WorkspaceStrategy = require('../models/workspaceStrategy.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
 const WorkspaceReport = require('../models/workspaceReport.model');
 const DataForSeoService = require('../../seoIntelligence/dataForSeo.service');
+const skillLoader = require('./skillLoader.service');
 
 class WorkspaceAgentOrchestrator {
   constructor() {
@@ -103,19 +104,19 @@ class WorkspaceAgentOrchestrator {
         await WorkspaceKeyword.insertMany(keywordsToSave);
       }
 
-      // Step 3: AI Strategy Generation
-      const strategyPlan = await this._generateContentStrategy(project, audit, keywordsToSave);
+      // Agent: SEO Strategist
+      const strategyPlan = await this.seoStrategistAgent(project, audit, keywordsToSave);
       
       const strategy = new WorkspaceStrategy({
         projectId,
         title: `SEO Content Strategy for ${project.name}`,
         content: strategyPlan,
-        status: 'Approved'
+        status: 'Approved' // Requires human gate in production
       });
       await strategy.save();
 
-      // Step 4: Generate Implementation Tasks (Gate 2 Queue)
-      const tasksData = await this._generateImplementationTasks(project, strategyPlan, keywordsToSave);
+      // Agent: SEO Content Writer & Tech Implementer
+      const tasksData = await this.seoTechImplementerAgent(project, strategyPlan, keywordsToSave);
       
       const realTasks = tasksData.map(taskData => ({
         projectId,
@@ -142,7 +143,9 @@ class WorkspaceAgentOrchestrator {
   }
 
   async _generateKeywordSeeds(siteUrl, name) {
+    const skills = skillLoader.loadSkillsForAgent(['keyword-research', 'competitor-identification']);
     const prompt = `You are an expert SEO Strategist. Generate 20 highly relevant SEO keyword targets for the website: ${siteUrl} (Company: ${name}).
+${skills}
 Return ONLY a comma-separated list of 20 keywords, nothing else.`;
     
     const response = await this.openai.chat.completions.create({
@@ -156,14 +159,18 @@ Return ONLY a comma-separated list of 20 keywords, nothing else.`;
     return output.split(',').map(k => k.trim());
   }
 
-  async _generateContentStrategy(project, audit, keywords) {
+  // AGENT: SEO Strategist
+  async seoStrategistAgent(project, audit, keywords) {
+    const skills = skillLoader.loadSkillsForAgent(['keyword-research', 'content-gap-analysis', 'serp-intent-mapping', 'roadmap-roi-planning']);
     const kList = keywords.map(k => k.keyword).join(', ');
     const auditData = audit ? `Crawled ${audit.metrics?.pagesCrawled || 0} pages. On-Page Score: ${audit.metrics?.onPage || 0}` : 'No audit data available';
     
-    const prompt = `You are a Master SEO Content Strategist.
+    const prompt = `You are the SEO Strategist.
 Create a high-level 3-month SEO Content Strategy for ${project.name} (${project.siteUrl || project.domain}).
 Target Keywords: ${kList}
 Audit Context: ${auditData}
+
+${skills}
 
 Format the output in clean Markdown with:
 1. Executive Summary
@@ -172,7 +179,7 @@ Format the output in clean Markdown with:
 4. Month 3: Off-Page & Authority Building`;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o-mini', // Should be opus in prod for strategist
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       max_tokens: 800
@@ -181,9 +188,12 @@ Format the output in clean Markdown with:
     return response.choices[0].message.content;
   }
 
-  async _generateImplementationTasks(project, strategyPlan, keywords) {
+  // AGENT: SEO Tech Implementer
+  async seoTechImplementerAgent(project, strategyPlan, keywords) {
+    const skills = skillLoader.loadSkillsForAgent(['schema-implementation', 'redirect-management', 'wordpress-publishing']);
     const kList = keywords.slice(0, 5).map(k => k.keyword).join(', ');
-    const prompt = `You are an expert SEO Technical Assistant. Based on the following SEO Strategy for ${project.siteUrl || project.domain} (Company: ${project.name}) and the top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+    const prompt = `You are the SEO Tech Implementer. Based on the following SEO Strategy for ${project.siteUrl || project.domain} (Company: ${project.name}) and the top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+${skills}
 
 Return a JSON array of objects. Each object must have this exact structure:
 {
@@ -207,7 +217,8 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting like \`
       
       // Since response_format is json_object, we need to prompt for an object containing an array.
       // Wait, let's fix the prompt to ask for an object with a "tasks" array to be safe with json_object.
-      const promptObj = `You are an expert SEO Technical Assistant. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+      const promptObj = `You are the SEO Tech Implementer. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
+${skills}
       
 Respond with a JSON object containing a "tasks" array. Each task object must have:
 - "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking"
@@ -232,17 +243,21 @@ Respond with a JSON object containing a "tasks" array. Each task object must hav
     }
   }
 
-  async generateFinalReport(projectId, auditDiff) {
+  // AGENT: SEO Reporter
+  async seoReporterAgent(projectId, auditDiff) {
     const project = await WorkspaceProject.findById(projectId);
     if (!project) throw new Error('Project not found');
+    const skills = skillLoader.loadSkillsForAgent(['seo-report-writing', 'executive-summary']);
 
-    const prompt = `You are a Master SEO Reporter.
+    const prompt = `You are the SEO Reporter.
 Create an Executive Summary Final Report for ${project.name} (${project.siteUrl || project.domain}).
 Here is the diff from the previous audit to the latest audit after our implementation:
 Performance Change: ${auditDiff.diff.performance}
 On-Page SEO Change: ${auditDiff.diff.onPage}
 Crawlability Change: ${auditDiff.diff.crawlability}
 Overall Score Change: ${auditDiff.diff.overall}
+
+${skills}
 
 Write a professional, client-facing Markdown report summarizing the ROI, what was improved, and next steps. Make it persuasive and clear.`;
 
@@ -270,8 +285,11 @@ Write a professional, client-facing Markdown report summarizing the ROI, what wa
     await report.save();
     return report;
   }
-  async generateTaskForRankDrop(project, keyword, dropAmount) {
-    const prompt = `You are an expert SEO Technical Assistant. The keyword "${keyword.keyword}" for the website ${project.siteUrl || project.domain} has dropped by ${dropAmount} positions in the search rankings.
+  // AGENT: SEO Monitor
+  async seoMonitorAgent(project, keyword, dropAmount) {
+    const skills = skillLoader.loadSkillsForAgent(['rank-tracking', 'alert-configuration']);
+    const prompt = `You are the SEO Monitor. The keyword "${keyword.keyword}" for the website ${project.siteUrl || project.domain} has dropped by ${dropAmount} positions in the search rankings.
+${skills}
 Create a JSON response for a specific action to take to recover the ranking. The JSON must have the following structure:
 {
   "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking",

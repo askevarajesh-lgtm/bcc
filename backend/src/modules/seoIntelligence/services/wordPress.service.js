@@ -1,4 +1,5 @@
 const axios = require('axios');
+const publishGateService = require('../../seoWorkspace/services/publishGate.service');
 
 class WordPressService {
   constructor(wpRestApiUrl, wpUsername, wpAppPassword) {
@@ -56,7 +57,12 @@ class WordPressService {
     return null;
   }
 
-  async publishTaskUpdate(taskType, pageUrl, proposedChanges) {
+  async publishTaskUpdate(projectId, strategyId, taskId, taskType, pageUrl, proposedChanges) {
+    if (projectId && strategyId && taskId) {
+      await publishGateService.checkStrategyGate(projectId, strategyId);
+      await publishGateService.checkTaskGate(projectId, taskId);
+    }
+    
     if (!this.configured) {
       console.warn('[WordPressService] Not configured! Mocking task update success.');
       return { success: true, mocked: true };

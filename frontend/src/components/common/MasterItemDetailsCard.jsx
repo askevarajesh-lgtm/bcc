@@ -20,12 +20,12 @@ const formatDate = (dateStr) => {
   }).replace(',', '');
 };
 
-const MasterItemDetailsCard = ({ 
-  service, 
-  packageName, 
-  isDark, 
-  numberOfPosters, 
-  numberOfVideos, 
+const MasterItemDetailsCard = ({
+  service,
+  packageName,
+  isDark,
+  numberOfPosters,
+  numberOfVideos,
   numberOfShoots,
   remainingPosters,
   remainingVideos,
@@ -46,19 +46,19 @@ const MasterItemDetailsCard = ({
   const campaignAmt = overriddenCampaignAmount ?? service.campaignAmount;
 
   return (
-    <Card 
-      title={<Text style={{ fontWeight: 600 }}>{cardTitle}</Text>} 
-      size="small" 
-      style={{ 
-        marginTop: 16, 
-        backgroundColor: isDark ? '#141414' : '#f8f9fa',
+    <Card
+      title={<Text style={{ fontWeight: 600 }}>{cardTitle}</Text>}
+      size="small"
+      style={{
+        marginTop: 16,
+        backgroundColor: isDark ? '#0d1526' : '#f8f9fa',
         borderColor: isDark ? '#303030' : '#f0f0f0',
         borderRadius: 8,
       }}
       styles={{ header: { borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0' } }}
     >
-      <Descriptions 
-        bordered 
+      <Descriptions
+        bordered
         size="small"
         column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
         style={{ background: isDark ? '#1f1f1f' : '#ffffff', borderRadius: 8, overflow: 'hidden' }}
@@ -68,21 +68,21 @@ const MasterItemDetailsCard = ({
             {service.description}
           </Descriptions.Item>
         )}
-        
+
         <Descriptions.Item label="Item Type">
           <Tag color="default" style={{ textTransform: 'uppercase' }}>{service.itemType || 'N/A'}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Pricing Model">
           <Tag color="blue" style={{ textTransform: 'uppercase' }}>{service.pricingModel || 'N/A'}</Tag>
         </Descriptions.Item>
-        
+
         <Descriptions.Item label="Base Price">
           {formatCurrency(service.basePrice)}
         </Descriptions.Item>
         <Descriptions.Item label="Total Amount">
           {formatCurrency(service.totalAmount)}
         </Descriptions.Item>
-        
+
         <Descriptions.Item label="Status">
           <Tag color={service.status === 'active' ? 'success' : 'default'}>
             {service.status ? service.status.charAt(0).toUpperCase() + service.status.slice(1) : 'Active'}
@@ -91,14 +91,14 @@ const MasterItemDetailsCard = ({
         <Descriptions.Item label="Handling Amount">
           {formatCurrency(handlingAmt)}
         </Descriptions.Item>
-        
+
         <Descriptions.Item label="Handling Duration">
           {service.handlingDuration ?? 'N/A'}
         </Descriptions.Item>
         <Descriptions.Item label="Campaign Amount">
           {formatCurrency(campaignAmt)}
         </Descriptions.Item>
-        
+
         {posters > 0 && (
           <Descriptions.Item label="Number of Posters">
             <Text strong>{posters}</Text>
@@ -107,7 +107,7 @@ const MasterItemDetailsCard = ({
             )}
           </Descriptions.Item>
         )}
-        
+
         {videos > 0 && (
           <Descriptions.Item label="Number of Videos">
             <Text strong>{videos}</Text>
@@ -116,7 +116,7 @@ const MasterItemDetailsCard = ({
             )}
           </Descriptions.Item>
         )}
-        
+
         {shoots > 0 && (
           <Descriptions.Item label="Number of Shoots">
             <Text strong>{shoots ?? 0}</Text>
@@ -125,15 +125,15 @@ const MasterItemDetailsCard = ({
             )}
           </Descriptions.Item>
         )}
-        
+
         {selectedCategories && selectedCategories.length > 0 && selectedCategories.map((cat, idx) => {
           const rawName = cat.name || cat.categoryName || "";
           const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
           if (isStandard) return null; // Avoid duplicating posters, videos, shoots if they are in categories
-          
+
           const singularName = rawName.toLowerCase().endsWith('s') ? rawName.slice(0, -1) : rawName;
           const formattedName = singularName ? `Number of ${singularName.charAt(0).toUpperCase() + singularName.slice(1)}s` : "Unknown Item";
-          
+
           return (
             <Descriptions.Item key={`cat-${idx}`} label={formattedName}>
               <Text strong>{cat.quantity ?? cat.count ?? 0}</Text>
@@ -150,11 +150,11 @@ const MasterItemDetailsCard = ({
         <Descriptions.Item label="Created At">
           {service.createdAt ? formatDate(service.createdAt) : 'N/A'}
         </Descriptions.Item>
-        
+
         <Descriptions.Item label="Updated At">
           {service.updatedAt ? formatDate(service.updatedAt) : 'N/A'}
         </Descriptions.Item>
-        
+
         <Descriptions.Item label="Package Details">
           <Tag color="purple">{packageName || service.name || 'Package'}</Tag>
         </Descriptions.Item>

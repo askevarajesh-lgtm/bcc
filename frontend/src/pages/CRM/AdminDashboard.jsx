@@ -199,21 +199,46 @@ const AdminDashboard = ({ leads = [] }) => {
       </motion.div>
 
       {/* KPI Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {kpiCards.map((kpi, i) => (
-          <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
-            <motion.div variants={itemVariants} whileHover={{ y: -4 }} style={{ height: '100%' }}>
-              <Card bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', height: '100%' }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)', height: '100%' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, color: 'var(--accent-primary)' }}>
-                  {kpi.icon}
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>{kpi.title}</Text>
-                </div>
-                <Title level={2} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{kpi.val}</Title>
-                <Text type="secondary" style={{ fontSize: 12, marginTop: 'auto', paddingTop: 8 }}>{kpi.sub}</Text>
-              </Card>
-            </motion.div>
-          </Col>
-        ))}
+      <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+        {kpiCards.map((kpi, i) => {
+          const gradients = [
+            'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', // Vibrant Purple/Indigo
+            'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)', // Bright Blue
+            'linear-gradient(135deg, #10b981 0%, #059669 100%)', // Emerald Green
+            'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', // Amber/Orange
+            'linear-gradient(135deg, #ec4899 0%, #be123c 100%)'  // Pink/Rose
+          ];
+          return (
+            <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
+              <motion.div variants={itemVariants} whileHover={{ y: -6, scale: 1.02 }} style={{ height: '100%', transition: 'all 0.3s ease' }}>
+                <Card 
+                  bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', zIndex: 1 }} 
+                  style={{ 
+                    borderRadius: 20, 
+                    border: 'none', 
+                    background: gradients[i % gradients.length], 
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    height: '100%',
+                    overflow: 'hidden',
+                    color: '#ffffff'
+                  }}
+                >
+                  <div style={{ position: 'absolute', right: -20, top: -20, opacity: 0.15, transform: 'scale(3)' }}>
+                    {kpi.icon}
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ padding: '8px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: 12, display: 'flex', backdropFilter: 'blur(10px)' }}>
+                      {React.cloneElement(kpi.icon, { style: { fontSize: 20 } })}
+                    </div>
+                    <Text style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255, 255, 255, 0.9)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{kpi.title}</Text>
+                  </div>
+                  <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 900, color: '#ffffff', fontSize: 36, letterSpacing: -1 }}>{kpi.val}</Title>
+                  <Text style={{ fontSize: 13, marginTop: 'auto', paddingTop: 8, color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>{kpi.sub}</Text>
+                </Card>
+              </motion.div>
+            </Col>
+          );
+        })}
       </Row>
 
       {/* Top 3 Panels */}

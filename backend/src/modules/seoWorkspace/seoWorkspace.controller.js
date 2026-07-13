@@ -274,7 +274,7 @@ exports.updateTaskStatus = async (req, res) => {
         );
         
         try {
-          await wpService.publishTaskUpdate(task.taskType, task.pageUrl, task.proposedChanges);
+          await wpService.publishTaskUpdate(task.projectId, task.strategyId, task._id, task.taskType, task.pageUrl, task.proposedChanges);
           task.status = 'Implemented';
         } catch (wpError) {
           console.error('WordPress publish failed for task:', wpError);
