@@ -121,7 +121,7 @@ const ProjectList = () => {
     ],
   );
 
-  const { data, isLoading, error } = useGetProjectsQuery(
+  const { data, isLoading, error, refetch } = useGetProjectsQuery(
     queryParamsWithFilters,
   );
   const [getProjectReport, { isFetching: isExporting }] =
@@ -172,6 +172,7 @@ const ProjectList = () => {
     try {
       await deleteProject(id).unwrap();
       message.success("Project deleted successfully");
+      refetch();
     } catch (error) {
       message.error(error?.data?.message || "Failed to delete project");
     }
@@ -187,6 +188,7 @@ const ProjectList = () => {
         `${selectedRowKeys.length} projects deleted successfully`,
       );
       handleClearSelection();
+      refetch();
     } catch (error) {
       message.error(
         error?.data?.message || "Failed to delete projects in bulk",

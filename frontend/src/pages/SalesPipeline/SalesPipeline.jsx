@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Table, Tag, Avatar, Progress, Drawer, Modal, Form, Input, Select, InputNumber, Divider, Timeline, Space, message, Badge } from 'antd';
+import { Typography, Row, Col, Card, Button, Table, Tag, Avatar, Progress, Drawer, Modal, Form, Input, Select, InputNumber, Divider, Timeline, Space, message, Badge, DatePicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Plus, Target, FileText, TrendingUp, Mail, ExternalLink, Clock, Trash2, CheckCircle2, XCircle, Briefcase, Calendar, User, MessageSquare, AlertCircle, Award } from 'lucide-react';
 import { 
@@ -14,9 +14,13 @@ import {
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import useActionPermissions from '../../hooks/useActionPermissions';
 
 const SalesPipeline = () => {
   const { isDark } = useTheme();
+  const { role } = useAuth();
+  const { canAdd, canEdit, canDelete } = useActionPermissions(role === 'agency_manager' || role === 'agency' ? '/agency/salespipeline' : '/ops/salespipeline');
   
   // States
   const [filterStage, setFilterStage] = useState(undefined);
@@ -184,14 +188,16 @@ const SalesPipeline = () => {
             <Option value="won">Won</Option>
             <Option value="lost">Lost</Option>
           </Select>
-          <Button 
-            type="primary" 
-            icon={<Plus size={16} />} 
-            onClick={() => setIsCreateOpen(true)}
-            style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}
-          >
-            Add Opportunity
-          </Button>
+          {canAdd && (
+            <Button 
+              type="primary" 
+              icon={<Plus size={16} />} 
+              onClick={() => setIsCreateOpen(true)}
+              style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}
+            >
+              Add Sales Proposal
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -241,7 +247,7 @@ const SalesPipeline = () => {
               <div 
                 key={stage.id} 
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, stage.id)}
+                onDrop={(e) => canEdit && handleDrop(e, stage.id)}
                 style={{ flex: 1, minWidth: 290, background: isDark ? '#1a1a1a' : '#f8f9fa', borderRadius: 16, padding: 16, border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 12 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${stage.color}`, paddingBottom: 8 }}>
@@ -258,7 +264,7 @@ const SalesPipeline = () => {
                       key={deal._id}
                       bodyStyle={{ padding: 16 }}
                       onClick={() => { setSelectedDealId(deal._id); setIsDetailOpen(true); }}
-                      draggable
+                      draggable={canEdit}
                       onDragStart={(e) => handleDragStart(e, deal._id)}
                       style={{ borderRadius: 12, border: '1px solid var(--border-color)', background: isDark ? '#242424' : '#fff', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                       hoverable
@@ -419,7 +425,7 @@ const SalesPipeline = () => {
         onClose={() => setIsDetailOpen(false)}
         open={isDetailOpen}
         extra={
-          selectedDeal && (
+          selectedDeal && canDelete && (
             <Button 
               danger 
               icon={<Trash2 size={16} />} 
@@ -445,43 +451,46 @@ const SalesPipeline = () => {
             <Divider style={{ margin: 0 }} />
 
             {/* Quick Actions to Progress Stage */}
-            <div>
-              <Title level={5} style={{ marginBottom: 12 }}>Change Pipeline Stage</Title>
-              <Space wrap>
-                {['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'].map(stg => (
-                  <Button 
-                    key={stg} 
-                    type={selectedDeal.stage === stg ? 'primary' : 'default'}
-                    onClick={() => handleStageChange(selectedDeal._id, stg)}
-                    style={{ borderRadius: 8, fontSize: 12 }}
-                  >
-                    {stg.toUpperCase()}
-                  </Button>
-                ))}
-              </Space>
-            </div>
-
-            <Divider style={{ margin: 0 }} />
+            {canEdit && (
+              <div>
+                <Title level={5} style={{ marginBottom: 12 }}>Change Pipeline Stage</Title>
+                <Space wrap>
+                  {['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'].map(stg => (
+                    <Button 
+                      key={stg} 
+                      type={selectedDeal.stage === stg ? 'primary' : 'default'}
+                      onClick={() => handleStageChange(selectedDeal._id, stg)}
+                      style={{ borderRadius: 8, fontSize: 12 }}
+                    >
+                      {stg.toUpperCase()}
+                    </Button>
+                  ))}
+                </Space>
+              </div>
+            )}
+            {canEdit && <Divider style={{ margin: 0 }} />}
 
             {/* Notes Section */}
             <div>
               <Title level={5} style={{ marginBottom: 12 }}><MessageSquare size={16} style={{ marginRight: 6 }}/> Notes</Title>
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                <Input.TextArea 
-                  rows={2} 
-                  value={newNote} 
-                  onChange={e => setNewNote(e.target.value)} 
-                  placeholder="Type notes or follow-up logs..." 
-                />
-                <Button 
-                  type="primary" 
-                  loading={isAddingNote} 
-                  onClick={handleAddNote} 
-                  style={{ height: 'auto', background: 'var(--accent-secondary)', borderRadius: 8 }}
-                >
-                  Save
-                </Button>
-              </div>
+              {canEdit && (
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                  <Input.TextArea 
+                    rows={2} 
+                    value={newNote} 
+                    onChange={e => setNewNote(e.target.value)} 
+                    placeholder="Type notes or follow-up logs..." 
+                  />
+                  <Button 
+                    type="primary" 
+                    loading={isAddingNote} 
+                    onClick={handleAddNote} 
+                    style={{ height: 'auto', background: 'var(--accent-secondary)', borderRadius: 8 }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 200, overflowY: 'auto' }}>
                 {selectedDeal.notes.map((note, idx) => (
@@ -598,7 +607,7 @@ const SalesPipeline = () => {
             </Col>
             <Col span={12}>
               <Form.Item label="Follow-up Date" name="follow">
-                <Input placeholder="e.g. 15 Jun" />
+                <DatePicker style={{ width: '100%' }} placeholder="Select Date" />
               </Form.Item>
             </Col>
           </Row>

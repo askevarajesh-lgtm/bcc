@@ -1,5 +1,6 @@
 const Proposal = require('./proposal.model');
 const Invoice = require('../invoices/invoice.model');
+const MasterItem = require('../masterItems/masterItem.model');
 
 // Create Proposal
 exports.createProposal = async (req, res, next) => {
@@ -16,6 +17,20 @@ exports.createProposal = async (req, res, next) => {
     } else {
       data.agencyId = req.companyId || req.user.agencyId || req.user._id;
       if (req.user.adminId) data.adminId = req.user.adminId;
+    }
+
+    if (data.customMasterItem) {
+      const customData = {
+        ...data.customMasterItem,
+        isCustom: true,
+        createdBy: data.createdBy,
+        adminId: data.adminId,
+        agencyId: data.agencyId,
+        brandId: data.brandId
+      };
+      const newMasterItem = await MasterItem.create(customData);
+      data.masterItems = [newMasterItem._id];
+      delete data.customMasterItem;
     }
 
     const proposal = await Proposal.create(data);
@@ -99,6 +114,23 @@ exports.updateProposal = async (req, res, next) => {
     }
 
     req.body.updatedBy = req.user._id;
+
+    if (req.body.customMasterItem) {
+      const customData = {
+        ...req.body.customMasterItem,
+        isCustom: true,
+        createdBy: req.body.updatedBy,
+        adminId: proposal.adminId,
+        agencyId: proposal.agencyId,
+        brandId: proposal.brandId
+      };
+      // For updates, we can either update the existing custom master item if it's already custom, 
+      // or create a new one. Since a proposal might have used a global one previously, 
+      // the safest is to create a new custom one and link it.
+      const newMasterItem = await MasterItem.create(customData);
+      req.body.masterItems = [newMasterItem._id];
+      delete req.body.customMasterItem;
+    }
 
     const updatedProposal = await Proposal.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json({ success: true, data: updatedProposal });

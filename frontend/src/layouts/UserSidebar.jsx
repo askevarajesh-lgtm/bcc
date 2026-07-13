@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CheckSquare, LayoutDashboard, Settings, FileText, Palette, GitMerge, 
-  Target, Search, BarChart2, Globe, LineChart, MessageCircle, TrendingUp
+  Target, Search, BarChart2, Globe, LineChart, MessageCircle, TrendingUp, Briefcase
 } from 'lucide-react';
 import PortalSidebar from './PortalSidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +39,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Workspace-Meetings')) menuItems.push({ key: '/user/workspace/meetings', icon: getIcon(MessageCircle), label: 'Meetings' });
   if (hasPerm('Workspace-Calendar')) menuItems.push({ key: '/user/workspace/calendar', icon: getIcon(CheckSquare), label: 'Calendar' });
   if (hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
+  if (hasPerm('Agency Ops-Sales Pipeline')) menuItems.push({ key: '/user/workspace/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
 
   if (hasPerm('Intelligence-Analytics & Attribution')) menuItems.push({ key: '/user/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics' });
   if (hasPerm('Intelligence-MOS Score')) menuItems.push({ key: '/user/intelligence/mos', icon: getIcon(BarChart2), label: 'MOS Score' });

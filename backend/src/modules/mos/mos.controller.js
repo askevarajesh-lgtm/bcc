@@ -54,22 +54,24 @@ exports.getMosDashboard = async (req, res, next) => {
     }
 
     // Format for frontend
-    const clientsData = currentScores.map(score => {
-      return {
-        client: score.clientId?.companyName || score.clientId?.name || 'Unknown Client',
-        clientId: score.clientId?._id || score.clientId,
-        overall: score.overallMos,
-        website: score.signals.website,
-        seo: score.signals.seo,
-        social: score.signals.social,
-        ads: score.signals.ads,
-        leads: score.signals.leads,
-        rev: score.signals.revenue,
-        cx: score.signals.cx,
-        mom: '+2', // Mocking MoM for now, can be calculated dynamically
-        weakestSignals: score.weakestSignals ? score.weakestSignals.map(s => s.signalName || s) : []
-      };
-    });
+    const clientsData = currentScores
+      .filter(score => score.clientId != null)
+      .map(score => {
+        return {
+          client: score.clientId?.companyName || score.clientId?.name || 'Unknown Client',
+          clientId: score.clientId?._id || score.clientId,
+          overall: score.overallMos,
+          website: score.signals.website,
+          seo: score.signals.seo,
+          social: score.signals.social,
+          ads: score.signals.ads,
+          leads: score.signals.leads,
+          rev: score.signals.revenue,
+          cx: score.signals.cx,
+          mom: '+2', // Mocking MoM for now, can be calculated dynamically
+          weakestSignals: score.weakestSignals ? score.weakestSignals.map(s => s.signalName || s) : []
+        };
+      });
 
     res.status(200).json({
       success: true,

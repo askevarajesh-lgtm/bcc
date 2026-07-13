@@ -1,4 +1,7 @@
 const Invoice = require('./invoice.model');
+const Proposal = require('../proposals/proposal.model');
+const MasterItem = require('../masterItems/masterItem.model');
+const { getNextGenerationDate } = require('./invoiceDateHelper');
 
 // Create Invoice
 exports.createInvoice = async (req, res, next) => {
@@ -15,6 +18,24 @@ exports.createInvoice = async (req, res, next) => {
     } else {
       data.agencyId = req.companyId || req.user.agencyId || req.user._id;
       if (req.user.adminId) data.adminId = req.user.adminId;
+    }
+
+    if (data.invoiceType === 'Retainer' && data.proposalId) {
+      const proposal = await Proposal.findById(data.proposalId).populate('masterItems');
+      if (proposal && proposal.masterItems && proposal.masterItems.length > 0) {
+        // Look for the first valid duration in master items
+        let durationString = '1 Month'; // Default
+        for (const item of proposal.masterItems) {
+          if (item.handlingDuration) {
+            durationString = item.handlingDuration;
+            break;
+          }
+        }
+        data.retainerDuration = durationString;
+        
+        const nextDate = getNextGenerationDate(data.invoiceDate || Date.now(), durationString);
+        data.nextGenerationDate = nextDate;
+      }
     }
 
     const invoice = await Invoice.create(data);

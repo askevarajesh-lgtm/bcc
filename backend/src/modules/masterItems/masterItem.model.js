@@ -32,6 +32,10 @@ const masterItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isCustom: {
+    type: Boolean,
+    default: false
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

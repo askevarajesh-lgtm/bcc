@@ -175,7 +175,7 @@ const InvoiceForm = () => {
         <Button onClick={() => navigate(`${getBaseRoute()}/invoices`)}>Back</Button>
       </div>
       <Card loading={loading}>
-        <Form form={form} layout="vertical" initialValues={{ invoiceDate: dayjs() }}>
+        <Form form={form} layout="vertical" initialValues={{ invoiceDate: dayjs(), invoiceType: 'One Time' }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item label="Client" name="clientId" rules={[{ required: true, message: 'Client is required' }]}>
@@ -195,15 +195,21 @@ const InvoiceForm = () => {
             </Form.Item>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
             <Form.Item label="Invoice Number" name="invoiceNumber" extra="Leave blank to auto-generate">
               <Input placeholder="INV-0001" />
             </Form.Item>
-            
             <Form.Item label="Payment Type" name="paymentMode" rules={[{ required: true, message: 'Payment Type is required' }]}>
               <Select placeholder="Select Payment Type">
                 <Option value="Prepaid">Prepaid</Option>
                 <Option value="Postpaid">Postpaid</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item label="Invoice Type" name="invoiceType" initialValue="One Time" rules={[{ required: true, message: 'Invoice Type is required' }]}>
+              <Select placeholder="Select Invoice Type">
+                <Option value="One Time">One Time</Option>
+                <Option value="Retainer">Retainer</Option>
               </Select>
             </Form.Item>
           </div>

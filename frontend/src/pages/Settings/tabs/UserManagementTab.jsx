@@ -89,6 +89,7 @@ const UserManagementTab = () => {
           'Invoices', 'Projects', 'Master Item', 'Automation', 'Task Management',
           'Meetings', 'Calendar', 'Deliverables'
         ],
+        'Agency Ops': ['Sales Pipeline'],
         'Support': ['Support']
       };
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {

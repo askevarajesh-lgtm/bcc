@@ -320,6 +320,7 @@ const AppRoutes = () => {
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="deliverables" element={<DeliverablesPage />} />
+          <Route path="salespipeline" element={<SalesPipeline />} />
         </Route>
       </Route>
 
@@ -458,6 +459,7 @@ const AppRoutes = () => {
           <Route path="workspace/meetings" element={<MeetingsPage />} />
           <Route path="workspace/calendar" element={<CalendarPage />} />
           <Route path="workspace/deliverables" element={<DeliverablesPage />} />
+          <Route path="workspace/salespipeline" element={<SalesPipeline />} />
           
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />

@@ -122,7 +122,7 @@ const SEO = () => {
           <Text type="secondary">Search - Answer Engine - Generative Engine — unified in one view.</Text>
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 16, borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Select 
               value={selectedProjectId}
               onChange={val => setSelectedProjectId(val)}
@@ -132,9 +132,6 @@ const SEO = () => {
               loading={loading}
             />
           </div>
-          <Button icon={<Play size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>Run Full Audit</Button>
-          <Button icon={<Download size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>Export Report</Button>
-          <Button style={{ borderRadius: 8, borderColor: 'var(--accent-secondary)', color: 'var(--accent-secondary)', background: 'rgba(16, 185, 129, 0.05)', fontWeight: 600 }}>Google - Connected</Button>
         </div>
       </motion.div>
 

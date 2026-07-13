@@ -6,6 +6,8 @@ import SlabCard from '../../../components/SlabCard';
 import { useFeatures } from '../../../contexts/FeatureContext';
 import TaskListView from '../../Tasks/TaskListView';
 import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
+import ClientBilling from './ClientBilling';
+import ClientActivity from './ClientActivity';
 
 const { Title, Text } = Typography;
 
@@ -23,20 +25,39 @@ const ClientsTab = () => {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/brands', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDbClients(data.data.map(c => ({
-          ...c,
-          code: c.code || c.name?.substring(0, 2).toUpperCase() || 'NA',
-          status: c.status || 'Healthy',
-          mos: c.mos || 100,
-          industry: c.industry || 'Unknown',
-          am: c.am || 'Unassigned',
-          scores: c.scores || { SEO: 0, ADS: 0, LEADS: 0, SOCIAL: 0, WEB: 0, GEO: 0 }
-        })));
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+      
+      const [brandsRes, mosRes] = await Promise.all([
+        fetch('/api/brands', { headers }),
+        fetch('/api/mos/dashboard', { headers })
+      ]);
+      
+      const brandsData = await brandsRes.json();
+      const mosData = await mosRes.json();
+      
+      const mosClients = mosData.success && mosData.data ? mosData.data.clients : [];
+      
+      if (brandsData.success) {
+        setDbClients(brandsData.data.map(c => {
+          const mosInfo = mosClients.find(m => m.clientId === c._id) || {};
+          
+          return {
+            ...c,
+            code: c.code || c.name?.substring(0, 2).toUpperCase() || 'NA',
+            status: mosInfo.overall >= 70 ? 'Healthy' : mosInfo.overall >= 50 ? 'At Risk' : 'Critical',
+            mos: mosInfo.overall || 0,
+            industry: c.industry || 'Unknown',
+            am: c.am || 'Unassigned',
+            scores: mosInfo.overall ? {
+              SEO: mosInfo.seo,
+              ADS: mosInfo.ads,
+              LEADS: mosInfo.leads,
+              SOCIAL: mosInfo.social,
+              WEB: mosInfo.website,
+              GEO: mosInfo.geo || 0
+            } : { SEO: 0, ADS: 0, LEADS: 0, SOCIAL: 0, WEB: 0, GEO: 0 }
+          };
+        }));
       }
     } catch (error) {
       console.error('Failed to fetch clients', error);
@@ -228,7 +249,7 @@ const ClientsTab = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <Button type="primary" onClick={() => setSelectedClient({ ...client, code: client.name.substring(0,2).toUpperCase(), status: 'Healthy', mos: 100, industry: 'N/A', scores: { SEO: 0, ADS: 0, LEADS: 0, SOCIAL: 0, WEB: 0, GEO: 0 }, am: 'Unassigned', retainer: 'Custom', sla: 'N/A', activity: 'Just now' })} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                  <Button type="primary" onClick={() => setSelectedClient(client)} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                     View Client <ExternalLink size={16} style={{ marginLeft: 8 }} />
                   </Button>
                 </div>
@@ -311,58 +332,41 @@ const ClientsTab = () => {
                   const clientFeatures = clientData.features || [];
                   const clientPackage = clientData.package || 'Starter';
 
-                  const handleFeatureToggle = (feature, checked) => {
-                    const newFeatures = checked 
-                      ? [...clientFeatures, feature] 
-                      : clientFeatures.filter(f => f !== feature);
-                    updateClientFeatures(selectedClient.code, newFeatures, clientPackage);
-                    message.success(`Feature ${checked ? 'enabled' : 'disabled'} for ${selectedClient.name}`);
-                  };
-
-                  const handlePackageChange = (newPackageName) => {
-                    const selectedPkg = packages.find(p => p.name === newPackageName);
-                    if (selectedPkg) {
-                      updateClientFeatures(selectedClient.code, selectedPkg.features, newPackageName);
-                      message.success(`Package updated to ${newPackageName} for ${selectedClient.name}`);
-                    }
-                  };
+                  const allFeatures = [
+                    { id: 'dashboard', label: 'Client Dashboard', icon: <AlertTriangle size={16} /> },
+                    { id: 'performance', label: 'Performance Analytics', icon: <Zap size={16} /> },
+                    { id: 'leads', label: 'Lead Management (CRM)', icon: <Users size={16} /> },
+                    { id: 'website', label: 'Website Builder', icon: <Globe size={16} /> },
+                    { id: 'store', label: 'Asset Store', icon: <Shield size={16} /> },
+                  ];
+                  
+                  const enabledFeatures = allFeatures.filter(feat => clientFeatures.includes(feat.id));
 
                   return (
                     <div style={{ marginTop: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Package</span>
-                          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>Manage Tier</span>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{clientPackage}</span>
                         </div>
-                        <Select 
-                          value={clientPackage} 
-                          onChange={handlePackageChange}
-                          style={{ width: 140, fontWeight: 700 }}
-                          options={packages.map(pkg => ({ value: pkg.name, label: pkg.name }))}
-                        />
                       </div>
 
-                      <Title level={5} style={{ marginBottom: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Individual Features</Title>
+                      <Title level={5} style={{ marginBottom: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Enabled Modules</Title>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {[
-                          { id: 'dashboard', label: 'Client Dashboard', icon: <AlertTriangle size={16} /> },
-                          { id: 'performance', label: 'Performance Analytics', icon: <Zap size={16} /> },
-                          { id: 'leads', label: 'Lead Management (CRM)', icon: <Users size={16} /> },
-                          { id: 'website', label: 'Website Builder', icon: <Globe size={16} /> },
-                          { id: 'store', label: 'Asset Store', icon: <Shield size={16} /> },
-                        ].map(feat => (
-                          <div key={feat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: '1px solid var(--border-color)', borderRadius: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <div style={{ color: 'var(--text-tertiary)' }}>{feat.icon}</div>
-                              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{feat.label}</span>
+                        {enabledFeatures.length > 0 ? enabledFeatures.map(feat => (
+                          <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 12 }}>
+                            <div style={{ color: 'var(--accent-primary)' }}>{feat.icon}</div>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Tag color="success" style={{ margin: 0, borderRadius: 10, fontWeight: 700 }}>Enabled</Tag>
                             </div>
-                            <Switch 
-                              checked={clientFeatures.includes(feat.id)} 
-                              onChange={(checked) => handleFeatureToggle(feat.id, checked)}
-                            />
                           </div>
-                        ))}
+                        )) : (
+                          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
+                            No modules are currently enabled for this client.
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -379,8 +383,12 @@ const ClientsTab = () => {
                   />
                 </div>
               </Tabs.TabPane>
-              <Tabs.TabPane tab="Billing" key="4" />
-              <Tabs.TabPane tab="Activity" key="5" />
+              <Tabs.TabPane tab="Billing" key="4">
+                <ClientBilling clientId={selectedClient?.id || selectedClient?._id} />
+              </Tabs.TabPane>
+              <Tabs.TabPane tab="Activity" key="5">
+                <ClientActivity clientId={selectedClient?.id || selectedClient?._id} />
+              </Tabs.TabPane>
             </Tabs>
           </div>
         )}

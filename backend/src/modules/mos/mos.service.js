@@ -21,14 +21,7 @@ exports.calculateAgencyMOS = async (agencyId) => {
     role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }
   });
 
-  // If no brands are found (e.g. fresh environment or sandbox), inject some mock brands for demonstration
-  if (brands.length === 0) {
-    brands.push(
-      { _id: new mongoose.Types.ObjectId('60d0fe4f5311236168a10001'), companyName: 'Acme Corp', name: 'Acme Corp' },
-      { _id: new mongoose.Types.ObjectId('60d0fe4f5311236168a10002'), companyName: 'Global Tech', name: 'Global Tech' },
-      { _id: new mongoose.Types.ObjectId('60d0fe4f5311236168a10003'), companyName: 'Stark Industries', name: 'Stark Industries' }
-    );
-  }
+  // Removed mock data injection that was causing ghost clients
 
   // Get current weights or use defaults
   let config = await MosConfig.findOne({ agencyId });

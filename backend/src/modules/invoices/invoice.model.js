@@ -61,6 +61,24 @@ const invoiceSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  invoiceType: {
+    type: String,
+    enum: ['One Time', 'Retainer'],
+    default: 'One Time'
+  },
+  nextGenerationDate: {
+    type: Date,
+    default: null
+  },
+  retainerDuration: {
+    type: String,
+    default: '1 Month'
+  },
+  parentInvoiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice',
+    default: null
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

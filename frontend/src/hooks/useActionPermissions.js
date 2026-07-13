@@ -31,6 +31,8 @@ export function useActionPermissions(path) {
   if (path === '/meetings') moduleName = 'Workspace-Meetings';
   if (path === '/calendar') moduleName = 'Workspace-Calendar';
   if (path === '/deliverables') moduleName = 'Workspace-Deliverables';
+  
+  if (path === '/salespipeline' || path === '/ops/salespipeline' || path === '/agency/salespipeline') moduleName = 'Agency Ops-Sales Pipeline';
 
   if (path === '/analytics') moduleName = 'Intelligence-Analytics & Attribution';
   if (path === '/mos') moduleName = 'Intelligence-MOS Score';

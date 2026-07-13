@@ -39,7 +39,7 @@ exports.createMasterItem = async (req, res, next) => {
 // Get All Master Items
 exports.getMasterItems = async (req, res, next) => {
   try {
-    let queryFilter = { isDeleted: false };
+    let queryFilter = { isDeleted: false, isCustom: { $ne: true } };
     
     // Pagination & Search
     const page = parseInt(req.query.page, 10) || 1;

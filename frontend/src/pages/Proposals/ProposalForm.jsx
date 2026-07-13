@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message, Row, Col, Switch } from 'antd';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
@@ -18,6 +18,7 @@ const ProposalForm = () => {
   const [clients, setClients] = useState([]);
   const [masterItems, setMasterItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isCustomizing, setIsCustomizing] = useState(false);
 
   const selectedMasterItemId = Form.useWatch('masterItems', form);
   const selectedMasterItem = masterItems.find(item => item._id === selectedMasterItemId);
@@ -47,6 +48,31 @@ const ProposalForm = () => {
           grandTotal: proposal.grandTotal,
           notes: proposal.notes
         });
+
+        // Ensure custom master item is in the options list
+        if (proposal.masterItems?.[0] && typeof proposal.masterItems[0] === 'object') {
+          setMasterItems(prev => {
+            if (!prev.find(i => i._id === proposal.masterItems[0]._id)) {
+              return [...prev, proposal.masterItems[0]];
+            }
+            return prev;
+          });
+          if (proposal.masterItems[0].isCustom) {
+             setIsCustomizing(true);
+             const item = proposal.masterItems[0];
+             const categories = item.categories?.map(c => c.name) || [];
+             const categoryCounts = {};
+             item.categories?.forEach(c => { categoryCounts[c.name] = c.count; });
+             form.setFieldsValue({
+               customName: item.name,
+               customDescription: item.description,
+               customPrice: item.price,
+               customCategories: categories,
+               customCategoryCounts: categoryCounts,
+               customHandlingDuration: item.handlingDuration
+             });
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch proposal:', error);
@@ -113,6 +139,21 @@ const ProposalForm = () => {
         status: 'Draft'
       };
 
+      if (isCustomizing) {
+        const formattedCategories = (values.customCategories || []).map(catName => ({
+          name: catName,
+          count: values.customCategoryCounts?.[catName] || 0
+        }));
+        payload.customMasterItem = {
+          name: values.customName,
+          description: values.customDescription,
+          price: values.customPrice,
+          handlingDuration: values.customHandlingDuration,
+          status: 'active',
+          categories: formattedCategories
+        };
+      }
+
       const url = isEditing ? `/api/proposals/${id}` : '/api/proposals';
       const method = isEditing ? 'PUT' : 'POST';
 
@@ -168,10 +209,26 @@ const ProposalForm = () => {
             </Select>
           </Form.Item>
 
-          {selectedMasterItem && (
+          {selectedMasterItem && !isCustomizing && (
             <div style={{ marginBottom: 24, padding: 24, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-              <div style={{ marginBottom: 16, fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>
-                Package Details: {selectedMasterItem.name}
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>Package Details: {selectedMasterItem.name}</span>
+                <Switch checked={isCustomizing} onChange={(checked) => {
+                  setIsCustomizing(checked);
+                  if (checked && !form.getFieldValue('customName')) {
+                    const categories = selectedMasterItem.categories?.map(c => c.name) || [];
+                    const categoryCounts = {};
+                    selectedMasterItem.categories?.forEach(c => { categoryCounts[c.name] = c.count; });
+                    form.setFieldsValue({
+                      customName: selectedMasterItem.name,
+                      customDescription: selectedMasterItem.description,
+                      customPrice: selectedMasterItem.price,
+                      customCategories: categories,
+                      customCategoryCounts: categoryCounts,
+                      customHandlingDuration: selectedMasterItem.handlingDuration
+                    });
+                  }
+                }} checkedChildren="Custom" unCheckedChildren="Original" />
               </div>
               <Descriptions bordered size="small" column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}>
                 <Descriptions.Item label="Description" span={2}>
@@ -208,6 +265,63 @@ const ProposalForm = () => {
                   {selectedMasterItem.categories?.map((cat, index) => <Tag key={cat._id || index} color="purple">{cat.name}</Tag>)}
                 </Descriptions.Item>
               </Descriptions>
+            </div>
+          )}
+
+          {selectedMasterItem && isCustomizing && (
+            <div style={{ marginBottom: 24, padding: 24, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>Customize Package: {selectedMasterItem.name}</span>
+                <Switch checked={isCustomizing} onChange={(checked) => setIsCustomizing(checked)} checkedChildren="Custom" unCheckedChildren="Original" />
+              </div>
+
+              <Form.Item label="Item Name" name="customName" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              
+              <Form.Item label="Select Categories" name="customCategories">
+                <Select mode="tags" style={{ width: '100%' }} placeholder="Select or type categories" />
+              </Form.Item>
+
+              <Form.Item noStyle dependencies={['customCategories']}>
+                {({ getFieldValue }) => {
+                  const cats = getFieldValue('customCategories') || [];
+                  return cats.length > 0 ? (
+                    <div style={{ marginBottom: 24, paddingLeft: 16 }}>
+                      {cats.map((cat) => (
+                        <Row key={cat} style={{ marginBottom: 16 }} align="middle" gutter={16}>
+                          <Col span={6}><Text strong>{cat}</Text></Col>
+                          <Col span={18}>
+                            <Form.Item label={`Number of ${cat}`} name={['customCategoryCounts', cat]} initialValue={0} style={{ marginBottom: 0 }}>
+                              <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      ))}
+                    </div>
+                  ) : null;
+                }}
+              </Form.Item>
+
+              <Form.Item label="Description" name="customDescription">
+                <Input.TextArea rows={4} />
+              </Form.Item>
+
+              <Form.Item label="Service Price" name="customPrice" rules={[{ required: true }]}>
+                <InputNumber style={{ width: '100%' }} prefix="₹" min={0} onChange={val => form.setFieldsValue({ grandTotal: val })} />
+              </Form.Item>
+
+              <Form.Item label="Handling Duration" name="customHandlingDuration">
+                <Select>
+                  <Option value="1 Week">1 Week</Option>
+                  <Option value="15 Days">15 Days</Option>
+                  <Option value="1 Month">1 Month</Option>
+                  <Option value="2 Months">2 Months</Option>
+                  <Option value="3 Months">3 Months</Option>
+                  <Option value="6 Months">6 Months</Option>
+                  <Option value="1 Year">1 Year</Option>
+                </Select>
+              </Form.Item>
             </div>
           )}
 
