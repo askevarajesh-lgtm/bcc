@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import JSZip from "jszip";
-import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message } from "antd";
+import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message, Spin } from "antd";
 import { Globe, X as CloseIcon, Search as SearchIcon, CheckCircle, Upload as UploadIcon } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -14,6 +14,7 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   const [categories, setCategories] = useState(["All"]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const [showUploadBox, setShowUploadBox] = useState(false);
   const [uploadTemplateName, setUploadTemplateName] = useState("");
   const [selectedUploadFile, setSelectedUploadFile] = useState(null);
@@ -59,9 +60,8 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   const handleZipUpload = async () => {
     if (!selectedUploadFile) return;
 
+    setIsUploadingTemplate(true);
     try {
-      message.loading({ content: 'Validating ZIP...', key: 'upload' });
-      
       // Validate ZIP contains index.html
       const zip = new JSZip();
       const loadedZip = await zip.loadAsync(selectedUploadFile);
@@ -79,10 +79,10 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
 
       if (!hasIndexHtml) {
         message.error({ content: 'Invalid template: ZIP must contain an index.html file.', key: 'upload' });
+        setIsUploadingTemplate(false);
         return;
       }
 
-      message.loading({ content: 'Uploading template...', key: 'upload' });
       const formData = new FormData();
       formData.append("file", selectedUploadFile);
       
@@ -118,6 +118,8 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
     } catch (error) {
       console.error(error);
       message.error({ content: 'Error processing template upload', key: 'upload' });
+    } finally {
+      setIsUploadingTemplate(false);
     }
     
     // Clear input
@@ -147,8 +149,10 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   });
 
   return (
-    <Modal
-      open={open}
+    <>
+      <Spin fullscreen spinning={isUploadingTemplate} tip="Uploading template..." size="large" />
+      <Modal
+        open={open}
       onCancel={onCancel}
       footer={null}
       width={1100}
@@ -370,7 +374,8 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
           </div>
         </div>
       </div>
-    </Modal>
+      </Modal>
+    </>
   );
 };
 

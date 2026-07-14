@@ -20,6 +20,7 @@ const CalendarViewTab = ({ itemVariants }) => {
   const [loading, setLoading] = useState(false);
   const [calendarData, setCalendarData] = useState({});
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isPlanning, setIsPlanning] = useState(false);
 
   useEffect(() => {
     const fetchCalendar = async () => {
@@ -77,8 +78,7 @@ const CalendarViewTab = ({ itemVariants }) => {
   const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
   const handleAutoPlan = async () => {
-    setLoading(true);
-    message.loading({ content: 'Running Content Calendar Planner agent...', key: 'plan' });
+    setIsPlanning(true);
     try {
       const res = await contentApi.generateContent({
         topic: 'Plan a month of content for this client based on the intake brief.',
@@ -94,26 +94,27 @@ const CalendarViewTab = ({ itemVariants }) => {
     } catch (error) {
       message.error({ content: 'Error connecting to Planner agent', key: 'plan' });
     } finally {
-      setLoading(false);
+      setIsPlanning(false);
     }
   };
 
   return (
     <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }}>
       <motion.div variants={itemVariants}>
+        <Spin fullscreen spinning={isPlanning} tip="Running Content Calendar Planner agent..." size="large" />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div>
-            <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{monthName}</Title>
-            <Text type="secondary" style={{ fontSize: 13 }}>Click a pill to open the detail drawer</Text>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Button 
-              type="primary"
-              onClick={handleAutoPlan}
-              style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)', border: 'none', fontWeight: 600, boxShadow: 'var(--shadow-md)' }}
-            >
-              Auto-Plan Month
-            </Button>
+        <div>
+          <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{monthName}</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>Click a pill to open the detail drawer</Text>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Button 
+            type="primary"
+            onClick={handleAutoPlan}
+            style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)', border: 'none', fontWeight: 600, boxShadow: 'var(--shadow-md)' }}
+          >
+            Auto-Plan Month
+          </Button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-secondary)', padding: 4, borderRadius: 10, border: '1px solid var(--border-color)' }}>
               <Button type="text" onClick={prevMonth} icon={<ChevronLeft size={16} />} style={{ padding: '0 8px', height: 32 }} />
               <Button type="text" onClick={today} style={{ fontWeight: 600, padding: '0 12px', height: 32 }}>Today</Button>

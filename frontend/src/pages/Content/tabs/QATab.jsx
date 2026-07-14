@@ -13,6 +13,7 @@ const QATab = ({ itemVariants }) => {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [processingQA, setProcessingQA] = useState(false);
+  const [qaMessage, setQaMessage] = useState("");
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -38,8 +39,8 @@ const QATab = ({ itemVariants }) => {
 
   const handleRunQA = async () => {
     if (!selectedItem) return;
+    setQaMessage('Running Compliance QA...');
     setProcessingQA(true);
-    message.loading({ content: 'Running Compliance QA...', key: 'qa' });
     try {
       const res = await contentApi.generateContent({
         topic: `Audit this content: ${selectedItem.title}`,
@@ -60,8 +61,8 @@ const QATab = ({ itemVariants }) => {
 
   const handleHumanize = async () => {
     if (!selectedItem) return;
+    setQaMessage('Humanizing content...');
     setProcessingQA(true);
-    message.loading({ content: 'Humanizing content...', key: 'humanize' });
     try {
       const res = await contentApi.generateContent({
         topic: `Humanize this content: ${selectedItem.title}`,
@@ -82,6 +83,7 @@ const QATab = ({ itemVariants }) => {
 
   const handleApprove = async () => {
     if (!selectedItem) return;
+    setQaMessage('Approving content...');
     setProcessingQA(true);
     try {
       const res = await contentApi.updateItem(selectedItem._id, { status: 'Approved' });
@@ -99,6 +101,7 @@ const QATab = ({ itemVariants }) => {
 
   return (
     <motion.div variants={itemVariants} style={{ paddingTop: 12 }}>
+      <Spin fullscreen spinning={processingQA} tip={qaMessage} size="large" />
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={8}>
           <Card

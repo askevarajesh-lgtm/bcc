@@ -47,7 +47,6 @@ const IntakeTab = ({ itemVariants }) => {
 
   const handleRunResearch = async () => {
     setLoading(true);
-    message.loading({ content: 'Running Content Intake & Research agents...', key: 'research' });
     try {
       // Simulate calling the content-intake and content-researcher agents
       const res = await contentApi.generateContent({
@@ -69,6 +68,7 @@ const IntakeTab = ({ itemVariants }) => {
 
   return (
     <motion.div variants={itemVariants} style={{ paddingTop: 12 }}>
+      <Spin fullscreen spinning={loading} tip="Running Content Intake & Research agents..." size="large" />
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
           <Card

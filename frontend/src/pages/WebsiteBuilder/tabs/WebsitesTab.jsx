@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message } from "antd";
+import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin } from "antd";
 import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -590,6 +590,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [pendingWebsiteName, setPendingWebsiteName] = useState("");
+  const [isCloning, setIsCloning] = useState(false);
   
   const [websites, setWebsites] = useState([]);
   const [activeWebsite, setActiveWebsite] = useState(null);
@@ -694,8 +695,8 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   };
 
   const handleCloneWebsite = async (id) => {
+    setIsCloning(true);
     try {
-      message.loading({ content: 'Cloning website...', key: 'clone' });
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/websites/${id}/clone`, {
         method: "POST",
@@ -712,6 +713,8 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       }
     } catch (err) {
       message.error({ content: "Error cloning website", key: 'clone' });
+    } finally {
+      setIsCloning(false);
     }
   };
 
@@ -876,6 +879,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
 
   return (
     <motion.div variants={itemVariants}>
+      <Spin fullscreen spinning={isCloning} tip="Cloning website..." size="large" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 8px', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>

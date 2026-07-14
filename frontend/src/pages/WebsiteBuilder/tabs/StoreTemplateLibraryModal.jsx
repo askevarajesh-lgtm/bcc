@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Input, Checkbox, Button, Typography, Space, Row, Col, Card, Tag, message } from "antd";
+import { Modal, Input, Checkbox, Button, Typography, Space, Row, Col, Card, Tag, message, Spin } from "antd";
 import { Store, X as CloseIcon, Search as SearchIcon, CheckCircle, Upload as UploadIcon } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -13,6 +13,7 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
   const [templates, setTemplates] = useState([]);
   const [categories, setCategories] = useState(["All"]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
     const file = event.target.files[0];
     if (!file) return;
 
+    setIsUploadingTemplate(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", file.name.replace(".zip", ""));
@@ -50,7 +52,6 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
     formData.append("category", "Custom Uploads");
 
     try {
-      message.loading({ content: 'Uploading store template...', key: 'upload' });
       const token = localStorage.getItem("token");
       const res = await fetch("/api/templates/upload", {
         method: "POST",
@@ -72,6 +73,8 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
       }
     } catch (error) {
       message.error({ content: 'Error uploading template', key: 'upload' });
+    } finally {
+      setIsUploadingTemplate(false);
     }
     
     if (fileInputRef.current) {
@@ -94,16 +97,18 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
   };
 
   return (
-    <Modal
-      open={open}
-      onCancel={onCancel}
-      footer={null}
-      width={1000}
-      closeIcon={<Button type="text" icon={<CloseIcon size={20} />} onClick={onCancel} style={{ color: "var(--text-secondary)" }} />}
-      style={{ top: 40 }}
-      bodyStyle={{ padding: 0, borderRadius: 16, overflow: "hidden" }}
-      className="glassmorphism-modal"
-    >
+    <>
+      <Spin fullscreen spinning={isUploadingTemplate} tip="Uploading store template..." size="large" />
+      <Modal
+        open={open}
+        onCancel={onCancel}
+        footer={null}
+        width={1000}
+        closeIcon={<Button type="text" icon={<CloseIcon size={20} />} onClick={onCancel} style={{ color: "var(--text-secondary)" }} />}
+        style={{ top: 40 }}
+        bodyStyle={{ padding: 0, borderRadius: 16, overflow: "hidden" }}
+        className="glassmorphism-modal"
+      >
       <div style={{ display: "flex", height: "80vh", maxHeight: 800 }}>
         {/* Sidebar */}
         <div style={{ width: 250, borderRight: "1px solid var(--border-color)", padding: "24px 16px", overflowY: "auto", background: "var(--bg-secondary)", display: "flex", flexDirection: "column" }}>
@@ -259,7 +264,8 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
           </div>
         </div>
       </div>
-    </Modal>
+      </Modal>
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message } from "antd";
+import { Modal, Input, Button, Typography, Space, Row, Col, Card, Tag, message, Spin } from "antd";
 import { LayoutTemplate, Layers, Search as SearchIcon, CheckCircle, X as CloseIcon, Upload as UploadIcon } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -12,6 +12,7 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -48,6 +49,7 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
     const file = event.target.files[0];
     if (!file) return;
 
+    setIsUploadingTemplate(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", file.name.replace(".zip", ""));
@@ -55,7 +57,6 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
     formData.append("category", "Custom Uploads");
 
     try {
-      message.loading({ content: 'Uploading funnel template...', key: 'upload' });
       const token = localStorage.getItem("token");
       const res = await fetch("/api/templates/upload", {
         method: "POST",
@@ -77,6 +78,8 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
       }
     } catch (error) {
       message.error({ content: 'Error uploading template', key: 'upload' });
+    } finally {
+      setIsUploadingTemplate(false);
     }
     
     if (fileInputRef.current) {
@@ -100,16 +103,18 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
   };
 
   return (
-    <Modal
-      open={open}
-      onCancel={onCancel}
-      footer={null}
-      width={1200}
-      closeIcon={<Button type="text" icon={<CloseIcon size={20} />} onClick={onCancel} style={{ color: "var(--text-secondary)" }} />}
-      style={{ top: 20 }}
-      bodyStyle={{ padding: 0, borderRadius: 16, overflow: "hidden" }}
-      className="glassmorphism-modal"
-    >
+    <>
+      <Spin fullscreen spinning={isUploadingTemplate} tip="Uploading funnel template..." size="large" />
+      <Modal
+        open={open}
+        onCancel={onCancel}
+        footer={null}
+        width={1200}
+        closeIcon={<Button type="text" icon={<CloseIcon size={20} />} onClick={onCancel} style={{ color: "var(--text-secondary)" }} />}
+        style={{ top: 20 }}
+        bodyStyle={{ padding: 0, borderRadius: 16, overflow: "hidden" }}
+        className="glassmorphism-modal"
+      >
       <div style={{ display: "flex", height: "85vh", maxHeight: 900 }}>
         {/* Sidebar */}
         <div style={{ width: 260, borderRight: "1px solid var(--border-color)", padding: "24px 16px", overflowY: "auto", background: "var(--bg-secondary)", display: "flex", flexDirection: "column" }}>
@@ -262,7 +267,8 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
           </div>
         </div>
       </div>
-    </Modal>
+      </Modal>
+    </>
   );
 };
 

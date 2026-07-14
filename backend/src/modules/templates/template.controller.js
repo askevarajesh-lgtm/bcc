@@ -56,7 +56,7 @@ exports.uploadTemplate = async (req, res, next) => {
       category: category || 'Custom Uploads',
       description: description || '',
       featuresCount: featuresCount ? parseInt(featuresCount) : 1,
-      zipUrl: req.file.path, // Cloudinary URL
+      zipUrl: req.file.path && req.file.path.startsWith('http') ? req.file.path : `uploads/templates/${req.file.filename}`, // Local or Cloudinary URL
       isRealData: true
     });
 

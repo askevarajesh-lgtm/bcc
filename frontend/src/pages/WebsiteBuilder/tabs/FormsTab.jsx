@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Table, Typography, Space, Select, DatePicker, Card, Row, Col, Modal, Checkbox, Tag, message } from "antd";
+import { Button, Input, Table, Typography, Space, Select, DatePicker, Card, Row, Col, Modal, Checkbox, Tag, message, Spin } from "antd";
 import { Plus, Search, X, ArrowUp, ArrowDown, Edit3, Copy, HelpCircle, FileText, BarChart3, Inbox, Calendar, Link2, ListPlus, Upload as UploadIcon, Eye, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -23,6 +23,7 @@ const FormsTab = ({ itemVariants }) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const fileInputRef = React.useRef(null);
 
   const [forms, setForms] = useState([]);
@@ -154,6 +155,7 @@ const FormsTab = ({ itemVariants }) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    setIsUploadingTemplate(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", file.name.replace(".zip", ""));
@@ -161,7 +163,6 @@ const FormsTab = ({ itemVariants }) => {
     formData.append("category", "Custom Uploads");
 
     try {
-      message.loading({ content: 'Uploading template...', key: 'upload' });
       const token = localStorage.getItem("token");
       const res = await fetch("/api/templates/upload", {
         method: "POST",
@@ -183,6 +184,8 @@ const FormsTab = ({ itemVariants }) => {
       }
     } catch (error) {
       message.error({ content: 'Error uploading template', key: 'upload' });
+    } finally {
+      setIsUploadingTemplate(false);
     }
     
     if (fileInputRef.current) {

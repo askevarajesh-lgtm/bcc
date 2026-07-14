@@ -36,6 +36,7 @@ const SEOWorkspace = () => {
   const [selectedSettingsProject, setSelectedSettingsProject] = useState(null);
   const [selectedKeywordProject, setSelectedKeywordProject] = useState(null);
   const [form] = Form.useForm();
+  const [actionLoading, setActionLoading] = useState({ isLoading: false, message: "" });
   
   const { role } = useAuth();
   const isViewOnly = ['agency_client', 'client', 'brand_manager', 'brand_super_admin', 'brand_team_user'].includes(role);
@@ -148,14 +149,16 @@ const SEOWorkspace = () => {
   const handleGenerateReport = async () => {
     if (!selectedReportProject) return;
     try {
+      setActionLoading({ isLoading: true, message: 'AI is analyzing before/after audits...' });
       setLoadingReports(true);
-      message.loading({ content: 'AI is analyzing before/after audits...', key: 'report', duration: 0 });
       await axios.post(`/seo-workspace/projects/${selectedReportProject}/generate-report`);
       message.success({ content: 'Report generated successfully!', key: 'report' });
       fetchReports(selectedReportProject);
     } catch (error) {
       console.error(error);
       message.error({ content: error.response?.data?.error || 'Failed to generate report. Make sure you have at least 2 audits.', key: 'report' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
       setLoadingReports(false);
     }
   };
@@ -196,28 +199,32 @@ const SEOWorkspace = () => {
 
   const triggerAudit = async (projectId) => {
     try {
+      setActionLoading({ isLoading: true, message: 'Running crawler...' });
       setLoading(true);
-      message.loading({ content: 'Running crawler...', key: 'audit' });
       await axios.post(`/seo-workspace/projects/${projectId}/audit`);
       message.success({ content: 'Audit completed successfully!', key: 'audit' });
       fetchWorkspaceData();
     } catch (error) {
       console.error('Audit failed:', error);
       message.error({ content: 'Failed to run audit.', key: 'audit' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
       setLoading(false);
     }
   };
 
   const triggerStrategy = async (projectId) => {
     try {
+      setActionLoading({ isLoading: true, message: 'AI Agents are analyzing data and generating strategy...' });
       setLoading(true);
-      message.loading({ content: 'AI Agents are analyzing data and generating strategy...', key: 'strategy', duration: 0 });
       await axios.post(`/seo-workspace/projects/${projectId}/generate-strategy`);
       message.success({ content: 'Strategy generated successfully!', key: 'strategy' });
       fetchWorkspaceData();
     } catch (error) {
       console.error('Strategy generation failed:', error);
       message.error({ content: 'Failed to generate strategy.', key: 'strategy' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
       setLoading(false);
     }
   };
@@ -225,8 +232,8 @@ const SEOWorkspace = () => {
   const handlePublishStrategy = async () => {
     if (!activeStrategy) return;
     try {
+      setActionLoading({ isLoading: true, message: 'Publishing to WordPress...' });
       setLoading(true);
-      message.loading({ content: 'Publishing to WordPress...', key: 'publish' });
       await axios.post(`/seo-workspace/projects/${activeStrategy.projectId?._id || activeStrategy.projectId}/strategies/${activeStrategy._id}/publish`);
       message.success({ content: 'Strategy published successfully to WordPress!', key: 'publish' });
       setStrategyModalVisible(false);
@@ -234,6 +241,8 @@ const SEOWorkspace = () => {
     } catch (error) {
       console.error('Publish failed:', error);
       message.error({ content: 'Failed to publish strategy.', key: 'publish' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
       setLoading(false);
     }
   };
@@ -291,6 +300,7 @@ const SEOWorkspace = () => {
 
   return (
     <div className="seo-workspace-container">
+      <Spin fullscreen spinning={actionLoading.isLoading} tip={actionLoading.message} size="large" />
       <div className="seo-tabs-container">
         {[
           { key: 'overview', label: 'Overview' },

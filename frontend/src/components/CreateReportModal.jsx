@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Typography, Button, Select, Row, Col, Card, Input, DatePicker, message } from 'antd';
+import { Modal, Typography, Button, Select, Row, Col, Card, Input, DatePicker, message, Spin } from 'antd';
 import { FileText, BarChart2, Target, Zap, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGetClientsQuery } from '../api/clientApi';
@@ -381,6 +381,7 @@ const CreateReportModal = ({ open, onClose }) => {
       bodyStyle={{ padding: '24px 32px 32px' }}
       className="create-report-modal"
     >
+      <Spin fullscreen spinning={isSubmitting} tip="Generating report..." size="large" />
       {renderStepper()}
 
       <div style={{ minHeight: 300, padding: '16px 0 32px' }}>
