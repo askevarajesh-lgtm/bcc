@@ -296,3 +296,14 @@
   font-weight: 500;
   max-width: 400px;
 }
+
+/* Phase 3: Global Search dropdown results */
+.seo-search-result-item {
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.seo-search-result-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+}

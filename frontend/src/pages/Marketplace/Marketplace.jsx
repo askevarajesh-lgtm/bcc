@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Typography, Row, Col, Card, Button, Tabs, Tag } from 'antd';
 import { motion } from 'framer-motion';
-import SEOWorkspace from './SEOWorkspace';
+import SEOWorkspace from './seo-workspace/SEOWorkspace';
 import Content from '../Content/Content';
 import { useAuth } from '../../contexts/AuthContext';
 
