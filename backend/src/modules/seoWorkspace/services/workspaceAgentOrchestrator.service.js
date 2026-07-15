@@ -111,7 +111,7 @@ class WorkspaceAgentOrchestrator {
         projectId,
         title: `SEO Content Strategy for ${project.name}`,
         content: strategyPlan,
-        status: 'Approved' // Requires human gate in production
+        status: 'Pending Approval' // Human must approve via PUT .../strategies/:id/approve before it can gate task publishing
       });
       await strategy.save();
 

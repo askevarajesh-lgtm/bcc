@@ -229,6 +229,40 @@ const SEOWorkspace = () => {
     }
   };
 
+  const handleApproveStrategy = async () => {
+    if (!activeStrategy) return;
+    try {
+      setActionLoading({ isLoading: true, message: 'Approving strategy...' });
+      const projectId = activeStrategy.projectId?._id || activeStrategy.projectId;
+      const res = await axios.put(`/seo-workspace/projects/${projectId}/strategies/${activeStrategy._id}/approve`);
+      message.success({ content: 'Strategy approved.', key: 'approve' });
+      setActiveStrategy(res.data.data);
+      fetchWorkspaceData();
+    } catch (error) {
+      console.error('Approve strategy failed:', error);
+      message.error({ content: error.response?.data?.message || 'Failed to approve strategy.', key: 'approve' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
+    }
+  };
+
+  const handleRejectStrategy = async () => {
+    if (!activeStrategy) return;
+    try {
+      setActionLoading({ isLoading: true, message: 'Rejecting strategy...' });
+      const projectId = activeStrategy.projectId?._id || activeStrategy.projectId;
+      const res = await axios.put(`/seo-workspace/projects/${projectId}/strategies/${activeStrategy._id}/reject`);
+      message.success({ content: 'Strategy rejected.', key: 'reject' });
+      setActiveStrategy(res.data.data);
+      fetchWorkspaceData();
+    } catch (error) {
+      console.error('Reject strategy failed:', error);
+      message.error({ content: error.response?.data?.message || 'Failed to reject strategy.', key: 'reject' });
+    } finally {
+      setActionLoading({ isLoading: false, message: "" });
+    }
+  };
+
   const handlePublishStrategy = async () => {
     if (!activeStrategy) return;
     try {
@@ -240,7 +274,7 @@ const SEOWorkspace = () => {
       fetchWorkspaceData();
     } catch (error) {
       console.error('Publish failed:', error);
-      message.error({ content: 'Failed to publish strategy.', key: 'publish' });
+      message.error({ content: error.response?.data?.message || 'Failed to publish strategy.', key: 'publish' });
     } finally {
       setActionLoading({ isLoading: false, message: "" });
       setLoading(false);
@@ -288,7 +322,10 @@ const SEOWorkspace = () => {
 
   const strategyColumns = [
     { title: 'Project', dataIndex: ['projectId', 'name'], key: 'projectName', render: text => <strong>{text || 'Unknown Project'}</strong> },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'Approved' ? 'green' : 'gold'}>{status}</Tag> },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: status => {
+      const color = status === 'Approved' || status === 'Published' ? 'green' : status === 'Rejected' ? 'red' : status === 'Pending Approval' ? 'gold' : 'default';
+      return <Tag color={color}>{status}</Tag>;
+    } },
     { title: 'Date Generated', dataIndex: 'createdAt', key: 'createdAt', render: date => new Date(date).toLocaleDateString() },
     { title: 'Action', key: 'action', render: (_, record) => (
       <Button type="link" onClick={() => {
@@ -746,10 +783,24 @@ const SEOWorkspace = () => {
         onCancel={() => setStrategyModalVisible(false)}
         footer={[
           <Button key="close" onClick={() => setStrategyModalVisible(false)} className="seo-glow-btn-secondary">Close</Button>,
-          <Button key="publish" type="primary" onClick={handlePublishStrategy} className="seo-glow-btn">Publish to WordPress</Button>
+          ...(!isViewOnly && (activeStrategy?.status === 'Draft' || activeStrategy?.status === 'Pending Approval') ? [
+            <Button key="reject" danger onClick={handleRejectStrategy}>Reject</Button>,
+            <Button key="approve" type="primary" onClick={handleApproveStrategy} className="seo-glow-btn">Approve</Button>
+          ] : []),
+          ...(!isViewOnly && activeStrategy?.status === 'Approved' ? [
+            <Button key="publish" type="primary" onClick={handlePublishStrategy} className="seo-glow-btn">Publish to WordPress</Button>
+          ] : [])
         ]}
         width={800}
       >
+        {activeStrategy?.status && (
+          <Tag
+            color={activeStrategy.status === 'Approved' || activeStrategy.status === 'Published' ? 'green' : activeStrategy.status === 'Rejected' ? 'red' : 'gold'}
+            style={{ marginBottom: 16 }}
+          >
+            {activeStrategy.status}
+          </Tag>
+        )}
         <div className="seo-markdown-container" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           <ReactMarkdown>{activeStrategy?.content || 'No content available.'}</ReactMarkdown>
         </div>
