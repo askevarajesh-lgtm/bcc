@@ -76,7 +76,7 @@ class WorkspaceCronService {
             if (drop >= 2) {
               console.log(`[Alert] Workspace Keyword "${kw.keyword}" dropped by ${drop} positions (Rank ${previousRank} -> ${currentRank})! Generating recovery task...`);
               try {
-                await this.orchestrator.generateTaskForRankDrop(project, kw, drop);
+                await this.orchestrator.seoMonitorAgent(project, kw, drop);
               } catch (taskErr) {
                 console.error(`[WorkspaceCronService] Error generating task for ${kw.keyword}:`, taskErr.message);
               }

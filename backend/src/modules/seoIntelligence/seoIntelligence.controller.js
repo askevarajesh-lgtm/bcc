@@ -5,7 +5,6 @@ const SeoStrategy = require('./models/seoStrategy.model');
 const SeoTask = require('./models/seoTask.model');
 const SeoReport = require('./models/seoReport.model');
 const AuditService = require('./services/audit.service');
-const AgentOrchestrator = require('./services/agentOrchestrator.service');
 const WordPressService = require('./services/wordPress.service');
 const GoogleService = require('./services/google.service');
 const dataForSeoService = require('./dataForSeo.service');
@@ -512,7 +511,8 @@ exports.getBacklinks = async (req, res) => {
     if (!website) {
       return res.status(404).json({ success: false, message: 'SEO website not found' });
     }
-    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+
+    const domain = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
     
     // Use dedicated backlink service methods
     const [summary, referringDomains] = await Promise.all([
@@ -689,17 +689,6 @@ exports.getStrategies = async (req, res) => {
   }
 };
 
-exports.generateStrategy = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const orchestrator = new AgentOrchestrator();
-    const result = await orchestrator.runOrchestration(projectId);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 exports.publishStrategy = async (req, res) => {
   try {
     const { projectId, strategyId } = req.params;
@@ -809,24 +798,6 @@ exports.getReports = async (req, res) => {
   try {
     const reports = await SeoReport.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
     res.json(reports);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-exports.generateReport = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const auditDiff = await AuditService.compareAudits(projectId);
-    
-    if (auditDiff.message) {
-      return res.status(400).json({ error: auditDiff.message });
-    }
-
-    const orchestrator = new AgentOrchestrator();
-    const report = await orchestrator.generateFinalReport(projectId, auditDiff);
-    
-    res.json({ message: 'Report generated successfully', report });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

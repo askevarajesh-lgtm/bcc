@@ -192,31 +192,10 @@ Format the output in clean Markdown with:
   async seoTechImplementerAgent(project, strategyPlan, keywords) {
     const skills = skillLoader.loadSkillsForAgent(['schema-implementation', 'redirect-management', 'wordpress-publishing']);
     const kList = keywords.slice(0, 5).map(k => k.keyword).join(', ');
-    const prompt = `You are the SEO Tech Implementer. Based on the following SEO Strategy for ${project.siteUrl || project.domain} (Company: ${project.name}) and the top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
-${skills}
-
-Return a JSON array of objects. Each object must have this exact structure:
-{
-  "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking",
-  "pageUrl": "/path-to-optimize",
-  "description": "Short description of the proposed action",
-  "proposedChanges": {
-    "key": "value"
-  }
-}
-
-Respond ONLY with the raw JSON array. Do not include markdown formatting like \`\`\`json.`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.5,
-        response_format: { type: "json_object" }
-      });
-      
-      // Since response_format is json_object, we need to prompt for an object containing an array.
-      // Wait, let's fix the prompt to ask for an object with a "tasks" array to be safe with json_object.
+      // response_format is json_object, so the prompt asks for an object with a "tasks" array
+      // (a bare JSON array is not valid with json_object mode).
       const promptObj = `You are the SEO Tech Implementer. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
 ${skills}
       
