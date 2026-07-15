@@ -2,8 +2,7 @@ import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import * as workspaceApi from '../api/workspaceApi';
 
-// Backs the Comments/Attachments/History UI for a single Strategy, Task, or
-// Report record. `targetType` must be one of the backend's VALID_TARGET_TYPES.
+
 export function useCollaboration(targetType) {
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);

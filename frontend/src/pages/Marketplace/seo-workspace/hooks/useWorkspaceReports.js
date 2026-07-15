@@ -23,10 +23,10 @@ export function useWorkspaceReports() {
     }
   }, []);
 
-  const generateReport = useCallback(async (projectId) => {
+  const generateReport = useCallback(async (projectId, scheduleOptions = {}) => {
     try {
       setGenerating(true);
-      await workspaceApi.generateReport(projectId);
+      await workspaceApi.generateReport(projectId, scheduleOptions);
       await fetchReports(projectId);
     } finally {
       setGenerating(false);

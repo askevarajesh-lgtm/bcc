@@ -42,8 +42,8 @@ export const updateTaskStatus = (projectId, taskId, status) =>
 // --- Reports ---
 export const getReports = (projectId, params = {}) =>
   axios.get(`${BASE}/projects/${projectId}/reports`, { params });
-export const generateReport = (projectId) =>
-  axios.post(`${BASE}/projects/${projectId}/generate-report`);
+export const generateReport = (projectId, scheduleOptions = {}) =>
+  axios.post(`${BASE}/projects/${projectId}/generate-report`, scheduleOptions);
 
 // --- Dashboard & Search ---
 export const getDashboard = () => axios.get(`${BASE}/dashboard`);

@@ -445,7 +445,12 @@ exports.getReports = async (req, res) => {
 exports.generateReport = async (req, res) => {
   try {
     const { projectId } = req.params;
-    
+    const { isScheduled, scheduleFrequency, emailRecipients } = req.body || {};
+
+    if (isScheduled && !['daily', 'weekly', 'monthly'].includes(scheduleFrequency)) {
+      return res.status(400).json({ success: false, error: "scheduleFrequency must be one of 'daily', 'weekly', 'monthly' when isScheduled is true." });
+    }
+
     const audits = await WorkspaceAudit.find({ projectId }).sort({ createdAt: -1 }).limit(2);
     if (audits.length < 2) {
       return res.status(400).json({ error: 'Need at least 2 audits to generate a comparative report.' });
@@ -464,7 +469,18 @@ exports.generateReport = async (req, res) => {
     };
 
     const orchestrator = new WorkspaceAgentOrchestrator();
-    const report = await orchestrator.seoReporterAgent(projectId, auditDiff);
+    const report = await orchestrator.seoReporterAgent(projectId, auditDiff, {
+      isScheduled: !!isScheduled,
+      scheduleFrequency: isScheduled ? scheduleFrequency : null,
+      emailRecipients: Array.isArray(emailRecipients) ? emailRecipients : []
+    });
+
+    if (isScheduled) {
+      auditLogService.record({
+        targetType: 'Report', targetId: report._id, projectId,
+        action: 'schedule_created', fromValue: null, toValue: scheduleFrequency, userId: req.user._id
+      });
+    }
 
     res.json({ success: true, data: report });
   } catch (error) {

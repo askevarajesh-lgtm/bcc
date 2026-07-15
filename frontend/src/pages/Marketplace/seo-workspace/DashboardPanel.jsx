@@ -6,9 +6,6 @@ import useWorkspaceDashboard from './hooks/useWorkspaceDashboard';
 
 const { Title, Text } = Typography;
 
-// New "Overview" tab: pure aggregation over existing collections (Step 2 of
-// the plan) — counts of projects by phase, pending approvals, recent
-// activity. No new source-of-truth data, just a rollup of what already exists.
 const DashboardPanel = ({ isViewOnly, onCreateProject }) => {
   const { dashboard, loading, fetchDashboard } = useWorkspaceDashboard();
 

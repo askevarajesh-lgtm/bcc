@@ -19,6 +19,11 @@ const WorkspaceReportSchema = new mongoose.Schema({
   isScheduled: { type: Boolean, default: false },
   scheduleFrequency: { type: String, enum: ['daily', 'weekly', 'monthly'], default: null },
   emailRecipients: [{ type: String }],
+  // Additive: when this report doc is a recurring schedule definition
+  // (isScheduled: true), lastRunAt tracks when the scheduler last produced
+  // a fresh report instance from it, so due-ness can be computed against
+  // scheduleFrequency instead of the fields being declared-but-inert.
+  lastRunAt: { type: Date, default: null },
   
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });

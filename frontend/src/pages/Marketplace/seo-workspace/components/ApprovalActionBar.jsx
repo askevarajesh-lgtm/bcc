@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button, Space } from 'antd';
 
-// Shared by StrategiesPanel (Strategy review modal) and TasksPanel (task
-// cards) instead of each panel writing its own Approve/Reject buttons.
+// Shared by StrategiesPanel (Strategy review modal) and ApprovalsQueuePanel
+// (unified Strategy+Task queue) instead of each writing its own Approve/Reject
+// buttons.
 const ApprovalActionBar = ({
   onApprove,
   onReject,

@@ -5,8 +5,6 @@ import useWorkspaceSearch from './hooks/useWorkspaceSearch';
 
 const { Text } = Typography;
 
-// New capability from Step 2 of the plan: a single search box that fans a
-// text query out across Projects/Strategies/Tasks scoped to the tenant.
 const GlobalSearchBar = ({ onSelectProject, onSelectStrategy, onSelectTask }) => {
   const { results, loading, search, clear } = useWorkspaceSearch();
   const [query, setQuery] = useState('');

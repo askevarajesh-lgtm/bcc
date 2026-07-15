@@ -10,7 +10,7 @@ import ProjectsPanel from './ProjectsPanel';
 import AuditsPanel from './AuditsPanel';
 import KeywordsPanel from './KeywordsPanel';
 import StrategiesPanel from './StrategiesPanel';
-import TasksPanel from './TasksPanel';
+import ApprovalsQueuePanel from './ApprovalsQueuePanel';
 import ReportsPanel from './ReportsPanel';
 import AnalyticsPanel from './AnalyticsPanel';
 import SettingsPanel from './SettingsPanel';
@@ -30,10 +30,6 @@ const TABS = [
   { key: 'settings', label: 'Settings' }
 ];
 
-// Thin container: owns tab navigation, the shared project list (used by
-// multiple panels' project pickers), the Create Project modal, and the
-// full-screen action spinner. Everything else lives in its own panel file
-// per the Phase 3 plan (Step 7).
 const SEOWorkspace = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -68,7 +64,7 @@ const SEOWorkspace = () => {
       case 'content':
         return <StrategiesPanel isViewOnly={isViewOnly} canEdit={canEdit} setActionLoading={setActionLoading} />;
       case 'approvals':
-        return <TasksPanel projects={projects} isViewOnly={isViewOnly} canEdit={canEdit} />;
+        return <ApprovalsQueuePanel projects={projects} isViewOnly={isViewOnly} canEdit={canEdit} />;
       case 'reports':
         return <ReportsPanel projects={projects} isViewOnly={isViewOnly} canAdd={canAdd} />;
       case 'analytics':

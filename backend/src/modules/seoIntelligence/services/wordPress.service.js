@@ -94,6 +94,10 @@ class WordPressService {
           content: proposedChanges.contentBlock,
           status: 'publish' // Push live immediately
         };
+      } else if (taskType === 'Schema Injection') {
+        return this._publishSchemaInjection(pageUrl, proposedChanges, headers);
+      } else if (taskType === 'Create Redirect') {
+        return this._publishRedirect(pageUrl, proposedChanges, headers);
       } else {
         return { success: false, reason: 'Unsupported task type for automated WP publish' };
       }
@@ -122,6 +126,79 @@ class WordPressService {
     } catch (error) {
       console.error('[WordPressService] Error updating WordPress:', error.response?.data || error.message);
       throw new Error(`WordPress API Error: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Schema Injection: writes a JSON-LD block into the target page/post's
+   * content. There's no universal "schema" REST field across WP SEO plugins
+   * (Yoast/Rank Math each use their own custom meta shape for this), so the
+   * portable approach — same one Content Edit already relies on — is a
+   * <script type="application/ld+json"> block appended to the post content,
+   * wrapped in HTML comment markers so a rerun replaces the old block
+   * instead of stacking duplicates on every re-approval.
+   */
+  async _publishSchemaInjection(pageUrl, proposedChanges, headers) {
+    const target = await this._getPostIdBySlug(pageUrl, headers);
+    if (!target || !target.id) {
+      return { success: false, reason: `Could not resolve page/post for ${pageUrl} to inject schema markup.` };
+    }
+
+    const schemaJson = typeof proposedChanges.schema === 'string'
+      ? proposedChanges.schema
+      : JSON.stringify(proposedChanges.schema || proposedChanges, null, 2);
+
+    const marker = { start: '<!-- seo-workspace:schema:start -->', end: '<!-- seo-workspace:schema:end -->' };
+    const schemaBlock = `${marker.start}\n<script type="application/ld+json">${schemaJson}</script>\n${marker.end}`;
+
+    const getRes = await axios.get(`${this.wpRestApiUrl}/wp/v2/${target.type}/${target.id}`, { headers, timeout: 10000 });
+    const currentContent = getRes.data?.content?.raw ?? getRes.data?.content?.rendered ?? '';
+
+    const hasExistingBlock = currentContent.includes(marker.start) && currentContent.includes(marker.end);
+    const blockPattern = new RegExp(`${marker.start}[\\s\\S]*?${marker.end}`);
+    const newContent = hasExistingBlock
+      ? currentContent.replace(blockPattern, schemaBlock)
+      : `${currentContent}\n${schemaBlock}`;
+
+    const response = await axios.put(`${this.wpRestApiUrl}/wp/v2/${target.type}/${target.id}`, {
+      content: newContent,
+      status: 'publish'
+    }, { headers, timeout: 10000 });
+
+    return response.data;
+  }
+
+  /**
+   * Create Redirect: uses the REST API exposed by the widely-used
+   * "Redirection" WordPress plugin at /wp-json/redirection/v1/redirect.
+   * If that plugin isn't installed, the request 404s — surfaced as a
+   * normal task failure (task.failureReason) rather than silently mocked,
+   * since a redirect that "succeeds" without actually existing on the site
+   * would be worse than an honest failure.
+   */
+  async _publishRedirect(pageUrl, proposedChanges, headers) {
+    const source = proposedChanges.sourceUrl || pageUrl;
+    const target = proposedChanges.targetUrl || proposedChanges.destinationUrl;
+    if (!target) {
+      return { success: false, reason: 'proposedChanges.targetUrl is required to create a redirect.' };
+    }
+
+    try {
+      const response = await axios.post(`${this.wpRestApiUrl}/redirection/v1/redirect`, {
+        url: source,
+        action_data: { url: target },
+        action_type: 'url',
+        match_type: 'url',
+        group_id: proposedChanges.groupId || 1,
+        status: 'enabled'
+      }, { headers, timeout: 10000 });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        throw new Error('Create Redirect failed: the "Redirection" plugin REST endpoint was not found on this WordPress site. Install/activate the Redirection plugin to enable this task type.');
+      }
+      throw error;
     }
   }
 }

@@ -223,7 +223,7 @@ Respond with a JSON object containing a "tasks" array. Each task object must hav
   }
 
   // AGENT: SEO Reporter
-  async seoReporterAgent(projectId, auditDiff) {
+  async seoReporterAgent(projectId, auditDiff, scheduleOptions = {}) {
     const project = await WorkspaceProject.findById(projectId);
     if (!project) throw new Error('Project not found');
     const skills = skillLoader.loadSkillsForAgent(['seo-report-writing', 'executive-summary']);
@@ -249,6 +249,8 @@ Write a professional, client-facing Markdown report summarizing the ROI, what wa
     
     const reportContent = response.choices[0].message.content;
 
+    const { isScheduled = false, scheduleFrequency = null, emailRecipients = [] } = scheduleOptions;
+
     const report = new WorkspaceReport({
       projectId,
       agencyId: project.createdBy || project.companyId,
@@ -258,7 +260,11 @@ Write a professional, client-facing Markdown report summarizing the ROI, what wa
       format: 'markdown',
       content: reportContent,
       status: 'completed',
-      createdBy: project.createdBy || project.companyId
+      createdBy: project.createdBy || project.companyId,
+      isScheduled: !!isScheduled,
+      scheduleFrequency: isScheduled ? scheduleFrequency : null,
+      emailRecipients: isScheduled ? emailRecipients : [],
+      lastRunAt: isScheduled ? new Date() : null
     });
 
     await report.save();

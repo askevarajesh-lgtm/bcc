@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Typography, Spin, Button, message, Modal, Divider } from 'antd';
-import { FileText } from 'lucide-react';
+import { Card, Select, Typography, Spin, Button, message, Modal, Divider, Checkbox, Input, Tag } from 'antd';
+import { FileText, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CollaborationDrawer from './components/CollaborationDrawer';
 import useWorkspaceReports from './hooks/useWorkspaceReports';
@@ -13,6 +13,10 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeReport, setActiveReport] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduleFrequency, setScheduleFrequency] = useState('weekly');
+  const [recipientsInput, setRecipientsInput] = useState('');
 
   useEffect(() => {
     if (selectedProject) fetchReports(selectedProject);
@@ -28,6 +32,24 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
     }
   };
 
+  const handleScheduleReport = async () => {
+    if (!selectedProject) return;
+    const emailRecipients = recipientsInput.split(',').map(e => e.trim()).filter(Boolean);
+    if (isScheduled && emailRecipients.length === 0) {
+      message.error({ content: 'Add at least one email recipient for a scheduled report.', key: 'schedule' });
+      return;
+    }
+    try {
+      await generateReport(selectedProject, { isScheduled, scheduleFrequency, emailRecipients });
+      message.success({ content: isScheduled ? `Recurring ${scheduleFrequency} report scheduled!` : 'Report generated successfully!', key: 'schedule' });
+      setScheduleModalVisible(false);
+      setRecipientsInput('');
+      setIsScheduled(false);
+    } catch (error) {
+      message.error({ content: error.response?.data?.error || 'Failed to generate report.', key: 'schedule' });
+    }
+  };
+
   return (
     <>
       <Card className="seo-glass-panel">
@@ -38,9 +60,14 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
               {projects.map(p => <Option key={p._id} value={p._id}>{p.name}</Option>)}
             </Select>
             {!isViewOnly && canAdd && (
-              <Button type="primary" onClick={handleGenerateReport} disabled={!selectedProject || generating} loading={generating} icon={<FileText size={16} />} className="seo-glow-btn">
-                Generate New Report
-              </Button>
+              <>
+                <Button type="primary" onClick={handleGenerateReport} disabled={!selectedProject || generating} loading={generating} icon={<FileText size={16} />} className="seo-glow-btn">
+                  Generate New Report
+                </Button>
+                <Button onClick={() => setScheduleModalVisible(true)} disabled={!selectedProject || generating} icon={<Clock size={16} />} className="seo-glow-btn-secondary">
+                  Schedule Recurring
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -66,7 +93,14 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <Title level={5} style={{ margin: '0 0 4px 0' }}>{report.title}</Title>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                      <Title level={5} style={{ margin: 0 }}>{report.name}</Title>
+                      {report.isScheduled && (
+                        <Tag icon={<Clock size={12} style={{ marginRight: 4 }} />} className="seo-badge seo-badge-info">
+                          Recurring · {report.scheduleFrequency}
+                        </Tag>
+                      )}
+                    </div>
                     <Text type="secondary">Generated on {new Date(report.createdAt).toLocaleDateString()}</Text>
                   </div>
                   <Button type="link" className="seo-glow-btn-secondary">Read Report</Button>
@@ -78,7 +112,7 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
       </Card>
 
       <Modal
-        title={<Title level={4} style={{ margin: 0, fontWeight: 800 }}>{activeReport?.title || 'SEO Report'}</Title>}
+        title={<Title level={4} style={{ margin: 0, fontWeight: 800 }}>{activeReport?.name || 'SEO Report'}</Title>}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={[<Button key="close" onClick={() => setModalVisible(false)} className="seo-glow-btn-secondary">Close</Button>]}
@@ -94,6 +128,45 @@ const ReportsPanel = ({ projects, isViewOnly, canAdd }) => {
           projectId={selectedProject}
           canWrite={!isViewOnly}
         />
+      </Modal>
+
+      <Modal
+        title="Schedule Recurring Report"
+        open={scheduleModalVisible}
+        onCancel={() => setScheduleModalVisible(false)}
+        onOk={handleScheduleReport}
+        confirmLoading={generating}
+        okText={isScheduled ? 'Schedule' : 'Generate Now'}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Text type="secondary">
+            Generates today's report immediately, and — if recurring is enabled — keeps generating and emailing
+            a fresh one automatically on the chosen cadence.
+          </Text>
+          <Checkbox checked={isScheduled} onChange={(e) => setIsScheduled(e.target.checked)}>
+            Make this a recurring report
+          </Checkbox>
+          {isScheduled && (
+            <>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>Frequency</Text>
+                <Select value={scheduleFrequency} onChange={setScheduleFrequency} style={{ width: '100%' }}>
+                  <Option value="daily">Daily</Option>
+                  <Option value="weekly">Weekly</Option>
+                  <Option value="monthly">Monthly</Option>
+                </Select>
+              </div>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>Email recipients (comma-separated)</Text>
+                <Input
+                  placeholder="client@example.com, manager@example.com"
+                  value={recipientsInput}
+                  onChange={(e) => setRecipientsInput(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </Modal>
     </>
   );

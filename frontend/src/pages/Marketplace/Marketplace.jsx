@@ -29,7 +29,6 @@ const Marketplace = () => {
     }
   };
 
-  // Retail Tag Card Component
   const RetailTagCard = ({ children, style, bodyStyle }) => (
     <Card
       className="glassmorphism"
