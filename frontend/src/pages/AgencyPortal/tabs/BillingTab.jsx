@@ -1,13 +1,48 @@
-import React from 'react';
-import { Typography, Row, Col, Table, Button, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Table, Button, Tag, message, Skeleton } from 'antd';
 import { ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import SlabCard from '../../../components/SlabCard';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 
 const BillingTab = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [donutData, setDonutData] = useState([]);
+
+  useEffect(() => {
+    fetchBillingData();
+  }, []);
+
+  const fetchBillingData = async () => {
+    try {
+      const res = await api.get('/agency/billing');
+      const { stats, invoices, donutData } = res.data.data;
+      setStats(stats);
+      setInvoices(invoices);
+      setDonutData(donutData);
+    } catch (error) {
+      console.error('Failed to fetch agency billing:', error);
+      message.error('Failed to load billing data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (action, record) => {
+    try {
+      const res = await api.post(`/agency/billing/${record.id}/action`, { action });
+      message.success(res.data.message || `${action} dispatched`);
+    } catch (error) {
+      console.error(`Billing action ${action} failed:`, error);
+      message.error(error.response?.data?.message || `Failed to execute action ${action}`);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -18,27 +53,8 @@ const BillingTab = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
-  const stats = [
-    { label: 'TOTAL MRR', value: '₹42.8L', sub: 'June 2026', color: 'var(--text-secondary)' },
-    { label: 'COLLECTED', value: '₹38.4L', sub: '89.7%', color: 'var(--accent-primary)' },
-    { label: 'OUTSTANDING', value: '₹4.4L', sub: '2 invoices', color: 'var(--accent-warning)', subColor: 'var(--accent-warning)' },
-    { label: 'OVERDUE', value: '₹0', sub: 'all current', color: 'var(--text-secondary)', subColor: 'var(--accent-primary)' },
-  ];
+  // Invoices replaced by state
 
-  const invoices = [
-    { id: '1', code: 'PE', name: 'Prestige Estates', invoice: 'INV-2026-06-01', amount: '₹3.8L', status: 'Paid', mos: 84 },
-    { id: '2', code: 'BT', name: 'boAt', invoice: 'INV-2026-06-02', amount: '₹4.2L', status: 'Paid', mos: 81 },
-    { id: '3', code: 'RP', name: 'Rapido', invoice: 'INV-2026-06-03', amount: '₹3.5L', status: 'Paid', mos: 78 },
-    { id: '4', code: 'NY', name: 'Nykaa', invoice: 'INV-2026-06-04', amount: '₹4.0L', status: 'Paid', mos: 76 },
-    { id: '5', code: 'CR', name: 'CRED', invoice: 'INV-2026-06-05', amount: '₹4.6L', status: 'Paid', mos: 73 },
-    { id: '6', code: 'ME', name: 'Meesho', invoice: 'INV-2026-06-06', amount: '₹3.4L', status: 'Paid', mos: 71 },
-    { id: '7', code: 'ZP', name: 'Zepto', invoice: 'INV-2026-06-07', amount: '₹3.0L', status: 'Paid', mos: 67 },
-    { id: '8', code: 'LK', name: 'Lenskart', invoice: 'INV-2026-06-08', amount: '₹2.8L', status: 'Paid', mos: 63 },
-    { id: '9', code: 'OY', name: 'OYO', invoice: 'INV-2026-06-09', amount: '₹3.2L', status: 'Paid', mos: 62 },
-    { id: '10', code: 'BP', name: 'BharatPe', invoice: 'INV-2026-06-10', amount: '₹3.6L', status: 'Paid', mos: 58 },
-    { id: '11', code: 'UC', name: 'Urban Company', invoice: 'INV-2026-06-11', amount: '₹2.6L', status: 'Pending', mos: 55 },
-    { id: '12', code: 'WF', name: 'Wakefit', invoice: 'INV-2026-06-12', amount: '₹2.4L', status: 'Pending', mos: 49 },
-  ];
 
   const getStatusColor = (val) => {
     if (val >= 70) return 'var(--accent-primary)';
@@ -82,25 +98,29 @@ const BillingTab = () => {
     { 
       title: 'ACTION', 
       key: 'action', 
-      render: (_, record) => (
-        <Button type="text" style={{ color: 'var(--accent-secondary)', fontWeight: 700, padding: 0 }}>
-          {record.status === 'Paid' ? 'Receipt' : 'Send Link'}
-        </Button>
-      ) 
+      render: (_, record) => {
+        const actionText = record.status === 'Paid' ? 'Receipt' : 'Send Link';
+        return (
+          <Button type="text" style={{ color: 'var(--accent-secondary)', fontWeight: 700, padding: 0 }} onClick={() => handleAction(actionText, record)}>
+            {actionText}
+          </Button>
+        );
+      }
     },
   ];
 
-  const donutData = [
-    { name: 'Paid', value: 38.4, color: 'var(--accent-primary)' },
-    { name: 'Pending', value: 4.4, color: 'var(--accent-warning)' },
-  ];
+  // Donut data replaced by state
+
+  if (loading) {
+    return <div style={{ padding: 24 }}><Skeleton active paragraph={{ rows: 10 }} /></div>;
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Agency Billing</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All client invoices and payments — June 2026</Text>
+        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All client invoices and payments — {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -147,7 +167,7 @@ const BillingTab = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>₹42.8L</span>
+                  <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{stats[0]?.value || '₹0'}</span>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>total</span>
                 </div>
               </div>
@@ -163,11 +183,6 @@ const BillingTab = () => {
                 </div>
               </div>
             </SlabCard>
-            <div style={{ marginTop: 24 }}>
-              <Button type="link" style={{ padding: 0, fontWeight: 800, fontSize: 14, color: 'var(--accent-secondary)' }}>
-                Open Finance <ArrowUpRight size={16} style={{ marginLeft: 4 }} />
-              </Button>
-            </div>
           </motion.div>
         </Col>
 
@@ -176,7 +191,6 @@ const BillingTab = () => {
             <SlabCard bodyStyle={{ padding: 0 }}>
               <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Invoices</Text>
-                <Button type="primary" style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8 }}>Send All Payment Links</Button>
               </div>
               <Table 
                 dataSource={invoices} 

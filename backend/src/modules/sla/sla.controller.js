@@ -328,7 +328,7 @@ exports.escalateSla = async (req, res, next) => {
 
 exports.createSla = async (req, res, next) => {
   try {
-    const { title, description, dueDate, priority, clientId } = req.body;
+    const { title, description, dueDate, priority, clientId, triggerType, entityType } = req.body;
     
     // Generate unique ID
     const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -351,8 +351,8 @@ exports.createSla = async (req, res, next) => {
       clientId: resolvedClientId,
       agencyId: agencyId,
       clientType,
-      triggerType: role && role.includes('brand') ? 'Client Issue' : 'Agency Client Issue',
-      entityType: 'Complaint',
+      triggerType: triggerType || (role && role.includes('brand') ? 'Client Issue' : 'Agency Client Issue'),
+      entityType: entityType || 'Complaint',
       title,
       description,
       dueDate,

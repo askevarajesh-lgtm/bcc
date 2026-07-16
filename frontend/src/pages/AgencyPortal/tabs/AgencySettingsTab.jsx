@@ -1,36 +1,165 @@
-import React, { useState } from 'react';
-import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, CreditCard, Save, Shield, Star } from 'lucide-react';
+import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
+import api from '../../../services/api';
+import ClientPackagesTab from './ClientPackagesTab';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
+
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Masketplace' }
+];
 
 const AgencySettingsTab = () => {
+  const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formAgency] = Form.useForm();
   const [formAccount] = Form.useForm();
+  
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [selectedModules, setSelectedModules] = useState([]);
+  const [submittingUpgrade, setSubmittingUpgrade] = useState(false);
 
-  const handleSaveAgency = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      message.success('Agency details updated successfully');
-    }, 1000);
+  useEffect(() => {
+    if (user) {
+      formAgency.setFieldsValue({
+        name: user.companyName || '',
+        domain: user.domain || '',
+        email: user.contactEmail || '',
+        phone: user.supportPhone || ''
+      });
+      formAccount.setFieldsValue({
+        firstName: (user.name || '').split(' ')[0] || '',
+        lastName: (user.name || '').split(' ').slice(1).join(' ') || '',
+        email: user.email || ''
+      });
+    }
+  }, [user, formAgency, formAccount]);
+
+  const handleOpenUpgrade = () => {
+    setIsUpgradeModalOpen(true);
   };
 
-  const handleSaveAccount = () => {
+  const handleUpgradeSubmit = async () => {
+    if (selectedModules.length === 0) {
+      return message.warning('Please select at least one additional module to request.');
+    }
+    
+    try {
+      setSubmittingUpgrade(true);
+      const moduleLabels = selectedModules.map(id => availableFeatures.find(f => f.id === id)?.label).filter(Boolean);
+      const currentPlanName = user?.plan?.name || 'Current Plan';
+      
+      const title = `Module Upgrade Request`;
+      let description = `Agency requested additional modules for their ${currentPlanName} package.\n\n`;
+      description += `Additional Modules Requested: ${moduleLabels.join(', ')}`;
+      
+      await api.post('/sla-success', {
+        title,
+        description,
+        dueDate: new Date(Date.now() + 86400000 * 3), // 3 days from now
+        priority: 'High',
+        triggerType: 'Client Issue',
+        entityType: 'SupportTicket'
+      });
+      
+      message.success('Upgrade request submitted successfully. Our team will contact you soon.');
+      setIsUpgradeModalOpen(false);
+      setSelectedModules([]);
+    } catch (error) {
+      console.error(error);
+      message.error(`Failed to submit upgrade request: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setSubmittingUpgrade(false);
+    }
+  };
+
+  const handleSaveAgency = async (values) => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await api.put(`/users/${user._id}`, {
+        companyName: values.name,
+        domain: values.domain,
+        contactEmail: values.email,
+        supportPhone: values.phone
+      });
+      const updatedUser = res.data.data;
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      message.success('Agency details updated successfully');
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to update agency details');
+    } finally {
       setLoading(false);
-      message.success('Account details updated successfully');
-    }, 1000);
+    }
+  };
+
+  const handleSaveAccount = async (values) => {
+    setLoading(true);
+    try {
+      const fullName = `${values.firstName || ''} ${values.lastName || ''}`.trim();
+      
+      let updated = false;
+      let updatedUser = { ...user };
+      
+      if (fullName && fullName !== user?.name) {
+        const res = await api.put(`/users/${user._id}`, { name: fullName });
+        updatedUser = res.data.data;
+        updated = true;
+      }
+
+      if (values.currentPassword && values.newPassword) {
+        await api.post('/users/change-password', {
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword
+        });
+        formAccount.setFieldsValue({ currentPassword: '', newPassword: '' });
+        updated = true;
+      }
+
+      if (updated) {
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        message.success('Account details updated successfully');
+      } else {
+        message.info('No changes made to account details');
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to update account details');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const AgencyProfileContent = () => (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)' }}>
         <Title level={4} style={{ marginBottom: 24, fontWeight: 700 }}>Agency Profile</Title>
-        <Form form={formAgency} layout="vertical" onFinish={handleSaveAgency} initialValues={{ name: 'Alpha Partners', domain: 'alpha.agency.com', email: 'contact@alpha.agency.com' }}>
+        <Form 
+          form={formAgency} 
+          layout="vertical" 
+          onFinish={handleSaveAgency} 
+          initialValues={{ 
+            name: user?.companyName || '', 
+            domain: user?.domain || '', 
+            email: user?.contactEmail || '', 
+            phone: user?.supportPhone || '' 
+          }}
+        >
           <Row gutter={24}>
             <Col xs={24} md={12}>
               <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Name</Text>} name="name">
@@ -75,7 +204,16 @@ const AgencySettingsTab = () => {
             <Button type="text" danger>Remove</Button>
           </div>
         </div>
-        <Form form={formAccount} layout="vertical" onFinish={handleSaveAccount} initialValues={{ firstName: 'Agency', lastName: 'Admin', email: 'agencyadmin@gmail.com' }}>
+        <Form 
+          form={formAccount} 
+          layout="vertical" 
+          onFinish={handleSaveAccount} 
+          initialValues={{ 
+            firstName: (user?.name || '').split(' ')[0] || '', 
+            lastName: (user?.name || '').split(' ').slice(1).join(' ') || '', 
+            email: user?.email || '' 
+          }}
+        >
           <Row gutter={24}>
             <Col xs={24} md={12}>
               <Form.Item label={<Text style={{ fontWeight: 600 }}>First Name</Text>} name="firstName">
@@ -117,60 +255,58 @@ const AgencySettingsTab = () => {
     </motion.div>
   );
 
-  const SubscriptionContent = () => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 700 }}>Current Plan</Title>
-            <Text type="secondary">You are currently on the <strong style={{ color: 'var(--text-primary)' }}>Pro Agency</strong> plan.</Text>
+  const SubscriptionContent = () => {
+    const plan = user?.plan || {};
+    
+    return (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 700 }}>Current Plan</Title>
+              <Text type="secondary">You are currently on the <strong style={{ color: 'var(--text-primary)' }}>{plan.name || 'Pro Agency'}</strong> plan.</Text>
+            </div>
+            <Tag color="success" style={{ borderRadius: 12, padding: '4px 12px', fontSize: 14, fontWeight: 600, border: '1px solid var(--accent-secondary)', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-secondary)' }}>
+              <Star size={14} style={{ marginRight: 6, display: 'inline-block', verticalAlign: '-2px' }} /> Active
+            </Tag>
           </div>
-          <Tag color="success" style={{ borderRadius: 12, padding: '4px 12px', fontSize: 14, fontWeight: 600, border: '1px solid var(--accent-secondary)', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-secondary)' }}>
-            <Star size={14} style={{ marginRight: 6, display: 'inline-block', verticalAlign: '-2px' }} /> Active
-          </Tag>
-        </div>
-        
-        <Divider />
-        
-        <Row gutter={[24, 24]}>
-          <Col xs={24} md={8}>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Billing Cycle</Text>
-            <Text style={{ fontSize: 16, fontWeight: 600 }}>Monthly</Text>
-          </Col>
-          <Col xs={24} md={8}>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Next Payment</Text>
-            <Text style={{ fontSize: 16, fontWeight: 600 }}>$299.00 USD</Text>
-          </Col>
-          <Col xs={24} md={8}>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Renewal Date</Text>
-            <Text style={{ fontSize: 16, fontWeight: 600 }}>July 15, 2026</Text>
-          </Col>
-        </Row>
+          
+          <Divider />
+          
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={6}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Price / Cycle</Text>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>{plan.price || 'Custom'}</Text>
+            </Col>
+            <Col xs={24} md={6}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Allowed Users</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Users size={16} color="var(--text-secondary)" />
+                <Text style={{ fontSize: 16, fontWeight: 600 }}>{plan.users || 5}</Text>
+              </div>
+            </Col>
+            <Col xs={24} md={6}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Allowed Clients</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Briefcase size={16} color="var(--text-secondary)" />
+                <Text style={{ fontSize: 16, fontWeight: 600 }}>{plan.clients || 10}</Text>
+              </div>
+            </Col>
+            <Col xs={24} md={6}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Subscription Date</Text>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>
+                {plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : 'N/A'}
+              </Text>
+            </Col>
+          </Row>
 
         <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-          <Button type="primary" style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">Upgrade Plan</Button>
-          <Button style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel Subscription</Button>
+          <Button type="primary" onClick={handleOpenUpgrade} loading={loading} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">Upgrade Plan</Button>
         </div>
-      </Card>
-      
-      <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)' }}>
-        <Title level={4} style={{ marginBottom: 16, fontWeight: 700 }}>Payment Methods</Title>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, border: '1px solid var(--border-color)', borderRadius: 12, background: 'var(--bg-secondary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ background: '#f0f0f0', padding: '8px 12px', borderRadius: 6, fontWeight: 800, color: '#333' }}>VISA</div>
-            <div>
-              <Text style={{ display: 'block', fontWeight: 600 }}>Visa ending in 4242</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>Expires 12/28</Text>
-            </div>
-          </div>
-          <Button type="text" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Edit</Button>
-        </div>
-        <Button type="dashed" block style={{ marginTop: 16, height: 48, borderRadius: 12, fontWeight: 600 }} icon={<CreditCard size={16} />}>
-          Add Payment Method
-        </Button>
       </Card>
     </motion.div>
   );
+};
 
   const items = [
     {
@@ -188,6 +324,11 @@ const AgencySettingsTab = () => {
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Shield size={16} /> Subscription</span>,
       children: <SubscriptionContent />,
     },
+    {
+      key: 'client-packages',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Briefcase size={16} /> Client Packages</span>,
+      children: <ClientPackagesTab />,
+    },
   ];
 
   return (
@@ -204,6 +345,49 @@ const AgencySettingsTab = () => {
         size="large"
         tabBarStyle={{ marginBottom: 24, fontWeight: 600 }}
       />
+      
+      <Modal
+        title="Upgrade Your Plan"
+        open={isUpgradeModalOpen}
+        onCancel={() => setIsUpgradeModalOpen(false)}
+        onOk={handleUpgradeSubmit}
+        confirmLoading={submittingUpgrade}
+        okText="Submit Request"
+        okButtonProps={{ style: { background: 'var(--accent-primary)' } }}
+        width={600}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            Please select the additional modules you require. Our team will reach out to discuss pricing and complete the setup.
+          </Text>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Select Additional Modules</label>
+            <Checkbox.Group 
+              style={{ width: '100%' }} 
+              value={[...(user?.features || []), ...selectedModules]}
+              onChange={(checkedValues) => {
+                // Filter out the ones already in the plan
+                const newModules = checkedValues.filter(v => !(user?.features || []).includes(v));
+                setSelectedModules(newModules);
+              }}
+            >
+              <Row gutter={[16, 16]}>
+                {availableFeatures.map(feat => {
+                  const isAlreadyInPlan = user?.features?.includes(feat.id);
+                  return (
+                    <Col span={12} key={feat.id}>
+                      <Checkbox value={feat.id} disabled={isAlreadyInPlan}>
+                        {feat.label} {isAlreadyInPlan && <Text type="secondary" style={{fontSize: 12}}>(Included)</Text>}
+                      </Checkbox>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Checkbox.Group>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 };

@@ -36,13 +36,21 @@ exports.signin = async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    // If user is an agency manager or super admin, get their package features
-    let features = [];
+    let features = user.features || [];
     let rolePermissions = {};
+    let planDetails = null;
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
       const agency = await User.findById(user.agencyId._id).populate('plan');
-      if (agency && agency.plan && agency.plan.features) {
-        features = agency.plan.features;
+      if (agency && agency.plan) {
+        features = agency.plan.features || [];
+        planDetails = {
+          name: agency.plan.name,
+          price: agency.plan.price,
+          description: agency.plan.description,
+          users: agency.plan.users,
+          clients: agency.plan.clients,
+          createdAt: agency.plan.createdAt
+        };
       }
     }
     
@@ -70,7 +78,76 @@ exports.signin = async (req, res, next) => {
         logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
         workspaceId: user.workspaceId,
         features: features,
-        permissions: rolePermissions
+        permissions: rolePermissions,
+        plan: planDetails
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.me = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('agencyId', 'companyName name logo')
+      .populate('brandId', 'companyName name logo');
+      
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    let features = user.features || [];
+    let rolePermissions = {};
+    let planDetails = null;
+    let agencyFeatures = [];
+
+    if (user.agencyId) {
+      const agency = await User.findById(user.agencyId._id).populate('plan');
+      if (agency && agency.plan) {
+        agencyFeatures = agency.plan.features || [];
+        if (user.role === 'agency_manager' || user.role === 'agency_super_admin') {
+          features = agency.plan.features || [];
+          planDetails = {
+            name: agency.plan.name,
+            price: agency.plan.price,
+            description: agency.plan.description,
+            users: agency.plan.users,
+            clients: agency.plan.clients,
+            createdAt: agency.plan.createdAt
+          };
+        }
+      }
+    }
+    
+    if (user.customRoleId) {
+      const roleDoc = await Role.findById(user.customRoleId);
+      if (roleDoc && roleDoc.permissions) {
+        rolePermissions = roleDoc.permissions;
+      }
+    }
+
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleName: user.roleName,
+        companyName: user.companyName,
+        agencyId: user.agencyId ? user.agencyId._id : null,
+        agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
+        brandId: user.brandId ? user.brandId._id : null,
+        brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
+        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        workspaceId: user.workspaceId,
+        features: features,
+        agencyFeatures: agencyFeatures,
+        packageName: user.packageName,
+        createdAt: user.createdAt,
+        permissions: rolePermissions,
+        plan: planDetails
       }
     });
   } catch (error) {
@@ -114,12 +191,21 @@ exports.impersonate = async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    let features = [];
+    let features = user.features || [];
     let rolePermissions = {};
+    let planDetails = null;
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
       const agency = await User.findById(user.agencyId._id).populate('plan');
-      if (agency && agency.plan && agency.plan.features) {
-        features = agency.plan.features;
+      if (agency && agency.plan) {
+        features = agency.plan.features || [];
+        planDetails = {
+          name: agency.plan.name,
+          price: agency.plan.price,
+          description: agency.plan.description,
+          users: agency.plan.users,
+          clients: agency.plan.clients,
+          createdAt: agency.plan.createdAt
+        };
       }
     }
     
@@ -147,7 +233,8 @@ exports.impersonate = async (req, res, next) => {
         logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
         workspaceId: user.workspaceId,
         features: features,
-        permissions: rolePermissions
+        permissions: rolePermissions,
+        plan: planDetails
       }
     });
   } catch (error) {

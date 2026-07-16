@@ -76,7 +76,7 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
   );
 };
 
-const ClientIntegrationsTab = () => {
+const ClientIntegrationsTab = ({ user }) => {
   const [selectedConfig, setSelectedConfig] = useState(null);
   const { data, refetch, isLoading } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
@@ -118,24 +118,33 @@ const ClientIntegrationsTab = () => {
 
   const isActive = websiteIntegration?.isActive || false;
   const isConfigured = Boolean(websiteIntegration?.config && Object.keys(websiteIntegration.config).length > 0);
+  const hasCrmLeads = user?.features?.includes('crm');
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ padding: '0' }}>
       <Row gutter={[24, 24]}>
-        <Col xs={24} sm={12} lg={6}>
-          <motion.div variants={itemVariants} style={{ height: '100%' }}>
-            <IntegrationCard 
-              title="Lead Management Integration" 
-              description="Configure and manage lead integrations from Website forms and WhatsApp" 
-              icon={Globe} 
-              active={isActive} 
-              configured={isConfigured} 
-              buttonText="Configure" 
-              onConfigure={() => setSelectedConfig('website')}
-              onToggle={handleToggle}
-            />
-          </motion.div>
-        </Col>
+        {hasCrmLeads ? (
+          <Col xs={24} sm={12} lg={6}>
+            <motion.div variants={itemVariants} style={{ height: '100%' }}>
+              <IntegrationCard 
+                title="Lead Management Integration" 
+                description="Configure and manage lead integrations from Website forms and WhatsApp" 
+                icon={Globe} 
+                active={isActive} 
+                configured={isConfigured} 
+                buttonText="Configure" 
+                onConfigure={() => setSelectedConfig('website')}
+                onToggle={handleToggle}
+              />
+            </motion.div>
+          </Col>
+        ) : (
+          <Col span={24}>
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+              No integrations available for your current modules.
+            </div>
+          </Col>
+        )}
       </Row>
     </motion.div>
   );

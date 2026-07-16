@@ -2,7 +2,10 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bcc_seo');
+    const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local';
+    const uri = isDev ? (process.env.MONGODB_URI_LOCAL || process.env.MONGODB_URI) : process.env.MONGODB_URI;
+    
+    const conn = await mongoose.connect(uri || 'mongodb://127.0.0.1:27017/bcc_seo');
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`Database connection error: ${error.message}`);

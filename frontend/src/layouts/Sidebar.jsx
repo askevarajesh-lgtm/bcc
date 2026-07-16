@@ -190,11 +190,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
       ],
     },
-    ...(['agency_super_admin', 'agency_manager', 'client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(role) ? [{
-      key: '/support',
-      icon: getIcon(HelpCircle),
-      label: 'Support'
-    }] : []),
+
     {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
@@ -218,6 +214,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'SET' : 'SETTINGS',
       children: [
         { key: '/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
+        ...(['agency_super_admin', 'agency_manager', 'client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(role) ? [{
+          key: '/support',
+          icon: getIcon(HelpCircle),
+          label: 'Support'
+        }] : []),
         ...(role === 'commander_admin' ? [] : [
           { key: '/workspace/master-items', icon: getIcon(Store), label: 'Master Item' },
         ]),

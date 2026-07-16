@@ -43,6 +43,8 @@ const UserSchema = new mongoose.Schema({
   // Agency Specific Fields
   logo: { type: String, default: null },
   domain: { type: String, default: null },
+  contactEmail: { type: String, default: null },
+  supportPhone: { type: String, default: null },
   plan: { type: mongoose.Schema.Types.ObjectId, ref: 'AgencyPackage', default: null },
   allowedUsers: { type: Number, default: 5 },
   mrr: { type: Number, default: 0 },

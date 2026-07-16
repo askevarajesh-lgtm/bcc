@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const agencyPerformanceController = require('./agencyPerformance.controller');
+const authMiddleware = require('../../middlewares/authMiddleware');
 
-router.get('/', (req, res) => {
-  res.status(200).json({ success: true, message: 'Agency Performance endpoint' });
-});
+router.get('/', authMiddleware, agencyPerformanceController.getAgencyPerformance);
 
 module.exports = router;

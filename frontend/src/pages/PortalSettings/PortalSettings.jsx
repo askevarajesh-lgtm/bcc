@@ -7,19 +7,32 @@ import { useFeatures } from '../../contexts/FeatureContext';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Marketplace' }
+];
+
 const PortalSettings = () => {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'settings'
   const [selectedClient, setSelectedClient] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isPackagesDrawerOpen, setIsPackagesDrawerOpen] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dbBrands, setDbBrands] = useState([]);
   
   const [form] = Form.useForm();
-  const [packageForm] = Form.useForm();
   
-  const { packages, createPackage, updatePackage } = useFeatures();
+  const [packages, setPackages] = useState([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
 
   const fetchBrands = async () => {
     try {
@@ -35,8 +48,26 @@ const PortalSettings = () => {
     }
   };
 
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const res = await fetch('/api/direct-packages', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPackages(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch direct packages', error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchBrands();
+    fetchPackages();
   }, []);
 
   const handleCreateBrand = async (values) => {
@@ -78,24 +109,7 @@ const PortalSettings = () => {
     }
   };
 
-  const handleSavePackage = (values) => {
-    const payload = {
-      name: values.name,
-      price: values.price || '',
-      features: values.features || []
-    };
-
-    if (editingPackage) {
-      updatePackage(editingPackage.id || editingPackage.name, payload);
-      message.success(`Package ${payload.name} updated successfully`);
-    } else {
-      createPackage(payload);
-      message.success(`Package ${payload.name} created successfully`);
-    }
-    setIsPackagesDrawerOpen(false);
-    setEditingPackage(null);
-    packageForm.resetFields();
-  };
+  // Removed handleSavePackage and handleDeletePackage
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -184,12 +198,6 @@ const PortalSettings = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
               <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Direct Brands</Title>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Button 
-                  onClick={() => setIsPackagesDrawerOpen(true)}
-                  style={{ fontWeight: 700, borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                >
-                  Manage Packages
-                </Button>
                 <Button 
                   type="primary"
                   onClick={() => setIsCreateModalOpen(true)}
@@ -468,56 +476,6 @@ const PortalSettings = () => {
         </Form>
       </Modal>
 
-      {/* Packages Drawer */}
-      <Drawer
-        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Manage Packages</span>}
-        open={isPackagesDrawerOpen}
-        onClose={() => { setIsPackagesDrawerOpen(false); setEditingPackage(null); }}
-        width={480}
-        closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
-        headerStyle={{ borderBottom: '1px solid var(--border-color)', padding: '24px 32px' }}
-        bodyStyle={{ padding: '32px' }}
-      >
-        <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Title level={5} style={{ margin: 0, fontWeight: 800 }}>Existing Packages</Title>
-          {packages.map(pkg => (
-            <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
-              <div>
-                <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', display: 'block' }}>{pkg.name}</span>
-                <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{pkg.features.length} features enabled</span>
-              </div>
-              <Button size="small" onClick={() => { setEditingPackage(pkg); packageForm.setFieldsValue(pkg); }}>Edit</Button>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ background: 'var(--bg-secondary)', padding: 24, borderRadius: 12, border: '1px solid var(--border-color)' }}>
-          <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>{editingPackage ? 'Edit Package' : 'Create New Package'}</Title>
-          <Form form={packageForm} layout="vertical" onFinish={handleSavePackage}>
-            <Form.Item name="name" label="Package Name" rules={[{ required: true }]}>
-              <Input placeholder="e.g. Starter Tier" />
-            </Form.Item>
-            <Form.Item name="price" label="Price (Optional)">
-              <Input placeholder="e.g. ₹1.5L/mo" />
-            </Form.Item>
-            <Form.Item name="features" label="Enabled Features">
-              <Select mode="multiple" placeholder="Select features">
-                {['dashboard', 'performance', 'leads', 'website', 'store', 'seo', 'strategy'].map(feat => (
-                  <Select.Option key={feat} value={feat}>{feat}</Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              {editingPackage && (
-                <Button onClick={() => { setEditingPackage(null); packageForm.resetFields(); }} style={{ flex: 1 }}>Cancel</Button>
-              )}
-              <Button type="primary" htmlType="submit" style={{ flex: 1, background: 'var(--accent-primary)', fontWeight: 700 }}>
-                {editingPackage ? 'Save Changes' : 'Create Package'}
-              </Button>
-            </div>
-          </Form>
-        </div>
-      </Drawer>
     </motion.div>
   );
 };

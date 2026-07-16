@@ -10,6 +10,7 @@ const { Option } = Select;
 
 const Subscriptions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
   const [form] = Form.useForm();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,29 +31,51 @@ const Subscriptions = () => {
     fetchPlans();
   }, []);
 
-  const handleCreatePlan = async () => {
+  const handleSavePlan = async () => {
     try {
       const values = await form.validateFields();
-      const newPlan = {
+      const planData = {
         name: values.name,
         price: values.price,
         interval: values.interval || '',
         description: values.description,
-        features: values.features ? values.features.split('\n').filter(f => f.trim() !== '') : [],
+        features: Array.isArray(values.features) 
+          ? values.features 
+          : (values.features ? values.features.split('\n').filter(f => f.trim() !== '') : []),
         popular: values.popular || false,
-        active: 0,
+        active: editingPlan ? editingPlan.active : 0,
       };
 
-      await api.post('/subscriptions', newPlan);
-      message.success('Plan created successfully');
+      if (editingPlan) {
+        await api.put(`/subscriptions/${editingPlan._id}`, planData);
+        message.success('Plan updated successfully');
+      } else {
+        await api.post('/subscriptions', planData);
+        message.success('Plan created successfully');
+      }
+      
       setIsModalOpen(false);
+      setEditingPlan(null);
       form.resetFields();
       fetchPlans();
     } catch (error) {
       if (error.response) {
-        message.error('Failed to create plan: ' + (error.response.data.message || error.message));
+        message.error(`Failed to ${editingPlan ? 'update' : 'create'} plan: ` + (error.response.data.message || error.message));
       }
     }
+  };
+
+  const handleEditClick = (plan) => {
+    setEditingPlan(plan);
+    form.setFieldsValue({
+      name: plan.name,
+      price: plan.price,
+      interval: plan.interval,
+      description: plan.description,
+      features: Array.isArray(plan.features) ? plan.features.join('\n') : plan.features,
+      popular: plan.popular,
+    });
+    setIsModalOpen(true);
   };
 
   const handleDeletePlan = async (id) => {
@@ -77,11 +100,14 @@ const Subscriptions = () => {
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button icon={<Settings size={18} />} style={{ height: 44, borderRadius: 8, fontWeight: 600 }}>Billing Settings</Button>
           <Button 
             type="primary" 
             icon={<Plus size={18} />} 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingPlan(null);
+              form.resetFields();
+              setIsModalOpen(true);
+            }}
             style={{ background: 'var(--accent-primary)', height: 44, borderRadius: 8, fontWeight: 600 }}
           >
             Create Plan
@@ -132,6 +158,7 @@ const Subscriptions = () => {
                 <Button 
                   type={plan.popular ? 'primary' : 'default'}
                   block 
+                  onClick={() => handleEditClick(plan)}
                   style={{ 
                     height: 44, 
                     borderRadius: 8, 
@@ -170,9 +197,13 @@ const Subscriptions = () => {
       </Row>
 
       <Modal
-        title={<span style={{ fontWeight: 700, fontSize: 18 }}>Create New Plan</span>}
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}>{editingPlan ? 'Edit Plan' : 'Create New Plan'}</span>}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditingPlan(null);
+          form.resetFields();
+        }}
         footer={null}
         className="glass-modal"
         centered
@@ -212,8 +243,14 @@ const Subscriptions = () => {
           </Form.Item>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
-            <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
-            <Button type="primary" onClick={handleCreatePlan} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Publish Plan</Button>
+            <Button onClick={() => {
+              setIsModalOpen(false);
+              setEditingPlan(null);
+              form.resetFields();
+            }} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
+            <Button type="primary" onClick={handleSavePlan} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>
+              {editingPlan ? 'Save Changes' : 'Publish Plan'}
+            </Button>
           </div>
         </Form>
       </Modal>

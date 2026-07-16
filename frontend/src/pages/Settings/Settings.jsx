@@ -10,6 +10,7 @@ import BackendConfigTab from './tabs/BackendConfigTab';
 import AccessMatrixTab from './tabs/AccessMatrixTab';
 import UserManagementTab from './tabs/UserManagementTab';
 import AgencyPackagesTab from './tabs/AgencyPackagesTab';
+import DirectPackagesTab from './tabs/DirectPackagesTab';
 import UserSettingsTab from '../UserPortal/SettingsTab';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -48,6 +49,7 @@ const SettingsPage = () => {
       case '6': return <AccessMatrixTab />;
       case '7': return <UserManagementTab />;
       case '8': return <AgencyPackagesTab />;
+      case '10': return <DirectPackagesTab />;
       case '9': return <UserSettingsTab />;
       default: return <AgencyTab />;
     }
@@ -63,7 +65,8 @@ const SettingsPage = () => {
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
     { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
     ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
-      { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> }
+      { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> },
+      { key: '10', label: <strong style={{ fontWeight: 600 }}>Direct Brand Packages</strong> }
     ]),
   ];
 

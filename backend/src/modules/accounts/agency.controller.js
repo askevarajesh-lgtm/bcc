@@ -38,6 +38,18 @@ exports.createAgency = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
+    // Fetch the selected package to get features and user limits
+    let packageFeatures = [];
+    let packageUsers = 5;
+    if (plan || packageId) {
+      const AgencyPackage = require('../agencyPackages/agencyPackage.model');
+      const pkg = await AgencyPackage.findById(plan || packageId);
+      if (pkg) {
+        packageFeatures = pkg.features || [];
+        packageUsers = pkg.users || 5;
+      }
+    }
+
     // Create the Company/Agency
     const agencyUser = await User.create({
       name: name + ' Admin',
@@ -47,6 +59,8 @@ exports.createAgency = async (req, res, next) => {
       companyName: name,
       plan: plan || packageId || null,
       status: status || 'active',
+      features: req.body.features || packageFeatures,
+      allowedUsers: packageUsers,
       createdBy: req.user ? req.user._id : undefined
     });
 

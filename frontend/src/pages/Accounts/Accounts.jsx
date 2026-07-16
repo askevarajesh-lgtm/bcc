@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space, Modal, Form, message, Dropdown } from 'antd';
+import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space, Modal, Form, message, Dropdown, Checkbox } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Plus, LayoutGrid, List, ArrowUpRight, Users, CircleDollarSign, Activity, AlertTriangle, MoreVertical, Edit2, Trash2, ShieldOff, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Masketplace' }
+];
 
 const Accounts = () => {
   const [filter, setFilter] = useState('All');
@@ -60,6 +75,7 @@ const Accounts = () => {
         name: agency.name,
         email: agency.email,
         package: agency.plan?._id || agency.plan,
+        features: agency.features || []
       });
     } else {
       setEditingAgency(null);
@@ -74,9 +90,8 @@ const Accounts = () => {
       if (editingAgency) {
         await api.put(`/agencies/${editingAgency._id}`, {
           name: values.name,
-          email: values.email,
-          ...(values.password ? { password: values.password } : {}),
-          package: values.package
+          package: values.package,
+          features: values.features
         });
         message.success("Agency updated successfully");
       } else {
@@ -84,7 +99,8 @@ const Accounts = () => {
           name: values.name,
           email: values.email,
           password: values.password,
-          package: values.package
+          package: values.package,
+          features: values.features
         });
         message.success("Agency created successfully");
       }
@@ -347,20 +363,46 @@ const Accounts = () => {
             <Input placeholder="e.g. Acme Corp" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Admin Email</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
-            <Input placeholder="admin@agency.com" style={{ borderRadius: 8 }} size="large" />
-          </Form.Item>
-          
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Password {editingAgency && "(Leave blank to keep current)"}</Text>} name="password" rules={[{ required: !editingAgency, message: 'Please set an initial password' }]}>
-            <Input.Password placeholder={editingAgency ? "Enter new password if changing" : "Set admin password"} style={{ borderRadius: 8 }} size="large" />
-          </Form.Item>
+          {!editingAgency && (
+            <>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Admin Email</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
+                <Input placeholder="admin@agency.com" style={{ borderRadius: 8 }} size="large" />
+              </Form.Item>
+              
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true, message: 'Please set an initial password' }]}>
+                <Input.Password placeholder="Set admin password" style={{ borderRadius: 8 }} size="large" />
+              </Form.Item>
+            </>
+          )}
           
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Package Selection</Text>} name="package" rules={[{ required: true, message: 'Please select an agency package' }]}>
-            <Select style={{ borderRadius: 8 }} size="large" placeholder="Select a package">
+            <Select 
+              style={{ borderRadius: 8 }} 
+              size="large" 
+              placeholder="Select a package"
+              onChange={(value) => {
+                const selectedPkg = packages.find(p => p._id === value);
+                if (selectedPkg) {
+                  form.setFieldsValue({ features: selectedPkg.features || [] });
+                }
+              }}
+            >
               {packages.map(pkg => (
                 <Option key={pkg._id} value={pkg._id}>{pkg.name}</Option>
               ))}
             </Select>
+          </Form.Item>
+
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Included Modules</Text>} name="features">
+            <Checkbox.Group style={{ width: '100%' }}>
+              <Row gutter={[16, 16]}>
+                {availableFeatures.map(feat => (
+                  <Col span={12} key={feat.id}>
+                    <Checkbox value={feat.id}>{feat.label}</Checkbox>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
           </Form.Item>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>

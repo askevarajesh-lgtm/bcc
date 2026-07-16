@@ -104,19 +104,20 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const workspaceChildren = [];
-  if (feats.includes('social') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
-  if (feats.includes('ads') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
-  if (feats.includes('crm') || feats.length === 0 || hasAgencyFullAccess) {
-    workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
-    workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
-    workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
-    workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
-  }
-  // if (feats.includes('automation') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/automation', icon: getIcon(Zap), label: 'Automation' });
-  if (feats.includes('tasks') || feats.length === 0 || hasAgencyFullAccess) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
-  if (feats.includes('marketplace') || feats.length === 0 || hasAgencyFullAccess) {
-    workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
-    workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
+  if (role !== 'agency_super_admin') {
+    if (feats.includes('social') || feats.length === 0) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
+    if (feats.includes('ads') || feats.length === 0) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
+    if (feats.includes('crm') || feats.length === 0) {
+      workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
+      workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
+      workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
+      workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
+    }
+    if (feats.includes('tasks') || feats.length === 0) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    if (feats.includes('marketplace') || feats.length === 0) {
+      workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
+      workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
+    }
   }
 
   if (workspaceChildren.length > 0) {
@@ -157,15 +158,14 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     });
   }
 
-  if (['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {
-    menuItems.push({ key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' });
-  }
-
   const settingsChildren = [];
   if (feats.includes('master-items') || feats.length === 0 || hasAgencyFullAccess) settingsChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
   if (role === 'agency_super_admin') {
     settingsChildren.push({ key: '/agency/users', icon: getIcon(Shield), label: 'User Management' });
     settingsChildren.push({ key: '/agency/billing', icon: getIcon(CreditCard), label: 'Billing' });
+  }
+  if (['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {
+    settingsChildren.push({ key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' });
   }
   if (feats.includes('settings') || feats.length === 0 || hasAgencyFullAccess) settingsChildren.push({ key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' });
 

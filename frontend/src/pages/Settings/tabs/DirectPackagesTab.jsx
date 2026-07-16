@@ -20,7 +20,7 @@ const availableFeatures = [
   { id: 'marketplace', label: 'Masketplace' }
 ];
 
-const AgencyPackagesTab = () => {
+const DirectPackagesTab = () => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,17 +33,16 @@ const AgencyPackagesTab = () => {
     description: '',
     price: '',
     users: '',
-    clients: '',
     features: []
   });
 
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/agency-packages');
+      const res = await api.get('/direct-packages');
       setPackages(res.data.data);
     } catch (error) {
-      message.error('Failed to fetch agency packages');
+      message.error('Failed to fetch direct packages');
     } finally {
       setLoading(false);
     }
@@ -60,8 +59,7 @@ const AgencyPackagesTab = () => {
         name: pkg.name,
         description: pkg.description || '',
         price: pkg.price || '',
-        users: pkg.users || '',
-        clients: pkg.clients || '',
+        users: pkg.userCount || '', // API response comes with userCount
         features: pkg.features || []
       });
     } else {
@@ -71,7 +69,6 @@ const AgencyPackagesTab = () => {
         description: '',
         price: '',
         users: '',
-        clients: '',
         features: []
       });
     }
@@ -84,17 +81,26 @@ const AgencyPackagesTab = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.price || !formData.users || !formData.clients) {
-      message.error("Package Name, Price, Users, and Clients are required fields");
+    if (!formData.name || !formData.price || !formData.users) {
+      message.error("Package Name, Price, and Users are required fields");
       return;
     }
 
+    // Adapt to our backend model
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      userCount: Number(formData.users),
+      features: formData.features
+    };
+
     try {
       if (editingPkg) {
-        await api.put(`/agency-packages/${editingPkg._id}`, formData);
+        await api.put(`/direct-packages/${editingPkg._id}`, payload);
         message.success("Package updated successfully");
       } else {
-        await api.post('/agency-packages', formData);
+        await api.post('/direct-packages', payload);
         message.success("Package created successfully");
       }
       setIsModalOpen(false);
@@ -106,7 +112,7 @@ const AgencyPackagesTab = () => {
 
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/agency-packages/${id}`);
+      await api.delete(`/direct-packages/${id}`);
       message.success("Package deleted successfully");
       fetchPackages();
     } catch (error) {
@@ -176,10 +182,10 @@ const AgencyPackagesTab = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Agency Packages</Title>
-          <Text type="secondary">Define feature tiers and pricing for your agency accounts.</Text>
+          <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Direct Brand Packages</Title>
+          <Text type="secondary">Define feature tiers and pricing for your direct brand accounts.</Text>
         </div>
         <Button 
           type="primary" 
@@ -241,25 +247,14 @@ const AgencyPackagesTab = () => {
             />
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Users - Count <span style={{color: 'red'}}>*</span></label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div style={{ marginBottom: 24 }}>
+              <Text style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Users - Count <span style={{color: '#ef4444'}}>*</span></Text>
               <Input 
-                type="number"
-                value={formData.users} 
-                onChange={e => setFormData({...formData, users: e.target.value})} 
                 placeholder="e.g., 5" 
-                size="large"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Clients - Count <span style={{color: 'red'}}>*</span></label>
-              <Input 
-                type="number"
-                value={formData.clients} 
-                onChange={e => setFormData({...formData, clients: e.target.value})} 
-                placeholder="e.g., 10" 
-                size="large"
+                value={formData.users} 
+                onChange={(e) => setFormData({...formData, users: e.target.value})} 
+                style={{ borderRadius: 8, padding: '8px 12px' }}
               />
             </div>
           </div>
@@ -282,7 +277,6 @@ const AgencyPackagesTab = () => {
         </div>
       </Modal>
 
-      {/* View Package Modal */}
       <Modal
         title={null}
         footer={null}
@@ -295,7 +289,6 @@ const AgencyPackagesTab = () => {
       >
         {viewingPkg && (
           <div>
-            {/* Header */}
             <div style={{ 
               background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)', 
               padding: '32px 24px',
@@ -319,10 +312,9 @@ const AgencyPackagesTab = () => {
               </div>
             </div>
 
-            {/* Content */}
             <div style={{ padding: '24px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
               <div style={{ 
-                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 
+                display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 
               }}>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE</Text>
@@ -333,14 +325,9 @@ const AgencyPackagesTab = () => {
                     <Users size={14} color="var(--text-secondary)" />
                     <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>USERS</Text>
                   </div>
-                  <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{viewingPkg.users || 5}</Text>
-                </div>
-                <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Briefcase size={14} color="var(--text-secondary)" />
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>CLIENTS</Text>
-                  </div>
-                  <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{viewingPkg.clients || 10}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span style={{ fontWeight: 600 }}>{viewingPkg?.userCount || viewingPkg?.users || '-'}</span>
+                  </Text>
                 </div>
               </div>
 
@@ -392,4 +379,4 @@ const AgencyPackagesTab = () => {
   );
 };
 
-export default AgencyPackagesTab;
+export default DirectPackagesTab;

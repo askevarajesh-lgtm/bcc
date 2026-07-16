@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form } from 'antd';
-import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users } from 'lucide-react';
+import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm } from 'antd';
+import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
-import { useFeatures } from '../../../contexts/FeatureContext';
 import TaskListView from '../../Tasks/TaskListView';
 import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
 import ClientBilling from './ClientBilling';
 import ClientActivity from './ClientActivity';
 
 const { Title, Text } = Typography;
+
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Masketplace' }
+];
 
 const ClientsTab = () => {
   const [selectedClient, setSelectedClient] = useState(null);
@@ -19,8 +33,23 @@ const ClientsTab = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskDrawerVisible, setTaskDrawerVisible] = useState(false);
   const [form] = Form.useForm();
-  
-  const { getClientData, updateClientFeatures, packages, createPackage, updatePackage } = useFeatures();
+  const [editForm] = Form.useForm();
+  const [packages, setPackages] = useState([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
+
+  const fetchPackages = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+      const res = await fetch('/api/agency/client-packages', { headers });
+      const data = await res.json();
+      if (data.success) {
+        setPackages(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch packages', error);
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -43,6 +72,7 @@ const ClientsTab = () => {
           
           return {
             ...c,
+            accountStatus: c.status || 'active',
             code: c.code || c.name?.substring(0, 2).toUpperCase() || 'NA',
             status: mosInfo.overall >= 70 ? 'Healthy' : mosInfo.overall >= 50 ? 'At Risk' : 'Critical',
             mos: mosInfo.overall || 0,
@@ -68,11 +98,8 @@ const ClientsTab = () => {
 
   useEffect(() => {
     fetchClients();
+    fetchPackages();
   }, []);
-
-  const [isPackagesDrawerOpen, setIsPackagesDrawerOpen] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(null);
-  const [packageForm] = Form.useForm();
 
   const handleCreateClient = async (values) => {
     try {
@@ -113,23 +140,85 @@ const ClientsTab = () => {
     }
   };
 
-  const handleSavePackage = (values) => {
-    const payload = {
-      name: values.name,
-      price: values.price || '',
-      features: values.features || []
-    };
 
-    if (editingPackage) {
-      updatePackage(editingPackage.id || editingPackage.name, payload);
-      message.success(`Package ${payload.name} updated successfully`);
-    } else {
-      createPackage(payload);
-      message.success(`Package ${payload.name} created successfully`);
+
+  const handleEditClientSubmit = async (values) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/users/${editingClient._id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          features: values.features || []
+        })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        message.success('Client updated successfully');
+        setIsEditModalOpen(false);
+        setEditingClient(null);
+        fetchClients();
+      } else {
+        message.error(data.message || 'Failed to update client');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setLoading(false);
     }
-    setIsPackagesDrawerOpen(false);
-    setEditingPackage(null);
-    packageForm.resetFields();
+  };
+
+  const handleSuspendClient = async (clientId, currentStatus) => {
+    try {
+      setLoading(true);
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      const res = await fetch(`/api/brands/${clientId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success(`Client ${newStatus === 'suspended' ? 'suspended' : 'activated'} successfully`);
+        fetchClients();
+      } else {
+        message.error(data.message || 'Failed to update status');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClient = async (clientId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/brands/${clientId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('Client deleted successfully');
+        fetchClients();
+      } else {
+        message.error(data.message || 'Failed to delete client');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const containerVariants = {
@@ -142,6 +231,10 @@ const ClientsTab = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+
+  const selectedPackageName = Form.useWatch('packageName', form);
+  const selectedPackageObj = packages.find(p => p.name === selectedPackageName) || null;
+  const includedFeatures = selectedPackageObj ? selectedPackageObj.features : [];
 
   const getStatusColor = (status) => {
     if (status === 'Healthy') return 'var(--accent-primary)';
@@ -184,17 +277,12 @@ const ClientsTab = () => {
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <Button 
-            onClick={() => setIsPackagesDrawerOpen(true)}
-            style={{ fontWeight: 700, borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-          >
-            Manage Packages
-          </Button>
-          <Button 
             type="primary" 
+            icon={<Plus size={16} />} 
             onClick={() => setIsCreateModalOpen(true)}
-            style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}
+            style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none' }}
           >
-            + Create Client
+            Create Client
           </Button>
         </div>
       </motion.div>
@@ -217,48 +305,156 @@ const ClientsTab = () => {
         </div>
       </motion.div>
 
-      {/* Client List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Dynamic Database Clients */}
-        {dbClients.map(client => (
-          <motion.div key={client._id} variants={itemVariants}>
-            <SlabCard 
-              shadowColor={getStatusColor('Healthy')} 
-              bodyStyle={{ padding: '24px' }} 
-              style={{ borderLeft: `6px solid ${getStatusColor('Healthy')}`, overflow: 'hidden' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: getStatusColor('Healthy'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 18, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.2)' }}>
-                    {client.name.substring(0, 2).toUpperCase()}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
+              <Shield size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>Edit Client Modules</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>{editingClient?.name}</div>
+            </div>
+          </div>
+        }
+        open={isEditModalOpen}
+        onCancel={() => {
+          setIsEditModalOpen(false);
+          setEditingClient(null);
+          editForm.resetFields();
+        }}
+        onOk={() => editForm.submit()}
+        confirmLoading={loading}
+        okText="Save Changes"
+        cancelText="Cancel"
+        width={560}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditClientSubmit} style={{ marginTop: 24 }}>
+          <Form.Item name="features" label="Enabled Modules" help="Select which modules this client has access to.">
+            <Checkbox.Group style={{ width: '100%' }}>
+              <Row gutter={[16, 16]}>
+                {availableFeatures.map(feat => (
+                  <Col span={12} key={feat.id}>
+                    <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                      <Checkbox value={feat.id}>
+                        <span style={{ fontWeight: 600 }}>{feat.label}</span>
+                      </Checkbox>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+        <Table
+          className="custom-table"
+          dataSource={dbClients}
+          rowKey="_id"
+          pagination={false}
+          columns={[
+            {
+              title: 'Client Name',
+              dataIndex: 'name',
+              key: 'name',
+              render: (text, record) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', fontWeight: 800, fontSize: 16 }}>
+                    {record.code}
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-                      <Text style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 20, lineHeight: 1 }}>
-                        {client.name}
-                      </Text>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: getStatusColor('Healthy'), background: `${getStatusColor('Healthy')}15`, padding: '4px 10px', borderRadius: 20, border: `1px solid ${getStatusColor('Healthy')}40`, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: 3, background: getStatusColor('Healthy') }} />
-                        Healthy <span style={{ opacity: 0.6 }}>· 100</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                      Created By: {client.createdBy ? client.createdBy.name : 'System'} ({client.createdBy?.role === 'agency_super_admin' ? 'Agency Admin' : client.createdBy?.role === 'agency_manager' ? 'Agency Manager' : 'Admin'})
-                    </span>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{text}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{record.adminEmail || record.email}</div>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <Button type="primary" onClick={() => setSelectedClient(client)} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                    View Client <ExternalLink size={16} style={{ marginLeft: 8 }} />
-                  </Button>
-                </div>
-              </div>
-            </SlabCard>
-          </motion.div>
-        ))}
-
-
+              )
+            },
+            {
+              title: 'Package',
+              dataIndex: 'packageName',
+              key: 'packageName',
+              render: (text) => text || 'Custom'
+            },
+            {
+              title: 'Account Status',
+              dataIndex: 'accountStatus',
+              key: 'accountStatus',
+              render: (status) => (
+                <Tag color={status === 'active' ? 'success' : 'error'} style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 600 }}>
+                  {status === 'active' ? 'Active' : 'Suspended'}
+                </Tag>
+              )
+            },
+            {
+              title: 'Health',
+              dataIndex: 'status',
+              key: 'health',
+              render: (status, record) => (
+                <Tag style={{ borderRadius: 12, background: `${getStatusColor(status)}15`, color: getStatusColor(status), border: `1px solid ${getStatusColor(status)}40`, fontWeight: 600 }}>
+                  {record.mos} · {status}
+                </Tag>
+              )
+            },
+            {
+              title: 'Actions',
+              key: 'actions',
+              align: 'right',
+              render: (_, record) => (
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'view',
+                        label: 'View Client',
+                        onClick: () => setSelectedClient(record)
+                      },
+                      {
+                        key: 'edit',
+                        label: 'Edit Modules',
+                        onClick: () => {
+                          setEditingClient(record);
+                          editForm.setFieldsValue({ features: record.features || [] });
+                          setIsEditModalOpen(true);
+                        }
+                      },
+                      {
+                        key: 'suspend',
+                        label: record.accountStatus === 'suspended' ? 'Activate Client' : 'Suspend Client',
+                        onClick: () => handleSuspendClient(record._id, record.accountStatus)
+                      },
+                      {
+                        type: 'divider'
+                      },
+                      {
+                        key: 'delete',
+                        danger: true,
+                        label: (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Popconfirm
+                              title="Delete Client"
+                              description="Are you sure you want to delete this client? This action cannot be undone."
+                              onConfirm={() => handleDeleteClient(record._id)}
+                              okText="Yes"
+                              cancelText="No"
+                              okButtonProps={{ danger: true }}
+                            >
+                              <div style={{ width: '100%' }}>Delete Client</div>
+                            </Popconfirm>
+                          </div>
+                        )
+                      }
+                    ]
+                  }}
+                  trigger={['click']}
+                >
+                  <Button type="text" icon={<MoreHorizontal size={18} />} />
+                </Dropdown>
+              )
+            }
+          ]}
+        />
       </div>
 
       {/* Client Detail Drawer */}
@@ -328,19 +524,10 @@ const ClientsTab = () => {
               </Tabs.TabPane>
               <Tabs.TabPane tab="Features & Access" key="2">
                 {(() => {
-                  const clientData = getClientData(selectedClient.code) || {};
-                  const clientFeatures = clientData.features || [];
-                  const clientPackage = clientData.package || 'Starter';
-
-                  const allFeatures = [
-                    { id: 'dashboard', label: 'Client Dashboard', icon: <AlertTriangle size={16} /> },
-                    { id: 'performance', label: 'Performance Analytics', icon: <Zap size={16} /> },
-                    { id: 'leads', label: 'Lead Management (CRM)', icon: <Users size={16} /> },
-                    { id: 'website', label: 'Website Builder', icon: <Globe size={16} /> },
-                    { id: 'store', label: 'Asset Store', icon: <Shield size={16} /> },
-                  ];
+                  const clientFeatures = selectedClient.features || [];
+                  const clientPackage = selectedClient.packageName || 'Custom';
                   
-                  const enabledFeatures = allFeatures.filter(feat => clientFeatures.includes(feat.id));
+                  const enabledFeatures = availableFeatures.filter(feat => clientFeatures.includes(feat.id));
 
                   return (
                     <div style={{ marginTop: 16 }}>
@@ -356,7 +543,7 @@ const ClientsTab = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {enabledFeatures.length > 0 ? enabledFeatures.map(feat => (
                           <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 12 }}>
-                            <div style={{ color: 'var(--accent-primary)' }}>{feat.icon}</div>
+                            <div style={{ color: 'var(--accent-primary)' }}><CheckCircle size={16} /></div>
                             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
                             <div style={{ marginLeft: 'auto' }}>
                               <Tag color="success" style={{ margin: 0, borderRadius: 10, fontWeight: 700 }}>Enabled</Tag>
@@ -413,7 +600,7 @@ const ClientsTab = () => {
         closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
         styles={{ 
           header: { padding: '24px 24px 16px 24px', borderBottom: '1px solid var(--border-color)' }, 
-          body: { padding: '24px' },
+          body: { padding: '24px', maxHeight: '550px', overflowY: 'auto' },
           content: { borderRadius: 16, overflow: 'hidden' }
         }}
       >
@@ -465,7 +652,7 @@ const ClientsTab = () => {
               </Row>
             </div>
 
-            <div>
+            <div style={{ marginBottom: 24 }}>
               <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
                 Subscription
               </Text>
@@ -473,7 +660,7 @@ const ClientsTab = () => {
                 name="packageName" 
                 label={<span style={{ fontWeight: 600 }}>Assign Package</span>} 
                 rules={[{ required: true, message: 'Please select a package' }]}
-                style={{ marginBottom: 0 }}
+                style={{ marginBottom: 16 }}
               >
                 <Select placeholder="Select a package" size="large" style={{ borderRadius: 8 }}>
                   {packages.map(pkg => (
@@ -481,6 +668,26 @@ const ClientsTab = () => {
                   ))}
                 </Select>
               </Form.Item>
+              
+              {selectedPackageName && (
+                <div>
+                  <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 12, display: 'block' }}>
+                    Included Modules
+                  </Text>
+                  <Row gutter={[16, 16]}>
+                    {availableFeatures.map(feat => {
+                      const isIncluded = includedFeatures.includes(feat.id);
+                      return (
+                        <Col span={12} key={feat.id}>
+                          <Checkbox checked={isIncluded} disabled>
+                            {feat.label}
+                          </Checkbox>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </div>
+              )}
             </div>
           </div>
 
@@ -502,57 +709,6 @@ const ClientsTab = () => {
           </div>
         </Form>
       </Modal>
-
-      {/* Packages Drawer */}
-      <Drawer
-        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Manage Packages</span>}
-        open={isPackagesDrawerOpen}
-        onClose={() => { setIsPackagesDrawerOpen(false); setEditingPackage(null); }}
-        width={480}
-        closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
-        headerStyle={{ borderBottom: '1px solid var(--border-color)', padding: '24px 32px' }}
-        bodyStyle={{ padding: '32px' }}
-      >
-        <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Title level={5} style={{ margin: 0, fontWeight: 800 }}>Existing Packages</Title>
-          {packages.map(pkg => (
-            <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
-              <div>
-                <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', display: 'block' }}>{pkg.name}</span>
-                <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{pkg.features.length} features enabled</span>
-              </div>
-              <Button size="small" onClick={() => { setEditingPackage(pkg); packageForm.setFieldsValue(pkg); }}>Edit</Button>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ background: 'var(--bg-secondary)', padding: 24, borderRadius: 12, border: '1px solid var(--border-color)' }}>
-          <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>{editingPackage ? 'Edit Package' : 'Create New Package'}</Title>
-          <Form form={packageForm} layout="vertical" onFinish={handleSavePackage}>
-            <Form.Item name="name" label="Package Name" rules={[{ required: true }]}>
-              <Input placeholder="e.g. Starter Tier" />
-            </Form.Item>
-            <Form.Item name="price" label="Price (Optional)">
-              <Input placeholder="e.g. ₹1.5L/mo" />
-            </Form.Item>
-            <Form.Item name="features" label="Enabled Features">
-              <Select mode="multiple" placeholder="Select features">
-                {['dashboard', 'performance', 'leads', 'website', 'store', 'seo', 'strategy'].map(feat => (
-                  <Select.Option key={feat} value={feat}>{feat}</Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              {editingPackage && (
-                <Button onClick={() => { setEditingPackage(null); packageForm.resetFields(); }} style={{ flex: 1 }}>Cancel</Button>
-              )}
-              <Button type="primary" htmlType="submit" style={{ flex: 1, background: 'var(--accent-primary)', fontWeight: 700 }}>
-                {editingPackage ? 'Save Changes' : 'Create Package'}
-              </Button>
-            </div>
-          </Form>
-        </div>
-      </Drawer>
 
       <TaskDetailDrawer
         visible={taskDrawerVisible}

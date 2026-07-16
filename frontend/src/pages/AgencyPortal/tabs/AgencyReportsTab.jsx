@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Modal, Form, Dropdown, message, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Modal, Form, Dropdown, message, Avatar, Skeleton } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, Plus, FileText, BarChart2, Calendar, MoreVertical, Edit2, Trash2, Send, Filter } from 'lucide-react';
+import { Download, Plus, FileText, BarChart2, Calendar, MoreVertical, Edit2, Trash2, Send, Filter, Eye } from 'lucide-react';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -9,28 +10,88 @@ const { Option } = Select;
 const AgencyReportsTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
-  
-  // Mock Data
-  const reports = [
-    { id: 1, name: 'Q1 Marketing Performance', client: 'Acme Corp', type: 'Comprehensive', frequency: 'Quarterly', lastGenerated: '2026-04-01', status: 'ready' },
-    { id: 2, name: 'Monthly SEO Overview', client: 'Stark Industries', type: 'SEO', frequency: 'Monthly', lastGenerated: '2026-06-01', status: 'ready' },
-    { id: 3, name: 'Weekly Ad Spend', client: 'Wayne Enterprises', type: 'Paid Ads', frequency: 'Weekly', lastGenerated: '2026-06-20', status: 'processing' },
-    { id: 4, name: 'Social Media Engagement', client: 'Acme Corp', type: 'Social', frequency: 'Monthly', lastGenerated: '2026-06-01', status: 'ready' },
-  ];
+  const [reports, setReports] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [stats, setStats] = useState({ total: 0, automated: 0, processing: 0 });
+  const [loading, setLoading] = useState(true);
+  const [editingReport, setEditingReport] = useState(null);
 
-  const handleCreate = () => {
-    message.success('Report schedule created successfully!');
-    setIsModalOpen(false);
-    form.resetFields();
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/agency/reports');
+      setReports(res.data.data.reports);
+      setStats(res.data.data.stats);
+      setClients(res.data.data.clients || []);
+    } catch (error) {
+      console.error('Failed to fetch reports:', error);
+      message.error('Failed to load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateOrUpdate = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingReport) {
+        await api.put(`/agency/reports/${editingReport.id}`, values);
+        message.success('Report schedule updated successfully!');
+      } else {
+        await api.post('/agency/reports', values);
+        message.success('Report schedule created successfully!');
+      }
+      setIsModalOpen(false);
+      form.resetFields();
+      setEditingReport(null);
+      fetchReports();
+    } catch (error) {
+      console.error('Save failed:', error);
+      if (error.errorFields) return; // Validation error
+      message.error(error.response?.data?.message || 'Failed to save report schedule');
+    }
+  };
+
+  const handleAction = async (action, record) => {
+    try {
+      if (action === 'delete') {
+        await api.delete(`/agency/reports/${record.id}`);
+        message.success('Report deleted successfully');
+        fetchReports();
+      } else if (action === 'edit') {
+        setEditingReport(record);
+        form.setFieldsValue({
+          clientId: record.clientId,
+          name: record.name,
+          template: record.type,
+          frequency: record.frequency,
+          format: record.format,
+          deliveryMethod: record.deliveryMethod,
+        });
+        setIsModalOpen(true);
+      } else if (action === 'view') {
+        message.info(`Viewing report: ${record.name}`);
+      } else {
+        const res = await api.post(`/agency/reports/${record.id}/action`, { action });
+        message.success(res.data.message || `Action ${action} executed`);
+      }
+    } catch (error) {
+      console.error(`Action ${action} failed:`, error);
+      message.error(error.response?.data?.message || `Failed to execute action ${action}`);
+    }
   };
 
   const getActionMenu = (record) => [
-    { key: 'view', icon: <FileText size={16} />, label: 'View Report' },
-    { key: 'download', icon: <Download size={16} />, label: 'Download PDF' },
-    { key: 'send', icon: <Send size={16} />, label: 'Email to Client' },
+    { key: 'view', icon: <Eye size={16} />, label: 'View Report', onClick: () => handleAction('view', record) },
+    { key: 'download', icon: <Download size={16} />, label: 'Download PDF', onClick: () => handleAction('download', record) },
+    { key: 'send', icon: <Send size={16} />, label: 'Email to Client', onClick: () => handleAction('send', record) },
     { type: 'divider' },
-    { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Schedule' },
-    { key: 'delete', icon: <Trash2 size={16} />, label: 'Delete Report', danger: true },
+    { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Schedule', onClick: () => handleAction('edit', record) },
+    { key: 'delete', icon: <Trash2 size={16} />, label: 'Delete Report', danger: true, onClick: () => handleAction('delete', record) },
   ];
 
   const columns = [
@@ -106,9 +167,9 @@ const AgencyReportsTab = () => {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'TOTAL REPORTS', val: '42', icon: <FileText size={20} />, color: 'var(--accent-primary)' },
-          { label: 'AUTOMATED', val: '38', icon: <Calendar size={20} />, color: 'var(--accent-secondary)' },
-          { label: 'PROCESSING', val: '4', icon: <BarChart2 size={20} />, color: 'var(--accent-warning)' },
+          { label: 'TOTAL REPORTS', val: stats.total, icon: <FileText size={20} />, color: 'var(--accent-primary)' },
+          { label: 'AUTOMATED', val: stats.automated, icon: <Calendar size={20} />, color: 'var(--accent-secondary)' },
+          { label: 'PROCESSING', val: stats.processing, icon: <BarChart2 size={20} />, color: 'var(--accent-warning)' },
         ].map((kpi, i) => (
           <Col xs={24} md={8} key={i}>
             <Card 
@@ -152,35 +213,39 @@ const AgencyReportsTab = () => {
         centered
         width={500}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate} style={{ marginTop: 24 }}>
+        <Form form={form} layout="vertical" onFinish={handleCreateOrUpdate} style={{ marginTop: 24 }}>
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Report Name</Text>} name="name" rules={[{ required: true }]}>
             <Input placeholder="e.g. Monthly SEO Performance" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Select Client</Text>} name="client" rules={[{ required: true }]}>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Select Client</Text>} name="clientId" rules={[{ required: true }]}>
             <Select placeholder="Select a client" size="large">
-              <Option value="1">Acme Corp</Option>
-              <Option value="2">Stark Industries</Option>
-              <Option value="3">Wayne Enterprises</Option>
+              {clients.map(client => (
+                <Option key={client.id} value={client.id}>{client.name}</Option>
+              ))}
             </Select>
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Data Sources to Include</Text>} name="sources">
-            <Select mode="multiple" placeholder="Select data sources" size="large">
-              <Option value="seo">SEO Metrics (Google Analytics)</Option>
-              <Option value="ads">Paid Ads (Google Ads, Meta)</Option>
-              <Option value="social">Social Media (LinkedIn, Twitter)</Option>
-              <Option value="crm">CRM Leads</Option>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Template</Text>} name="template" rules={[{ required: true }]}>
+            <Select placeholder="Select template" size="large">
+              <Option value="Monthly Performance Report">Monthly Performance Report</Option>
+              <Option value="SEO Ranking Report">SEO Ranking Report</Option>
+              <Option value="Paid Media Report">Paid Media Report</Option>
+              <Option value="Executive Summary">Executive Summary</Option>
             </Select>
           </Form.Item>
 
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Generation Frequency</Text>} name="frequency" rules={[{ required: true }]}>
             <Select placeholder="Select frequency" size="large">
-              <Option value="weekly">Weekly</Option>
-              <Option value="monthly">Monthly</Option>
-              <Option value="quarterly">Quarterly</Option>
-              <Option value="onetime">One-time only</Option>
+              <Option value="Daily">Daily</Option>
+              <Option value="Weekly">Weekly</Option>
+              <Option value="Bi-weekly">Bi-weekly</Option>
+              <Option value="Monthly">Monthly</Option>
+              <Option value="Quarterly">Quarterly</Option>
             </Select>
+          </Form.Item>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Next Send Date</Text>} name="nextSend" rules={[{ required: true }]}>
+            <Input type="date" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>

@@ -1,9 +1,25 @@
-import React from 'react';
-import { Typography, Card, Row, Col, Avatar, Tag, Divider, Tabs } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, Row, Col, Avatar, Tag, Divider, Tabs, Modal, Checkbox, Button, message } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, Shield, Star, Briefcase, Link } from 'lucide-react';
+import { Building2, User, Shield, Star, Briefcase, Link, CreditCard } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import api from '../../../services/api';
 import ClientIntegrationsTab from './ClientIntegrationsTab';
+
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Masketplace' }
+];
 
 const { Title, Text } = Typography;
 
@@ -97,6 +113,113 @@ const ProfileContent = ({ user }) => {
 
 const ClientSettingsTab = () => {
   const { user } = useAuth();
+  
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [selectedModules, setSelectedModules] = useState([]);
+  const [submittingUpgrade, setSubmittingUpgrade] = useState(false);
+  const [clientPackageDetails, setClientPackageDetails] = useState(null);
+  const [freshUser, setFreshUser] = useState(user);
+
+  useEffect(() => {
+    const fetchPackageDetails = async () => {
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes.data.success) {
+          const freshUserData = meRes.data.user;
+          setFreshUser(freshUserData);
+          
+          if (freshUserData.packageName) {
+            const pkgRes = await api.get('/agency/client-packages');
+            if (pkgRes.data.success) {
+              const pkg = pkgRes.data.data.find(p => p.name === freshUserData.packageName);
+              if (pkg) {
+                setClientPackageDetails(pkg);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch fresh user or client package details', error);
+      }
+    };
+    fetchPackageDetails();
+  }, [user]);
+
+  const handleOpenUpgrade = () => {
+    setIsUpgradeModalOpen(true);
+  };
+
+  const handleUpgradeSubmit = async () => {
+    if (selectedModules.length === 0) {
+      return message.warning('Please select at least one additional module to request.');
+    }
+    
+    try {
+      setSubmittingUpgrade(true);
+      const moduleLabels = selectedModules.map(id => availableFeatures.find(f => f.id === id)?.label).filter(Boolean);
+      const currentPlanName = freshUser?.packageName || 'Custom';
+      
+      const title = `Client Module Upgrade Request`;
+      let description = `Client requested additional modules for their ${currentPlanName} package.\n\n`;
+      description += `Additional Modules Requested: ${moduleLabels.join(', ')}`;
+      
+      await api.post('/sla-success', {
+        title,
+        description,
+        dueDate: new Date(Date.now() + 86400000 * 3), // 3 days from now
+        priority: 'High',
+        triggerType: 'Client Issue',
+        entityType: 'SupportTicket',
+        clientId: freshUser?._id
+      });
+      
+      message.success('Upgrade request submitted successfully. Your Agency Manager will contact you soon.');
+      setIsUpgradeModalOpen(false);
+      setSelectedModules([]);
+    } catch (error) {
+      console.error(error);
+      message.error(`Failed to submit upgrade request: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setSubmittingUpgrade(false);
+    }
+  };
+
+  const SubscriptionContent = () => {
+    return (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 700 }}>Current Plan</Title>
+              <Text type="secondary">You are currently on the <strong style={{ color: 'var(--text-primary)' }}>{freshUser?.packageName || 'Custom'}</strong> plan.</Text>
+            </div>
+            <Tag color="success" style={{ borderRadius: 12, padding: '4px 12px', fontSize: 14, fontWeight: 600, border: '1px solid var(--accent-secondary)', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-secondary)' }}>
+              <Star size={14} style={{ marginRight: 6, display: 'inline-block', verticalAlign: '-2px' }} /> Active
+            </Tag>
+          </div>
+          
+          <Divider />
+          
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={12}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Price / Cycle</Text>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>{clientPackageDetails ? clientPackageDetails.price : 'Contact Agency'}</Text>
+            </Col>
+            <Col xs={24} md={12}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Subscription Date</Text>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>
+                {clientPackageDetails?.createdAt ? new Date(clientPackageDetails.createdAt).toLocaleDateString() : (freshUser?.createdAt ? new Date(freshUser.createdAt).toLocaleDateString() : 'N/A')}
+              </Text>
+            </Col>
+          </Row>
+
+          <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+            <Button type="primary" onClick={handleOpenUpgrade} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">Upgrade Plan</Button>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -117,7 +240,12 @@ const ClientSettingsTab = () => {
     {
       key: '2',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Link size={16} /> Integrations</span>,
-      children: <ClientIntegrationsTab />,
+      children: <ClientIntegrationsTab user={freshUser} />,
+    },
+    {
+      key: '3',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Shield size={16} /> Subscription</span>,
+      children: <SubscriptionContent />,
     },
   ];
 
@@ -133,6 +261,52 @@ const ClientSettingsTab = () => {
       <motion.div variants={itemVariants}>
         <Tabs items={tabItems} style={{ marginBottom: 32 }} />
       </motion.div>
+
+      <Modal
+        title="Upgrade Your Plan"
+        open={isUpgradeModalOpen}
+        onCancel={() => setIsUpgradeModalOpen(false)}
+        onOk={handleUpgradeSubmit}
+        confirmLoading={submittingUpgrade}
+        okText="Submit Request"
+        okButtonProps={{ style: { background: 'var(--accent-primary)' } }}
+        width={600}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            Please select the additional modules you require. Our team will reach out to discuss pricing and complete the setup.
+          </Text>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Select Additional Modules</label>
+            <Checkbox.Group 
+              style={{ width: '100%' }} 
+              value={[...(freshUser?.features || []), ...selectedModules]}
+              onChange={(checkedValues) => {
+                // Filter out the ones already in the plan
+                const newModules = checkedValues.filter(v => !(freshUser?.features || []).includes(v));
+                setSelectedModules(newModules);
+              }}
+            >
+              <Row gutter={[16, 16]}>
+                {availableFeatures.filter(feat => {
+                  // Only show features that the AGENCY has
+                  return (freshUser?.agencyFeatures || []).includes(feat.id);
+                }).map(feat => {
+                  const isAlreadyInPlan = freshUser?.features?.includes(feat.id);
+                  return (
+                    <Col span={12} key={feat.id}>
+                      <Checkbox value={feat.id} disabled={isAlreadyInPlan}>
+                        {feat.label} {isAlreadyInPlan && <Text type="secondary" style={{fontSize: 12}}>(Included)</Text>}
+                      </Checkbox>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Checkbox.Group>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 };
