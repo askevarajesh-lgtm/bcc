@@ -12,7 +12,7 @@ const ApprovalActionBar = ({
   disabled = false,
   vertical = false
 }) => (
-  <Space direction={vertical ? 'vertical' : 'horizontal'} style={vertical ? { width: '100%' } : undefined}>
+  <Space direction={vertical ? 'vertical' : 'horizontal'} style={vertical ? { width: '10%' } : undefined}>
     <Button
       type="primary"
       onClick={onApprove}
