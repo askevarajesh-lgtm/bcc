@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag, message, Modal } from "antd";
-import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft, ImagePlus, Link2, X } from "lucide-react";
+import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
@@ -218,17 +218,56 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
   const excerptRef = useRef(null);
-  const excerptInitialized = useRef(false);
+  const [excerptMode, setExcerptMode] = useState('visual');
 
   useEffect(() => {
-    if (excerptRef.current && !excerptInitialized.current) {
+    if (excerptMode === 'visual' && excerptRef.current) {
       excerptRef.current.innerHTML = formData.excerpt || "";
-      excerptInitialized.current = true;
     }
-  }, []);
+  }, [excerptMode]);
 
   const handleExcerptInput = () => {
     setFormData(prev => ({ ...prev, excerpt: excerptRef.current.innerHTML }));
+  };
+
+  const handleExcerptCodeChange = (e) => {
+    setFormData(prev => ({ ...prev, excerpt: e.target.value }));
+  };
+
+  const handleExcerptFormat = (command) => {
+    if (excerptMode !== 'visual' || !excerptRef.current) return;
+    document.execCommand(command);
+    handleExcerptInput();
+  };
+
+  const stripPastedStyling = (node) => {
+    if (node.nodeType === 1) {
+      node.removeAttribute('style');
+      node.removeAttribute('class');
+      node.removeAttribute('bgcolor');
+      Array.from(node.childNodes).forEach(stripPastedStyling);
+    }
+  };
+
+  const handleExcerptPaste = (e) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    let cleanHtml;
+    if (html) {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      stripPastedStyling(temp);
+      cleanHtml = temp.innerHTML;
+    } else {
+      const text = e.clipboardData.getData('text/plain') || '';
+      cleanHtml = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+    document.execCommand('insertHTML', false, cleanHtml);
+    handleExcerptInput();
   };
 
   const savedRangeRef = useRef(null);
@@ -260,6 +299,31 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
       a.setAttribute('target', '_blank');
       a.setAttribute('rel', 'noopener noreferrer');
     });
+    handleExcerptInput();
+  };
+
+  const handleFormatHeading = (level) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
+      message.warning("Select a word in the excerpt first.");
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const tag = document.createElement(`h${level}`);
+    // Keep it inline so applying a heading to one word mid-sentence doesn't force a line break —
+    // the h1/h2/h3 tag still carries its default font-size/weight for the size change.
+    tag.style.display = "inline";
+
+    try {
+      range.surroundContents(tag);
+    } catch (e) {
+      // Selection spans multiple elements (e.g. crosses an existing link) — extract then wrap instead.
+      const contents = range.extractContents();
+      tag.appendChild(contents);
+      range.insertNode(tag);
+    }
+
+    selection.removeAllRanges();
     handleExcerptInput();
   };
 
@@ -419,36 +483,103 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
         </Row>
 
         <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
-            <Button
-              size="small"
-              icon={<Link2 size={13} />}
-              onClick={handleInsertLink}
-              style={{ borderRadius: 6, fontWeight: 600, fontSize: 12 }}
-            >
-              Insert Link
-            </Button>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
+
+          <style>{`
+            .excerpt-editable, .excerpt-editable * { background-color: transparent !important; }
+          `}</style>
+          <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}>
+            {/* Visual / Code tabs */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
+              <span
+                onClick={() => setExcerptMode('visual')}
+                style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: excerptMode === 'visual' ? "var(--text-primary)" : "var(--text-tertiary)" }}
+              >
+                Visual
+              </span>
+              <span style={{ color: "var(--border-color)" }}>|</span>
+              <span
+                onClick={() => setExcerptMode('code')}
+                style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: excerptMode === 'code' ? "var(--text-primary)" : "var(--text-tertiary)" }}
+              >
+                Code
+              </span>
+            </div>
+
+            {/* Formatting toolbar — only acts on the Visual editor */}
+            <div style={{
+              display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 14px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)",
+              opacity: excerptMode === 'code' ? 0.4 : 1, pointerEvents: excerptMode === 'code' ? "none" : "auto"
+            }}>
+              {[
+                { label: "b", title: "Bold", onClick: () => handleExcerptFormat('bold'), style: { fontWeight: 800 } },
+                { label: "i", title: "Italic", onClick: () => handleExcerptFormat('italic'), style: { fontStyle: "italic" } },
+                { label: "u", title: "Underline", onClick: () => handleExcerptFormat('underline'), style: { textDecoration: "underline" } },
+                { label: "del", title: "Strikethrough", onClick: () => handleExcerptFormat('strikeThrough'), style: { textDecoration: "line-through" } },
+                { label: "link", title: "Insert link", onClick: handleInsertLink },
+                { label: "H1", title: "Heading 1", onClick: () => handleFormatHeading(1) },
+                { label: "H2", title: "Heading 2", onClick: () => handleFormatHeading(2) },
+                { label: "H3", title: "Heading 3", onClick: () => handleFormatHeading(3) },
+              ].map(btn => (
+                <button
+                  key={btn.label}
+                  type="button"
+                  title={btn.title}
+                  onClick={btn.onClick}
+                  style={{
+                    minWidth: 32, height: 28, padding: "0 10px", fontSize: 12, borderRadius: 4,
+                    border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", cursor: "pointer",
+                    ...btn.style
+                  }}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Content area */}
+            {excerptMode === 'visual' ? (
+              <div
+                ref={excerptRef}
+                contentEditable
+                className="excerpt-editable"
+                suppressContentEditableWarning
+                onInput={handleExcerptInput}
+                onPaste={handleExcerptPaste}
+                style={{
+                  minHeight: 140,
+                  padding: "14px 16px",
+                  fontSize: 14,
+                  background: "var(--bg-primary)",
+                  color: "var(--text-primary)",
+                  lineHeight: 1.7
+                }}
+              />
+            ) : (
+              <textarea
+                value={formData.excerpt}
+                onChange={handleExcerptCodeChange}
+                spellCheck={false}
+                style={{
+                  width: "100%",
+                  minHeight: 140,
+                  padding: "14px 16px",
+                  fontSize: 13,
+                  fontFamily: "'Fira Code', 'Courier New', monospace",
+                  background: "var(--bg-primary)",
+                  color: "var(--text-primary)",
+                  border: "none",
+                  outline: "none",
+                  resize: "vertical",
+                  lineHeight: 1.7
+                }}
+              />
+            )}
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 8 }}>
-            Select a word above, then click "Insert Link" to make it clickable.
+
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8 }}>
+            Select a word in Visual mode, then click a format button — "link" makes it clickable, H1/H2/H3 change its size.
           </div>
-          <div
-            ref={excerptRef}
-            contentEditable
-            suppressContentEditableWarning
-            onInput={handleExcerptInput}
-            style={{
-              minHeight: 90,
-              borderRadius: 8,
-              border: "1px solid var(--border-color)",
-              padding: "8px 12px",
-              fontSize: 14,
-              background: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              lineHeight: 1.6
-            }}
-          />
         </div>
 
         <Modal

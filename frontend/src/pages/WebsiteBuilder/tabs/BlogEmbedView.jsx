@@ -10,6 +10,11 @@ const BlogEmbedView = () => {
   const { blogId, blogSlug } = useParams();
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedPosts, setExpandedPosts] = useState({});
+
+  const toggleExpand = (postId) => {
+    setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
 
   useEffect(() => {
     fetchBlog();
@@ -56,6 +61,7 @@ const BlogEmbedView = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: "inherit" }}>
+      <style>{`.excerpt-content, .excerpt-content * { background-color: transparent !important; }`}</style>
       {/* Blog Header */}
       <div style={{ textAlign: "center", marginBottom: 60 }}>
         <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{name}</Title>
@@ -93,13 +99,11 @@ const BlogEmbedView = () => {
               const words = plainForCount.split(' ').filter(Boolean);
               const isLong = words.length > WORD_LIMIT;
 
-              // A curated excerpt is rendered in full (as HTML, clamped visually via CSS);
-              // a content-derived fallback is truncated to plain text since it has no markup to preserve.
+              // Full text is always rendered — the max-height clamp (collapsed) plus the
+              // Read More/Show Less toggle below controls what's actually visible.
               const excerptContent = excerptHtml
                 ? excerptHtml
-                : (fallbackPlainText
-                  ? (isLong ? words.slice(0, WORD_LIMIT).join(' ') + '…' : fallbackPlainText)
-                  : 'Read the full post for more details.');
+                : (fallbackPlainText || 'Read the full post for more details.');
 
               return (
                 <Col xs={24} md={12} lg={8} key={post._id}>
@@ -131,15 +135,15 @@ const BlogEmbedView = () => {
                     </Title>
 
                     <Paragraph
+                      className="excerpt-content"
                       style={{
                         color: '#475569',
                         fontSize: 15,
+                        lineHeight: 1.6,
                         flex: 1,
                         marginBottom: 16,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        maxHeight: expandedPosts[post._id] ? 'none' : '8em'
                       }}
                     >
                       <span dangerouslySetInnerHTML={{ __html: excerptContent }} />
@@ -148,11 +152,10 @@ const BlogEmbedView = () => {
                     {isLong && (
                       <Button
                         type="link"
-                        href={postUrl}
-                        target="_parent"
+                        onClick={() => toggleExpand(post._id)}
                         style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600 }}
                       >
-                        Read More
+                        {expandedPosts[post._id] ? 'Show Less' : 'Read More'}
                       </Button>
                     )}
 
