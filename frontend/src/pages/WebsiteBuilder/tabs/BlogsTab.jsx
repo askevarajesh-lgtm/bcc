@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag } from "antd";
-import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag, message } from "antd";
+import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft, ImagePlus, Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
@@ -198,6 +198,7 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     websiteId: editData.websiteId || "—",
     storeId: editData.storeId || "—",
     excerpt: editData.excerpt || "",
+    featuredImageUrl: editData.featuredImageUrl || "",
     metaTitle: editData.metaTitle || "",
     metaDescription: editData.metaDescription || "",
     isFeatured: !!editData.isFeatured
@@ -208,10 +209,78 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     websiteId: "—",
     storeId: "—",
     excerpt: "",
+    featuredImageUrl: "",
     metaTitle: "",
     metaDescription: "",
     isFeatured: false
   });
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+  const excerptRef = useRef(null);
+  const excerptInitialized = useRef(false);
+
+  useEffect(() => {
+    if (excerptRef.current && !excerptInitialized.current) {
+      excerptRef.current.innerHTML = formData.excerpt || "";
+      excerptInitialized.current = true;
+    }
+  }, []);
+
+  const handleExcerptInput = () => {
+    setFormData(prev => ({ ...prev, excerpt: excerptRef.current.innerHTML }));
+  };
+
+  const handleInsertLink = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
+      message.warning("Select a word in the excerpt first.");
+      return;
+    }
+    const range = selection.getRangeAt(0).cloneRange();
+    const url = window.prompt("Enter link URL (e.g. https://example.com)");
+    if (!url || !url.trim()) return;
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand('createLink', false, url.trim());
+
+    excerptRef.current.querySelectorAll('a').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+    handleExcerptInput();
+  };
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingImage(true);
+      const token = localStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "blog-posts");
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" },
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFormData(prev => ({ ...prev, featuredImageUrl: data.data.url }));
+        message.success("Image uploaded successfully!");
+      } else {
+        message.error(data.error || "Failed to upload image");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error uploading image");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const isComplete = formData.title && formData.categoryId !== "—" && formData.excerpt && formData.metaTitle && formData.metaDescription;
 
@@ -231,6 +300,55 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
             onChange={e => setFormData({...formData, title: e.target.value})}
             style={{ borderRadius: 8 }} 
           />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>FEATURED IMAGE</div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: "none" }}
+          />
+          {formData.featuredImageUrl ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <img
+                src={formData.featuredImageUrl}
+                alt="Featured"
+                style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border-color)" }}
+              />
+              <Space>
+                <Button
+                  loading={uploadingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  Replace Image
+                </Button>
+                <Button
+                  danger
+                  icon={<X size={14} />}
+                  onClick={() => setFormData(prev => ({ ...prev, featuredImageUrl: "" }))}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  Remove
+                </Button>
+              </Space>
+            </div>
+          ) : (
+            <div style={{ border: "1px dashed var(--border-color)", borderRadius: 12, padding: 20, textAlign: "center", background: "var(--bg-primary)" }}>
+              <Button
+                icon={<ImagePlus size={16} />}
+                loading={uploadingImage}
+                onClick={() => fileInputRef.current?.click()}
+                style={{ borderRadius: 8, fontWeight: 600, marginBottom: 8 }}
+              >
+                Choose Image
+              </Button>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>Recommended 1200×630px.</div>
+            </div>
+          )}
         </div>
 
         <Row gutter={24} style={{ marginBottom: 24 }}>
@@ -290,13 +408,35 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
         </Row>
 
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
-          <TextArea 
-            size="large"
-            value={formData.excerpt}
-            onChange={e => setFormData({...formData, excerpt: e.target.value})}
-            rows={3} 
-            style={{ borderRadius: 8 }} 
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
+            <Button
+              size="small"
+              icon={<Link2 size={13} />}
+              onClick={handleInsertLink}
+              style={{ borderRadius: 6, fontWeight: 600, fontSize: 12 }}
+            >
+              Insert Link
+            </Button>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 8 }}>
+            Select a word above, then click "Insert Link" to make it clickable.
+          </div>
+          <div
+            ref={excerptRef}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={handleExcerptInput}
+            style={{
+              minHeight: 90,
+              borderRadius: 8,
+              border: "1px solid var(--border-color)",
+              padding: "8px 12px",
+              fontSize: 14,
+              background: "var(--bg-primary)",
+              color: "var(--text-primary)",
+              lineHeight: 1.6
+            }}
           />
         </div>
 

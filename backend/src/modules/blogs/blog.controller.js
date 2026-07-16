@@ -188,7 +188,7 @@ exports.getPosts = async (req, res, next) => {
 exports.addPost = async (req, res, next) => {
   try {
     const { blogId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: 'Post title is required' });
@@ -210,6 +210,7 @@ exports.addPost = async (req, res, next) => {
       websiteId: websiteId && websiteId !== '—' ? websiteId : null,
       storeId: storeId && storeId !== '—' ? storeId : null,
       excerpt: excerpt || "",
+      featuredImageUrl: featuredImageUrl || "",
       metaTitle: metaTitle || "",
       metaDescription: metaDescription || "",
       isFeatured: !!isFeatured
@@ -225,7 +226,7 @@ exports.addPost = async (req, res, next) => {
 exports.updatePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl } = req.body;
 
     const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
     if (!post) {
@@ -242,6 +243,7 @@ exports.updatePost = async (req, res, next) => {
     if (websiteId !== undefined) post.websiteId = websiteId && websiteId !== '—' ? websiteId : null;
     if (storeId !== undefined) post.storeId = storeId && storeId !== '—' ? storeId : null;
     if (excerpt !== undefined) post.excerpt = excerpt;
+    if (featuredImageUrl !== undefined) post.featuredImageUrl = featuredImageUrl;
     if (metaTitle !== undefined) post.metaTitle = metaTitle;
     if (metaDescription !== undefined) post.metaDescription = metaDescription;
     if (isFeatured !== undefined) post.isFeatured = isFeatured;

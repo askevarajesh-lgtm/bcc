@@ -60,6 +60,14 @@ const BlogPostEmbedView = () => {
       </Breadcrumb>
       
       <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{postData.title}</Title>
+
+      {postData.featuredImageUrl && (
+        <img
+          src={postData.featuredImageUrl}
+          alt={postData.title}
+          style={{ width: "100%", maxHeight: 420, objectFit: "cover", borderRadius: 16, marginBottom: 32 }}
+        />
+      )}
       
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#64748b', fontSize: 14, fontWeight: 500, marginBottom: 32 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -84,9 +92,10 @@ const BlogPostEmbedView = () => {
           dangerouslySetInnerHTML={{ __html: postData.content }}
         />
       ) : (
-        <Paragraph style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}>
-          {postData.excerpt || "No content provided."}
-        </Paragraph>
+        <div
+          style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
+          dangerouslySetInnerHTML={{ __html: postData.excerpt || "No content provided." }}
+        />
       )}
     </div>
   );

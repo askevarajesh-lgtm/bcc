@@ -10,6 +10,7 @@ const BlogPostSchema = new mongoose.Schema({
   websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', default: null },
   storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
   excerpt: { type: String, default: "" },
+  featuredImageUrl: { type: String, default: "" },
   metaTitle: { type: String, default: "" },
   metaDescription: { type: String, default: "" },
   isFeatured: { type: Boolean, default: false },

@@ -81,6 +81,13 @@ const BlogEmbedView = () => {
                   hoverable 
                   style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
                   bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
+                  cover={post.featuredImageUrl ? (
+                    <img
+                      src={post.featuredImageUrl}
+                      alt={post.title}
+                      style={{ width: '100%', height: 180, objectFit: 'cover' }}
+                    />
+                  ) : undefined}
                 >
                   {post.categories && post.categories.length > 0 && (
                     <div style={{ marginBottom: 16 }}>
