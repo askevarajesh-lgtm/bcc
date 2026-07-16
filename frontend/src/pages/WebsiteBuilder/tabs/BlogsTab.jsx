@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag, message } from "antd";
+import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag, message, Modal } from "antd";
 import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft, ImagePlus, Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -231,19 +231,30 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     setFormData(prev => ({ ...prev, excerpt: excerptRef.current.innerHTML }));
   };
 
+  const savedRangeRef = useRef(null);
+  const [linkModalVisible, setLinkModalVisible] = useState(false);
+  const [linkUrlInput, setLinkUrlInput] = useState("");
+
   const handleInsertLink = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
       message.warning("Select a word in the excerpt first.");
       return;
     }
-    const range = selection.getRangeAt(0).cloneRange();
-    const url = window.prompt("Enter link URL (e.g. https://example.com)");
-    if (!url || !url.trim()) return;
+    savedRangeRef.current = selection.getRangeAt(0).cloneRange();
+    setLinkUrlInput("");
+    setLinkModalVisible(true);
+  };
 
+  const handleConfirmInsertLink = () => {
+    const url = linkUrlInput.trim();
+    setLinkModalVisible(false);
+    if (!url || !savedRangeRef.current || !excerptRef.current) return;
+
+    const selection = window.getSelection();
     selection.removeAllRanges();
-    selection.addRange(range);
-    document.execCommand('createLink', false, url.trim());
+    selection.addRange(savedRangeRef.current);
+    document.execCommand('createLink', false, url);
 
     excerptRef.current.querySelectorAll('a').forEach(a => {
       a.setAttribute('target', '_blank');
@@ -439,6 +450,28 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
             }}
           />
         </div>
+
+        <Modal
+          title="Insert Link"
+          open={linkModalVisible}
+          onOk={handleConfirmInsertLink}
+          onCancel={() => setLinkModalVisible(false)}
+          centered
+          width={400}
+          okText="Insert"
+        >
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 8 }}>
+            Enter the link URL (e.g. https://example.com)
+          </div>
+          <Input
+            autoFocus
+            size="large"
+            placeholder="https://example.com"
+            value={linkUrlInput}
+            onChange={e => setLinkUrlInput(e.target.value)}
+            onPressEnter={handleConfirmInsertLink}
+          />
+        </Modal>
 
         <Row gutter={24} style={{ marginBottom: 32 }}>
           <Col span={12}>

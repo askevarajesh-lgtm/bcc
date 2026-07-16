@@ -75,49 +75,99 @@ const BlogEmbedView = () => {
       ) : (
         <>
           <Row gutter={[32, 32]}>
-            {displayedPosts.map(post => (
-              <Col xs={24} md={12} lg={8} key={post._id}>
-                <Card 
-                  hoverable 
-                  style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
-                  bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
-                  cover={post.featuredImageUrl ? (
-                    <img
-                      src={post.featuredImageUrl}
-                      alt={post.title}
-                      style={{ width: '100%', height: 180, objectFit: 'cover' }}
-                    />
-                  ) : undefined}
-                >
-                  {post.categories && post.categories.length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      {post.categories.map((cat, idx) => (
-                        <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
-                      ))}
-                    </div>
-                  )}
-                  <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
-                    <a href={`/blog/${blogData.slug}/${post.slug}`} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
-                      {post.title}
-                    </a>
-                  </Title>
-                  
-                  <Paragraph style={{ color: '#475569', fontSize: 15, flex: 1, marginBottom: 24 }} ellipsis={{ rows: 3 }}>
-                    {/* Extract plain text from HTML content or use description if available */}
-                    {post.content ? post.content.replace(/<[^>]+>/g, '') : "Read the full post for more details."}
-                  </Paragraph>
+            {displayedPosts.map(post => {
+              const postUrl = `/blog/${blogData.slug}/${post.slug}`;
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <User size={14} /> Admin
-                    </span>
-                  </div>
-                </Card>
-              </Col>
-            ))}
+              // The excerpt can contain rich text (e.g. a link inserted in the editor) and must be
+              // rendered as HTML rather than escaped text, or tags show up literally on the card.
+              const excerptHtml = post.excerpt?.trim() || '';
+              const fallbackPlainText = !excerptHtml && post.content
+                ? post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                : '';
+
+              // Word count is measured on plain text (tags stripped) so we don't cut an HTML tag in half.
+              const plainForCount = excerptHtml
+                ? excerptHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                : fallbackPlainText;
+              const WORD_LIMIT = 20;
+              const words = plainForCount.split(' ').filter(Boolean);
+              const isLong = words.length > WORD_LIMIT;
+
+              // A curated excerpt is rendered in full (as HTML, clamped visually via CSS);
+              // a content-derived fallback is truncated to plain text since it has no markup to preserve.
+              const excerptContent = excerptHtml
+                ? excerptHtml
+                : (fallbackPlainText
+                  ? (isLong ? words.slice(0, WORD_LIMIT).join(' ') + '…' : fallbackPlainText)
+                  : 'Read the full post for more details.');
+
+              return (
+                <Col xs={24} md={12} lg={8} key={post._id}>
+                  <Card 
+                    hoverable 
+                    style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                    bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
+                    cover={post.featuredImageUrl ? (
+                      <a href={postUrl} target="_parent">
+                        <img
+                          src={post.featuredImageUrl}
+                          alt={post.title}
+                          style={{ width: '100%', height: 180, objectFit: 'cover' }}
+                        />
+                      </a>
+                    ) : undefined}
+                  >
+                    {post.categories && post.categories.length > 0 && (
+                      <div style={{ marginBottom: 16 }}>
+                        {post.categories.map((cat, idx) => (
+                          <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
+                        ))}
+                      </div>
+                    )}
+                    <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
+                      <a href={postUrl} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
+                        {post.title}
+                      </a>
+                    </Title>
+
+                    <Paragraph
+                      style={{
+                        color: '#475569',
+                        fontSize: 15,
+                        flex: 1,
+                        marginBottom: 16,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <span dangerouslySetInnerHTML={{ __html: excerptContent }} />
+                    </Paragraph>
+
+                    {isLong && (
+                      <Button
+                        type="link"
+                        href={postUrl}
+                        target="_parent"
+                        style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600 }}
+                      >
+                        Read More
+                      </Button>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <User size={14} /> Admin
+                      </span>
+                    </div>
+                  </Card>
+                </Col>
+              );
+            })}
           </Row>
 
           {isEmbed && posts.length >= 3 && (

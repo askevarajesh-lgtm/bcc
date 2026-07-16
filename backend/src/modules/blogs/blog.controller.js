@@ -96,11 +96,12 @@ exports.getPublicBlog = async (req, res, next) => {
     }
 
     const posts = await BlogPost.find({ blogId: id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
+    const postsWithCategoryNames = await resolvePostCategoryNames(id, posts);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
-        posts
+        posts: postsWithCategoryNames
       }
     });
   } catch (error) {
@@ -118,17 +119,30 @@ exports.getPublicBlogBySlug = async (req, res, next) => {
     }
 
     const posts = await BlogPost.find({ blogId: blog._id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
+    const postsWithCategoryNames = await resolvePostCategoryNames(blog._id, posts);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
-        posts
+        posts: postsWithCategoryNames
       }
     });
   } catch (error) {
     next(error);
   }
 };
+
+// Helper: replace stored category id strings with their display names for public responses
+async function resolvePostCategoryNames(blogId, posts) {
+  const categoryDocs = await BlogCategory.find({ blogId, isDeleted: false });
+  const idToName = new Map(categoryDocs.map(cat => [String(cat._id), cat.name]));
+
+  return posts.map(post => {
+    const plain = post.toObject();
+    plain.categories = (plain.categories || []).map(catIdOrName => idToName.get(String(catIdOrName)) || catIdOrName);
+    return plain;
+  });
+}
 
 // Update Blog Settings
 exports.updateBlog = async (req, res, next) => {
