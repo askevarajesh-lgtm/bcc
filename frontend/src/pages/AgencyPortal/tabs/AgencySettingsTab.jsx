@@ -308,7 +308,7 @@ const AgencySettingsTab = () => {
   );
 };
 
-  const items = [
+  const baseItems = [
     {
       key: 'agency',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Building2 size={16} /> Agency Profile</span>,
@@ -331,6 +331,10 @@ const AgencySettingsTab = () => {
     },
   ];
 
+  const items = user?.role === 'agency_manager' 
+    ? baseItems.filter(item => ['account', 'client-packages'].includes(item.key))
+    : baseItems;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div style={{ marginBottom: 24 }}>
@@ -339,7 +343,7 @@ const AgencySettingsTab = () => {
       </div>
       
       <Tabs 
-        defaultActiveKey="agency" 
+        defaultActiveKey={items[0]?.key || "account"} 
         items={items} 
         animated={{ inkBar: true, tabPane: true }}
         size="large"

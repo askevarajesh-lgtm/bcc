@@ -90,6 +90,11 @@ exports.createAgency = async (req, res, next) => {
 exports.updateAgency = async (req, res, next) => {
   try {
     const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
+    if (req.body.package && !req.body.plan) {
+      req.body.plan = req.body.package;
+      delete req.body.package;
+    }
+    
     const agency = await User.findOneAndUpdate(
       { _id: req.params.id, role: { $in: [targetRole] } },
       req.body,

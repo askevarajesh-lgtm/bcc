@@ -32,7 +32,7 @@ const getRoleColor = (role) => {
 };
 
 const UserManagementTab = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [activeTab, setActiveTab] = useState('user');
   
   // States for data
@@ -61,7 +61,9 @@ const UserManagementTab = () => {
   const [permissionRoleId, setPermissionRoleId] = useState(null);
   const [draftPermissions, setDraftPermissions] = useState({});
 
-  const getPermissionGroupsForRole = (currentRole) => {
+  const getPermissionGroupsForRole = (currentRole, feats = []) => {
+    const hasF = (f) => feats.length === 0 || feats.includes(f);
+
     if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(currentRole)) {
       return {
         'General': ['Command Center', 'Settings'],
@@ -81,17 +83,46 @@ const UserManagementTab = () => {
         ]
       };
     } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
-      return {
+      const groups = {
         'General': ['Command Center', 'Settings'],
         'Clients': ['Accounts', 'SLA & Success'],
-        'Workspace': [
-          'Social Media', 'Performance Ads', 'CRM & Leads', 'Proposals',
-          'Invoices', 'Projects', 'Master Item', 'Automation', 'Task Management',
-          'Meetings', 'Calendar', 'Deliverables'
-        ],
-        'Agency Ops': ['Sales Pipeline'],
+        'Workspace': [],
+        'Intelligence': [],
+        'Agency Ops': [],
         'Support': ['Support']
       };
+
+      // Workspace
+      if (hasF('strategy')) groups.Workspace.push('Strategy');
+      if (hasF('aistudio')) groups.Workspace.push('AI Studio');
+      if (hasF('social')) groups.Workspace.push('Social Media');
+      if (hasF('ads')) groups.Workspace.push('Performance Ads');
+      if (hasF('crm')) groups.Workspace.push('CRM & Leads');
+      
+      // Default Workspace Modules
+      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Automation');
+
+      if (hasF('website')) groups.Workspace.push('Websites');
+      if (hasF('marketplace')) groups.Workspace.push('Marketplace');
+      if (hasF('seo')) groups.Workspace.push('SEO / AEO / GEO');
+
+      // Intelligence
+      if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');
+      if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
+      if (hasF('canva')) groups.Intelligence.push('Canva');
+      if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
+      if (currentRole === 'agency_super_admin') {
+         groups.Intelligence.push('Performance', 'Reports');
+      }
+
+      // Agency Ops
+      if (hasF('salespipeline')) groups['Agency Ops'].push('Sales Pipeline');
+      groups['Agency Ops'].push('Meetings', 'Calendar', 'Deliverables');
+
+      // Settings extras (can go in General or Agency Ops)
+      groups.General.push('Master Item');
+
+      return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
       return {
         'General': ['Command Center', 'Settings'],
@@ -117,7 +148,7 @@ const UserManagementTab = () => {
     };
   };
 
-  const permissionGroups = getPermissionGroupsForRole(useAuth().role);
+  const permissionGroups = getPermissionGroupsForRole(user?.role, user?.features || []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -128,7 +159,7 @@ const UserManagementTab = () => {
         api.get('/roles')
       ]);
       const allUsers = usersRes.data?.data || [];
-      setUsers(allUsers.filter(u => u.role !== 'agency_client' && u.role !== 'client'));
+      setUsers(allUsers.filter(u => !['agency_super_admin', 'agency_manager', 'agency_client', 'client'].includes(u.role)));
       setDepartments(deptsRes.data?.data || []);
       setRoles(rolesRes.data?.data || []);
     } catch (err) {

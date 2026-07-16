@@ -104,20 +104,25 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const workspaceChildren = [];
+  
   if (role !== 'agency_super_admin') {
+    if (feats.includes('strategy') || feats.length === 0) workspaceChildren.push({ key: '/agency/strategy', icon: getIcon(Target), label: 'Strategy' });
+    if (feats.includes('aistudio') || feats.length === 0) workspaceChildren.push({ key: '/agency/ai-studio', icon: getIcon(Zap), label: 'AI Studio' });
     if (feats.includes('social') || feats.length === 0) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
     if (feats.includes('ads') || feats.length === 0) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
+    
     if (feats.includes('crm') || feats.length === 0) {
       workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
-      workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
-      workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
-      workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
     }
-    if (feats.includes('tasks') || feats.length === 0) workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
-    if (feats.includes('marketplace') || feats.length === 0) {
-      workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
-      workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
-    }
+    
+    // Default modules always available
+    workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
+    workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
+    workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
+    workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    if (feats.includes('website') || feats.length === 0) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
+    if (feats.includes('marketplace') || feats.length === 0) workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
+    if (feats.includes('seo') || feats.length === 0) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
   }
 
   if (workspaceChildren.length > 0) {
@@ -129,6 +134,13 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const intelligenceChildren = [];
+  if (role !== 'agency_super_admin') {
+    if (feats.includes('analytics') || feats.length === 0) intelligenceChildren.push({ key: '/agency/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' });
+    if (feats.includes('chatgpt') || feats.length === 0) intelligenceChildren.push({ key: '/agency/chatgpt', icon: getIcon(HelpCircle), label: 'ChatGPT' });
+    if (feats.includes('canva') || feats.length === 0) intelligenceChildren.push({ key: '/agency/canva', icon: getIcon(PenTool), label: 'Canva' });
+    if (feats.includes('benchmark') || feats.length === 0) intelligenceChildren.push({ key: '/agency/benchmarks', icon: getIcon(Activity), label: 'Benchmark' });
+  }
+  
   if (role === 'agency_super_admin') {
     intelligenceChildren.push({ key: '/agency/performance', icon: getIcon(TrendingUp), label: 'Performance' });
     intelligenceChildren.push({ key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' });

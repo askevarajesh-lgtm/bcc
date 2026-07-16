@@ -300,6 +300,12 @@ const AppRoutes = () => {
           <Route path="performance-ads" element={<PerformanceAds />} />
           <Route path="crm" element={<CRM />} />
           <Route path="automation" element={<Automation />} />
+          <Route path="website/*" element={<WebsiteBuilder />} />
+          <Route path="website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+          <Route path="chatgpt" element={<ClientChatGPTPage />} />
+          <Route path="canva" element={<ClientCanvaPage />} />
+          <Route path="benchmarks" element={<Benchmarks />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="master-items" element={<MasterItemsList />} />
           <Route path="master-items/new" element={<MasterItemForm />} />
           <Route path="master-items/:id" element={<MasterItemForm />} />
