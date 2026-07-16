@@ -24,3 +24,4 @@ connectDB().then(() => {
     startInvoiceCron();
   });
 });
+

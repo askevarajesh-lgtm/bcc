@@ -57,18 +57,14 @@ const TasksPage = () => {
   const location = useLocation();
   const { user: user } = useAuth();
   const userRole = user?.role;
-  const { hasPermission } = useActionPermissions("/tasks");
-
+  const { canAdd: canCreate, canEdit } = useActionPermissions("/tasks");
+  
   const getBaseRoute = () => {
     if (location.pathname.startsWith("/client")) return "/client/workspace";
     if (location.pathname.startsWith("/agency")) return "/agency/workspace";
     if (location.pathname.startsWith("/user")) return "/user/workspace";
     return "/workspace";
   };
-
-  // Check permissions for actions
-  const canCreate = hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
-  const canEdit = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
 
   const adminRoles = [
     "supreme_super_admin",
@@ -84,8 +80,8 @@ const TasksPage = () => {
   const isSEO = false; // Default-Allow model
   const isSEOFullTime = false;
 
-  // Allow create if: admin role with create permission, OR any role (including 'user'/employee) that has explicit Create permission
-  const canCreateTask = !isIntern && canCreate && (isAdmin || userRole === 'user') && (!isSEO || isSEOFullTime);
+  // Allow create if: the role has explicit Create permission from useActionPermissions
+  const canCreateTask = !isIntern && canCreate && (!isSEO || isSEOFullTime);
 
   // Define roles that can view tasks (all regular users + admins)
   const rolesWithTaskAccess = [
@@ -114,6 +110,7 @@ const TasksPage = () => {
   const [toastCount, setToastCount] = useState(0);
   const [toastTotal, setToastTotal] = useState(0);
   const [isTaskTypeModalOpen, setIsTaskTypeModalOpen] = useState(false);
+  const [pendingInitialStatus, setPendingInitialStatus] = useState(null);
 
   const { data: todayStatsData, refetch: refetchTodayStats } =
     useGetTodayTaskStatsQuery(undefined, {
@@ -232,18 +229,20 @@ const TasksPage = () => {
   };
 
   const handleAddTask = (statusId) => {
-    if (['agency_manager', 'agency_super_admin'].includes(userRole)) {
-      setIsTaskTypeModalOpen(true);
-    } else {
+    if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
       navigate(`${getBaseRoute()}/tasks/new`, { state: { initialStatus: statusId } });
+    } else {
+      setPendingInitialStatus(statusId);
+      setIsTaskTypeModalOpen(true);
     }
   };
 
   const handleOpenCreateTask = () => {
-    if (['agency_manager', 'agency_super_admin'].includes(userRole)) {
-      setIsTaskTypeModalOpen(true);
-    } else {
+    if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
       navigate(`${getBaseRoute()}/tasks/new`);
+    } else {
+      setPendingInitialStatus(null);
+      setIsTaskTypeModalOpen(true);
     }
   };
 
@@ -749,7 +748,7 @@ const TasksPage = () => {
               hoverable
               onClick={() => {
                 setIsTaskTypeModalOpen(false);
-                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "client" } });
+                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "client", initialStatus: pendingInitialStatus } });
               }}
               style={{
                 textAlign: "center",
@@ -771,7 +770,7 @@ const TasksPage = () => {
               hoverable
               onClick={() => {
                 setIsTaskTypeModalOpen(false);
-                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand" } });
+                navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand", initialStatus: pendingInitialStatus } });
               }}
               style={{
                 textAlign: "center",

@@ -75,8 +75,7 @@ const TaskForm = () => {
   // When editing: infer from the task data after it loads (see below, after taskData is declared).
   const locationTaskTarget = location.state?.taskTarget;
 
-  const { hasPermission } = useActionPermissions("/tasks");
-  const isSEO = hasPermission(PERMISSION_ACTIONS.VIEW_SEO_PANEL);
+  const { canAdd: canCreate, canEdit: canEditTaskDetails } = useActionPermissions("/tasks");
   const isSEOUser = false; // Default-Allow: do not restrict project dropdowns
   const adminRoles = [
     "supreme_super_admin",
@@ -87,8 +86,6 @@ const TaskForm = () => {
     "brand_manager"
   ];
   const isAdmin = adminRoles.includes(userRole);
-  const canCreate = isAdmin && hasPermission(PERMISSION_ACTIONS.CREATE_TASK);
-  const canEditTaskDetails = hasPermission(PERMISSION_ACTIONS.EDIT_TASK);
   const isRestricted = isEdit ? !canEditTaskDetails : !canCreate;
 
   useEffect(() => {
@@ -128,10 +125,10 @@ const TaskForm = () => {
     ? (locationTaskTarget || (task_raw && !task_raw.companyId ? 'own_brand' : 'client'))
     : (locationTaskTarget || 'client');
   const taskTarget = inferredTaskTarget;
-  const hideCompanyProject =
+  const hideClientDropdown =
     userRole === 'commander_admin' ||
     userRole === 'brand_manager' ||
-    (['agency_manager', 'agency_super_admin'].includes(userRole) && taskTarget === 'own_brand');
+    taskTarget === 'own_brand';
   const selectedDepartment = Form.useWatch("department", form);
   const watchedCompanyId = Form.useWatch("companyId", form);
 
@@ -510,22 +507,39 @@ const TaskForm = () => {
   // Ensure the task's current company is ALWAYS in the list if editing,
   // even if it's missing from the fetched companies dropdown (e.g. filtered out by department or status)
   const finalAvailableCompanies = [...availableCompanies];
-  if (isEdit && task?.companyId) {
-    const tCompany = task.companyId;
-    const taskCompanyId = (tCompany._id || tCompany).toString();
-    const isAlreadyIncluded = finalAvailableCompanies.some(
-      (c) => (c._id || c.id || "").toString() === taskCompanyId,
-    );
 
+  const addCompanyIfNeeded = (tCompany) => {
+    if (!tCompany) return;
+    const compId = (tCompany._id || tCompany).toString();
+    if (!compId || compId === "[object Object]") return;
+    const isAlreadyIncluded = finalAvailableCompanies.some(
+      (c) => (c._id || c.id || "").toString() === compId,
+    );
     if (!isAlreadyIncluded) {
       finalAvailableCompanies.push({
-        _id: taskCompanyId,
-        name: tCompany.name || "Selected Company",
+        _id: compId,
+        name: tCompany.name || "Selected Client",
         status: tCompany.status || "active",
       });
     }
+  };
+
+  if (isEdit && task?.companyId) {
+    addCompanyIfNeeded(task.companyId);
   }
 
+  if (selectedProjectWithCounts?.clientId) {
+    addCompanyIfNeeded(selectedProjectWithCounts.clientId);
+  }
+
+  // Fallback: populate clients from the loaded projects (useful if companies API returns 403)
+  if (allProjects && allProjects.length > 0) {
+    allProjects.forEach((p) => {
+      if (p.clientId && p.clientId.name) {
+        addCompanyIfNeeded(p.clientId);
+      }
+    });
+  }
   // Debug: Log projects data to help diagnose
   React.useEffect(() => {
     if (projectsData && !isLoadingProjects) {
@@ -971,8 +985,7 @@ const TaskForm = () => {
           </Row>
 
           <Row gutter={16}>
-            {!hideCompanyProject && (
-              <>
+            {!hideClientDropdown && (
                 <Col xs={24} md={8}>
                   <Form.Item
                     label="Client"
@@ -1019,6 +1032,7 @@ const TaskForm = () => {
                 </Select>
               </Form.Item>
             </Col>
+            )}
 
             <Col xs={24} md={8}>
               <Form.Item
@@ -1063,9 +1077,12 @@ const TaskForm = () => {
                   }
                 >
                   {(() => {
-                    const displayProjects = selectedCompanyId
+                    let displayProjects = selectedCompanyId
                       ? projects
                       : allProjects;
+                    if (taskTarget === 'own_brand') {
+                      displayProjects = displayProjects?.filter(p => !p.clientId) || [];
+                    }
                     return displayProjects && displayProjects.length > 0
                       ? displayProjects.map((project) => {
                           const projectId = project._id || project.id;
@@ -1081,11 +1098,9 @@ const TaskForm = () => {
                         })
                       : null;
                   })()}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </>
-            )}
+                </Select>
+              </Form.Item>
+            </Col>
 
             <Form.Item
               noStyle

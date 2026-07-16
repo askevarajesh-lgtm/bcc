@@ -482,14 +482,17 @@ const getAllTasks = async (
       additionalFilters.companyId = userObjId;
     }
   } else if (restrictToOwnAssignedTasks) {
-    // Regular assignee roles should only see tasks explicitly assigned to them
-    // in the My Tasks list and related task views.
+    // Regular assignee roles should only see tasks explicitly assigned to them, created by them, or watched by them.
     console.log(`[taskService.getAllTasks] Visibility DEBUG:`, {
       userId: userId,
       userRole: userRole,
       assignedTo: userObjId?.toString?.() || userObjId,
     });
-    additionalFilters.assignedTo = userObjId;
+    additionalFilters.$or = [
+      { assignedTo: userObjId },
+      { createdBy: userObjId },
+      { watchers: userObjId },
+    ];
   }
 
   if (reqQuery.status) additionalFilters.status = reqQuery.status;
@@ -2619,13 +2622,17 @@ const getTasksForKanban = async (
       query._id = null;
     }
   } else if (restrictToOwnAssignedTasks) {
-    // Regular assignee roles should only see tasks explicitly assigned to them.
+    // Regular assignee roles should only see tasks explicitly assigned to them, created by them, or watched by them.
     console.log(`[taskService.getTasksForKanban] Visibility DEBUG:`, {
       userId: userId,
       userRole: userRole,
       assignedTo: userObjId?.toString?.() || userObjId,
     });
-    query.assignedTo = userObjId;
+    query.$or = [
+      { assignedTo: userObjId },
+      { createdBy: userObjId },
+      { watchers: userObjId },
+    ];
   }
 
   // Handle Assigned To filter (including unassigned)

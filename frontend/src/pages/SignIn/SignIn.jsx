@@ -99,7 +99,8 @@ const SignIn = () => {
     const { email, password } = values;
 
     try {
-      const response = await fetch('/api/auth/signin', {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_URL}/auth/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

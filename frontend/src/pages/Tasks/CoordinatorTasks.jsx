@@ -38,6 +38,7 @@ import TaskCompletionCelebrate from "./TaskCompletionCelebrate";
 import TaskCompletionToast from "./Taskcompletiontoast";
 import { isCompletedTask } from "./taskDuration";
 import { notifyLoading, notifySuccess, notifyError } from '../../utils/notify';
+import { useActionPermissions } from "../../hooks/useActionPermissions";
 
 const { Title, Text } = Typography;
 
@@ -61,6 +62,7 @@ const stringToColor = (str = "") => {
 const CoordinatorTasks = () => {
   const { token } = antTheme.useToken();
   const { user } = useAuth();
+  const { canAdd } = useActionPermissions("/tasks");
   const [selectedDate, setSelectedDate] = useState(dayjs());
 
   const {
@@ -243,7 +245,7 @@ const CoordinatorTasks = () => {
               fontSize: 13,
             }}
           />
-          {(user.role !== "admin" && user.role !== "super_admin") && (
+          {canAdd && (user.role !== "admin" && user.role !== "super_admin") && (
             <Button
               type="primary"
               icon={<PlusOutlined />}

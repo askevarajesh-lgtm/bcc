@@ -47,7 +47,15 @@ export function useActionPermissions(path) {
     // Agency Managers, Admins, and Super Admins always have FULL access
     if (ALWAYS_FULL_ACCESS_ROLES.includes(role)) return true;
 
-    const actionKey = action.charAt(0).toUpperCase() + action.slice(1);
+    if (!action) return false;
+    let actionKey = action.charAt(0).toUpperCase() + action.slice(1);
+    
+    // Map specific action strings (e.g. 'create-task', 'edit-task') to standard permission keys
+    const actionLower = action.toLowerCase();
+    if (actionLower.includes('create') || actionLower === 'add') actionKey = 'Create';
+    else if (actionLower.includes('edit') || actionLower.includes('assign') || actionLower.includes('complete') || actionLower.includes('validate') || actionLower.includes('reopen') || actionLower.includes('manage')) actionKey = 'Edit';
+    else if (actionLower.includes('delete')) actionKey = 'Delete';
+    else if (actionLower.includes('view') || actionLower.includes('read')) actionKey = 'View';
 
     // Employee (user) role: controlled strictly by permissions object
     if (EMPLOYEE_ROLES.includes(role)) {

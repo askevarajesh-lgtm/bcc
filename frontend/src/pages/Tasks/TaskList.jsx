@@ -77,7 +77,7 @@ const TaskList = () => {
   const isAdmin = adminRoles.includes(userRole);
 
   const canCreate =
-    isAdmin && !isIntern && canCreatePermission && (!isSEO || isSEOFullTime);
+    !isIntern && canCreatePermission && (!isSEO || isSEOFullTime);
   const canEdit = !isIntern && canEditPermission && (!isSEO || isSEOFullTime);
   const canDelete =
     !isIntern && canDeletePermission && (!isSEO || isSEOFullTime);

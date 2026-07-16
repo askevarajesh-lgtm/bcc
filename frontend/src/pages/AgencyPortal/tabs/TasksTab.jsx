@@ -3,11 +3,13 @@ import { Typography, Row, Col, Button, Tag, Collapse } from 'antd';
 import { Plus, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
+import { useActionPermissions } from '../../../hooks/useActionPermissions';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const TasksTab = () => {
+  const { canAdd } = useActionPermissions('/tasks');
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -68,9 +70,11 @@ const TasksTab = () => {
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Agency Tasks</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All open tasks and deliverables across all clients</Text>
         </div>
-        <Button type="primary" icon={<Plus size={18} />} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, height: 40, padding: '0 20px', boxShadow: '2px 2px 0 var(--border-color)' }}>
-          New Task
-        </Button>
+        {canAdd && (
+          <Button type="primary" icon={<Plus size={18} />} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, height: 40, padding: '0 20px', boxShadow: '2px 2px 0 var(--border-color)' }}>
+            New Task
+          </Button>
+        )}
       </motion.div>
 
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
