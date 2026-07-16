@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin } from "antd";
-import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2, Code2 } from "lucide-react";
+import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2, Code2, Newspaper } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -208,6 +208,8 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
   const [savingWidget, setSavingWidget] = useState(false);
+  const [websiteBlogs, setWebsiteBlogs] = useState([]);
+  const [loadingBlogs, setLoadingBlogs] = useState(true);
   const [scriptModalPageId, setScriptModalPageId] = useState(null);
   const [headCodeInput, setHeadCodeInput] = useState("");
   const [bodyCodeInput, setBodyCodeInput] = useState("");
@@ -232,6 +234,38 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
     };
     fetchWidgets();
   }, []);
+
+  useEffect(() => {
+    const fetchWebsiteBlogs = async () => {
+      try {
+        setLoadingBlogs(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/blogs", {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Only keep blogs linked to this specific website
+          const filtered = (data.data || []).filter(b => {
+            const linkedWebsiteId = b.websiteId?._id || b.websiteId;
+            return linkedWebsiteId && String(linkedWebsiteId) === String(activeWebsite.key);
+          });
+          setWebsiteBlogs(filtered);
+        }
+      } catch (err) {
+        console.error("Failed to fetch blogs for website", err);
+      } finally {
+        setLoadingBlogs(false);
+      }
+    };
+    fetchWebsiteBlogs();
+  }, [activeWebsite.key]);
+
+  const handleManageBlogs = () => {
+    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const basePath = match ? match[0] : '/workspace/website';
+    navigate(`${basePath}/blogs`);
+  };
 
   const handleSaveWidgetAssignment = async () => {
     try {
@@ -619,6 +653,53 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                     </div>
                   ))}
                 </div>
+              </Card>
+
+              <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}><Newspaper size={22} color="var(--accent-primary)" /> Blogs</div>
+                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 700 }}>{websiteBlogs.length} total</div>
+                </div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Blogs linked to this website only.</div>
+
+                {loadingBlogs ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                    <Spin />
+                  </div>
+                ) : websiteBlogs.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 500 }}>
+                    No blogs are linked to this website yet.
+                    {role !== 'agency_client' && (
+                      <div style={{ marginTop: 16 }}>
+                        <Button type="primary" onClick={handleManageBlogs} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}>
+                          Create a Blog
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                    {websiteBlogs.map((blog, index) => (
+                      <div key={blog._id || index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: index < websiteBlogs.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 20, marginBottom: 20 }}>
+                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Newspaper size={24} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
+                              {blog.name}
+                              <Tag style={{ margin: 0, background: blog.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-primary)', color: blog.status === 'active' ? 'var(--accent-success)' : 'var(--text-tertiary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10, textTransform: 'uppercase' }}>{blog.status || 'inactive'}</Tag>
+                            </div>
+                            <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{blog.posts || 0} posts &middot; {blog.publicUrl || `/blog/${blog.slug}`}</div>
+                          </div>
+                        </div>
+                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={handleManageBlogs}>
+                          Manage
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
 
             </div>

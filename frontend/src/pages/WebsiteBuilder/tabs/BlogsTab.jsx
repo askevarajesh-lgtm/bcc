@@ -635,7 +635,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Featured post</span>
         </div>
 
-        {isComplete && (
           <Button 
             type="primary" 
             size="large"
@@ -644,7 +643,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           >
             {editData ? "Update blog post" : "Create blog post"}
           </Button>
-        )}
       </Card>
     </motion.div>
   );
