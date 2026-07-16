@@ -401,7 +401,9 @@ exports.updateWebsite = async (req, res, next) => {
             isHome: p.isHome || false,
             layoutJson: p.layoutJson || { sections: [] },
             html: p.html || '',
-            css: p.css || ''
+            css: p.css || '',
+            customHeadCode: p.customHeadCode || '',
+            customBodyCode: p.customBodyCode || ''
           });
           const savedPage = await newPage.save();
           finalPages.push(savedPage);
@@ -414,7 +416,9 @@ exports.updateWebsite = async (req, res, next) => {
                 title: p.title,
                 path: p.path,
                 status: p.status,
-                isHome: p.isHome
+                isHome: p.isHome,
+                customHeadCode: p.customHeadCode || '',
+                customBodyCode: p.customBodyCode || ''
               }
             },
             { new: true }
@@ -575,7 +579,11 @@ exports.duplicatePage = async (req, res, next) => {
       path: newPath,
       status: 'Draft',
       isHome: false,
-      layoutJson: page.layoutJson
+      layoutJson: page.layoutJson,
+      html: page.html,
+      css: page.css,
+      customHeadCode: page.customHeadCode,
+      customBodyCode: page.customBodyCode
     });
 
     const saved = await duplicated.save();
@@ -589,7 +597,7 @@ exports.duplicatePage = async (req, res, next) => {
 exports.updatePage = async (req, res, next) => {
   try {
     const { websiteId, pageId } = req.params;
-    const { title, path, layoutJson, html, css, status } = req.body;
+    const { title, path, layoutJson, html, css, status, customHeadCode, customBodyCode } = req.body;
 
     const page = await Page.findOne({ _id: pageId, websiteId, isDeleted: false });
     if (!page) {
@@ -611,6 +619,8 @@ exports.updatePage = async (req, res, next) => {
     if (html !== undefined) page.html = html;
     if (css !== undefined) page.css = css;
     if (status) page.status = status;
+    if (customHeadCode !== undefined) page.customHeadCode = customHeadCode;
+    if (customBodyCode !== undefined) page.customBodyCode = customBodyCode;
 
     const saved = await page.save();
     res.json({ success: true, data: saved });

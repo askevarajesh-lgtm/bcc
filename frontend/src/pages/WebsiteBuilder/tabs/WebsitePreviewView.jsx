@@ -274,8 +274,10 @@ const WebsitePreviewView = () => {
               pointer-events: none !important;
             }
           </style>
+          ${pageData.customHeadCode || ""}
         </head>
         <body>
+          ${pageData.customBodyCode || ""}
           ${pageData.html || '<div style="padding:40px;text-align:center;font-family:sans-serif;">This page is currently empty.</div>'}
           ${widgetData ? getWidgetScriptCode(widgetData) : ""}
         </body>

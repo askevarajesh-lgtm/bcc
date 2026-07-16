@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin } from "antd";
-import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2 } from "lucide-react";
+import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2, Code2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -208,6 +208,10 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
   const [savingWidget, setSavingWidget] = useState(false);
+  const [scriptModalPageId, setScriptModalPageId] = useState(null);
+  const [headCodeInput, setHeadCodeInput] = useState("");
+  const [bodyCodeInput, setBodyCodeInput] = useState("");
+  const [savingScript, setSavingScript] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -289,7 +293,9 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
         key: `temp-${Date.now()}`,
         title: `${pageToDuplicate.title} Copy`,
         path: `${pageToDuplicate.path}-copy`,
-        isHome: false
+        isHome: false,
+        customHeadCode: pageToDuplicate.customHeadCode || "",
+        customBodyCode: pageToDuplicate.customBodyCode || ""
       };
       setPages([...pages, newPage]);
     }
@@ -328,6 +334,56 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
   const handleSavePage = (updatedPage) => {
     setPages(pages.map(p => p._id === updatedPage._id ? updatedPage : p));
+  };
+
+  const handleOpenScriptModal = (page) => {
+    setScriptModalPageId(page._id || page.key);
+    setHeadCodeInput(page.customHeadCode || "");
+    setBodyCodeInput(page.customBodyCode || "");
+  };
+
+  const handleCloseScriptModal = () => {
+    setScriptModalPageId(null);
+    setHeadCodeInput("");
+    setBodyCodeInput("");
+  };
+
+  const handleSaveScript = async () => {
+    const pageId = scriptModalPageId;
+    setPages(pages.map(p => (p._id === pageId || p.key === pageId)
+      ? { ...p, customHeadCode: headCodeInput, customBodyCode: bodyCodeInput }
+      : p));
+
+    // Persist immediately for pages that already exist on the server
+    if (pageId && !pageId.toString().startsWith('temp-')) {
+      try {
+        setSavingScript(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${pageId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+          },
+          body: JSON.stringify({ customHeadCode: headCodeInput, customBodyCode: bodyCodeInput })
+        });
+        const data = await res.json();
+        if (data.success) {
+          message.success("Custom code saved for this page!");
+        } else {
+          message.error(data.error || "Failed to save custom code");
+        }
+      } catch (err) {
+        console.error(err);
+        message.error("Error saving custom code");
+      } finally {
+        setSavingScript(false);
+      }
+    } else {
+      message.success("Custom code added. Click \"Save Changes\" to persist this page.");
+    }
+
+    handleCloseScriptModal();
   };
 
   return (
@@ -419,16 +475,6 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                       <Input placeholder="CXX000000000000X" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
                     </Col>
                   </Row>
-
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM HEAD CODE</div>
-                    <TextArea placeholder="<script>...</script> placed before </head>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} disabled={role === 'agency_client'} />
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM BODY CODE</div>
-                    <TextArea placeholder="<noscript>...</noscript> placed after <body>" style={{ borderRadius: 6, minHeight: 80, fontFamily: "monospace", fontSize: 12 }} disabled={role === 'agency_client'} />
-                  </div>
                 </div>
 
                 {role !== 'agency_client' && (
@@ -567,6 +613,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                         {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
                         <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
                         {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
+                        {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
                         {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
                       </div>
                     </div>
@@ -578,6 +625,44 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           </Col>
         </Row>
       </div>
+
+      <Modal
+        open={!!scriptModalPageId}
+        onCancel={handleCloseScriptModal}
+        footer={null}
+        width={640}
+        title={<div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Code2 size={18} color="var(--accent-primary)" /> Custom Code</div>}
+        className="glassmorphism-modal"
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Add custom code for this page only. Head code is injected inside &lt;head&gt;&lt;/head&gt;, body code is injected inside &lt;body&gt;&lt;/body&gt; when the page renders.
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM HEAD CODE</div>
+          <TextArea
+            placeholder="<script>...</script> placed before </head>"
+            value={headCodeInput}
+            onChange={(e) => setHeadCodeInput(e.target.value)}
+            style={{ borderRadius: 6, minHeight: 100, fontFamily: "monospace", fontSize: 12 }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CUSTOM BODY CODE</div>
+          <TextArea
+            placeholder="<noscript>...</noscript> placed inside <body>"
+            value={bodyCodeInput}
+            onChange={(e) => setBodyCodeInput(e.target.value)}
+            style={{ borderRadius: 6, minHeight: 100, fontFamily: "monospace", fontSize: 12 }}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" onClick={handleCloseScriptModal} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={savingScript} onClick={handleSaveScript} style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Code</Button>
+        </div>
+      </Modal>
     </motion.div>
   );
 };
