@@ -164,6 +164,18 @@ const GrapesJSBuilder = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // loadForms/loadBlogs/loadQRs below are async (they await a fetch, and
+    // loadBlogs awaits a fetch per-blog on top of that) and call
+    // `e.BlockManager.add(...)` once the data comes back. If this effect's
+    // cleanup runs first — e.g. React re-running the effect (StrictMode
+    // double-invokes effects in dev), or the user navigating away/switching
+    // pages before the fetch resolves — `e.destroy()` has already torn down
+    // the editor, `e.BlockManager` is gone, and the `.add()` call throws
+    // "Cannot read properties of undefined (reading 'add')". `destroyed`
+    // lets every loader check, right before each `.add()` call, whether
+    // that's already happened and bail out quietly instead of crashing.
+    let destroyed = false;
+
     const e = grapesjs.init({
       container: editorRef.current,
       fromElement: true,
@@ -231,8 +243,11 @@ const GrapesJSBuilder = ({
         });
         const data = await res.json();
 
+        if (destroyed) return;
+
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((form) => {
+            if (destroyed) return;
             const embedUrl = `${window.location.origin}/embed/form/${form._id}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; height:520px; border:0; border-radius:16px;"></iframe>`;
 
@@ -249,7 +264,78 @@ const GrapesJSBuilder = ({
       }
     };
 
-    // Fetch blogs and register them as GrapesJS blocks
+    // Build one post card's markup — same fields/behavior as before
+    // (categories, full excerpt, "Read More" link, date + author), just
+    // recolored/restyled to the indigo "Our latest blogs" theme.
+    const buildBlogPostCardHtml = (blog, post) => {
+      const postUrl = `/blog/${blog.slug}/${post.slug}`;
+      const excerptHtml =
+        post.excerpt?.trim() ||
+        (post.content
+          ? post.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+          : "") ||
+        "Read the full post for more details.";
+      const dateStr = post.createdAt
+        ? new Date(post.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "";
+      const categoriesHtml =
+        post.categories && post.categories.length
+          ? `<div style="margin-bottom:16px;">${post.categories
+              .map(
+                (cat) =>
+                  `<span style="display:inline-block; background:#eef2ff; color:#5b5fef; border-radius:4px; padding:2px 10px; font-size:12px; font-weight:600; margin-right:6px;">${cat}</span>`,
+              )
+              .join("")}</div>`
+          : "";
+      const imageHtml = post.featuredImageUrl
+        ? `<a href="${postUrl}" target="_parent"><img src="${post.featuredImageUrl}" alt="${post.title}" style="width:100%; height:190px; object-fit:cover; display:block; border-radius:16px;" /></a>`
+        : `<div style="width:100%; height:190px; border-radius:16px; background:#f1f5f9;"></div>`;
+
+      return `
+        <div data-post-card-id="${post._id}" style="flex:1 1 260px; max-width:340px;">
+          ${imageHtml}
+          <div style="margin-top:20px;">
+            ${categoriesHtml}
+            <h4 style="margin:0 0 10px; font-weight:700; font-size:17px; line-height:1.4;">
+              <a href="${postUrl}" target="_parent" style="color:#5b5fef; text-decoration:none;">${post.title}</a>
+            </h4>
+            <p style="color:#94a3b8; font-size:14px; line-height:1.6; margin:0 0 16px;">${excerptHtml}</p>
+            <a href="${postUrl}" target="_parent" style="font-weight:700; font-size:14px; color:#5b5fef; text-decoration:none; display:inline-block; margin-bottom:16px;">Read More &rarr;</a>
+            <div style="display:flex; align-items:center; gap:16px; color:#94a3b8; font-size:13px; font-weight:500;">
+              <span>${dateStr}</span>
+              <span>Admin</span>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    // Fetch blogs and register them as GrapesJS blocks.
+    //
+    // NOTE: this used to drop an <iframe src="/embed/blog/:id"> onto the
+    // canvas and let that iframe fetch its own post data client-side. That
+    // looked fine in a real page load (Preview / the live site), because a
+    // top-level or srcdoc page load gets time to let the fetch resolve
+    // before anything else touches the DOM. But the GrapesJS canvas itself
+    // is constantly re-rendering as you select components, open panels,
+    // undo/redo, etc. — every one of those can reload the nested iframe
+    // before its fetch finishes, so only markup that didn't depend on the
+    // fetch (the blog's static title) ever made it on-canvas, and the post
+    // list stayed permanently blank while editing even though it rendered
+    // fine anywhere the page was loaded normally.
+    //
+    // Fix: fetch each blog's actual published posts once, up front, and
+    // bake the real title/image/excerpt/date into the block's HTML as
+    // plain GrapesJS components — the same content, the same fields the
+    // live site shows, just no runtime fetch inside the canvas to race.
+    // This does mean the block is a snapshot at drop-time: publishing a
+    // new post later won't retroactively appear on pages that already
+    // have this block saved — dragging a fresh copy of the block (or
+    // re-dragging it in) picks up whatever is published at that moment.
     const loadBlogs = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -258,18 +344,65 @@ const GrapesJSBuilder = ({
         });
         const data = await res.json();
 
-        if (data.success && Array.isArray(data.data)) {
-          data.data.forEach((blog) => {
-            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:600px; border:0; border-radius:16px;"></iframe>`;
+        if (destroyed) return;
 
-            e.BlockManager.add(`blog-${blog._id}`, {
-              label: blog.name,
-              category: "Blogs",
-              content: iframeCode,
-              attributes: { class: "fa fa-newspaper-o" }, // FontAwesome newspaper icon
-            });
-          });
+        if (data.success && Array.isArray(data.data)) {
+          await Promise.all(
+            data.data.map(async (blog) => {
+              let posts = [];
+              try {
+                const postsRes = await fetch(`/api/blogs/${blog._id}/public`);
+                const postsData = await postsRes.json();
+                if (postsData.success && postsData.data) {
+                  posts = (postsData.data.posts || []).slice(0, 3);
+                }
+              } catch (postsErr) {
+                console.error(
+                  `Failed to fetch posts for blog ${blog._id}`,
+                  postsErr,
+                );
+              }
+
+              if (destroyed) return;
+
+              const postsHtml = posts.length
+                ? posts.map((post) => buildBlogPostCardHtml(blog, post)).join("")
+                : `<div style="text-align:center; padding:60px 20px; background:#f8fafc; border-radius:16px; width:100%;">
+                     <h4 style="color:#64748b; margin:0 0 8px;">No posts published yet.</h4>
+                     <p style="color:#94a3b8; margin:0;">Check back later for updates!</p>
+                   </div>`;
+
+              const blogListUrl = `/blog/${blog.slug}`;
+
+              const blockContent = `
+                <div data-blog-list-id="${blog._id}" style="max-width:1200px; margin:0 auto; padding:60px 20px; font-family:inherit;">
+                  <div style="display:flex; gap:60px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:0 0 280px; max-width:320px;">
+                      <h2 style="font-weight:800; margin:0 0 16px; font-size:32px; color:#0f172a; line-height:1.2;">${blog.name.split(" ").slice(0, -1).join(" ") || "Our latest"} <span style="color:#5b5fef;">${blog.name.split(" ").slice(-1)[0] || "blogs"}</span></h2>
+                      <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px;">${blog.description || "Welcome to our blog section, where knowledge meets inspiration. Explore insightful articles, expert tips, and the latest trends in our field."}</p>
+                      <a href="${blogListUrl}" target="_parent" style="display:inline-block; padding:12px 28px; border:1px solid #e2e8f0; border-radius:999px; color:#0f172a; font-weight:600; font-size:14px; text-decoration:none; margin-bottom:56px;">View All</a>
+                      <div style="display:flex; gap:12px;">
+                        <span style="width:40px; height:40px; border-radius:50%; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:16px;">&larr;</span>
+                        <span style="width:40px; height:40px; border-radius:50%; background:#5b5fef; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:16px;">&rarr;</span>
+                      </div>
+                    </div>
+                    <div style="flex:1 1 480px; display:flex; flex-wrap:wrap; gap:32px;">
+                      ${postsHtml}
+                    </div>
+                  </div>
+                </div>
+              `;
+
+              if (destroyed) return;
+
+              e.BlockManager.add(`blog-${blog._id}`, {
+                label: blog.name,
+                category: "Blogs",
+                content: blockContent,
+                attributes: { class: "fa fa-newspaper-o" }, // FontAwesome newspaper icon
+              });
+            }),
+          );
         }
       } catch (err) {
         console.error("Failed to fetch blogs for GrapesJS", err);
@@ -285,8 +418,11 @@ const GrapesJSBuilder = ({
         });
         const data = await res.json();
 
+        if (destroyed) return;
+
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((qr) => {
+            if (destroyed) return;
             const embedUrl = `${window.location.origin}/embed/qr/${qr._id}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${qr.name}" style="width:220px; height:240px; border:0; border-radius:16px; overflow:hidden;" scrolling="no"></iframe>`;
 
@@ -337,6 +473,9 @@ const GrapesJSBuilder = ({
       // FAQ Section — a container (data-post-field="faq") holding repeatable
       // .faq-item blocks, each with a data-faq-question / data-faq-answer
       // pair. Both are read back out into a structured faqs[] array on save.
+      // The badge/heading/subtitle above the list are plain text — editable
+      // in-canvas like any other component — and aren't read back out on
+      // save; they're just the section's default look.
       //
       // Accordion behavior uses native <details>/<summary> — no JS and no
       // stylesheet rules needed, both of which are unreliable here: <script>
@@ -344,28 +483,45 @@ const GrapesJSBuilder = ({
       // published post page, and that page only renders the saved `html`,
       // not the saved `css` (see BlogPostEmbedView), so class-based CSS
       // rules would show correctly in this editor but silently vanish once
-      // published. Everything below is inline styles + a plain <svg>, which
-      // travels safely with the HTML wherever it's rendered.
+      // published. Everything below is inline styles + a plain "+" glyph,
+      // which travels safely with the HTML wherever it's rendered.
       //
-      // NOTE: blocks are dropped in with the `open` attribute set, so the
-      // answer stays visible and directly editable in the canvas (clicking
-      // the collapsed summary here just selects/toggles the component rather
-      // than reliably opening it for text editing). `open` is stripped back
-      // out on save (see handleSave) so the *published* post still starts
-      // collapsed for readers.
+      // NOTE: the first item is dropped in with the `open` attribute set, so
+      // its answer stays visible and directly editable in the canvas
+      // (clicking a collapsed summary here just selects/toggles the
+      // component rather than reliably opening it for text editing).
+      // `open` is stripped back out on save (see handleSave) so the
+      // *published* post still starts fully collapsed for readers.
+      const faqItemHtml = (question, answer, open) => `
+            <details class="faq-item" ${open ? "open" : ""} style="background:#ffffff; border-radius:14px; box-shadow:0 1px 3px rgba(15,23,42,0.06); padding:20px 24px;">
+              <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+                <span data-faq-question style="font-weight:700; font-size:15px; color:#0f172a;">${question}</span>
+                <span style="flex-shrink:0; width:28px; height:28px; border-radius:50%; background:#0f172a; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:300; line-height:1;">+</span>
+              </summary>
+              <div data-faq-answer style="font-size:13px; color:#94a3b8; line-height:1.6; margin-top:12px;">${answer}</div>
+            </details>
+      `;
+
       e.BlockManager.add("post-faq-section-block", {
         label: "FAQ Section",
         category: "Post",
         content: `
-          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; border-top:1px solid #e2e8f0;">
-            <h2 style="font-size:24px; font-weight:800; margin:0 0 20px; color:#0f172a;">Frequently Asked Questions</h2>
-            <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-              <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Question goes here?</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </summary>
-              <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Answer goes here.</div>
-            </details>
+          <div data-post-field="faq" style="margin-top:48px; padding:56px 20px; text-align:center; font-family:inherit;">
+            <div style="display:inline-flex; align-items:center; gap:8px; background:#ffffff; border:1px solid #e2e8f0; padding:4px 6px 4px 4px; border-radius:20px; margin-bottom:24px;">
+              <span style="background:#5b5fef; color:#ffffff; font-weight:700; font-size:11px; padding:4px 12px; border-radius:16px;">Brand</span>
+              <span style="color:#0f172a; font-weight:700; font-size:11px; padding-right:6px; letter-spacing:0.5px;">FAQ</span>
+            </div>
+            <h2 style="font-size:36px; font-weight:800; margin:0 0 12px; color:#0f172a; line-height:1.2;">Frequently answer <span style="color:#5b5fef;">questions</span></h2>
+            <p style="font-size:14px; color:#94a3b8; margin:0 0 40px;">Manage it all with a fully customizable, no code platform</p>
+            <div style="max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:16px; text-align:left;">
+              ${faqItemHtml(
+                "What is Customer Relationship Management (CRM)?",
+                "Customer Relationship Management (CRM) is a platform that helps companies manage interactions with current and potential customers. CRM software enhances customer relationships by connecting with customers, streamlining activities, and improving retention.",
+                true,
+              )}
+              ${faqItemHtml("What is CRM Software Used For?", "Its answer.", false)}
+              ${faqItemHtml("Manage your finances from any device", "Its answer.", false)}
+            </div>
           </div>
         `,
         attributes: { class: "fa fa-question-circle" },
@@ -373,15 +529,7 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-faq-item-block", {
         label: "FAQ Item",
         category: "Post",
-        content: `
-          <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-            <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Another question?</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Its answer.</div>
-          </details>
-        `,
+        content: faqItemHtml("Another question?", "Its answer.", true),
         attributes: { class: "fa fa-plus-square" },
       });
     }
@@ -457,6 +605,7 @@ const GrapesJSBuilder = ({
     e.on("stop:core:preview", () => setIsPreviewing(false));
 
     return () => {
+      destroyed = true;
       e.destroy();
     };
   }, [activePage.html, activePage.css, activePost?.html, activePost?.css]);
