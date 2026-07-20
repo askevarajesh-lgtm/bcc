@@ -315,6 +315,35 @@ const GrapesJSBuilder = ({
         content: `<p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6;">A short summary shown in blog listings.</p>`,
         attributes: { class: "fa fa-align-left" },
       });
+
+      // FAQ Section — a container (data-post-field="faq") holding repeatable
+      // .faq-item blocks, each with a data-faq-question / data-faq-answer
+      // pair. Both are read back out into a structured faqs[] array on save.
+      e.BlockManager.add("post-faq-section-block", {
+        label: "FAQ Section",
+        category: "Post",
+        content: `
+          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; border-top:1px solid #e2e8f0;">
+            <h2 style="font-size:24px; font-weight:800; margin:0 0 20px; color:#0f172a;">Frequently Asked Questions</h2>
+            <div class="faq-item" style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
+              <div data-faq-question style="font-weight:700; font-size:16px; margin-bottom:8px; color:#0f172a;">Question goes here?</div>
+              <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6;">Answer goes here.</div>
+            </div>
+          </div>
+        `,
+        attributes: { class: "fa fa-question-circle" },
+      });
+      e.BlockManager.add("post-faq-item-block", {
+        label: "FAQ Item",
+        category: "Post",
+        content: `
+          <div class="faq-item" style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
+            <div data-faq-question style="font-weight:700; font-size:16px; margin-bottom:8px; color:#0f172a;">Another question?</div>
+            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6;">Its answer.</div>
+          </div>
+        `,
+        attributes: { class: "fa fa-plus-square" },
+      });
     }
 
     // Hide common HTML template preloaders/spinners inside the canvas
@@ -593,6 +622,20 @@ const GrapesJSBuilder = ({
           ? imageEl.getAttribute("src") || ""
           : initialPostFeaturedImageUrl;
 
+        // FAQ items are optional — walk every .faq-item inside the FAQ
+        // Section component and pull out its question/answer text.
+        const faqs = [];
+        const faqSection = doc.querySelector('[data-post-field="faq"]');
+        if (faqSection) {
+          faqSection.querySelectorAll(".faq-item").forEach((item) => {
+            const qEl = item.querySelector("[data-faq-question]");
+            const aEl = item.querySelector("[data-faq-answer]");
+            const question = qEl ? qEl.textContent.trim() : "";
+            const answer = aEl ? aEl.textContent.trim() : "";
+            if (question || answer) faqs.push({ question, answer });
+          });
+        }
+
         if (!title) {
           message.error("Add a Post Title block with some text before saving.");
           setSaving(false);
@@ -611,6 +654,7 @@ const GrapesJSBuilder = ({
             title,
             excerpt,
             featuredImageUrl,
+            faqs,
           }),
         });
         const data = await res.json();

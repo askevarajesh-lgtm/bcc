@@ -10,11 +10,6 @@ const BlogEmbedView = () => {
   const { blogId, blogSlug } = useParams();
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [expandedPosts, setExpandedPosts] = useState({});
-
-  const toggleExpand = (postId) => {
-    setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
-  };
 
   useEffect(() => {
     fetchBlog();
@@ -83,6 +78,13 @@ const BlogEmbedView = () => {
           <Row gutter={[32, 32]}>
             {displayedPosts.map(post => {
               const postUrl = `/blog/${blogData.slug}/${post.slug}`;
+              // Same route the "Preview" button uses in the website builder —
+              // renders this post's actual saved html/css exactly as built
+              // in the GrapesJS post editor.
+              const postWebsiteId = post.websiteId || blogData.websiteId;
+              const postPreviewUrl = postWebsiteId
+                ? `/preview/website/${postWebsiteId}/blog-post/${post._id}`
+                : postUrl;
 
               // The excerpt can contain rich text (e.g. a link inserted in the editor) and must be
               // rendered as HTML rather than escaped text, or tags show up literally on the card.
@@ -99,8 +101,8 @@ const BlogEmbedView = () => {
               const words = plainForCount.split(' ').filter(Boolean);
               const isLong = words.length > WORD_LIMIT;
 
-              // Full text is always rendered — the max-height clamp (collapsed) plus the
-              // Read More/Show Less toggle below controls what's actually visible.
+              // Full text is always rendered — the max-height clamp truncates it visually,
+              // and "Read More" links out to the fully built post preview.
               const excerptContent = excerptHtml
                 ? excerptHtml
                 : (fallbackPlainText || 'Read the full post for more details.');
@@ -143,21 +145,21 @@ const BlogEmbedView = () => {
                         flex: 1,
                         marginBottom: 16,
                         overflow: 'hidden',
-                        maxHeight: expandedPosts[post._id] ? 'none' : '8em'
+                        maxHeight: isLong ? '8em' : 'none'
                       }}
                     >
                       <span dangerouslySetInnerHTML={{ __html: excerptContent }} />
                     </Paragraph>
 
-                    {isLong && (
-                      <Button
-                        type="link"
-                        onClick={() => toggleExpand(post._id)}
-                        style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600 }}
-                      >
-                        {expandedPosts[post._id] ? 'Show Less' : 'Read More'}
-                      </Button>
-                    )}
+                    <Button
+                      type="link"
+                      href={postPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600 }}
+                    >
+                      Read More
+                    </Button>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

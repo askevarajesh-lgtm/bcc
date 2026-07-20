@@ -11,6 +11,14 @@ const BlogPostSchema = new mongoose.Schema({
   storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
   excerpt: { type: String, default: "" },
   featuredImageUrl: { type: String, default: "" },
+  faqs: {
+    type: [{
+      question: { type: String, default: "", trim: true },
+      answer: { type: String, default: "", trim: true },
+      _id: false
+    }],
+    default: []
+  },
   layoutJson: { type: mongoose.Schema.Types.Mixed, default: {} },
   html: { type: String, default: "" },
   css: { type: String, default: "" },
