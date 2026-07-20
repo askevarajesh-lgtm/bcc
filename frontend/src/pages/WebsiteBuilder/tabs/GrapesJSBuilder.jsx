@@ -125,6 +125,13 @@ const GrapesJSBuilder = ({
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
+  // In-page save confirmation. We show this instead of relying only on antd's
+  // static `message` API — on this full-screen builder route the message
+  // toast can end up rendered but visually stuck behind/outside the builder's
+  // canvas, so it only becomes visible after navigating away (e.g. back to
+  // the Websites page). Rendering our own banner inside this component
+  // guarantees it shows right here, right after Save Changes is clicked.
+  const [saveToast, setSaveToast] = useState(null); // { type: 'success' | 'error', text: string } | null
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -319,16 +326,35 @@ const GrapesJSBuilder = ({
       // FAQ Section — a container (data-post-field="faq") holding repeatable
       // .faq-item blocks, each with a data-faq-question / data-faq-answer
       // pair. Both are read back out into a structured faqs[] array on save.
+      //
+      // Accordion behavior uses native <details>/<summary> — no JS and no
+      // stylesheet rules needed, both of which are unreliable here: <script>
+      // tags inserted via dangerouslySetInnerHTML never execute on the live
+      // published post page, and that page only renders the saved `html`,
+      // not the saved `css` (see BlogPostEmbedView), so class-based CSS
+      // rules would show correctly in this editor but silently vanish once
+      // published. Everything below is inline styles + a plain <svg>, which
+      // travels safely with the HTML wherever it's rendered.
+      //
+      // NOTE: blocks are dropped in with the `open` attribute set, so the
+      // answer stays visible and directly editable in the canvas (clicking
+      // the collapsed summary here just selects/toggles the component rather
+      // than reliably opening it for text editing). `open` is stripped back
+      // out on save (see handleSave) so the *published* post still starts
+      // collapsed for readers.
       e.BlockManager.add("post-faq-section-block", {
         label: "FAQ Section",
         category: "Post",
         content: `
           <div data-post-field="faq" style="margin-top:40px; padding-top:32px; border-top:1px solid #e2e8f0;">
             <h2 style="font-size:24px; font-weight:800; margin:0 0 20px; color:#0f172a;">Frequently Asked Questions</h2>
-            <div class="faq-item" style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-              <div data-faq-question style="font-weight:700; font-size:16px; margin-bottom:8px; color:#0f172a;">Question goes here?</div>
-              <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6;">Answer goes here.</div>
-            </div>
+            <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
+              <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Question goes here?</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </summary>
+              <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Answer goes here.</div>
+            </details>
           </div>
         `,
         attributes: { class: "fa fa-question-circle" },
@@ -337,10 +363,13 @@ const GrapesJSBuilder = ({
         label: "FAQ Item",
         category: "Post",
         content: `
-          <div class="faq-item" style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-            <div data-faq-question style="font-weight:700; font-size:16px; margin-bottom:8px; color:#0f172a;">Another question?</div>
-            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6;">Its answer.</div>
-          </div>
+          <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
+            <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Another question?</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </summary>
+            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Its answer.</div>
+          </details>
         `,
         attributes: { class: "fa fa-plus-square" },
       });
@@ -552,6 +581,12 @@ const GrapesJSBuilder = ({
     }
   }, [editor, assignedWidget]);
 
+  useEffect(() => {
+    if (!saveToast) return;
+    const timer = setTimeout(() => setSaveToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [saveToast]);
+
   const handleSaveWidgetAssignment = async () => {
     try {
       setSavingWidget(true);
@@ -636,8 +671,18 @@ const GrapesJSBuilder = ({
           });
         }
 
+        // FAQ blocks are dropped in with `open` set so the answer stays
+        // visible/editable in the canvas (see the block definitions above).
+        // Strip it back out here so the published post renders collapsed —
+        // readers get the accordion, the "open" attribute was purely an
+        // editing convenience and was never meant to reach the live page.
+        doc.querySelectorAll(".faq-item[open]").forEach((item) => {
+          item.removeAttribute("open");
+        });
+        const finalHtml = doc.body.innerHTML;
+
         if (!title) {
-          message.error("Add a Post Title block with some text before saving.");
+          setSaveToast({ type: "error", text: "Add a Post Title block with some text before saving." });
           setSaving(false);
           return;
         }
@@ -649,7 +694,7 @@ const GrapesJSBuilder = ({
             Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
-            html,
+            html: finalHtml,
             css,
             title,
             excerpt,
@@ -659,10 +704,10 @@ const GrapesJSBuilder = ({
         });
         const data = await res.json();
         if (data.success) {
-          message.success("Blog post saved successfully!");
+          setSaveToast({ type: "success", text: "Blog post saved successfully!" });
           onSave(data.data);
         } else {
-          message.error(data.error || "Failed to save blog post");
+          setSaveToast({ type: "error", text: data.error || "Failed to save blog post" });
         }
         return;
       }
@@ -680,14 +725,14 @@ const GrapesJSBuilder = ({
       );
       const data = await res.json();
       if (data.success) {
-        message.success("Page saved successfully!");
+        setSaveToast({ type: "success", text: "Page saved successfully!" });
         onSave(data.data);
       } else {
-        message.error(data.error || "Failed to save page");
+        setSaveToast({ type: "error", text: data.error || "Failed to save page" });
       }
     } catch (err) {
       console.error(err);
-      message.error("An error occurred while saving");
+      setSaveToast({ type: "error", text: "An error occurred while saving" });
     } finally {
       setSaving(false);
     }
@@ -698,6 +743,35 @@ const GrapesJSBuilder = ({
       className={`builder-container ${isPreviewing ? "is-previewing" : ""}`}
       style={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
+      {/* Save confirmation banner — deliberately position: fixed with a very high
+          z-index so it's never hidden behind the GrapesJS canvas/panels, and shows
+          right here on the builder screen instead of only appearing once the user
+          navigates back to the Websites page. */}
+      {saveToast && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100000,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 20px",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            color: "#fff",
+            background: saveToast.type === "success" ? "#16a34a" : "#dc2626",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+          }}
+        >
+          {saveToast.text}
+        </div>
+      )}
+
       {/* Custom Premium Top Bar */}
       {!isPreviewing && (
         <div

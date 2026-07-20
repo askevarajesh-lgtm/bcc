@@ -327,11 +327,30 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     }
 
     if (formatEl) {
-      const elRange = document.createRange();
-      elRange.selectNodeContents(formatEl);
+      // Don't compare against (formatEl, 0)/(formatEl, childCount) directly — per the DOM
+      // Range spec, an element-relative boundary point like (h1, 0) is NOT considered equal
+      // to (h1.firstChild, 0) even when they're the same visual position. That mismatch made
+      // this check fail for the common case (whole word selected), so it always fell through
+      // to the "wrap a new tag inside" branch below instead of replacing formatEl in place.
+      // Fix: normalize both the start and end of formatEl down to real leaf text-node points.
+      const getLeafPoint = (node, atStart) => {
+        if (node.nodeType === 3) return { node, offset: atStart ? 0 : node.length };
+        const kids = node.childNodes;
+        if (!kids.length) return { node, offset: 0 };
+        return getLeafPoint(kids[atStart ? 0 : kids.length - 1], atStart);
+      };
+      const startPt = getLeafPoint(formatEl, true);
+      const endPt = getLeafPoint(formatEl, false);
+      const startBoundary = document.createRange();
+      startBoundary.setStart(startPt.node, startPt.offset);
+      startBoundary.setEnd(startPt.node, startPt.offset);
+      const endBoundary = document.createRange();
+      endBoundary.setStart(endPt.node, endPt.offset);
+      endBoundary.setEnd(endPt.node, endPt.offset);
+
       const selectionCoversEl =
-        range.compareBoundaryPoints(Range.START_TO_START, elRange) <= 0 &&
-        range.compareBoundaryPoints(Range.END_TO_END, elRange) >= 0;
+        range.compareBoundaryPoints(Range.START_TO_START, startBoundary) <= 0 &&
+        range.compareBoundaryPoints(Range.END_TO_END, endBoundary) >= 0;
 
       if (selectionCoversEl) {
         const newTag = document.createElement(tagName);
@@ -488,35 +507,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
             >
               <Option value="draft">draft</Option>
               <Option value="published">published</Option>
-            </Select>
-          </Col>
-        </Row>
-
-        <Row gutter={24} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEBSITE (OPTIONAL)</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Tag this post for a site; embed via Page builder → Blog.</div>
-            <Select 
-              size="large"
-              value={formData.websiteId}
-              onChange={v => setFormData({...formData, websiteId: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {websites.map(w => <Option key={w._id} value={w._id}>{w.name}</Option>)}
-            </Select>
-          </Col>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEB STORE (OPTIONAL)</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Shows on storefront <code style={{color: '#ea580c'}}>/shop/{"{slug}"}/blog</code>.</div>
-            <Select 
-              size="large"
-              value={formData.storeId}
-              onChange={v => setFormData({...formData, storeId: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {stores.map(s => <Option key={s._id} value={s._id}>{s.name}</Option>)}
             </Select>
           </Col>
         </Row>
