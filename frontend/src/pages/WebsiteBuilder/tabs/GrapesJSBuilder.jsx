@@ -149,6 +149,17 @@ const GrapesJSBuilder = ({
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [savingWidget, setSavingWidget] = useState(false);
   const [assignedWidget, setAssignedWidget] = useState(null);
+  // Posts created/edited in this builder default to "draft" on the backend
+  // (BlogPostSchema.status default) and previously had no way to be
+  // published from here — handleSave() never sent a `status` field, so
+  // every post saved through this editor stayed a draft forever. Public
+  // blog embeds (`/api/blogs/:id/public`, used by the "Blogs" block you
+  // drag onto a page) only return posts with status "published", so those
+  // posts silently never appeared in the page editor's Blog List block —
+  // even though the individual Post Preview button (which reads the post
+  // back unfiltered) showed them fine. This toggle + the status field
+  // added to the save payload below closes that gap.
+  const [postStatus, setPostStatus] = useState(activePost?.status || "draft");
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -223,7 +234,7 @@ const GrapesJSBuilder = ({
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((form) => {
             const embedUrl = `${window.location.origin}/embed/form/${form._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; min-height:520px; border:0; border-radius:16px;"></iframe>`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; height:520px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`form-${form._id}`, {
               label: form.name,
@@ -250,7 +261,7 @@ const GrapesJSBuilder = ({
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((blog) => {
             const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; min-height:600px; border:0; border-radius:16px;"></iframe>`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:600px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`blog-${blog._id}`, {
               label: blog.name,
@@ -700,11 +711,18 @@ const GrapesJSBuilder = ({
             excerpt,
             featuredImageUrl,
             faqs,
+            status: postStatus,
           }),
         });
         const data = await res.json();
         if (data.success) {
-          setSaveToast({ type: "success", text: "Blog post saved successfully!" });
+          setSaveToast({
+            type: "success",
+            text:
+              postStatus === "published"
+                ? "Blog post saved and published!"
+                : "Blog post saved as draft. Switch to \"Published\" and save again to make it appear in Blog List blocks."
+          });
           onSave(data.data);
         } else {
           setSaveToast({ type: "error", text: data.error || "Failed to save blog post" });
@@ -841,6 +859,16 @@ const GrapesJSBuilder = ({
               >
                 Chat Widget
               </Button>
+            )}
+            {isPostMode && (
+              <Select
+                value={postStatus}
+                onChange={(v) => setPostStatus(v)}
+                style={{ width: 130, height: 36 }}
+              >
+                <Option value="draft">Draft</Option>
+                <Option value="published">Published</Option>
+              </Select>
             )}
             <Button
               type="primary"
