@@ -8,7 +8,8 @@ import {
   useCreateDealMutation,
   useUpdateDealMutation,
   useDeleteDealMutation,
-  useAddDealNoteMutation
+  useAddDealNoteMutation,
+  useConvertDealToClientMutation
 } from '../../api/salesPipelineApi';
 
 const { Title, Text, Paragraph } = Typography;
@@ -29,9 +30,11 @@ const SalesPipeline = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
 
   // Forms
   const [form] = Form.useForm();
+  const [convertForm] = Form.useForm();
 
   // API Queries
   const { data: dealsResponse, isLoading: dealsLoading, refetch: refetchDeals } = useGetDealsQuery({
@@ -46,6 +49,7 @@ const SalesPipeline = () => {
   const [updateDeal, { isLoading: isUpdating }] = useUpdateDealMutation();
   const [deleteDeal] = useDeleteDealMutation();
   const [addDealNote, { isLoading: isAddingNote }] = useAddDealNoteMutation();
+  const [convertDeal, { isLoading: isConverting }] = useConvertDealToClientMutation();
 
   const deals = dealsResponse?.data?.deals || [];
   const analytics = analyticsResponse?.data?.analytics || {
@@ -71,6 +75,26 @@ const SalesPipeline = () => {
       refetchAnalytics();
     } catch (err) {
       message.error(err?.error || "Failed to create deal");
+    }
+  };
+
+  const handleConvert = async (values) => {
+    try {
+      await convertDeal({ id: selectedDealId, email: values.email, password: values.password }).unwrap();
+      message.success("Deal successfully converted!");
+      setIsConvertModalOpen(false);
+      convertForm.resetFields();
+      setIsDetailOpen(false);
+      refetchDeals();
+      refetchAnalytics();
+    } catch (err) {
+      console.error("CONVERT ERROR DETAILS:", err);
+      let errMsg = "Failed to convert deal";
+      if (typeof err === 'string') errMsg = err;
+      else if (err?.error) errMsg = err.error;
+      else if (err?.message) errMsg = err.message;
+      else if (err?.data?.message) errMsg = err.data.message;
+      message.error(errMsg);
     }
   };
 
@@ -238,7 +262,8 @@ const SalesPipeline = () => {
             { id: 'lead', title: 'NEW LEAD', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.06)' },
             { id: 'qualified', title: 'QUALIFIED', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.06)' },
             { id: 'proposal', title: 'PROPOSAL SENT', color: '#0d9488', bg: 'rgba(13, 148, 136, 0.06)' },
-            { id: 'negotiation', title: 'NEGOTIATION', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.06)' }
+            { id: 'negotiation', title: 'NEGOTIATION', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.06)' },
+            { id: 'won', title: 'COMPLETED', color: '#10b981', bg: 'rgba(16, 185, 129, 0.06)' }
           ].map(stage => {
             const stageDeals = getDealsByStage(stage.id);
             const totalVal = stageDeals.reduce((sum, d) => sum + d.value, 0);
@@ -466,6 +491,18 @@ const SalesPipeline = () => {
                     </Button>
                   ))}
                 </Space>
+                {selectedDeal.stage === 'won' && !selectedDeal.clientId && (
+                  <div style={{ marginTop: 16 }}>
+                    <Button 
+                      type="primary" 
+                      onClick={() => setIsConvertModalOpen(true)}
+                      style={{ background: 'var(--accent-primary)', borderRadius: 8, width: '100%', fontWeight: 'bold' }}
+                      size="large"
+                    >
+                      Convert to Client
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {canEdit && <Divider style={{ margin: 0 }} />}
@@ -614,6 +651,42 @@ const SalesPipeline = () => {
         </Form>
       </Modal>
 
+      {/* Convert to Client Modal */}
+      <Modal
+        title={role === 'agency_manager' || role === 'agency_super_admin' ? "Convert to Client" : "Convert to Direct Brand"}
+        open={isConvertModalOpen}
+        onCancel={() => setIsConvertModalOpen(false)}
+        okText="Convert"
+        onOk={() => convertForm.submit()}
+        confirmLoading={isConverting}
+        okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+      >
+        <Form
+          form={convertForm}
+          layout="vertical"
+          onFinish={handleConvert}
+          style={{ marginTop: 16 }}
+        >
+          <Paragraph type="secondary">
+            Provide the login credentials to be used by the new client/brand user.
+          </Paragraph>
+          <Form.Item
+            label="Email Address"
+            name="email"
+            rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
+          >
+            <Input placeholder="client@example.com" />
+          </Form.Item>
+          <Form.Item
+            label="Password"
+            name="password"
+            rules={[{ required: true, message: 'Please enter a password' }]}
+          >
+            <Input.Password placeholder="Set a temporary password" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </motion.div>
   );
 };

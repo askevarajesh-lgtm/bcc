@@ -9,7 +9,7 @@ const integrationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website"],
+      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website", "meta_ads"],
       required: true,
     },
     name: {
@@ -26,6 +26,7 @@ const integrationSchema = new mongoose.Schema(
       // For WhatsApp: { backendUrl, apiToken, templates: [{ id, name, variables }] }
       // For SendPulse: { clientId, clientSecret, fromEmail, fromName }
       // For IVR (e.g. Exotel-style): { accountSid, subdomain, accountRegion, apiKey, apiToken, exoPhoneNumber }
+      // For Meta Ads: { accessToken, userId, selectedAdAccounts: [{ id, name }], expiresAt }
     },
   },
   {

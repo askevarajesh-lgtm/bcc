@@ -18,11 +18,9 @@ exports.getClientBenchmarkData = async (req, res, next) => {
 
 exports.getBenchmarkTableData = async (req, res, next) => {
     try {
-        // agencyId can be extracted from req.user if it's an agency manager
-        const agencyId = (req.user.role === 'agency_manager' || req.user.role === 'agency_super_admin') ? req.user._id : req.user.agencyId;
         const industryName = req.query.industry;
         
-        const data = await benchmarkService.getBenchmarkTableData(agencyId, industryName);
+        const data = await benchmarkService.getBenchmarkTableData(req.user, industryName);
         
         res.status(200).json({
             status: 'success',

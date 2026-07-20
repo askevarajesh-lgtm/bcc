@@ -13,7 +13,7 @@ const CreateReportModal = ({ open, onClose }) => {
   const totalSteps = 6;
 
   // Form State
-  const [selectedTemplate, setSelectedTemplate] = useState('social_perf');
+  const [selectedTemplate, setSelectedTemplate] = useState('mos_score');
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedDateRange, setSelectedDateRange] = useState('Last 30 days');
   const [selectedSections, setSelectedSections] = useState(['mos', 'seo', 'ads', 'leads']);
@@ -32,11 +32,10 @@ const CreateReportModal = ({ open, onClose }) => {
     
     setIsSubmitting(true);
     try {
-      const templateName = selectedTemplate === 'social_perf' ? 'Social Media Performance Report' : 
-                           selectedTemplate === 'seo_ranking' ? 'SEO Keyword Ranking Report' : 
-                           selectedTemplate === 'social_eng' ? 'Social Media Engagement Report' : 
-                           selectedTemplate === 'ads_lead' ? 'Paid Ads Lead Generation Report' : 
-                           selectedTemplate === 'lead_conv' ? 'Lead Conversion Report' : 'Custom';
+      const templateName = selectedTemplate === 'mos_score' ? 'MOS Score Report' : 
+                           selectedTemplate === 'seo_analytics' ? 'SEO & Web Analytics' : 
+                           selectedTemplate === 'lead_conv' ? 'Lead Generation & Conversion' : 
+                           selectedTemplate === 'social_eng' ? 'Social Media Engagement' : 'Custom';
       
       const payload = {
         clientId: selectedClient,
@@ -148,11 +147,10 @@ const CreateReportModal = ({ open, onClose }) => {
           <motion.div key="step1" initial="initial" animate="animate" exit="exit" variants={variants} transition={{ duration: 0.2 }}>
             <Row gutter={[16, 16]}>
               {[
-                { id: 'social_perf', title: 'Social Media Performance', desc: 'Comprehensive overview of social media performance and follower growth.', icon: <FileText size={20} /> },
-                { id: 'seo_ranking', title: 'SEO Keyword Ranking', desc: 'Detailed report on high & low rankings for targeted keywords.', icon: <BarChart2 size={20} /> },
-                { id: 'social_eng', title: 'Social Media Engagement', desc: 'Deep dive into likes, shares, comments, and overall interactions.', icon: <Zap size={20} /> },
-                { id: 'ads_lead', title: 'Paid Ads Lead Generation', desc: 'Lead generation performance from paid media campaigns.', icon: <Target size={20} /> },
-                { id: 'lead_conv', title: 'Lead Conversion', desc: 'Analysis of lead conversion rates and pipeline progression.', icon: <Check size={20} /> }
+                { id: 'mos_score', title: 'MOS Score Report', desc: 'Comprehensive breakdown of the MOS score, highlighting areas of improvement.', icon: <FileText size={20} /> },
+                { id: 'seo_analytics', title: 'SEO & Web Analytics', desc: 'Keyword rankings, organic traffic trends, backlink health, and Core Web Vitals.', icon: <BarChart2 size={20} /> },
+                { id: 'lead_conv', title: 'Lead Generation & Conversion', desc: 'Funnel analysis, lead sources, and conversion rates.', icon: <Check size={20} /> },
+                { id: 'social_eng', title: 'Social Media Engagement', desc: 'Aggregated metrics across connected platforms.', icon: <Zap size={20} /> }
               ].map(tpl => {
                 const isSelected = selectedTemplate === tpl.id;
                 return (
@@ -342,7 +340,7 @@ const CreateReportModal = ({ open, onClose }) => {
               
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '16px 0', fontSize: 14 }}>
                 <Text type="secondary" style={{ fontWeight: 500 }}>Template</Text>
-                <strong style={{ color: 'var(--text-primary)' }}>{selectedTemplate === 'social_perf' ? 'Social Media Performance Report' : selectedTemplate === 'seo_ranking' ? 'SEO Keyword Ranking Report' : selectedTemplate === 'social_eng' ? 'Social Media Engagement Report' : selectedTemplate === 'ads_lead' ? 'Paid Ads Lead Generation Report' : selectedTemplate === 'lead_conv' ? 'Lead Conversion Report' : 'Custom'}</strong>
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedTemplate === 'mos_score' ? 'MOS Score Report' : selectedTemplate === 'seo_analytics' ? 'SEO & Web Analytics' : selectedTemplate === 'lead_conv' ? 'Lead Generation & Conversion' : selectedTemplate === 'social_eng' ? 'Social Media Engagement' : 'Custom'}</strong>
                 
                 <Text type="secondary" style={{ fontWeight: 500 }}>Client</Text>
                 <strong style={{ color: 'var(--text-primary)' }}>{selectedClient}</strong>

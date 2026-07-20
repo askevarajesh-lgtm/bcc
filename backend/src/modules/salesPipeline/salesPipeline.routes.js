@@ -14,5 +14,6 @@ router.get("/:id", salesPipelineController.getDealById);
 router.put("/:id", salesPipelineController.updateDeal);
 router.delete("/:id", salesPipelineController.deleteDeal);
 router.post("/:id/notes", salesPipelineController.addDealNote);
+router.post("/:id/convert", salesPipelineController.convertDealToClient);
 
 module.exports = router;

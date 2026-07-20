@@ -271,4 +271,62 @@
     at Readable.read (node:internal/streams/readable:782:10)
     at flow (node:internal/streams/readable:1283:53)
     at resume_ (node:internal/streams/readable:1262:3)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-09T10:51:31.077Z\nundefined\n\n2026-07-14T12:59:56.990Z\nundefined\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-09T10:51:31.077Z\nundefined\n\n2026-07-14T12:59:56.990Z\nundefined\n\n2026-07-20T11:56:38.936Z\nVersionError: No matching document found for id "6a460ff1bb1903a9ead51c20" version 0 modifiedPaths "metrics, revenueAttribution, websiteTraffic, leadsByChannel"
+    at generateVersionError (E:\Bcc Seo\backend\node_modules\mongoose\lib\model.js:596:10)
+    at model.save (E:\Bcc Seo\backend\node_modules\mongoose\lib\model.js:658:30)
+    at Object.getAnalyticsDashboard (E:\Bcc Seo\backend\src\modules\analytics\analytics.service.js:187:25)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:459:9)
+    at async exports.getAnalytics (E:\Bcc Seo\backend\src\modules\analytics\analytics.controller.js:18:23)\n\n2026-07-20T13:21:34.397Z\nReferenceError: agencyId is not defined
+    at exports.getMosDashboard (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:67:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-20T13:21:34.810Z\nReferenceError: agencyId is not defined
+    at exports.getMosDashboard (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:67:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-20T13:21:49.975Z\nReferenceError: agencyId is not defined
+    at exports.getMosDashboard (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:67:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-20T13:21:50.885Z\nReferenceError: agencyId is not defined
+    at exports.getMosDashboard (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:67:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-20T13:27:23.769Z\nError: Cannot find module '../../utils/cryptoUtils'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\mos\mos.controller.js
+- E:\Bcc Seo\backend\src\modules\mos\mos.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.generateActionPlan (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:164:25)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Bcc Seo\backend\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (E:\Bcc Seo\backend\node_modules\router\lib\route.js:117:3)
+    at handle (E:\Bcc Seo\backend\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:295:15
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at E:\Bcc Seo\backend\src\middlewares\rbac.middleware.js:31:5\n\n2026-07-20T13:28:12.632Z\nError: Cannot find module '../../utils/cryptoUtils'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\mos\mos.controller.js
+- E:\Bcc Seo\backend\src\modules\mos\mos.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.generateActionPlan (E:\Bcc Seo\backend\src\modules\mos\mos.controller.js:164:25)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Bcc Seo\backend\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (E:\Bcc Seo\backend\node_modules\router\lib\route.js:117:3)
+    at handle (E:\Bcc Seo\backend\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:295:15
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at E:\Bcc Seo\backend\src\middlewares\rbac.middleware.js:31:5\n\n

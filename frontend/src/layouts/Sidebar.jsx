@@ -180,7 +180,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'INT' : 'INTELLIGENCE',
       children: [
         { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
-        { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', mosScore, 'warning') },
+        ...(['commander_admin', 'supreme_super_admin', 'agency_super_admin', 'agency_manager'].includes(role) ? [
+          { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', mosScore, 'warning') },
+        ] : []),
         // { key: '/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
         { key: '/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
         { key: '/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
@@ -203,7 +205,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           { key: '/ops/profitability', icon: getIcon(DollarSign), label: 'Profitability' },
         ]),
         { key: '/ops/salespipeline', icon: getIcon(Briefcase), label: getLabel('Sales Pipeline', pipelineCount) },
-        { key: '/ops/businessintel', icon: getIcon(PieChart), label: 'Business Intel' },
         { key: '/ops/meetings', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Meetings' : 'Meetings' },
         { key: '/ops/calendar', icon: getIcon(Calendar), label: role === 'commander_admin' ? 'Global Calendar' : 'Calendar' },
         { key: '/ops/deliverables', icon: getIcon(FileText), label: role === 'commander_admin' ? 'Global Deliverables' : 'Deliverables' },

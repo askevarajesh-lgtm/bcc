@@ -1,33 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Select, Button } from 'antd';
+import { Typography, Select, Button, DatePicker, message } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Calendar as CalendarIcon, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import { analyticsApi } from '../../api/analyticsApi';
 import { useGetClientsQuery } from '../../api/clientApi';
+import dayjs from 'dayjs';
 
 import AnalyticsTab from './tabs/AnalyticsTab';
 import AttributionTab from './tabs/AttributionTab';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState('analytics');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState('All Clients');
+  const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
 
   const { data: clientsData } = useGetClientsQuery({});
   const clients = clientsData?.data || [];
 
   useEffect(() => {
     fetchAnalytics();
-  }, [selectedClient]);
+  }, [selectedClient, dateRange]);
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await analyticsApi.getAnalytics(selectedClient);
+      const rangeParam = dateRange ? { start: dateRange[0].format('YYYY-MM-DD'), end: dateRange[1].format('YYYY-MM-DD') } : null;
+      const res = await analyticsApi.getAnalytics(selectedClient, rangeParam);
       if (res.success) {
         setData(res.data);
       }
@@ -35,6 +39,31 @@ const Analytics = () => {
       console.error('Failed to fetch analytics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (!data) return message.warning('No data to export');
+    
+    try {
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + "Metric,Value\n"
+        + `Total Sessions,${data.metrics?.totalSessions || 0}\n`
+        + `Total Leads,${data.metrics?.totalLeads || 0}\n`
+        + `Ad Spend,${data.metrics?.totalAdSpend || '0'}\n`
+        + `Organic Share,${data.metrics?.organicTrafficShare || '0%'}`;
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `analytics_export_${dayjs().format('YYYY-MM-DD')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success('Export successful');
+    } catch (error) {
+      console.error('Export failed', error);
+      message.error('Export failed');
     }
   };
 
@@ -83,8 +112,16 @@ const Analytics = () => {
             <Option value="All Clients">All Clients</Option>
             {clients.map(c => <Option key={c._id} value={c._id}>{c.name}</Option>)}
           </Select>
-          <Button icon={<CalendarIcon size={16} />} style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>May 10 - Jun 9, 2026</Button>
-          {activeTab === 'analytics' && <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export</Button>}
+          <RangePicker 
+            value={dateRange}
+            onChange={setDateRange}
+            style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }}
+          />
+          {activeTab === 'analytics' && (
+            <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>
+              Export
+            </Button>
+          )}
         </div>
       </motion.div>
 

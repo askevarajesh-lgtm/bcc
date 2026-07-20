@@ -11,5 +11,6 @@ router.use(requireRole(['agency_super_admin', 'agency_manager', 'supreme_super_a
 router.get('/dashboard', mosController.getMosDashboard);
 router.put('/config', mosController.updateMosConfig);
 router.post('/recalculate', mosController.triggerRecalculation);
+router.post('/action-plan', mosController.generateActionPlan);
 
 module.exports = router;

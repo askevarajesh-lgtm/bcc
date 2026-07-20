@@ -52,6 +52,16 @@ exports.getRecentSentReports = async (req, res, next) => {
     }
 };
 
+exports.getAnalytics = async (req, res, next) => {
+    try {
+        const agencyId = req.user.agencyId || req.user._id;
+        const analytics = await reportService.getReportAnalytics(agencyId);
+        res.status(200).json({ status: 'success', data: analytics });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.generateReport = async (req, res, next) => {
     try {
         const agencyId = req.user.agencyId || req.user._id;

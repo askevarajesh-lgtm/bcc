@@ -44,7 +44,7 @@ exports.getBrands = async (req, res, next) => {
 // Create a new brand/company and its agency manager user
 exports.createBrand = async (req, res, next) => {
   try {
-    const { name, email, password, packageName, features } = req.body;
+    const { name, email, password, packageName, features, mrr } = req.body;
 
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
@@ -84,6 +84,7 @@ exports.createBrand = async (req, res, next) => {
       isDirect,
       packageName: packageName || null,
       features: features || [],
+      mrr: mrr || 0,
       createdBy: req.user._id
     });
 
@@ -193,11 +194,12 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, packageName, features } = req.body;
+    const { name, packageName, features, mrr } = req.body;
     let updates = {};
     if (name) updates.companyName = name;
     if (packageName !== undefined) updates.packageName = packageName;
     if (features !== undefined) updates.features = features;
+    if (mrr !== undefined) updates.mrr = mrr;
 
     const brand = await User.findOneAndUpdate(
       filter,

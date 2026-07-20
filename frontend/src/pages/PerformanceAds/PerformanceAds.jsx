@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Card, Button, Select, Table, Tag, Progress, Spin, message, Modal, Form, Input } from 'antd';
 import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell, BarChart as RechartsBarChart } from 'recharts';
 import { motion } from 'framer-motion';
-import { RefreshCw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, Activity } from 'lucide-react';
+import { RefreshCcw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, Activity } from 'lucide-react';
 import { performanceAdsApi } from '../../api/performanceAdsApi';
+import api from '../../services/api';
 import { useGetClientsQuery } from '../../api/clientApi';
-import { useGetFacebookIntegrationsQuery } from '../../api/integrationApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -15,6 +15,8 @@ const PerformanceAds = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [isMetaConnected, setIsMetaConnected] = useState(false);
+  const [adAccounts, setAdAccounts] = useState([]);
 
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
@@ -25,12 +27,10 @@ const PerformanceAds = () => {
   const { data: clientsData, isLoading: isLoadingClients } = useGetClientsQuery({});
   const clients = clientsData?.data || [];
 
-  // Fetch Meta integrations dynamically for the selected client
-  const { data: facebookIntegrationsData, isLoading: isLoadingFbIntegrations } = useGetFacebookIntegrationsQuery(selectedClient, { skip: !selectedClient });
-  const fbIntegrations = facebookIntegrationsData?.data?.integrations || [];
+
 
   useEffect(() => {
-    fetchData();
+    fetchDashboardData();
   }, []);
 
   useEffect(() => {
@@ -39,18 +39,42 @@ const PerformanceAds = () => {
     }
   }, [clients, selectedClient]);
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       const res = await performanceAdsApi.getDashboardData();
-      if (res.success) {
+      if (res.success && res.data) {
         setData(res.data);
       }
+
+      // Check Meta Integration Status
+      const intRes = await api.get('/integrations');
+      const intData = intRes.data;
+      if (intData.success && intData.data) {
+        const metaInt = intData.data.find(i => i.type === 'meta_ads' && i.isActive);
+        if (metaInt) {
+          setIsMetaConnected(true);
+          setAdAccounts(metaInt.config.selectedAdAccounts || []);
+        }
+      }
     } catch (error) {
-      console.error('Error fetching performance ads data:', error);
-      message.error('Failed to load performance ads data');
+      console.error('Failed to fetch performance ads data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnectMeta = async () => {
+    try {
+      const res = await api.get('/integrations/meta/auth');
+      if (res.data.success && res.data.url) {
+        window.location.href = res.data.url;
+      } else {
+        message.error('Failed to get Meta authorization URL');
+      }
+    } catch (error) {
+      console.error('Error connecting Meta:', error);
+      message.error(error.response?.data?.message || 'Failed to connect to Meta');
     }
   };
 
@@ -152,32 +176,19 @@ const PerformanceAds = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Performance Ads</Title>
           <Text type="secondary">Paid media across Meta, Google & YouTube — unified attribution.</Text>
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-secondary)', padding: '6px 16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-            <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Client:</Text>
-            <Select
-              value={selectedClient}
-              onChange={setSelectedClient}
-              bordered={false}
-              style={{ width: 180, fontWeight: 600 }}
-              dropdownStyle={{ borderRadius: 12, padding: 8 }}
-              loading={isLoadingClients}
-            >
-              {clients.map(client => (
-                <Select.Option key={client._id} value={client._id}>{client.name}</Select.Option>
-              ))}
-            </Select>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Select defaultValue="Genibox Client Admin" style={{ width: 220, height: 40 }} options={[{ value: 'Genibox Client Admin', label: 'Client: Genibox Client Admin' }]} />
+            <Button onClick={handleSync} loading={syncing} icon={<RefreshCcw size={14} />} style={{ borderRadius: 8, height: 40, fontWeight: 600 }}>Sync data</Button>
+            {!isMetaConnected ? (
+              <Button type="primary" onClick={handleConnectMeta} style={{ borderRadius: 8, background: '#1877F2', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Connect Meta Ads</Button>
+            ) : (
+              <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsCampaignModalOpen(true)} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New campaign</Button>
+            )}
           </div>
-          <Button loading={syncing} onClick={handleSync} icon={<RefreshCw size={16} />} style={{ borderRadius: 10, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40, fontWeight: 500, boxShadow: 'var(--shadow-sm)' }}>
-            Sync data <Text type="secondary" style={{ fontSize: 11, marginLeft: 8, opacity: 0.7 }}>just now</Text>
-          </Button>
-          <Button onClick={() => setIsCampaignModalOpen(true)} type="primary" icon={<Plus size={16} />} style={{ height: 40, borderRadius: 10, fontWeight: 600, padding: '0 20px', boxShadow: 'var(--shadow-md)' }}>
-            New campaign
-          </Button>
         </div>
       </motion.div>
 
@@ -188,7 +199,6 @@ const PerformanceAds = () => {
         </div>
       </motion.div>
 
-      {/* NEW TWO-TONE SOLID HEADER CARDS */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
           { label: 'AD SPEND (MTD)', val: `₹${(data.metrics?.adSpendMTD / 100000).toFixed(2)}L`, isProgress: true, pct: data.metrics?.adSpendPercentage || 0, color: 'var(--accent-secondary)', icon: <IndianRupee size={16} /> },
@@ -210,19 +220,15 @@ const PerformanceAds = () => {
                   overflow: 'hidden'
                 }}
               >
-                {/* Solid Header Portion */}
                 <div style={{ background: kpi.color, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--bg-primary)', textTransform: 'uppercase' }}>{kpi.label}</Text>
                   <div style={{ color: 'var(--bg-primary)', opacity: 0.9 }}>{kpi.icon}</div>
                 </div>
-
-                {/* Data Portion */}
                 <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
                     <Title level={2} style={{ margin: 0, color: 'var(--text-primary)', fontSize: 36, fontWeight: 800 }}>{kpi.val}</Title>
                     <Text style={{ fontSize: 13, fontWeight: 600, color: kpi.subColor || 'var(--text-secondary)' }}>{kpi.sub}</Text>
                   </div>
-
                   <div style={{ marginTop: 'auto', paddingTop: 16 }}>
                     {kpi.isProgress ? (
                       <div>
@@ -363,18 +369,11 @@ const PerformanceAds = () => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           {platformWatch === 'Meta' ? (
             <>
               <Form.Item name="adAccount" label="Meta Ad Account (Integration)" rules={[{ required: true, message: 'Please select a connected Meta account' }]}>
-                <Select placeholder="Select integrated Meta account" loading={isLoadingFbIntegrations}>
-                  {fbIntegrations.map(fb => (
-                    <Select.Option key={fb.pageId} value={fb.pageId}>{fb.pageName} ({fb.pageId})</Select.Option>
-                  ))}
-                  {fbIntegrations.length === 0 && !isLoadingFbIntegrations && (
-                    <Select.Option disabled value="none">No Meta integrations found for this client</Select.Option>
-                  )}
-                </Select>
+                <Select placeholder="Select integrated Meta account" size="large" options={adAccounts.map(a => ({ value: a.id, label: a.name }))} />
               </Form.Item>
               <Row gutter={16}>
                 <Col span={12}>

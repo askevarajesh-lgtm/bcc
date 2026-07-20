@@ -52,7 +52,8 @@ const UserSchema = new mongoose.Schema({
   // Brand Specific Fields
   isDirect: { type: Boolean, default: false },
   packageName: { type: String, default: null },
-  features: [{ type: String }]
+  features: [{ type: String }],
+  ga4PropertyId: { type: String, default: null }
 }, { timestamps: true });
 
 // Hash password before saving

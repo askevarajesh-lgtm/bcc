@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Select, Button, Row, Col, Table, Tag, Skeleton, message, Drawer, Form, InputNumber } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, TrendingUp, TrendingDown, Minus, Plus } from 'lucide-react';
-import { getDashboardData, getTableData, getIndustries, createBenchmark } from '../../api/benchmarkApi';
+import { getDashboardData, getTableData, getIndustries } from '../../api/benchmarkApi';
 import { useGetCompaniesDropdownQuery } from '../../api/companyApi';
 
 const { Title, Text } = Typography;
@@ -41,7 +41,7 @@ const Benchmarks = () => {
   };
 
   const getClientPolygon = () => {
-    if (!dashboardData?.clientData?.metrics) return "0,-84 70,-20 80,45 0,80 -70,50 -60,-20";
+    if (!dashboardData?.clientData?.metrics) return "";
     const m = dashboardData.clientData.metrics;
     return [
       getRadarPoint(m.seo || 0, 0),
@@ -125,41 +125,6 @@ const Benchmarks = () => {
     }
   };
 
-  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [form] = Form.useForm();
-
-  const handleCreateSubmit = async (values) => {
-    try {
-      const payload = {
-        clientId: values.clientId,
-        industryName: values.industryName,
-        metrics: {
-          seo: values.metric_seo || 0,
-          social: values.metric_social || 0,
-          ads: values.metric_ads || 0,
-          leads: values.metric_leads || 0,
-          content: values.metric_content || 0,
-          mos: values.metric_mos || 0,
-        },
-        percentiles: {
-          seo: values.perc_seo || 0,
-          social: values.perc_social || 0,
-          ads: values.perc_ads || 0,
-          leads: values.perc_leads || 0,
-          content: values.perc_content || 0,
-          mos: values.perc_mos || 0,
-        }
-      };
-      await createBenchmark(payload);
-      message.success('Benchmark created successfully');
-      setIsDrawerVisible(false);
-      form.resetFields();
-      fetchData();
-      fetchIndustries();
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to create benchmark');
-    }
-  };
 
   const columns = [
     { title: 'Client', dataIndex: 'client', key: 'client', render: (text) => <Text style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{text}</Text> },
@@ -207,9 +172,7 @@ const Benchmarks = () => {
           <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
             {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
           </Select>
-          <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsDrawerVisible(true)} style={{ height: 40, background: 'var(--accent-primary)', borderRadius: 0, fontWeight: 700, border: 'none' }}>
-            Create Benchmark
-          </Button>
+
           <Button type="default" icon={<Download size={16} />} style={{ height: 40, borderRadius: 0, fontWeight: 700 }}>
             Export Report
           </Button>
@@ -222,7 +185,9 @@ const Benchmarks = () => {
           <Col xs={24} lg={12}>
             <ReticleFrame>
               <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Industry Comparison</Title>
-              <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 40 }}>Prestige Estates vs Real Estate industry average</Text>
+              <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 40 }}>
+                {dashboardData?.clientData?.clientId?.companyName || 'Select a client'} vs {dashboardData?.industryData?.industryName || 'Industry'} average
+              </Text>
               
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', height: 320 }}>
                 {/* SVG Radar Chart */}
@@ -266,7 +231,7 @@ const Benchmarks = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 12, height: 12, background: 'var(--accent-primary)', opacity: 0.8 }} />
-                  <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-primary)' }}>Prestige Estates</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-primary)' }}>{dashboardData?.clientData?.clientId?.companyName || 'Select a client'}</Text>
                 </div>
               </div>
             </ReticleFrame>
@@ -395,147 +360,9 @@ const Benchmarks = () => {
         </ReticleFrame>
       </motion.div>
 
-      {/* Line Charts */}
-      <motion.div variants={itemVariants}>
-        <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Industry Benchmarks — {selectedIndustry} (selected)</Title>
-        <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 24 }}>12-month rolling average · highlighted months = client beat industry</Text>
-        
-        <Row gutter={[32, 32]}>
-          <Col xs={24} md={12}>
-            <ReticleFrame>
-              <Title level={5} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>MOS — {dashboardData?.clientData?.clientId?.companyName || 'Client'} vs Industry</Title>
-              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 32 }}>MOS over 12 months</Text>
-              
-              <div style={{ position: 'relative', height: 200 }}>
-                {/* Y-Axis */}
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <span>80 —</span>
-                  <span>60 —</span>
-                  <span>40 —</span>
-                  <span>20 —</span>
-                  <span>0 —</span>
-                </div>
-                {/* X-Axis */}
-                <div style={{ position: 'absolute', left: 30, right: 0, bottom: 0, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                </div>
-                
-                {/* Chart SVG */}
-                <div style={{ position: 'absolute', left: 30, right: 0, top: 10, bottom: 20 }}>
-                  <svg width="100%" height="100%" preserveAspectRatio="none">
-                    <path d="M 0 160 L 50 150 L 100 145 L 150 155 L 200 160 L 250 165 L 300 170 L 350 160 L 400 155 L 450 150 L 500 140 L 550 120" fill="none" stroke="var(--accent-secondary)" strokeWidth="2" strokeDasharray="4,4" />
-                    <path d="M 0 140 L 50 130 L 100 110 L 150 120 L 200 115 L 250 100 L 300 90 L 350 85 L 400 70 L 450 60 L 500 40 L 550 20" fill="none" stroke="var(--accent-primary)" strokeWidth="3" />
-                  </svg>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 2, background: 'var(--accent-secondary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700 }}>Industry Avg</Text>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 2, background: 'var(--accent-primary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>{dashboardData?.clientData?.clientId?.companyName || 'Client'}</Text>
-                </div>
-              </div>
-            </ReticleFrame>
-          </Col>
-          <Col xs={24} md={12}>
-            <ReticleFrame>
-              <Title level={5} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Organic Traffic Growth (Indexed)</Title>
-              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 32 }}>Index over 12 months</Text>
-              
-              <div style={{ position: 'relative', height: 200 }}>
-                {/* Y-Axis */}
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <span>160 —</span>
-                  <span>120 —</span>
-                  <span>80 —</span>
-                  <span>40 —</span>
-                  <span>0 —</span>
-                </div>
-                {/* X-Axis */}
-                <div style={{ position: 'absolute', left: 30, right: 0, bottom: 0, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                </div>
-                
-                {/* Chart SVG */}
-                <div style={{ position: 'absolute', left: 30, right: 0, top: 10, bottom: 20 }}>
-                  <svg width="100%" height="100%" preserveAspectRatio="none">
-                    <path d="M 0 160 L 50 155 L 100 150 L 150 140 L 200 135 L 250 130 L 300 120 L 350 110 L 400 100 L 450 90 L 500 80 L 550 70" fill="none" stroke="var(--accent-secondary)" strokeWidth="2" strokeDasharray="4,4" />
-                    <path d="M 0 150 L 50 140 L 100 130 L 150 125 L 200 115 L 250 105 L 300 90 L 350 80 L 400 70 L 450 50 L 500 30 L 550 10" fill="none" stroke="var(--accent-primary)" strokeWidth="3" />
-                  </svg>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 2, background: 'var(--accent-secondary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700 }}>Industry Avg</Text>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 2, background: 'var(--accent-primary)' }} />
-                  <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-primary)' }}>{dashboardData?.clientData?.clientId?.companyName || 'Client'}</Text>
-                </div>
-              </div>
-            </ReticleFrame>
-          </Col>
-        </Row>
-      </motion.div>
 
-      <Drawer
-        title="Create Benchmark"
-        width={720}
-        onClose={() => {
-          setIsDrawerVisible(false);
-          form.resetFields();
-        }}
-        open={isDrawerVisible}
-        bodyStyle={{ paddingBottom: 80 }}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateSubmit}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="clientId" label="Client" rules={[{ required: true, message: 'Please select a client' }]}>
-                <Select placeholder="Select Client" loading={isLoadingCompanies}>
-                  {clients.map(c => <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="industryName" label="Industry Name" rules={[{ required: true, message: 'Please enter industry name' }]}>
-                <Select mode="tags" maxCount={1} placeholder="Enter or select Industry">
-                  {industries.filter(i => i !== 'All Industries').map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Title level={5}>Metrics (0-100)</Title>
-          <Row gutter={16}>
-            <Col span={8}><Form.Item name="metric_mos" label="MOS Score" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="metric_seo" label="SEO" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="metric_social" label="Social" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="metric_ads" label="Ads" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="metric_leads" label="Leads" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="metric_content" label="Content" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-          </Row>
 
-          <Title level={5}>Percentiles (0-100)</Title>
-          <Row gutter={16}>
-            <Col span={8}><Form.Item name="perc_mos" label="Overall Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="perc_seo" label="SEO Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="perc_social" label="Social Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="perc_ads" label="Ads Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="perc_leads" label="Leads Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="perc_content" label="Content Rank" rules={[{ required: true }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-          </Row>
 
-          <div style={{ textAlign: 'right', marginTop: 16 }}>
-            <Button onClick={() => setIsDrawerVisible(false)} style={{ marginRight: 8 }}>Cancel</Button>
-            <Button type="primary" htmlType="submit">Submit Benchmark</Button>
-          </div>
-        </Form>
-      </Drawer>
     </motion.div>
   );
 };

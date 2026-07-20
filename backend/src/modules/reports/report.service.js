@@ -31,6 +31,30 @@ exports.getRecentSentReports = async (agencyId) => {
         .limit(50);
 };
 
+exports.getReportAnalytics = async (agencyId) => {
+    const reports = await SentReport.find({ agencyId });
+    
+    const totalReports = reports.length;
+    let totalPages = 0;
+    let openedReports = 0;
+    
+    reports.forEach(report => {
+        totalPages += (report.pages || 0);
+        if (report.status === 'Opened') openedReports++;
+    });
+
+    const avgOpenRate = totalReports > 0 ? Math.round((openedReports / totalReports) * 100) : 0;
+    // Calculate a mock engagement score based on open rate and pages
+    const engagementScore = totalReports > 0 ? Math.min(100, avgOpenRate + Math.floor(totalPages / totalReports)) : 0;
+
+    return {
+        totalReports,
+        avgOpenRate,
+        engagementScore,
+        pagesGenerated: totalPages
+    };
+};
+
 // Generates a report (either manually triggered or via cron)
 exports.generateAndSendReport = async (agencyId, clientId, template, scheduleId = null, recipients = [], deliveryMethod = 'Email', generatedBy = null) => {
     
@@ -48,11 +72,10 @@ exports.generateAndSendReport = async (agencyId, clientId, template, scheduleId 
     // Using a public dummy PDF URL so the download button actually downloads a file
     const dummyPdfUrl = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
     let pages = 1;
-    if (template === 'Social Media Performance Report') pages = 14;
-    else if (template === 'SEO Keyword Ranking Report') pages = 7;
-    else if (template === 'Social Media Engagement Report') pages = 5;
-    else if (template === 'Paid Ads Lead Generation Report') pages = 9;
-    else if (template === 'Lead Conversion Report') pages = 4;
+    if (template === 'MOS Score Report') pages = 12;
+    else if (template === 'SEO & Web Analytics') pages = 7;
+    else if (template === 'Lead Generation & Conversion') pages = 5;
+    else if (template === 'Social Media Engagement') pages = 8;
 
     // 4. Send via Email/WhatsApp (Mock tracking)
     // Normally we would invoke the email service here.

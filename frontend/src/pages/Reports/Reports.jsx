@@ -11,7 +11,6 @@ import {
 import { getRecentSentReports } from '../../api/reportApi';
 import { useGetClientsQuery } from '../../api/clientApi';
 import { useAuth } from '../../contexts/AuthContext';
-import CreateReportModal from '../../components/CreateReportModal';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -48,7 +47,6 @@ const funnelData = [];
 const Reports = () => {
   const { role } = useAuth();
   
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [recentSentReports, setRecentSentReports] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -201,7 +199,14 @@ const Reports = () => {
             bordered={false}
             style={{ width: 130 }} 
           />
-          <Button onClick={() => setIsModalOpen(true)} type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 36, fontWeight: 600, border: 'none', marginLeft: 8 }}>Create Report</Button>
+          <Button 
+            type="primary" 
+            icon={<Download size={16} />} 
+            onClick={() => message.info('Exporting report...')}
+            style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 36, fontWeight: 600, border: 'none', marginLeft: 8 }}
+          >
+            Export Report
+          </Button>
         </div>
       </motion.div>
 
@@ -414,8 +419,6 @@ const Reports = () => {
           />
         </Card>
       </motion.div>
-
-      <CreateReportModal open={isModalOpen} onClose={() => { setIsModalOpen(false); fetchData(); }} />
 
     </motion.div>
   );

@@ -112,7 +112,8 @@ const ClientsTab = () => {
 
       const payload = {
         ...values,
-        features: selectedPackage ? selectedPackage.features : []
+        features: selectedPackage ? selectedPackage.features : [],
+        mrr: selectedPackage ? selectedPackage.price : 0
       };
 
       const res = await fetch('/api/brands', {

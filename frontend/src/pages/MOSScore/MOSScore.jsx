@@ -3,6 +3,7 @@ import { Typography, Row, Col, Card, Button, Table, Tag, Progress, Select, Spin,
 import { motion } from 'framer-motion';
 import { Download, SlidersHorizontal, ArrowUpRight, ArrowDownRight, Zap, Activity, ChevronDown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 import { mosApi } from '../../api/mosApi';
 
 const { Title, Text } = Typography;
@@ -11,9 +12,12 @@ const { Option } = Select;
 const MOSScore = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({ clients: [], trend: [], config: {} });
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [form] = Form.useForm();
   const [recalculating, setRecalculating] = useState(false);
+  
+  const [loadingPlanClientId, setLoadingPlanClientId] = useState(null);
+  const [actionPlanContent, setActionPlanContent] = useState(null);
+  const [actionPlanDrawerVisible, setActionPlanDrawerVisible] = useState(false);
+  const [activePlanClientName, setActivePlanClientName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -32,23 +36,6 @@ const MOSScore = () => {
     setLoading(false);
   };
 
-  const handleUpdateWeights = async (values) => {
-    const total = Object.values(values).reduce((acc, curr) => acc + (curr || 0), 0);
-    if (total !== 100) {
-      return message.error(`Weights must total 100%. Current total: ${total}%`);
-    }
-
-    try {
-      const res = await mosApi.updateMosWeights(values);
-      if (res.success) {
-        message.success('Weights updated successfully. Recalculating scores...');
-        setDrawerVisible(false);
-        fetchData();
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to update weights');
-    }
-  };
 
   const handleRecalculate = async () => {
     setRecalculating(true);
@@ -60,6 +47,44 @@ const MOSScore = () => {
       message.error('Failed to recalculate');
     }
     setRecalculating(false);
+  };
+
+  const handleGeneratePlan = async (client, weakestSignals) => {
+    setLoadingPlanClientId(client.clientId);
+    try {
+      const res = await mosApi.generateActionPlan(client.clientId, weakestSignals);
+      if (res.success) {
+        setActionPlanContent(res.data);
+        setActivePlanClientName(client.client);
+        setActionPlanDrawerVisible(true);
+        setDashboardData(prev => ({
+          ...prev,
+          clients: prev.clients.map(c => c.clientId === client.clientId ? { ...c, actionPlan: res.data } : c)
+        }));
+      } else {
+        message.error(res.message || 'Failed to generate action plan');
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to generate action plan');
+    }
+    setLoadingPlanClientId(null);
+  };
+
+  const handleViewReport = (client) => {
+    setActionPlanContent(client.actionPlan);
+    setActivePlanClientName(client.client);
+    setActionPlanDrawerVisible(true);
+  };
+
+  const downloadReport = () => {
+    if (!actionPlanContent?.content) return;
+    const blob = new Blob([actionPlanContent.content], { type: 'text/markdown' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ActionPlan_${activePlanClientName.replace(/\\s+/g, '_')}.md`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleExport = () => {
@@ -120,29 +145,9 @@ const MOSScore = () => {
     { title: 'Revenue', dataIndex: 'rev', key: 'rev', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
     { title: 'CX', dataIndex: 'cx', key: 'cx', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
     { title: 'MoM', dataIndex: 'mom', key: 'mom', render: val => <span style={{ color: val.includes('+') ? 'var(--accent-primary)' : val.includes('-') ? 'var(--accent-danger)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', fontWeight: 700 }}>{val.includes('+') ? <ArrowUpRight size={14}/> : val.includes('-') ? <ArrowDownRight size={14}/> : '—'} {val.replace('+', '').replace('-', '')}</span> },
-    { title: 'Action', key: 'action', render: () => <a style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>View <ArrowUpRight size={14}/></a> },
+    { title: 'Action', key: 'action', render: (_, record) => <a href="/clients/portal" style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>View <ArrowUpRight size={14}/></a> },
   ];
 
-  const configCols = [
-    { title: 'Signal', dataIndex: 'signal', key: 'signal', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'Weight', dataIndex: 'weight', key: 'weight', render: text => <Tag style={{ borderRadius: 12, border: 'none', margin: 0, background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700 }}>{text}%</Tag> },
-    { title: 'Description', dataIndex: 'desc', key: 'desc', render: text => <Text type="secondary" style={{ fontWeight: 500 }}>{text}</Text> },
-    { title: 'Data Source', dataIndex: 'source', key: 'source', render: text => <Text type="secondary" style={{ fontWeight: 500 }}>{text}</Text> },
-  ];
-
-  const configDataList = [
-    { key: 'website', signal: 'Website Health', desc: 'Core web vitals, SEO tech health, uptime', source: 'Google Search Console' },
-    { key: 'seo', signal: 'SEO Performance', desc: 'Rankings, organic traffic, backlinks', source: 'GSC + SEMrush' },
-    { key: 'geo', signal: 'GEO Visibility', desc: 'AI engine citations, brand entity', source: 'Proprietary' },
-    { key: 'social', signal: 'Social Media', desc: 'Reach, engagement, follower growth', source: 'Meta + LinkedIn API' },
-    { key: 'ads', signal: 'Performance Ads', desc: 'ROAS, CPL, spend efficiency', source: 'Google + Meta Ads' },
-    { key: 'leads', signal: 'Lead Generation', desc: 'Total leads, quality score, conversion', source: 'CRM + Ads' },
-    { key: 'revenue', signal: 'Revenue Impact', desc: 'Revenue attributed to marketing', source: 'CRM' },
-    { key: 'cx', signal: 'Client Experience', desc: 'NPS, response time, satisfaction', source: 'Internal' },
-  ].map(item => ({
-    ...item,
-    weight: dashboardData.config[item.key] || 0
-  }));
 
   const totalClients = dashboardData.clients?.length || 0;
   const healthyCount = dashboardData.clients?.filter(c => c.overall >= 70).length || 0;
@@ -165,7 +170,6 @@ const MOSScore = () => {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button icon={<RefreshCw size={16} />} loading={recalculating} onClick={handleRecalculate} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Recalculate</Button>
-          <Button icon={<SlidersHorizontal size={16} />} onClick={() => { form.setFieldsValue(dashboardData.config); setDrawerVisible(true); }} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Configure Weights</Button>
           <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 600, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export All Scores</Button>
         </div>
       </motion.div>
@@ -235,23 +239,6 @@ const MOSScore = () => {
         </Card>
       </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>MOS Signal Configuration</Title><Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>8 weighted inputs - totals 100%</Text></div>} 
-          extra={<ChevronDown size={20} color="var(--text-tertiary)" />}
-          className="glassmorphism" style={{ borderRadius: 16, marginBottom: 32, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
-        >
-          <Table columns={configCols} dataSource={configDataList} pagination={false} rowKey="key" size="middle" scroll={{ x: 'max-content' }} rowClassName={() => 'hover-bg'} />
-          <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 300 }}>
-              <strong style={{ width: 150, color: 'var(--text-primary)' }}>TOTAL</strong>
-              <Progress percent={100} showInfo={false} strokeColor="var(--accent-primary)" style={{ flex: 1 }} />
-              <strong style={{ color: 'var(--text-primary)' }}>100%</strong>
-            </div>
-            <Button onClick={() => { form.setFieldsValue(dashboardData.config); setDrawerVisible(true); }} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Request Custom Weights</Button>
-          </div>
-        </Card>
-      </motion.div>
 
       {clientsBelowTarget.length > 0 && (
         <motion.div variants={itemVariants}>
@@ -312,7 +299,12 @@ const MOSScore = () => {
                       ))}
                     </div>
 
-                    <Button type="primary" icon={<Zap size={16} />} style={{ width: '100%', borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 700, border: 'none', height: 44, fontSize: 14 }}>Start Action Plan</Button>
+                    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                      {c.actionPlan && (
+                        <Button type="default" onClick={() => handleViewReport(c)} style={{ flex: 1, borderRadius: 8, fontWeight: 700, height: 44, fontSize: 14 }}>View Report</Button>
+                      )}
+                      <Button type="primary" icon={<Zap size={16} />} loading={loadingPlanClientId === c.clientId} onClick={() => handleGeneratePlan(c, c.weakestSignals)} style={{ flex: c.actionPlan ? 1 : '1 1 100%', borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 700, border: 'none', height: 44, fontSize: 14 }}>Start Action Plan</Button>
+                    </div>
                   </div>
                 </motion.div>
               </Col>
@@ -321,32 +313,26 @@ const MOSScore = () => {
         </motion.div>
       )}
 
-      {/* Configuration Drawer */}
       <Drawer
-        title="Configure MOS Weights"
+        title={<Title level={4} style={{ margin: 0, fontWeight: 800 }}>Action Plan: {activePlanClientName}</Title>}
         placement="right"
-        onClose={() => setDrawerVisible(false)}
-        open={drawerVisible}
-        width={400}
+        width={700}
+        onClose={() => setActionPlanDrawerVisible(false)}
+        open={actionPlanDrawerVisible}
+        bodyStyle={{ background: 'var(--bg-primary)', padding: 32 }}
+        extra={<Button type="primary" icon={<Download size={16} />} onClick={downloadReport} style={{ borderRadius: 8, fontWeight: 600 }}>Download Report</Button>}
       >
-        <Form form={form} layout="vertical" onFinish={handleUpdateWeights}>
-          {configDataList.map(item => (
-            <Form.Item 
-              key={item.key} 
-              name={item.key} 
-              label={`${item.signal} (%)`}
-              rules={[{ required: true, message: 'Please enter weight' }]}
-            >
-              <InputNumber min={0} max={100} style={{ width: '100%' }} />
-            </Form.Item>
-          ))}
-          <Form.Item>
-            <Button type="primary" htmlType="submit" style={{ width: '100%', background: 'var(--accent-secondary)', border: 'none' }}>
-              Save Configuration
-            </Button>
-          </Form.Item>
-        </Form>
+        {actionPlanContent?.prompt && (
+          <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+            <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>PROMPT USED TO GENERATE REPORT</Text>
+            <Text style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{actionPlanContent.prompt}</Text>
+          </div>
+        )}
+        <div style={{ color: 'var(--text-primary)', fontSize: 15, lineHeight: 1.8 }}>
+          <ReactMarkdown>{actionPlanContent?.content || ''}</ReactMarkdown>
+        </div>
       </Drawer>
+
     </motion.div>
   );
 };

@@ -14,5 +14,10 @@ export const mosApi = {
   triggerRecalculation: async () => {
     const response = await api.post('/mos/recalculate', {});
     return response.data;
+  },
+
+  generateActionPlan: async (clientId, weakestSignals) => {
+    const response = await api.post('/mos/action-plan', { clientId, weakestSignals });
+    return response.data;
   }
 };

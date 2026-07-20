@@ -45,6 +45,13 @@ const mosScoreHistorySchema = new mongoose.Schema({
   // Final calculated MOS score
   overallMos: { type: Number, required: true },
   
+  // Stored AI-generated Action Plan
+  actionPlan: {
+    prompt: String,
+    content: String,
+    generatedAt: Date
+  },
+  
   // e.g. "2026-06", useful for monthly aggregation without complex date math
   monthYear: { type: String, index: true }
 }, {

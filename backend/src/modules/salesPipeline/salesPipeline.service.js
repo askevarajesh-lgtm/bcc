@@ -161,6 +161,60 @@ const getPipelineAnalytics = async (companyId) => {
   };
 };
 
+const convertDealToClient = async (dealId, email, password, companyId, userRole, agencyId, userId) => {
+  const deal = await Deal.findOne({ _id: dealId, companyId });
+  if (!deal) throw new Error("Deal not found");
+  if (deal.stage !== 'won') throw new Error("Deal must be in 'won' stage to convert");
+  
+  const User = require('../auth/user.model');
+  const existingUser = await User.findOne({ email });
+  if (existingUser) throw new Error("User with this email already exists");
+
+  const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(userRole);
+  const isAgency = ['agency_super_admin', 'agency_manager'].includes(userRole);
+
+  if (!isAdmin && !isAgency) {
+    throw new Error('Not authorized to convert deals to clients');
+  }
+
+  let finalAgencyId = null;
+  let isDirect = false;
+  let role = 'agency_client';
+
+  if (isAgency) {
+    finalAgencyId = agencyId;
+  } else {
+    isDirect = true;
+    role = 'brand_super_admin';
+  }
+
+  const newClient = await User.create({
+    name: deal.name + ' Admin',
+    email,
+    password: password || undefined,
+    role,
+    agencyId: finalAgencyId,
+    companyName: deal.name,
+    isDirect,
+    mrr: deal.value || 0,
+    createdBy: userId
+  });
+
+  newClient.brandId = newClient._id;
+  await newClient.save();
+
+  // Update deal with clientId to mark as converted
+  deal.clientId = newClient._id;
+  deal.activityLogs.push({
+    action: "Converted to Client",
+    performedBy: "System",
+    details: `Converted deal to ${isDirect ? 'Direct Brand' : 'Client'} user`
+  });
+  await deal.save();
+
+  return newClient;
+};
+
 module.exports = {
   createDeal,
   getAllDeals,
@@ -168,5 +222,6 @@ module.exports = {
   updateDeal,
   deleteDeal,
   addDealNote,
-  getPipelineAnalytics
+  getPipelineAnalytics,
+  convertDealToClient
 };

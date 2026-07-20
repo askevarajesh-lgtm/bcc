@@ -1,68 +1,44 @@
 const { IndustryBenchmark, ClientBenchmark } = require('./benchmark.model');
 const mongoose = require('mongoose');
 
-// Mock data generator for testing if no data exists
-const generateMockData = async () => {
-    // This is to quickly seed some industries if none exist
-    const count = await IndustryBenchmark.countDocuments();
-    if (count === 0) {
-        await IndustryBenchmark.insertMany([
-            { industryName: 'Real Estate', avgMos: 68, avgSeo: 65, avgAds: 70, avgSocial: 60, avgLeads: 72, avgContent: 68, avgCx: 70 },
-            { industryName: 'Consumer Electronics', avgMos: 72, avgSeo: 75, avgAds: 78, avgSocial: 80, avgLeads: 70, avgContent: 75, avgCx: 65 },
-            { industryName: 'Mobility', avgMos: 65, avgSeo: 60, avgAds: 65, avgSocial: 70, avgLeads: 68, avgContent: 62, avgCx: 60 },
-            { industryName: 'Beauty', avgMos: 74, avgSeo: 78, avgAds: 75, avgSocial: 85, avgLeads: 72, avgContent: 80, avgCx: 70 },
-            { industryName: 'Fintech', avgMos: 70, avgSeo: 72, avgAds: 68, avgSocial: 65, avgLeads: 75, avgContent: 70, avgCx: 72 },
-            { industryName: 'E-Commerce', avgMos: 76, avgSeo: 80, avgAds: 78, avgSocial: 75, avgLeads: 74, avgContent: 76, avgCx: 70 },
-            { industryName: 'Q-Commerce', avgMos: 71, avgSeo: 68, avgAds: 72, avgSocial: 70, avgLeads: 75, avgContent: 65, avgCx: 68 },
-            { industryName: 'Retail', avgMos: 69, avgSeo: 65, avgAds: 70, avgSocial: 68, avgLeads: 66, avgContent: 70, avgCx: 65 },
-            { industryName: 'Hospitality', avgMos: 67, avgSeo: 70, avgAds: 65, avgSocial: 75, avgLeads: 68, avgContent: 65, avgCx: 70 },
-            { industryName: 'Services', avgMos: 63, avgSeo: 60, avgAds: 62, avgSocial: 65, avgLeads: 64, avgContent: 60, avgCx: 68 },
-            { industryName: 'D2C', avgMos: 68, avgSeo: 70, avgAds: 72, avgSocial: 75, avgLeads: 65, avgContent: 70, avgCx: 68 },
-            { industryName: 'General', avgMos: 60, avgSeo: 60, avgAds: 60, avgSocial: 60, avgLeads: 60, avgContent: 60, avgCx: 60 }
-        ]);
-    }
-}
+
 
 // Function to fetch benchmarking data for a specific client
 const getClientBenchmarkData = async (clientId, industryName = 'All Industries') => {
-    await generateMockData(); // Ensure we have industries
-
-    // We can fetch from ClientBenchmark if precalculated, or we fetch the MOS score directly.
-    // For now, let's look for the ClientBenchmark
-    let clientBench = await ClientBenchmark.findOne({ clientId }).populate('clientId', 'name companyName industry');
-    
-    if (!clientBench) {
-        // Fallback: If not precalculated, we can generate a temporary one on the fly or just return defaults
-        // In a real scenario, this would trigger the sync service for this client
-        clientBench = {
-            clientId: { name: 'Client', companyName: 'Client Co', industry: 'General' },
-            industryName: 'General',
-            percentiles: { mos: 50, seo: 50, ads: 50, social: 50, leads: 50, content: 50, cx: 50 },
-            metrics: { mos: 60, seo: 60, ads: 60, social: 60, leads: 60, content: 60, cx: 60 },
-            historicalSnapshots: []
-        };
+    if (!clientId) {
+        return { clientData: null, industryData: null };
     }
 
+    let clientBench = await ClientBenchmark.findOne({ clientId }).populate('clientId', 'name companyName industry');
+    
     // Determine the industry to compare against
-    const targetIndustry = (industryName && industryName !== 'All Industries') ? industryName : (clientBench.industryName || clientBench.clientId.industry || 'General');
+    const targetIndustry = (industryName && industryName !== 'All Industries') ? industryName : (clientBench?.industryName || 'General');
     const industryData = await IndustryBenchmark.findOne({ industryName: targetIndustry });
 
     return {
-        clientData: clientBench,
-        industryData: industryData || { industryName: targetIndustry, avgMos: 50, avgSeo: 50, avgAds: 50, avgSocial: 50, avgLeads: 50, avgContent: 50, avgCx: 50 }
+        clientData: clientBench || null,
+        industryData: industryData || { industryName: targetIndustry, avgMos: 0, avgSeo: 0, avgAds: 0, avgSocial: 0, avgLeads: 0, avgContent: 0, avgCx: 0 }
     };
 };
 
-const getBenchmarkTableData = async (agencyId, industryName = 'All Industries') => {
-    // Get all clients for this agency (or all if not filtered, but we should scope it)
-    // Fetch from ClientBenchmark where agency matches (we might need to join User to check agencyId)
-    // For now, let's fetch all ClientBenchmarks and join the User to filter
-    const query = {};
-    const clients = await ClientBenchmark.find(query).populate({
-        path: 'clientId',
-        match: agencyId ? { agencyId: new mongoose.Types.ObjectId(agencyId) } : {},
-        select: 'name companyName industry'
-    });
+const getBenchmarkTableData = async (user, industryName = 'All Industries') => {
+    const isAgency = ['agency_super_admin', 'agency_manager'].includes(user.role);
+    const User = require('../auth/user.model');
+    
+    const brandQuery = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+    if (isAgency) {
+      brandQuery.agencyId = user.agencyId || user._id;
+    } else {
+      brandQuery.isDirect = true;
+      if (user.role === 'commander_admin') {
+        brandQuery.createdBy = user._id;
+      }
+    }
+    const validBrands = await User.find(brandQuery).select('_id');
+    const validBrandIds = validBrands.map(b => b._id);
+
+    const query = { clientId: { $in: validBrandIds } };
+    const clients = await ClientBenchmark.find(query).populate('clientId', 'name companyName industry');
 
     const filteredClients = clients.filter(c => c.clientId != null);
 
@@ -101,14 +77,95 @@ const getIndustriesList = async () => {
     return industries.map(i => i.industryName);
 };
 
-// Scheduler function (to be called by cron)
+// Scheduler function (to be called by cron or manually)
 const calculateAndAggregateBenchmarks = async () => {
     console.log('Starting benchmarking aggregation...');
-    // In a full implementation, this would:
-    // 1. Fetch all clients
-    // 2. Fetch their latest MosScoreHistory
-    // 3. Update ClientBenchmark documents
-    // 4. Group by industry and update IndustryBenchmark documents
+    const { MosScoreHistory } = require('../mos/mos.model');
+    const mongoose = require('mongoose');
+    
+    // Fetch latest month's MosScoreHistory for all clients
+    const monthYear = new Date().toISOString().substring(0, 7);
+    const recentScores = await MosScoreHistory.find({ monthYear }).populate('clientId', 'industry companyName name');
+    
+    const industryStats = {};
+
+    for (const score of recentScores) {
+        if (!score.clientId) continue;
+        
+        const clientId = score.clientId._id;
+        const industryName = score.clientId.industry || 'General';
+        
+        // Ensure industry array exists
+        if (!industryStats[industryName]) {
+            industryStats[industryName] = { clients: [], mos: [], seo: [], social: [], ads: [], leads: [], content: [], cx: [] };
+        }
+        
+        // Map Mos Signals to Benchmark Metrics
+        const metrics = {
+            mos: score.overallMos || 0,
+            seo: score.signals.seo || 0,
+            social: score.signals.social || 0,
+            ads: score.signals.ads || 0,
+            leads: score.signals.leads || 0,
+            content: score.signals.website || 0, // Using website signal as a proxy for content right now
+            cx: score.signals.cx || 0
+        };
+
+        industryStats[industryName].mos.push(metrics.mos);
+        industryStats[industryName].seo.push(metrics.seo);
+        industryStats[industryName].social.push(metrics.social);
+        industryStats[industryName].ads.push(metrics.ads);
+        industryStats[industryName].leads.push(metrics.leads);
+        industryStats[industryName].content.push(metrics.content);
+        industryStats[industryName].cx.push(metrics.cx);
+        industryStats[industryName].clients.push({ clientId, metrics });
+    }
+
+    // Process and update DB
+    for (const [industry, data] of Object.entries(industryStats)) {
+        // Calculate industry averages
+        const avg = (arr) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+        const avgMos = avg(data.mos);
+        const avgSeo = avg(data.seo);
+        const avgSocial = avg(data.social);
+        const avgAds = avg(data.ads);
+        const avgLeads = avg(data.leads);
+        const avgContent = avg(data.content);
+        const avgCx = avg(data.cx);
+
+        // Update IndustryBenchmark
+        await IndustryBenchmark.findOneAndUpdate(
+            { industryName: industry },
+            { avgMos, avgSeo, avgSocial, avgAds, avgLeads, avgContent, avgCx, lastUpdated: new Date() },
+            { upsert: true, new: true }
+        );
+
+        // Calculate percentiles for each client and update ClientBenchmark
+        const calcPercentile = (score, arr) => {
+            if (arr.length === 0) return 0;
+            const lower = arr.filter(v => v < score).length;
+            const equal = arr.filter(v => v === score).length;
+            return Math.round(((lower + (0.5 * equal)) / arr.length) * 100);
+        };
+
+        for (const client of data.clients) {
+            const percentiles = {
+                mos: calcPercentile(client.metrics.mos, data.mos),
+                seo: calcPercentile(client.metrics.seo, data.seo),
+                social: calcPercentile(client.metrics.social, data.social),
+                ads: calcPercentile(client.metrics.ads, data.ads),
+                leads: calcPercentile(client.metrics.leads, data.leads),
+                content: calcPercentile(client.metrics.content, data.content),
+                cx: calcPercentile(client.metrics.cx, data.cx),
+            };
+
+            await ClientBenchmark.findOneAndUpdate(
+                { clientId: client.clientId },
+                { industryName: industry, metrics: client.metrics, percentiles, lastUpdated: new Date() },
+                { upsert: true }
+            );
+        }
+    }
     console.log('Benchmarking aggregation completed.');
 };
 

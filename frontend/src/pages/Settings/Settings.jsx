@@ -66,7 +66,9 @@ const SettingsPage = () => {
     // { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
     { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
-    { key: '11', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> },
+    ...(['commander_admin'].includes(role) ? [] : [
+      { key: '11', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> }
+    ]),
     ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
       { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> },
       { key: '10', label: <strong style={{ fontWeight: 600 }}>Direct Brand Packages</strong> }

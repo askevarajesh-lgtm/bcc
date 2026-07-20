@@ -6,6 +6,7 @@ const protect = require('../../middlewares/authMiddleware');
 router.use(protect);
 
 router.get('/history', reportController.getRecentSentReports);
+router.get('/analytics', reportController.getAnalytics);
 router.post('/generate', reportController.generateReport);
 
 router.get('/schedules', reportController.getSchedules);

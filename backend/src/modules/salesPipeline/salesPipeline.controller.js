@@ -78,6 +78,26 @@ const getPipelineAnalytics = async (req, res) => {
   }
 };
 
+const convertDealToClient = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email) return sendError(res, 400, "Email is required to create a client");
+    
+    const client = await salesPipelineService.convertDealToClient(
+      req.params.id,
+      email,
+      password,
+      req.companyId,
+      req.user.role,
+      req.user.agencyId,
+      req.user._id
+    );
+    return sendSuccess(res, "Deal converted successfully", { client });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
 module.exports = {
   createDeal,
   getAllDeals,
@@ -85,5 +105,6 @@ module.exports = {
   updateDeal,
   deleteDeal,
   addDealNote,
-  getPipelineAnalytics
+  getPipelineAnalytics,
+  convertDealToClient
 };

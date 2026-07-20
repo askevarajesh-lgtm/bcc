@@ -13,6 +13,7 @@ import {
   Library,
   Megaphone,
   PenTool,
+  PieChart,
   Search,
   Settings,
   Share2,
@@ -155,6 +156,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const opsChildren = [];
+  opsChildren.push({ key: '/agency/businessintel', icon: getIcon(PieChart), label: 'Business Intel' });
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
 

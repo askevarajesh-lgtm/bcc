@@ -14,17 +14,27 @@ function normalizeScore(raw, min, max) {
 /**
  * Calculates scores for all active clients under an agency.
  */
-exports.calculateAgencyMOS = async (agencyId) => {
-  // Get active brands for the agency
-  const brands = await User.find({
-    agencyId,
-    role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }
-  });
+exports.calculateAgencyMOS = async (user) => {
+  const isAgency = ['agency_super_admin', 'agency_manager'].includes(user.role);
+  const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+  
+  if (isAgency) {
+    query.agencyId = user.agencyId || user._id;
+  } else {
+    query.isDirect = true;
+    if (user.role === 'commander_admin') {
+      query.createdBy = user._id;
+    }
+  }
+  
+  // Get active brands for the agency (or all for global admin)
+  const brands = await User.find(query);
 
   // Removed mock data injection that was causing ghost clients
 
   // Get current weights or use defaults
-  let config = await MosConfig.findOne({ agencyId });
+  const agencyIdForConfig = isAgency ? (user.agencyId || user._id) : user._id;
+  let config = await MosConfig.findOne({ agencyId: agencyIdForConfig });
   if (!config) {
     config = {
       weights: {
@@ -56,10 +66,10 @@ exports.calculateAgencyMOS = async (agencyId) => {
         if (hasWidget) websiteScore += 10;
         websiteScore = Math.min(100, websiteScore);
       } else {
-        websiteScore = 65 + (parseInt(brandId.toString().slice(-2), 16) % 20);
+        websiteScore = 0;
       }
     } catch (e) {
-      websiteScore = 65 + (parseInt(brandId.toString().slice(-2), 16) % 20);
+      websiteScore = 0;
     }
 
     // 2. SEO Score
@@ -78,10 +88,10 @@ exports.calculateAgencyMOS = async (agencyId) => {
           seoScore = 70;
         }
       } else {
-        seoScore = 60 + (parseInt(brandId.toString().slice(-4, -2), 16) % 25);
+        seoScore = 0;
       }
     } catch (e) {
-      seoScore = 60 + (parseInt(brandId.toString().slice(-4, -2), 16) % 25);
+      seoScore = 0;
     }
 
     // 3. Leads Score (using Deal model)
@@ -98,10 +108,10 @@ exports.calculateAgencyMOS = async (agencyId) => {
           leadsScore += Math.min(20, deals.length * 5);
         }
       } else {
-        leadsScore = 55 + (parseInt(brandId.toString().slice(-6, -4), 16) % 30);
+        leadsScore = 0;
       }
     } catch (e) {
-      leadsScore = 55 + (parseInt(brandId.toString().slice(-6, -4), 16) % 30);
+      leadsScore = 0;
     }
 
     // 4. Revenue Score (using Invoice model)
@@ -114,17 +124,17 @@ exports.calculateAgencyMOS = async (agencyId) => {
         revenueScore = Math.round((paid.length / invoices.length) * 100);
         revenueScore = Math.max(50, revenueScore);
       } else {
-        revenueScore = 65 + (parseInt(brandId.toString().slice(-8, -6), 16) % 20);
+        revenueScore = 0;
       }
     } catch (e) {
-      revenueScore = 65 + (parseInt(brandId.toString().slice(-8, -6), 16) % 20);
+      revenueScore = 0;
     }
 
-    // 5. Rest of the scores (Geo, Social, Ads, CX) calculated stable-deterministically
-    const geoScore = 70 + (parseInt(brandId.toString().slice(-10, -8), 16) % 20);
-    const socialScore = 65 + (parseInt(brandId.toString().slice(-12, -10), 16) % 25);
-    const adsScore = 60 + (parseInt(brandId.toString().slice(-14, -12), 16) % 30);
-    const cxScore = 80 + (parseInt(brandId.toString().slice(-16, -14), 16) % 15);
+    // 5. Rest of the scores (Geo, Social, Ads, CX) are set to 0 until real integrations are built
+    const geoScore = 0;
+    const socialScore = 0;
+    const adsScore = 0;
+    const cxScore = 0;
 
     const rawScores = {
       website: websiteScore,
@@ -164,10 +174,10 @@ exports.calculateAgencyMOS = async (agencyId) => {
     // Save to history for the month
     // We use findOneAndUpdate to keep only the latest snapshot per month per client
     const updatedHistory = await MosScoreHistory.findOneAndUpdate(
-      { clientId: brandId, agencyId, monthYear },
+      { clientId: brandId, monthYear },
       {
         clientId: brandId,
-        agencyId,
+        agencyId: brand.agencyId || agencyIdForConfig,
         signals: rawScores,
         weakestSignals,
         overallMos,

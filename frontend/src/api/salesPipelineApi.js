@@ -91,3 +91,7 @@ export const useAddDealNoteMutation = createMutationHook('post')(({ dealId, cont
   url: `/sales-pipeline/${dealId}/notes`,
   body: { content }
 }));
+export const useConvertDealToClientMutation = createMutationHook('post')(({ id, email, password }) => ({
+  url: `/sales-pipeline/${id}/convert`,
+  body: { email, password }
+}));

@@ -258,7 +258,6 @@ const AppRoutes = () => {
           <Route path="ops/finance" element={<Finance />} />
           <Route path="ops/profitability" element={<Profitability />} />
           <Route path="ops/salespipeline" element={<SalesPipeline />} />
-          <Route path="ops/businessintel" element={<BusinessIntel />} />
           <Route path="ops/meetings" element={<MeetingsPage />} />
           <Route path="ops/calendar" element={<CalendarPage />} />
           <Route path="ops/deliverables" element={<DeliverablesPage />} />
@@ -290,6 +289,7 @@ const AppRoutes = () => {
           <Route path="support" element={<AgencySupportTab />} />
           
           {/* Agency Manager Dynamic Modules */}
+          <Route path="businessintel" element={<BusinessIntel />} />
           <Route path="marketplace" element={<Marketplace />} />
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
