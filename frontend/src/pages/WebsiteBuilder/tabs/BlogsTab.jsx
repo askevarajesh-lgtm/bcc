@@ -302,17 +302,52 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     handleExcerptInput();
   };
 
-  const handleFormatHeading = (level) => {
+  const FORMAT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6"];
+
+  const handleWrapTag = (tagName, { inline = true } = {}) => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
       message.warning("Select a word in the excerpt first.");
       return;
     }
     const range = selection.getRangeAt(0);
-    const tag = document.createElement(`h${level}`);
-    // Keep it inline so applying a heading to one word mid-sentence doesn't force a line break —
-    // the h1/h2/h3 tag still carries its default font-size/weight for the size change.
-    tag.style.display = "inline";
+
+    // If the selection sits entirely inside an existing format tag (p/h1-h6),
+    // re-tag that element in place instead of nesting a new tag inside it.
+    // Nesting (e.g. <h1><p>word</p></h1>) doesn't change the visible size,
+    // since <p> doesn't reset font-size/weight — it just inherits the h1's.
+    let container = range.commonAncestorContainer;
+    if (container.nodeType === 3) container = container.parentElement;
+    let formatEl = null;
+    for (let node = container; node && node !== excerptRef.current; node = node.parentElement) {
+      if (node.nodeType === 1 && FORMAT_TAGS.includes(node.tagName)) {
+        formatEl = node;
+        break;
+      }
+    }
+
+    if (formatEl) {
+      const elRange = document.createRange();
+      elRange.selectNodeContents(formatEl);
+      const selectionCoversEl =
+        range.compareBoundaryPoints(Range.START_TO_START, elRange) <= 0 &&
+        range.compareBoundaryPoints(Range.END_TO_END, elRange) >= 0;
+
+      if (selectionCoversEl) {
+        const newTag = document.createElement(tagName);
+        if (inline) newTag.style.display = "inline";
+        newTag.innerHTML = formatEl.innerHTML;
+        formatEl.replaceWith(newTag);
+        selection.removeAllRanges();
+        handleExcerptInput();
+        return;
+      }
+    }
+
+    const tag = document.createElement(tagName);
+    // Keep it inline so applying the tag to one word mid-sentence doesn't force a line break —
+    // the tag still carries its default styling (e.g. h1/h2/h3 size, p spacing) for formatting.
+    if (inline) tag.style.display = "inline";
 
     try {
       range.surroundContents(tag);
@@ -326,6 +361,10 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     selection.removeAllRanges();
     handleExcerptInput();
   };
+
+  const handleFormatHeading = (level) => handleWrapTag(`h${level}`);
+
+  const handleFormatParagraph = () => handleWrapTag("p");
 
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -517,6 +556,7 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
                 { label: "u", title: "Underline", onClick: () => handleExcerptFormat('underline'), style: { textDecoration: "underline" } },
                 { label: "del", title: "Strikethrough", onClick: () => handleExcerptFormat('strikeThrough'), style: { textDecoration: "line-through" } },
                 { label: "link", title: "Insert link", onClick: handleInsertLink },
+                { label: "P", title: "Paragraph", onClick: handleFormatParagraph },
                 { label: "H1", title: "Heading 1", onClick: () => handleFormatHeading(1) },
                 { label: "H2", title: "Heading 2", onClick: () => handleFormatHeading(2) },
                 { label: "H3", title: "Heading 3", onClick: () => handleFormatHeading(3) },
@@ -578,7 +618,7 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           </div>
 
           <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8 }}>
-            Select a word in Visual mode, then click a format button — "link" makes it clickable, H1/H2/H3 change its size.
+            Select a word in Visual mode, then click a format button — "link" makes it clickable, P wraps it in a paragraph tag, H1/H2/H3 change its size.
           </div>
         </div>
 
