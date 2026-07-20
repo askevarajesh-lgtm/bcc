@@ -210,6 +210,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [savingWidget, setSavingWidget] = useState(false);
   const [websiteBlogs, setWebsiteBlogs] = useState([]);
   const [loadingBlogs, setLoadingBlogs] = useState(true);
+  const [contentView, setContentView] = useState("pages");
   const [scriptModalPageId, setScriptModalPageId] = useState(null);
   const [headCodeInput, setHeadCodeInput] = useState("");
   const [bodyCodeInput, setBodyCodeInput] = useState("");
@@ -240,17 +241,21 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
       try {
         setLoadingBlogs(true);
         const token = localStorage.getItem("token");
-        const res = await fetch("/api/blogs", {
-          headers: { "Authorization": token ? `Bearer ${token}` : "" }
-        });
+        const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+        const res = await fetch(`/api/blogs?websiteId=${activeWebsite.key}`, { headers });
         const data = await res.json();
         if (data.success) {
-          // Only keep blogs linked to this specific website
-          const filtered = (data.data || []).filter(b => {
-            const linkedWebsiteId = b.websiteId?._id || b.websiteId;
-            return linkedWebsiteId && String(linkedWebsiteId) === String(activeWebsite.key);
-          });
-          setWebsiteBlogs(filtered);
+          const blogsList = data.data || [];
+          const blogsWithPosts = await Promise.all(blogsList.map(async (blog) => {
+            try {
+              const postsRes = await fetch(`/api/blogs/${blog._id}/posts`, { headers });
+              const postsData = await postsRes.json();
+              return { ...blog, postsList: postsData.success ? (postsData.data || []) : [] };
+            } catch (err) {
+              return { ...blog, postsList: [] };
+            }
+          }));
+          setWebsiteBlogs(blogsWithPosts);
         }
       } catch (err) {
         console.error("Failed to fetch blogs for website", err);
@@ -599,106 +604,168 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
               </div>
 
               <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}><FileText size={22} color="var(--accent-primary)" /> Pages</div>
-                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 700 }}>{pages.length} total</div>
-                </div>
-                <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Home page sets global header & footer for all other pages.</div>
-                
-                {role !== 'agency_client' && (
-                  <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
-                    <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
-                    <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
-                      Add Page
-                    </Button>
+                <div style={{ display: "flex", gap: 8, marginBottom: 24, background: 'var(--bg-primary)', padding: 4, borderRadius: 12, border: '1px solid var(--border-color)', width: 'fit-content' }}>
+                  <div
+                    onClick={() => setContentView("pages")}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                      padding: '10px 20px', borderRadius: 8, fontWeight: 800, fontSize: 14,
+                      background: contentView === 'pages' ? 'var(--bg-secondary)' : 'transparent',
+                      color: contentView === 'pages' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      boxShadow: contentView === 'pages' ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <FileText size={16} /> Pages <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>{pages.length}</span>
                   </div>
-                )}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {pages.map((page, index) => (
-                    <div key={page._id || page.key || index} style={{ borderBottom: index < pages.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 12, background: page.isHome ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)', border: page.isHome ? 'none' : '1px solid var(--border-color)', color: page.isHome ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FileText size={24} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
-                              {page.title}
-                              {page.isHome && <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>}
-                            </div>
-                            <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
-                          </div>
-                        </div>
-                        <Select 
-                          size="large" 
-                          value={page.status || "Draft"} 
-                          onChange={(val) => {
-                            setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
-                          }}
-                          style={{ width: 120 }}
-                          disabled={role === 'agency_client'}
-                        >
-                          <Option value="Draft">Draft</Option>
-                          <Option value="Published">Published</Option>
-                        </Select>
-                      </div>
-                      <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                        {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
-                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
-                        {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
-                        {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
-                        {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}><Newspaper size={22} color="var(--accent-primary)" /> Blogs</div>
-                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 700 }}>{websiteBlogs.length} total</div>
-                </div>
-                <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Blogs linked to this website only.</div>
-
-                {loadingBlogs ? (
-                  <div style={{ padding: '24px 0', textAlign: 'center' }}>
-                    <Spin />
+                  <div
+                    onClick={() => setContentView("blogs")}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                      padding: '10px 20px', borderRadius: 8, fontWeight: 800, fontSize: 14,
+                      background: contentView === 'blogs' ? 'var(--bg-secondary)' : 'transparent',
+                      color: contentView === 'blogs' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      boxShadow: contentView === 'blogs' ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Newspaper size={16} /> Blogs <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>{websiteBlogs.length}</span>
                   </div>
-                ) : websiteBlogs.length === 0 ? (
-                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 500 }}>
-                    No blogs are linked to this website yet.
+                </div>
+
+                {contentView === "pages" ? (
+                  <>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Home page sets global header & footer for all other pages.</div>
+
                     {role !== 'agency_client' && (
-                      <div style={{ marginTop: 16 }}>
-                        <Button type="primary" onClick={handleManageBlogs} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}>
-                          Create a Blog
+                      <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
+                        <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
+                        <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
+                          Add Page
                         </Button>
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                    {websiteBlogs.map((blog, index) => (
-                      <div key={blog._id || index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: index < websiteBlogs.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 20, marginBottom: 20 }}>
-                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Newspaper size={24} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
-                              {blog.name}
-                              <Tag style={{ margin: 0, background: blog.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-primary)', color: blog.status === 'active' ? 'var(--accent-success)' : 'var(--text-tertiary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10, textTransform: 'uppercase' }}>{blog.status || 'inactive'}</Tag>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                      {pages.map((page, index) => (
+                        <div key={page._id || page.key || index} style={{ borderBottom: index < pages.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                              <div style={{ width: 48, height: 48, borderRadius: 12, background: page.isHome ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)', border: page.isHome ? 'none' : '1px solid var(--border-color)', color: page.isHome ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FileText size={24} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
+                                  {page.title}
+                                  {page.isHome && <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>}
+                                </div>
+                                <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
+                              </div>
                             </div>
-                            <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{blog.posts || 0} posts &middot; {blog.publicUrl || `/blog/${blog.slug}`}</div>
+                            <Select
+                              size="large"
+                              value={page.status || "Draft"}
+                              onChange={(val) => {
+                                setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
+                              }}
+                              style={{ width: 120 }}
+                              disabled={role === 'agency_client'}
+                            >
+                              <Option value="Draft">Draft</Option>
+                              <Option value="Published">Published</Option>
+                            </Select>
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
+                            {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
+                            <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
+                            {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
+                            {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
+                            {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
                           </div>
                         </div>
-                        <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={handleManageBlogs}>
-                          Manage
-                        </Button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Blogs linked to this website only.</div>
+
+                    {loadingBlogs ? (
+                      <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                        <Spin />
                       </div>
-                    ))}
-                  </div>
+                    ) : websiteBlogs.length === 0 ? (
+                      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 500 }}>
+                        No blogs are linked to this website yet.
+                        {role !== 'agency_client' && (
+                          <div style={{ marginTop: 16 }}>
+                            <Button type="primary" onClick={handleManageBlogs} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}>
+                              Create a Blog
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                        {websiteBlogs.map((blog, index) => (
+                          <div key={blog._id || index} style={{ borderBottom: index < websiteBlogs.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (blog.postsList && blog.postsList.length > 0) ? 20 : 0 }}>
+                              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Newspaper size={24} />
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
+                                    {blog.name}
+                                    <Tag style={{ margin: 0, background: blog.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-primary)', color: blog.status === 'active' ? 'var(--accent-success)' : 'var(--text-tertiary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10, textTransform: 'uppercase' }}>{blog.status || 'inactive'}</Tag>
+                                  </div>
+                                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{(blog.postsList ? blog.postsList.length : (blog.posts || 0))} posts &middot; {blog.publicUrl || `/blog/${blog.slug}`}</div>
+                                </div>
+                              </div>
+                              <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={handleManageBlogs}>
+                                Manage
+                              </Button>
+                            </div>
+
+                            {blog.postsList && blog.postsList.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingLeft: 64 }}>
+                                {blog.postsList.map((post) => (
+                                  <div key={post._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '12px 16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      <FileText size={16} color="var(--text-secondary)" />
+                                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{post.title}</span>
+                                      <Tag style={{ margin: 0, background: post.status === 'published' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)', color: post.status === 'published' ? 'var(--accent-success)' : 'var(--text-tertiary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10, textTransform: 'uppercase' }}>{post.status || 'draft'}</Tag>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      {role !== 'agency_client' && (
+                                        <Button
+                                          size="small"
+                                          type="primary"
+                                          icon={<PenTool size={12} />}
+                                          style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
+                                          onClick={() => navigate(`/workspace/website/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`)}
+                                        >
+                                          Edit in Builder
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="small"
+                                        icon={<Monitor size={12} />}
+                                        style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 6, fontWeight: 600 }}
+                                        onClick={() => window.open(`/preview/website/${activeWebsite.key}/blog-post/${post._id}`, '_blank')}
+                                      >
+                                        Preview
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </Card>
 
@@ -826,6 +893,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           description: w.description,
           lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
           pages: w.pagesCount || 1,
+          blogs: w.blogsCount || 0,
           isNew: false
         }));
         setWebsites(mapped);
@@ -955,6 +1023,12 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       dataIndex: "pages",
       key: "pages",
       render: (t) => <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{Array.isArray(t) ? t.length : t}</span>
+    },
+    {
+      title: "BLOGS",
+      dataIndex: "blogs",
+      key: "blogs",
+      render: (t) => <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{Array.isArray(t) ? t.length : (t || 0)}</span>
     },
     {
       title: "ACTIONS",

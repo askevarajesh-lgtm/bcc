@@ -41,7 +41,14 @@ exports.createBlog = async (req, res, next) => {
 exports.getBlogs = async (req, res, next) => {
   try {
     const workspaceId = req.workspaceId;
-    const blogs = await Blog.find({ workspaceId, isDeleted: false }).sort({ updatedAt: -1 });
+    const { websiteId } = req.query;
+
+    const query = { workspaceId, isDeleted: false };
+    if (websiteId) {
+      query.websiteId = websiteId;
+    }
+
+    const blogs = await Blog.find(query).sort({ updatedAt: -1 });
 
     const data = await Promise.all(blogs.map(async (blog) => {
       const postsCount = await BlogPost.countDocuments({ blogId: blog._id, isDeleted: false });
@@ -202,7 +209,7 @@ exports.getPosts = async (req, res, next) => {
 exports.addPost = async (req, res, next) => {
   try {
     const { blogId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl, html, css, layoutJson } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: 'Post title is required' });
@@ -227,7 +234,10 @@ exports.addPost = async (req, res, next) => {
       featuredImageUrl: featuredImageUrl || "",
       metaTitle: metaTitle || "",
       metaDescription: metaDescription || "",
-      isFeatured: !!isFeatured
+      isFeatured: !!isFeatured,
+      html: html || "",
+      css: css || "",
+      layoutJson: layoutJson || {}
     });
 
     const saved = await post.save();
@@ -240,7 +250,7 @@ exports.addPost = async (req, res, next) => {
 exports.updatePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl, html, css, layoutJson } = req.body;
 
     const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
     if (!post) {
@@ -261,9 +271,38 @@ exports.updatePost = async (req, res, next) => {
     if (metaTitle !== undefined) post.metaTitle = metaTitle;
     if (metaDescription !== undefined) post.metaDescription = metaDescription;
     if (isFeatured !== undefined) post.isFeatured = isFeatured;
+    if (html !== undefined) post.html = html;
+    if (css !== undefined) post.css = css;
+    if (layoutJson !== undefined) post.layoutJson = layoutJson;
 
     const saved = await post.save();
     res.json({ success: true, data: saved });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get single Blog Post details (with parent blog context) — used by the GrapesJS builder
+exports.getPostDetails = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Blog post not found' });
+    }
+
+    const blog = await Blog.findOne({ _id: post.blogId, workspaceId: req.workspaceId, isDeleted: false });
+    if (!blog) {
+      return res.status(404).json({ success: false, error: 'Parent blog not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...post.toObject(),
+        blog: blog.toObject()
+      }
+    });
   } catch (error) {
     next(error);
   }

@@ -3,8 +3,9 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./grapesjs-theme.css"; // Premium custom theme override
 import webpagePlugin from "grapesjs-preset-webpage";
-import { Button, message, Modal, Select } from "antd";
+import { Button, message, Modal, Select, Input } from "antd";
 const { Option } = Select;
+const { TextArea } = Input;
 import { ArrowLeft } from "lucide-react";
 import CustomImagePanel from "./CustomImagePanel";
 import MediaStorageModal from "./MediaStorageModal";
@@ -114,17 +115,27 @@ const getWidgetHtmlOnly = (widget) => {
 };
 
 const GrapesJSBuilder = ({
-  activeWebsite,
-  activePage,
+  activeWebsite = {},
+  activePage = {},
+  activePost = {},
+  mode = "page",
   setEditingPage,
   onSave,
 }) => {
+  const isPostMode = mode === "post";
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState("component");
+  const [isPostDetailsModalOpen, setIsPostDetailsModalOpen] = useState(false);
+  const [postTitle, setPostTitle] = useState(activePost?.title || "");
+  const [postExcerpt, setPostExcerpt] = useState(activePost?.excerpt || "");
+  const [postFeaturedImageUrl, setPostFeaturedImageUrl] = useState(
+    activePost?.featuredImageUrl || "",
+  );
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(
     activeWebsite.chatWidgetId || "none",
@@ -167,13 +178,16 @@ const GrapesJSBuilder = ({
     });
 
     // Load initial HTML/CSS if it exists
-    if (activePage.html || activePage.css) {
-      e.setComponents(activePage.html || "");
-      e.setStyle(activePage.css || "");
+    const sourceContent = isPostMode ? activePost : activePage;
+    if (sourceContent.html || sourceContent.css) {
+      e.setComponents(sourceContent.html || "");
+      e.setStyle(sourceContent.css || "");
     } else {
       // Default empty template
       e.setComponents(
-        '<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>',
+        isPostMode
+          ? '<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Start writing your blog post</h1><p>Drag blocks from the right panel to build this post, or use Post Details to set the title, excerpt, and featured image.</p></div>'
+          : '<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>',
       );
     }
 
@@ -337,7 +351,7 @@ const GrapesJSBuilder = ({
     return () => {
       e.destroy();
     };
-  }, [activePage.html, activePage.css]);
+  }, [activePage.html, activePage.css, activePost?.html, activePost?.css]);
 
   useEffect(() => {
     const fetchWidgets = async () => {
@@ -518,6 +532,32 @@ const GrapesJSBuilder = ({
     try {
       setSaving(true);
       const token = localStorage.getItem("token");
+
+      if (isPostMode) {
+        const res = await fetch(`/api/blogs/posts/${activePost._id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            html,
+            css,
+            title: postTitle,
+            excerpt: postExcerpt,
+            featuredImageUrl: postFeaturedImageUrl,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          message.success("Blog post saved successfully!");
+          onSave(data.data);
+        } else {
+          message.error(data.error || "Failed to save blog post");
+        }
+        return;
+      }
+
       const res = await fetch(
         `/api/websites/${activeWebsite.key}/pages/${activePage._id}`,
         {
@@ -596,25 +636,44 @@ const GrapesJSBuilder = ({
               }}
             >
               M1 Growth platform Builder:{" "}
-              <span style={{ color: "#3b82f6" }}>{activePage.title}</span>
+              <span style={{ color: "#3b82f6" }}>
+                {isPostMode ? postTitle || activePost.title : activePage.title}
+              </span>
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Button
-              type="default"
-              onClick={() => setIsChatModalOpen(true)}
-              style={{
-                background: "#1e293b",
-                color: "#cbd5e1",
-                borderColor: "#334155",
-                fontWeight: 600,
-                borderRadius: 6,
-                height: 36,
-              }}
-            >
-              Chat Widget
-            </Button>
+            {isPostMode ? (
+              <Button
+                type="default"
+                onClick={() => setIsPostDetailsModalOpen(true)}
+                style={{
+                  background: "#1e293b",
+                  color: "#cbd5e1",
+                  borderColor: "#334155",
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  height: 36,
+                }}
+              >
+                Post Details
+              </Button>
+            ) : (
+              <Button
+                type="default"
+                onClick={() => setIsChatModalOpen(true)}
+                style={{
+                  background: "#1e293b",
+                  color: "#cbd5e1",
+                  borderColor: "#334155",
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  height: 36,
+                }}
+              >
+                Chat Widget
+              </Button>
+            )}
             <Button
               type="primary"
               onClick={handleSave}
@@ -657,6 +716,13 @@ const GrapesJSBuilder = ({
         isOpen={isMediaModalOpen}
         onClose={() => setIsMediaModalOpen(false)}
         onSelectImage={(url) => {
+          if (mediaTarget === "postFeaturedImage") {
+            setPostFeaturedImageUrl(url);
+            setIsMediaModalOpen(false);
+            setMediaTarget("component");
+            setIsPostDetailsModalOpen(true);
+            return;
+          }
           if (selectedComponent && selectedComponent.is("image")) {
             selectedComponent.addAttributes({ src: url });
           } else {
@@ -757,6 +823,126 @@ const GrapesJSBuilder = ({
           </div>
         </div>
       </Modal>
+
+      {isPostMode && (
+        <Modal
+          title={
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 18,
+                color: "var(--text-primary)",
+              }}
+            >
+              Post Details
+            </div>
+          }
+          open={isPostDetailsModalOpen}
+          onCancel={() => setIsPostDetailsModalOpen(false)}
+          footer={[
+            <Button
+              key="done"
+              type="primary"
+              onClick={() => setIsPostDetailsModalOpen(false)}
+              style={{
+                background: "var(--accent-primary)",
+                border: "none",
+                borderRadius: 8,
+                fontWeight: 700,
+              }}
+            >
+              Done
+            </Button>,
+          ]}
+          bodyStyle={{ padding: "24px 0 8px" }}
+        >
+          <div style={{ padding: "0 24px" }}>
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginBottom: 8,
+                  fontSize: 13,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Title
+              </div>
+              <Input
+                size="large"
+                value={postTitle}
+                onChange={(e) => setPostTitle(e.target.value)}
+                placeholder="Post title"
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginBottom: 8,
+                  fontSize: 13,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Featured Image
+              </div>
+              {postFeaturedImageUrl && (
+                <img
+                  src={postFeaturedImageUrl}
+                  alt="Featured"
+                  style={{
+                    width: "100%",
+                    maxHeight: 160,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    marginBottom: 12,
+                    border: "1px solid var(--border-color)",
+                  }}
+                />
+              )}
+              <div style={{ display: "flex", gap: 12 }}>
+                <Input
+                  size="large"
+                  value={postFeaturedImageUrl}
+                  onChange={(e) => setPostFeaturedImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <Button
+                  size="large"
+                  onClick={() => {
+                    setMediaTarget("postFeaturedImage");
+                    setIsPostDetailsModalOpen(false);
+                    setIsMediaModalOpen(true);
+                  }}
+                  style={{ fontWeight: 600, borderRadius: 8, flexShrink: 0 }}
+                >
+                  Choose Image
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 8 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginBottom: 8,
+                  fontSize: 13,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Excerpt
+              </div>
+              <TextArea
+                value={postExcerpt}
+                onChange={(e) => setPostExcerpt(e.target.value)}
+                placeholder="A short summary shown in blog listings"
+                style={{ minHeight: 100, borderRadius: 8 }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <style
         dangerouslySetInnerHTML={{

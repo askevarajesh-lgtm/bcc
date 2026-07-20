@@ -1,6 +1,7 @@
 const Website = require('./website.model');
 const Page = require('./page.model');
 const Template = require('../templates/template.model');
+const Blog = require('../blogs/blog.model');
 const unzipper = require('unzipper');
 const fs = require('fs');
 const path = require('path');
@@ -285,12 +286,14 @@ exports.getWebsites = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    // Map pages count onto websites
+    // Map pages count and blogs count onto websites
     const data = await Promise.all(websites.map(async (web) => {
       const pagesCount = await Page.countDocuments({ websiteId: web._id, isDeleted: false });
+      const blogsCount = await Blog.countDocuments({ websiteId: web._id, isDeleted: false });
       return {
         ...web.toObject(),
-        pagesCount
+        pagesCount,
+        blogsCount
       };
     }));
 

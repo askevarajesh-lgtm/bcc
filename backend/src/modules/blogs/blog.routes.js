@@ -19,6 +19,7 @@ router.delete('/:id', blogController.deleteBlog);
 // Blog Posts CRUD
 router.get('/:blogId/posts', blogController.getPosts);
 router.post('/:blogId/posts', blogController.addPost);
+router.get('/posts/:postId', blogController.getPostDetails);
 router.put('/posts/:postId', blogController.updatePost);
 router.delete('/posts/:postId', blogController.deletePost);
 
