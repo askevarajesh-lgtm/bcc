@@ -1,18 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Input, Button, Tag, Select, Upload, Checkbox, Form, message } from 'antd';
+import { Typography, Row, Col, Table, Button, Tag, Modal, Form, Input, Select, message } from 'antd';
+import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Mail, PhoneCall, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
-import BubbleCard from '../../../components/BubbleCard';
+import SlabCard from '../../../components/SlabCard';
+import { slaApi } from '../../../api/slaApi';
 import { supportApi } from '../../../api/supportApi';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-const { Dragger } = Upload;
 
 const SupportTab = () => {
-  const [form] = Form.useForm();
+  const { role } = useAuth();
+  
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
+  const [tickets, setTickets] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [viewTicketModalVisible, setViewTicketModalVisible] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -28,251 +45,259 @@ const SupportTab = () => {
     fetchUsers();
   }, []);
 
-  const handleSubmit = async (values) => {
+  const fetchSupportTickets = async () => {
+    try {
+      const res = await slaApi.getSlas({ triggerType: 'Client Issue' });
+      if (res && res.data) {
+        const fetchedTickets = res.data.map((item, index) => {
+          let type = 'General';
+          if (item.description && item.description.startsWith('[')) {
+            type = item.description.split(']')[0].substring(1);
+          }
+
+          const days = Math.floor((new Date() - new Date(item.createdAt)) / (1000 * 60 * 60 * 24));
+          const openedStr = days === 0 ? 'Today' : `${days} days`;
+
+          return {
+            id: item._id || index,
+            subject: item.title,
+            type: type,
+            priority: item.priority || 'Normal',
+            am: item.assignedTo?.name || 'Unassigned',
+            opened: openedStr,
+            status: item.status || 'Open',
+            action: 'View',
+            original: item
+          };
+        });
+
+        setTickets(fetchedTickets);
+      }
+    } catch (error) {
+      console.error('Failed to fetch support tickets', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupportTickets();
+  }, []);
+
+  const handleSubmitTicket = async (values) => {
     setSubmitting(true);
     try {
       await supportApi.createSupportTicket(values);
-      message.success('Request submitted successfully!');
+      message.success('Ticket raised successfully!');
+      setIsModalVisible(false);
       form.resetFields();
+      fetchSupportTickets();
     } catch (err) {
-      message.error('Failed to submit request');
+      message.error('Failed to raise ticket');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  const getPriorityColor = (priority) => {
+    if (priority === 'Critical' || priority === 'Urgent') return 'var(--accent-danger)';
+    if (priority === 'High') return 'var(--accent-warning)';
+    return 'var(--text-secondary)';
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
+  const columns = [
+    { title: 'SUBJECT', dataIndex: 'subject', key: 'subject', render: (val) => <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{val}</span> },
+    { title: 'TYPE', dataIndex: 'type', key: 'type', render: (val) => <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val}</span> },
+    { title: 'PRIORITY', dataIndex: 'priority', key: 'priority', render: (val) => <span style={{ color: getPriorityColor(val), fontWeight: 800 }}>{val}</span> },
+    { title: 'ASSIGNED TO', dataIndex: 'am', key: 'am', render: (val) => <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{val}</span> },
+    { title: 'OPENED', dataIndex: 'opened', key: 'opened', render: (val) => <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val}</span> },
+    { 
+      title: 'STATUS', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: (val) => (
+        <Tag style={{ 
+          margin: 0, 
+          border: '1px solid var(--border-color)', 
+          background: 'var(--bg-tertiary)', 
+          color: 'var(--text-secondary)', 
+          fontWeight: 700, 
+          borderRadius: 12, 
+          padding: '2px 10px' 
+        }}>
+          {val}
+        </Tag>
+      ) 
+    },
+    { 
+      title: 'ACTION', 
+      key: 'action', 
+      render: (_, record) => (
+        <Button 
+          type="text" 
+          style={{ color: 'var(--accent-secondary)', fontWeight: 700, padding: 0 }}
+          onClick={() => {
+            setSelectedTicket(record);
+            setViewTicketModalVisible(true);
+          }}
+        >
+          {record.action}
+        </Button>
+      ) 
+    },
+  ];
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
-      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Support</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Raise a request, track your tickets, or contact your team directly.</Text>
+      <motion.div variants={itemVariants} style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Support</Title>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Raise a request, track your tickets, or contact your team directly.</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<Plus size={16} />} 
+          style={{ fontWeight: 800, borderRadius: 8, height: 40 }}
+          onClick={() => setIsModalVisible(true)}
+        >
+          Raise Ticket
+        </Button>
       </motion.div>
 
-      {/* Account Manager Card */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
-        <BubbleCard bodyStyle={{ padding: 40, background: 'rgba(13, 148, 136, 0.03)' }} style={{ borderColor: 'rgba(13, 148, 136, 0.2)' }}>
-          <Row gutter={48}>
-            <Col xs={24} md={16}>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent-primary)', letterSpacing: 1, display: 'block', marginBottom: 16 }}>YOUR DEDICATED ACCOUNT MANAGER</Text>
-              <Title level={3} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Arjun Sharma</Title>
-              <Text style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Senior SEO Lead & Account Manager</Text>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-secondary)', display: 'block', marginBottom: 16 }}>BCC Martech</Text>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-primary)' }} />
-                <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Arjun is online — typically replies in under 2 hours</Text>
-              </div>
+      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
+        <SlabCard bodyStyle={{ padding: 0 }}>
+          <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)' }}>
+            <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>My Open Tickets</Text>
+          </div>
+          <Table 
+            dataSource={tickets} 
+            columns={columns} 
+            pagination={false} 
+            rowKey="id"
+            style={{ width: '100%' }}
+            className="custom-table"
+          />
+        </SlabCard>
+      </motion.div>
 
-              <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-                <Button type="primary" icon={<MessageCircle size={16} />} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}>WhatsApp</Button>
-                <Button icon={<Mail size={16} />} style={{ fontWeight: 600, borderRadius: 8, height: 40, color: 'var(--text-secondary)' }}>Email</Button>
-                <Button icon={<PhoneCall size={16} />} style={{ fontWeight: 600, borderRadius: 8, height: 40, color: 'var(--text-secondary)' }}>Book a Call</Button>
-              </div>
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Raise Support Ticket</span>}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmitTicket} style={{ marginTop: 24 }}>
+          <Form.Item name="subject" label={<span style={{ fontWeight: 600 }}>Subject</span>} rules={[{ required: true }]}>
+            <Input placeholder="E.g., Need help with billing..." size="large" style={{ borderRadius: 8 }} />
+          </Form.Item>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                  <AlertCircle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} /> Response commitment: Within 4 business hours
-                </Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontStyle: 'italic' }}>Critical issues: Within 1 hour</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontStyle: 'italic' }}>Current SLA performance: 98% on time ✓</Text>
-              </div>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item name="typeOfRequest" label={<span style={{ fontWeight: 600 }}>Type of Request</span>} rules={[{ required: true }]}>
+                <Select size="large" style={{ borderRadius: 8 }}>
+                  {role === 'brand_super_admin' ? (
+                    <>
+                      <Select.Option value="Plan Expiry">Plan Expiry</Select.Option>
+                      <Select.Option value="Subscription Expiry">Subscription Expiry</Select.Option>
+                      <Select.Option value="Account Event">Account-related Event</Select.Option>
+                      <Select.Option value="Other">Other</Select.Option>
+                    </>
+                  ) : (
+                    <>
+                      <Select.Option value="Task Due Dates">Task Due Dates</Select.Option>
+                      <Select.Option value="User Issue">User-related Issues</Select.Option>
+                      <Select.Option value="Day-to-day">Day-to-day Activities</Select.Option>
+                      <Select.Option value="Other">Other</Select.Option>
+                    </>
+                  )}
+                </Select>
+              </Form.Item>
             </Col>
-
-            <Col xs={24} md={8} style={{ borderLeft: '1px solid rgba(13, 148, 136, 0.1)', paddingLeft: 48 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#f59e0b', color: '#fff', fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                AS
-              </div>
-              <Text style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: 1, display: 'block', marginBottom: 16 }}>RECENT INTERACTIONS</Text>
-              <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ fontSize: 12, display: 'inline-block', marginTop: 2 }}>📊</span>
-                  <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Jun 5 — <span style={{ color: 'var(--text-secondary)' }}>Monthly report delivered</span></Text>
-                </li>
-                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ fontSize: 12, display: 'inline-block', marginTop: 2 }}>📞</span>
-                  <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>May 28 — <span style={{ color: 'var(--text-secondary)' }}>Strategy call completed</span></Text>
-                </li>
-                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <CheckCircle2 size={14} color="var(--accent-primary)" style={{ marginTop: 2 }} />
-                  <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>May 15 — <span style={{ color: 'var(--text-secondary)' }}>SEO audit reviewed</span></Text>
-                </li>
-              </ul>
+            <Col xs={24} md={12}>
+              <Form.Item name="priority" label={<span style={{ fontWeight: 600 }}>Priority Level</span>} rules={[{ required: true }]}>
+                <Select size="large" style={{ borderRadius: 8 }}>
+                  <Select.Option value="Normal">Normal (24h SLA)</Select.Option>
+                  <Select.Option value="High">High (8h SLA)</Select.Option>
+                  <Select.Option value="Critical">Critical (1h SLA)</Select.Option>
+                </Select>
+              </Form.Item>
             </Col>
           </Row>
-        </BubbleCard>
-      </motion.div>
 
-      {/* Raise a Request */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
-        <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Raise a Request</Title>
-        <Text type="secondary" style={{ fontSize: 14, fontWeight: 500, display: 'block', marginBottom: 24 }}>For anything that needs attention — we'll respond within SLA</Text>
-        
-        <BubbleCard bodyStyle={{ padding: 40 }}>
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Row gutter={32} style={{ marginBottom: 12 }}>
-              <Col xs={24} md={8}>
-                <Form.Item name="typeOfRequest" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Type of request *</Text>} rules={[{ required: true, message: 'Please select a type' }]}>
-                  <Select placeholder="Select request type" size="large">
-                    <Select.Option value="Bug Report">Bug Report</Select.Option>
-                    <Select.Option value="Feature Request">Feature Request</Select.Option>
-                    <Select.Option value="Account Assistance">Account Assistance</Select.Option>
-                    <Select.Option value="Billing Issue">Billing Issue</Select.Option>
-                  </Select>
-                </Form.Item>
+          <Form.Item name="assignedToUserId" label={<span style={{ fontWeight: 600 }}>Assign To</span>} rules={[{ required: true, message: 'Please select an assignee' }]}>
+            <Select size="large" placeholder="Select a manager or admin" loading={assignableUsers.length === 0} style={{ borderRadius: 8 }}>
+              {assignableUsers.map(user => (
+                <Select.Option key={user._id} value={user._id}>
+                  {user.name} ({user.role})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="details" label={<span style={{ fontWeight: 600 }}>Details</span>} rules={[{ required: true }]}>
+            <TextArea rows={4} placeholder="Please describe your issue in detail..." style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 32 }}>
+            <Button type="primary" htmlType="submit" size="large" loading={submitting} block style={{ borderRadius: 8, fontWeight: 800 }}>
+              Submit Ticket
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Ticket Details</span>}
+        open={viewTicketModalVisible}
+        onCancel={() => setViewTicketModalVisible(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setViewTicketModalVisible(false)} style={{ fontWeight: 800, borderRadius: 8 }}>
+            Close
+          </Button>
+        ]}
+        destroyOnClose
+      >
+        {selectedTicket && (
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>SUBJECT</Text><br/>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>{selectedTicket.subject}</Text>
+            </div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>STATUS</Text><br/>
+                <Tag style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontWeight: 700, border: '1px solid var(--border-color)', borderRadius: 12, margin: 0 }}>
+                  {selectedTicket.status}
+                </Tag>
               </Col>
-              <Col xs={24} md={8}>
-                <Form.Item name="priority" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Priority *</Text>} initialValue="Normal" rules={[{ required: true }]}>
-                  <Select size="large">
-                    <Select.Option value="Normal">Normal</Select.Option>
-                    <Select.Option value="Urgent">Urgent</Select.Option>
-                    <Select.Option value="Critical">Critical</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item name="assignedToUserId" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Assign To *</Text>} rules={[{ required: true, message: 'Please select an assignee' }]}>
-                  <Select placeholder="Select Assignee" size="large">
-                    {assignableUsers.map(user => (
-                      <Select.Option key={user._id} value={user._id}>{user.name} ({user.role.replace(/_/g, ' ')})</Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>TYPE</Text><br/>
+                <Text style={{ fontWeight: 600 }}>{selectedTicket.type}</Text>
               </Col>
             </Row>
-
-            <Form.Item name="subject" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Subject *</Text>} rules={[{ required: true, message: 'Please enter a subject' }]}>
-              <Input placeholder="Brief description of your request" size="large" style={{ borderRadius: 8 }} />
-            </Form.Item>
-
-            <Form.Item name="details" label={<Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Details</Text>}>
-              <TextArea placeholder="Tell us more — the more detail, the faster we can help." rows={4} style={{ borderRadius: 8 }} />
-            </Form.Item>
-
-            <div style={{ marginBottom: 32 }}>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Attach files</Text>
-              <Dragger style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: 12 }}>
-                <p className="ant-upload-drag-icon">
-                  <UploadCloud size={32} color="var(--text-secondary)" />
-                </p>
-                <p className="ant-upload-text" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Drag files here or click to upload</p>
-                <p className="ant-upload-hint" style={{ fontWeight: 500, color: 'var(--text-tertiary)', fontSize: 12 }}>PNG, JPG, PDF, MP4 · Max 10MB each</p>
-              </Dragger>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
-              <Text style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>* Required fields</Text>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <Button type="text" onClick={() => form.resetFields()} style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cancel</Button>
-                <Button type="primary" htmlType="submit" loading={submitting} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, padding: '0 24px' }}>Submit Request</Button>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>PRIORITY</Text><br/>
+                <Text style={{ fontWeight: 600, color: getPriorityColor(selectedTicket.priority) }}>{selectedTicket.priority}</Text>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>ASSIGNED TO</Text><br/>
+                <Text style={{ fontWeight: 600 }}>{selectedTicket.am}</Text>
+              </Col>
+            </Row>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 700 }}>DETAILS</Text><br/>
+              <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 8, marginTop: 4 }}>
+                <Text style={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                  {selectedTicket.original?.description?.includes(']') 
+                    ? selectedTicket.original.description.split(']').slice(1).join(']').trim() 
+                    : selectedTicket.original?.description}
+                </Text>
               </div>
             </div>
-          </Form>
-        </BubbleCard>
-      </motion.div>
-
-      {/* My Open Tickets */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Title level={4} style={{ margin: 0, fontWeight: 800 }}>My Open Tickets</Title>
-            <Tag style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: 12, fontWeight: 700, padding: '0 8px', margin: 0 }}>
-              3 open
-            </Tag>
           </div>
-          <Button type="link" style={{ fontWeight: 700, color: 'var(--accent-secondary)', padding: 0 }}>View All Tickets</Button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Ticket 1 */}
-          <BubbleCard bodyStyle={{ padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>#PE-2026-044</Text>
-                <Tag style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 10, padding: '0 6px', margin: 0 }}>IN PROGRESS</Tag>
-              </div>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>2 days ago</Text>
-            </div>
-            <Title level={5} style={{ margin: '0 0 12px 0', fontWeight: 800, fontSize: 16 }}>June Instagram content for approval — 6 posts</Title>
-            <Tag style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, marginBottom: 12 }}>Content Change</Tag>
-            <Text style={{ display: 'block', fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 12 }}>
-              The 6 Instagram posts for June have been uploaded for review. Please approve or send feedback by 12 Jun.
-            </Text>
-            <div style={{ background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: 8, marginBottom: 16 }}>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-secondary)' }}><strong style={{ color: 'var(--text-primary)' }}>Karan Mehta replied:</strong> 'Content uploaded to approval queue'</Text>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Button type="link" style={{ padding: 0, fontWeight: 800, color: 'var(--accent-secondary)' }}>View Ticket →</Button>
-              <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-warning)' }}>Priority: Urgent</Text>
-            </div>
-          </BubbleCard>
-
-          {/* Ticket 2 */}
-          <BubbleCard bodyStyle={{ padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>#PE-2026-042</Text>
-                <Tag style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, fontWeight: 800, fontSize: 10, padding: '0 6px', margin: 0 }}>OPEN</Tag>
-              </div>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>4 days ago</Text>
-            </div>
-            <Title level={5} style={{ margin: '0 0 12px 0', fontWeight: 800, fontSize: 16 }}>Q2 Performance Presentation — need by 20 June</Title>
-            <Tag style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, marginBottom: 12 }}>Report Request</Tag>
-            <Text style={{ display: 'block', fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 12 }}>
-              Please prepare a PowerPoint presentation of our Q2 results for our board meeting on 25 June.
-            </Text>
-            <Text style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', fontStyle: 'italic', marginBottom: 16 }}>Awaiting agency response</Text>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Button type="link" style={{ padding: 0, fontWeight: 800, color: 'var(--accent-secondary)' }}>View Ticket →</Button>
-              <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Priority: Normal</Text>
-            </div>
-          </BubbleCard>
-
-          {/* Ticket 3 */}
-          <BubbleCard bodyStyle={{ padding: 24, borderLeft: '4px solid var(--accent-danger)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>#PE-2026-046</Text>
-                <Tag style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, fontWeight: 800, fontSize: 10, padding: '0 6px', margin: 0 }}>OPEN</Tag>
-              </div>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>1 hour ago</Text>
-            </div>
-            <Title level={5} style={{ margin: '0 0 12px 0', fontWeight: 800, fontSize: 16, color: 'var(--accent-danger)' }}>Google Ads not generating leads — check urgently</Title>
-            <Tag style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, marginBottom: 12 }}>Technical Issue</Tag>
-            <Text style={{ display: 'block', fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 12 }}>
-              We haven't received any Google Ads leads since yesterday morning. Something may be wrong with the campaign or lead sync.
-            </Text>
-            <Text style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', fontStyle: 'italic', marginBottom: 16 }}>Ticket created — awaiting response</Text>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Button type="link" style={{ padding: 0, fontWeight: 800, color: 'var(--accent-danger)' }}>View Ticket →</Button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-danger)' }}>Priority: Critical</Text>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-danger)' }} />
-              </div>
-            </div>
-          </BubbleCard>
-        </div>
-      </motion.div>
-
-      {/* Resolved Tickets */}
-      <motion.div variants={itemVariants}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={5} style={{ margin: 0, fontWeight: 800 }}>Resolved Tickets</Title>
-          <Button type="link" style={{ fontWeight: 700, color: 'var(--accent-secondary)', padding: 0 }}>View All</Button>
-        </div>
-        <Text type="secondary" style={{ fontSize: 14, fontWeight: 500, display: 'block', marginTop: 4 }}>Show past 5 resolved tickets ▾</Text>
-      </motion.div>
-
+        )}
+      </Modal>
     </motion.div>
   );
 };

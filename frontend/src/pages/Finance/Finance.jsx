@@ -25,20 +25,13 @@ const Finance = () => {
     }
   };
 
-  const revData = [
-    { month: 'Jan', val: 37.5, p: '+2.4%' },
-    { month: 'Feb', val: 38.6, p: '+2.8%' },
-    { month: 'Mar', val: 39.4, p: '+2.1%' },
-    { month: 'Apr', val: 40.2, p: '+2.0%' },
-    { month: 'May', val: 41.6, p: '+3.4%' },
-    { month: 'Jun', val: 42.8, p: '+2.8%' },
-  ];
+  const revData = [];
 
   const pieData = [
-    { name: 'Paid', value: 89.7, color: 'var(--accent-primary)' },
-    { name: 'Pending', value: 7.5, color: 'var(--accent-warning)' },
+    { name: 'Paid', value: 0, color: 'var(--accent-primary)' },
+    { name: 'Pending', value: 0, color: 'var(--accent-warning)' },
     { name: 'Overdue', value: 0, color: 'var(--accent-danger)' },
-    { name: 'Draft', value: 2.8, color: 'var(--text-tertiary)' },
+    { name: 'Draft', value: 0, color: 'var(--text-tertiary)' },
   ];
 
   const invCols = [
@@ -85,11 +78,11 @@ const Finance = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
           {[
-            { label: 'TOTAL MRR', val: '₹42.80L', sub: 'Monthly recurring', color: 'var(--text-primary)' },
-            { label: 'COLLECTED THIS MONTH', val: '₹38.40L', sub: '89.7% collection rate', color: 'var(--accent-primary)' },
-            { label: 'OUTSTANDING', val: '₹4.40L', sub: 'Pending + Draft', color: 'var(--accent-warning)' },
+            { label: 'TOTAL MRR', val: '₹0', sub: 'Monthly recurring', color: 'var(--text-primary)' },
+            { label: 'COLLECTED THIS MONTH', val: '₹0', sub: '0% collection rate', color: 'var(--accent-primary)' },
+            { label: 'OUTSTANDING', val: '₹0', sub: 'Pending + Draft', color: 'var(--accent-warning)' },
             { label: 'OVERDUE', val: '₹0', sub: 'No clients overdue', color: 'var(--accent-primary)' },
-            { label: 'NEXT MONTH FORECAST', val: '₹44.20L', sub: '+3.3% MoM', color: 'var(--text-primary)' },
+            { label: 'NEXT MONTH FORECAST', val: '₹0', sub: '0% MoM', color: 'var(--text-primary)' },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
@@ -181,11 +174,11 @@ const Finance = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32, fontSize: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text type="secondary" style={{ fontWeight: 500 }}>Collection rate</Text>
-                  <span><strong style={{ color: 'var(--text-primary)' }}>89.7%</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>12 of 12 invoices, 2 pending</Text></span>
+                  <span><strong style={{ color: 'var(--text-primary)' }}>0%</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>0 invoices</Text></span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text type="secondary" style={{ fontWeight: 500 }}>Avg days to payment</Text>
-                  <strong style={{ color: 'var(--text-primary)' }}>4.2 days</strong>
+                  <strong style={{ color: 'var(--text-primary)' }}>0 days</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text type="secondary" style={{ fontWeight: 500 }}>Automated collections</Text>
@@ -228,7 +221,7 @@ const Finance = () => {
                     {pieData.map((d, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} /> <Text type="secondary" style={{ fontWeight: 600 }}>{d.name}</Text></span>
-                        <span><strong style={{ color: 'var(--text-primary)' }}>{d.name === 'Paid' ? '₹38.4L' : d.name === 'Pending' ? '₹3.2L' : d.name === 'Draft' ? '₹1.2L' : '₹0'}</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{d.value}%</Text></span>
+                        <span><strong style={{ color: 'var(--text-primary)' }}>₹0</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>{d.value}%</Text></span>
                       </div>
                     ))}
                   </div>
@@ -264,11 +257,11 @@ const Finance = () => {
 
       <motion.div variants={itemVariants}>
         <Card
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoices</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>12 of 12 invoices</Text></div>}
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Invoices</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>0 invoices</Text></div>}
           extra={<Radio.Group defaultValue="All" size="middle"><Radio.Button value="All">All</Radio.Button><Radio.Button value="Paid">Paid</Radio.Button><Radio.Button value="Pending">Pending</Radio.Button><Radio.Button value="Overdue">Overdue</Radio.Button><Radio.Button value="Draft">Draft</Radio.Button></Radio.Group>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={invCols} dataSource={invoicesList} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table columns={invCols} dataSource={[]} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
         </Card>
       </motion.div>
 

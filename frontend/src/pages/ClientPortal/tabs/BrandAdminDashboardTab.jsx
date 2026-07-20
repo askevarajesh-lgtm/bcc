@@ -46,9 +46,9 @@ const BrandAdminDashboardTab = () => {
   }, []);
 
   const overviewStats = [
-    { label: 'TOTAL MARKETING SPEND', value: '₹14.2L', trend: '+5.4% MoM', icon: <CreditCard size={20}/>, color: 'var(--accent-primary)' },
-    { label: 'ACTIVE TEAM SEATS', value: `${users.filter(u => u.status === 'active').length} / 15`, trend: `${15 - users.filter(u => u.status === 'active').length} available`, icon: <Users size={20}/>, color: 'var(--accent-secondary)' },
-    { label: 'BRAND ROI', value: '4.2x', trend: '+0.8x MoM', icon: <Zap size={20}/>, color: 'var(--accent-warning)' },
+    { label: 'TOTAL MARKETING SPEND', value: '₹0', trend: '0.0% MoM', icon: <CreditCard size={20}/>, color: 'var(--accent-primary)' },
+    { label: 'ACTIVE TEAM SEATS', value: `${users.filter(u => u.status === 'active').length}`, trend: 'Active members', icon: <Users size={20}/>, color: 'var(--accent-secondary)' },
+    { label: 'BRAND ROI', value: '0.0x', trend: '0.0x MoM', icon: <Zap size={20}/>, color: 'var(--accent-warning)' },
   ];
 
   const columns = [

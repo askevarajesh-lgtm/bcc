@@ -113,13 +113,23 @@ exports.createBrand = async (req, res, next) => {
 // Update brand status
 exports.updateBrandStatus = async (req, res, next) => {
   try {
-    if (!['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+    const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
+    const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+
+    if (!isAdmin && !isAgency) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+    if (isAgency) {
+      filter.agencyId = req.user.agencyId;
+    } else {
+      filter.isDirect = true;
     }
 
     const { status } = req.body;
     const brand = await User.findOneAndUpdate(
-      { _id: req.params.id, agencyId: req.user.agencyId, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } },
+      filter,
       { status },
       { new: true, runValidators: true }
     );
@@ -137,11 +147,21 @@ exports.updateBrandStatus = async (req, res, next) => {
 // Delete brand
 exports.deleteBrand = async (req, res, next) => {
   try {
-    if (!['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+    const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
+    const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+
+    if (!isAdmin && !isAgency) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const brand = await User.findOneAndDelete({ _id: req.params.id, agencyId: req.user.agencyId, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } });
+    let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+    if (isAgency) {
+      filter.agencyId = req.user.agencyId;
+    } else {
+      filter.isDirect = true;
+    }
+
+    const brand = await User.findOneAndDelete(filter);
 
     if (!brand) {
       return res.status(404).json({ success: false, message: 'Company not found' });
@@ -151,6 +171,81 @@ exports.deleteBrand = async (req, res, next) => {
     await User.deleteMany({ brandId: req.params.id });
 
     res.status(200).json({ success: true, data: {} });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update brand details
+exports.updateBrand = async (req, res, next) => {
+  try {
+    const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
+    const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+
+    if (!isAdmin && !isAgency) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+    if (isAgency) {
+      filter.agencyId = req.user.agencyId;
+    } else {
+      filter.isDirect = true;
+    }
+
+    const { name, packageName, features } = req.body;
+    let updates = {};
+    if (name) updates.companyName = name;
+    if (packageName !== undefined) updates.packageName = packageName;
+    if (features !== undefined) updates.features = features;
+
+    const brand = await User.findOneAndUpdate(
+      filter,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!brand) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    res.status(200).json({ success: true, data: brand });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update brand profile (for brand admins)
+exports.updateBrandProfile = async (req, res, next) => {
+  try {
+    const isBrandAdmin = ['brand_super_admin'].includes(req.user.role);
+    if (!isBrandAdmin) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update brand profile' });
+    }
+
+    const { companyName, contactEmail, domain, industry, logo } = req.body;
+    let updates = {};
+    if (companyName) updates.companyName = companyName;
+    if (contactEmail) updates.contactEmail = contactEmail;
+    if (domain) updates.domain = domain;
+    if (industry) updates.industry = industry;
+    if (logo) updates.logo = logo;
+
+    // Use req.user._id since the brand_super_admin's user record is the brand record 
+    // or their brandId if they are just a user
+    const brandId = req.user.brandId || req.user._id;
+
+    const brand = await User.findByIdAndUpdate(
+      brandId,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!brand) {
+      return res.status(404).json({ success: false, message: 'Brand not found' });
+    }
+
+    res.status(200).json({ success: true, data: brand });
   } catch (error) {
     next(error);
   }

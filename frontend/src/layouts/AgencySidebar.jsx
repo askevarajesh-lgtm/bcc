@@ -155,12 +155,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const opsChildren = [];
-  if (feats.includes('salespipeline') || feats.length === 0 || hasAgencyFullAccess) {
-    opsChildren.push({ key: '/agency/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
-  }
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
-  opsChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
 
   if (opsChildren.length > 0) {
     menuItems.push({

@@ -1,23 +1,91 @@
 import React, { useState } from 'react';
-import { Typography, Tabs, Card, Form, Input, Button, Upload, Select, message, Tag } from 'antd';
+import { Typography, Tabs, Card, Form, Input, Button, Upload, Select, message, Tag, Modal, Checkbox } from 'antd';
 import { motion } from 'framer-motion';
 import { Upload as UploadIcon, Building, Package, Shield, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
+const availableFeatures = [
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'ads', label: 'Performance Ads' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Websites' },
+  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'chatgpt', label: 'Chatgpt' },
+  { id: 'canva', label: 'Canva' },
+  { id: 'benchmark', label: 'Benchmark' },
+  { id: 'seo', label: 'Seo Intelligence' },
+  { id: 'marketplace', label: 'Marketplace' }
+];
+
 const BrandSettingsTab = () => {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeForm] = Form.useForm();
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
-  const handleSaveDetails = (values) => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      message.success('Brand details updated successfully');
+  const handleSaveDetails = async (values) => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/brands/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          companyName: values.name,
+          contactEmail: values.email,
+          domain: values.website,
+          industry: values.industry
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('Brand details updated successfully');
+      } else {
+        message.error(data.message || 'Failed to update brand details');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleRequestUpgrade = async (values) => {
+    try {
+      setUpgradeLoading(true);
+      const res = await fetch('/api/plan-upgrades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          requestedModules: values.modules || [],
+          remarks: values.remarks || ''
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('Plan upgrade request submitted successfully');
+        setIsUpgradeModalOpen(false);
+        upgradeForm.resetFields();
+      } else {
+        message.error(data.message || 'Failed to submit request');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setUpgradeLoading(false);
+    }
   };
 
   const containerVariants = {
@@ -38,7 +106,7 @@ const BrandSettingsTab = () => {
         bodyStyle={{ padding: 32 }}
       >
         <Title level={4} style={{ marginTop: 0, marginBottom: 24, fontWeight: 800 }}>Brand Profile</Title>
-        <Form form={form} layout="vertical" onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || 'My Brand', email: user?.email }}>
+        <Form form={form} layout="vertical" onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || user?.name || 'My Brand', email: user?.contactEmail || user?.email, website: user?.domain, industry: user?.industry }}>
           <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
             <div style={{ width: 100, height: 100, borderRadius: 12, background: 'var(--bg-tertiary)', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <UploadIcon size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
@@ -105,7 +173,7 @@ const BrandSettingsTab = () => {
               <Package size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>Growth Package</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{user?.packageName || 'Custom Package'}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Billed monthly via Agency</div>
             </div>
           </div>
@@ -119,10 +187,46 @@ const BrandSettingsTab = () => {
           </ul>
         </div>
 
-        <Button type="primary" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 700, borderRadius: 8, height: 40, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Button onClick={() => setIsUpgradeModalOpen(true)} type="primary" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40, display: 'flex', alignItems: 'center', gap: 8 }}>
           Request Plan Upgrade <ExternalLink size={16} />
         </Button>
       </Card>
+      
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Upgrade Your Plan</span>}
+        open={isUpgradeModalOpen}
+        onCancel={() => setIsUpgradeModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsUpgradeModalOpen(false)} style={{ borderRadius: 8 }}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" loading={upgradeLoading} onClick={() => upgradeForm.submit()} style={{ background: 'var(--accent-primary)', fontWeight: 600, borderRadius: 8 }}>
+            Submit Request
+          </Button>
+        ]}
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>Please select the additional modules you require. Our team will reach out to discuss pricing and complete the setup.</Text>
+        
+        <Form form={upgradeForm} layout="vertical" onFinish={handleRequestUpgrade}>
+          <Form.Item name="modules" label={<span style={{ fontWeight: 600 }}>Select Additional Modules</span>}>
+             <Checkbox.Group style={{ width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  {availableFeatures.map(feat => {
+                    const isIncluded = user?.features?.includes(feat.id);
+                    return (
+                      <Checkbox key={feat.id} value={feat.id} disabled={isIncluded} style={{ fontWeight: 500, opacity: isIncluded ? 0.5 : 1 }}>
+                        {feat.label} {isIncluded && '(Included)'}
+                      </Checkbox>
+                    );
+                  })}
+                </div>
+              </Checkbox.Group>
+          </Form.Item>
+          <Form.Item name="remarks" label={<span style={{ fontWeight: 600 }}>Remarks (Optional)</span>}>
+            <Input.TextArea rows={3} placeholder="Any specific requirements?" style={{ borderRadius: 8 }} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 

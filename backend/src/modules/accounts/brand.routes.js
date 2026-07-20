@@ -10,8 +10,14 @@ router.route('/')
   .get(brandController.getBrands)
   .post(brandController.createBrand);
 
+router.route('/profile')
+  .put(brandController.updateBrandProfile);
+
 router.route('/:id')
-  .put(brandController.updateBrandStatus)
+  .put(brandController.updateBrand) // New endpoint for editing details
   .delete(brandController.deleteBrand);
+
+router.route('/:id/status')
+  .put(brandController.updateBrandStatus);
 
 module.exports = router;

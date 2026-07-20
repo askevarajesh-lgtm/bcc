@@ -133,31 +133,42 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       label: collapsed ? 'CLI' : 'CLIENTS',
       children: [
         { key: '/client/users', icon: getIcon(Users), label: 'Users' },
+        { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
+      ],
+    });
+  } else if (role === 'brand_manager') {
+    allMenuItems.push({
+      key: 'clients',
+      label: collapsed ? 'CLI' : 'CLIENTS',
+      children: [
+        { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       ],
     });
   }
 
   const workspaceChildren = [];
-  if (role === 'agency_client') {
-    workspaceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
-    workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
-    workspaceChildren.push({ key: '/client/social', icon: getIcon(MessageCircle), label: 'Social Media', featureId: 'social' });
-    workspaceChildren.push({ key: '/client/ads', icon: getIcon(Target), label: 'Performance Ads', featureId: 'ads' });
-    workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push({ key: '/client/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
-    workspaceChildren.push({ key: '/client/ai-studio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
-    workspaceChildren.push({ key: '/client/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
-    workspaceChildren.push({ key: '/client/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
-  } else if (role === 'brand_super_admin' || role === 'brand_manager') {
-    workspaceChildren.push({ key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', leadsCount) });
+  if (role === 'brand_super_admin') {
+    // No workspace modules for brand_super_admin
+  } else if (role === 'brand_manager') {
+    workspaceChildren.push({ key: '/client/workspace/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
+    workspaceChildren.push({ key: '/client/workspace/aistudio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
+    workspaceChildren.push({ key: '/client/workspace/social', icon: getIcon(MessageCircle), label: 'Social Media', featureId: 'social' });
+    workspaceChildren.push({ key: '/client/workspace/ads', icon: getIcon(Target), label: 'Performance Ads', featureId: 'ads' });
+    workspaceChildren.push({ key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', leadsCount), featureId: 'crm' });
     workspaceChildren.push({ key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    workspaceChildren.push({ key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
+    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace', featureId: 'marketplace' });
+  } else if (role === 'agency_client') {
+    workspaceChildren.push({ key: '/client/workspace/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
+    workspaceChildren.push({ key: '/client/workspace/aistudio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
+    workspaceChildren.push({ key: '/client/workspace/social', icon: getIcon(MessageCircle), label: 'Social Media', featureId: 'social' });
+    workspaceChildren.push({ key: '/client/workspace/ads', icon: getIcon(Target), label: 'Performance Ads', featureId: 'ads' });
+    workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
+    workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
   } else {
-    // normal client
-    workspaceChildren.push({ key: '/client/performance', icon: getIcon(Target), label: 'Marketing Performance' });
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
   }
-  workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace', featureId: 'marketplace' });
 
   if (workspaceChildren.length > 0) {
     allMenuItems.push({
@@ -168,15 +179,28 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const intelligenceChildren = [];
-  if (role === 'brand_super_admin' || role === 'brand_manager') {
+  if (role === 'brand_super_admin') {
     intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
-    intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' });
-  } else {
+  } else if (role === 'brand_manager') {
+    intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance', featureId: 'analytics' });
+    intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
+    intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
+    intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
+    intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
+    intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
+  } else if (role === 'agency_client') {
+    intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
+    intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
+    intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
+    intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
     intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
-    intelligenceChildren.push({ key: '/client/intelligence/benchmark', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
+  } else {
+    intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
+    intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
+    intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   }
-  
+
   if (intelligenceChildren.length > 0) {
     allMenuItems.push({
       key: 'intelligence',
@@ -186,15 +210,27 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const opsChildren = [];
-  if (role === 'brand_super_admin' || role === 'brand_manager') {
+  if (role === 'brand_super_admin') {
     opsChildren.push({ key: '/client/ops/team', icon: getIcon(Users), label: getLabel('People', peopleCount) });
     opsChildren.push({ key: '/client/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' });
     opsChildren.push({ key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' });
-    opsChildren.push({ key: '/client/ops/finance', icon: getIcon(CreditCard), label: 'Finance' });
+    opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+    opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+  } else if (role === 'brand_manager') {
+    opsChildren.push({ key: '/client/ops/team', icon: getIcon(Users), label: getLabel('People', peopleCount) });
+    opsChildren.push({ key: '/client/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' });
+    opsChildren.push({ key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' });
+    opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+    opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+  } else if (role === 'agency_client') {
+    opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+    opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+    opsChildren.push({ key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
+  } else {
+    opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+    opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+    opsChildren.push({ key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
   }
-  opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
-  opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
-  opsChildren.push({ key: '/client/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
 
   if (opsChildren.length > 0) {
     allMenuItems.push({
@@ -205,13 +241,20 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const settingsChildren = [];
-  settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
-  settingsChildren.push({
-    key: '/client/support',
-    icon: getIcon(HelpCircle),
-    label: 'Support'
-  });
-  settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
+  if (role === 'brand_super_admin') {
+    settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
+    settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
+    settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
+  } else if (role === 'brand_manager') {
+    settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
+    settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
+  } else if (role === 'agency_client') {
+    settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
+    settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
+  } else {
+    settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
+    settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
+  }
 
   if (settingsChildren.length > 0) {
     allMenuItems.push({

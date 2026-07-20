@@ -83,6 +83,9 @@ exports.signin = async (req, res, next) => {
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
         logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        contactEmail: user.contactEmail,
+        domain: user.domain,
+        industry: user.industry,
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions,
@@ -98,7 +101,7 @@ exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('agencyId', 'companyName name logo')
-      .populate('brandId', 'companyName name logo');
+      .populate('brandId', 'companyName name logo domain contactEmail industry');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -155,6 +158,9 @@ exports.me = async (req, res, next) => {
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
         logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        contactEmail: user.contactEmail || (user.brandId ? user.brandId.contactEmail : null),
+        domain: user.domain || (user.brandId ? user.brandId.domain : null),
+        industry: user.industry || (user.brandId ? user.brandId.industry : null),
         workspaceId: user.workspaceId,
         features: features,
         agencyFeatures: agencyFeatures,
@@ -245,6 +251,9 @@ exports.impersonate = async (req, res, next) => {
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
         logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        contactEmail: user.contactEmail || (user.brandId ? user.brandId.contactEmail : null),
+        domain: user.domain || (user.brandId ? user.brandId.domain : null),
+        industry: user.industry || (user.brandId ? user.brandId.industry : null),
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions,

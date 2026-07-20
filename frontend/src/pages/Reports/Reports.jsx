@@ -36,38 +36,13 @@ const generateMockTrendData = () => {
 
 const mockTrendData = generateMockTrendData();
 
-// Mock Data for New Dashboard Charts based on 5 Report Types
-const reportTypesData = [
-  { name: 'Social Perf', value: 45 },
-  { name: 'SEO Ranking', value: 35 },
-  { name: 'Social Eng', value: 25 },
-  { name: 'Ads Leads', value: 30 },
-  { name: 'Lead Conv', value: 20 },
-];
+const reportTypesData = [];
 
-const seoRankingData = [
-  { month: 'Jan', highRankings: 120, lowRankings: 300 },
-  { month: 'Feb', highRankings: 150, lowRankings: 280 },
-  { month: 'Mar', highRankings: 180, lowRankings: 250 },
-  { month: 'Apr', highRankings: 220, lowRankings: 210 },
-  { month: 'May', highRankings: 280, lowRankings: 180 },
-  { month: 'Jun', highRankings: 320, lowRankings: 150 },
-];
+const seoRankingData = [];
 
-const socialEngagementData = [
-  { platform: 'Instagram', likes: 4500, shares: 1200, comments: 800 },
-  { platform: 'Facebook', likes: 3200, shares: 900, comments: 400 },
-  { platform: 'Twitter/X', likes: 2100, shares: 1500, comments: 600 },
-  { platform: 'LinkedIn', likes: 1800, shares: 600, comments: 300 },
-];
+const socialEngagementData = [];
 
-const funnelData = [
-  { stage: 'Ad Clicks', count: 15000, fill: '#8b5cf6' },
-  { stage: 'Landing Page Views', count: 8500, fill: '#3b82f6' },
-  { stage: 'Leads (MQL)', count: 2400, fill: '#10b981' },
-  { stage: 'Sales Qualified (SQL)', count: 900, fill: '#f59e0b' },
-  { stage: 'Converted Clients', count: 350, fill: '#ef4444' },
-];
+const funnelData = [];
 
 
 const Reports = () => {
@@ -239,10 +214,10 @@ const Reports = () => {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={22} color="#8b5cf6" />
                 </div>
-                <Tag color="success" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>+12%</Tag>
+                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>0%</Tag>
               </div>
               <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Total Reports</Text>
-              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalSent > 0 ? totalSent : 142}</Title>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalSent > 0 ? totalSent : 0}</Title>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -251,10 +226,10 @@ const Reports = () => {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Eye size={22} color="#10b981" />
                 </div>
-                <Tag color="success" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>+5.2%</Tag>
+                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>0%</Tag>
               </div>
               <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Avg Open Rate</Text>
-              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{openRate > 0 ? `${openRate}%` : '68%'}</Title>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{openRate > 0 ? `${openRate}%` : '0%'}</Title>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -263,10 +238,10 @@ const Reports = () => {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Activity size={22} color="#f59e0b" />
                 </div>
-                <Tag color="error" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>-2.1%</Tag>
+                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>0%</Tag>
               </div>
               <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Engagement Score</Text>
-              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalOpened > 0 ? Math.round((totalOpened/totalSent)*10)*10 : 84}</Title>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalOpened > 0 ? Math.round((totalOpened/totalSent)*10)*10 : 0}</Title>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -275,10 +250,10 @@ const Reports = () => {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={22} color="#3b82f6" />
                 </div>
-                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none' }}>Consistent</Tag>
+                <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>-</Tag>
               </div>
               <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>Pages Generated</Text>
-              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalPagesGenerated > 0 ? totalPagesGenerated : 1850}</Title>
+              <Title level={1} style={{ margin: '4px 0 0 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: 32 }}>{totalPagesGenerated > 0 ? totalPagesGenerated : 0}</Title>
             </Card>
           </Col>
         </Row>
