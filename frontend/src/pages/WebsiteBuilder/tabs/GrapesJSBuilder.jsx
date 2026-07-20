@@ -3,7 +3,7 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./grapesjs-theme.css"; // Premium custom theme override
 import webpagePlugin from "grapesjs-preset-webpage";
-import { Button, message, Modal, Select } from "antd";
+import { Button, message, Modal, Select, Input } from "antd";
 const { Option } = Select;
 import { ArrowLeft } from "lucide-react";
 import CustomImagePanel from "./CustomImagePanel";
@@ -160,6 +160,15 @@ const GrapesJSBuilder = ({
   // back unfiltered) showed them fine. This toggle + the status field
   // added to the save payload below closes that gap.
   const [postStatus, setPostStatus] = useState(activePost?.status || "draft");
+  // Meta Title / Meta Description have no on-canvas representation (unlike
+  // Title/Excerpt/Image, which are draggable data-post-field components),
+  // so they were previously never included in this editor's save payload —
+  // meaning any post edited here silently lost/never got these fields, even
+  // if they'd been set earlier through the Blogs admin form. Tracking them
+  // here and sending them on save closes that gap.
+  const [postMetaTitle, setPostMetaTitle] = useState(activePost?.metaTitle || "");
+  const [postMetaDescription, setPostMetaDescription] = useState(activePost?.metaDescription || "");
+  const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -269,6 +278,19 @@ const GrapesJSBuilder = ({
     // recolored/restyled to the indigo "Our latest blogs" theme.
     const buildBlogPostCardHtml = (blog, post) => {
       const postUrl = `/blog/${blog.slug}/${post.slug}`;
+<<<<<<< HEAD
+=======
+      // "Read More" must open the post's actual saved html/css exactly as
+      // built in the GrapesJS post editor — same route the "Preview" button
+      // uses (see BlogEmbedView.jsx for the same pattern). The generic
+      // /blog/:slug/:postSlug route renders a templated view from
+      // post.content/excerpt and does NOT reflect the GrapesJS-edited page,
+      // so it's kept only as a fallback for posts with no linked website.
+      const postWebsiteId = post.websiteId || blog.websiteId;
+      const postPreviewUrl = postWebsiteId
+        ? `/preview/website/${postWebsiteId}/blog-post/${post._id}`
+        : postUrl;
+>>>>>>> b44416c608102f593c67f2e8f6359133e0a5703d
       const excerptHtml =
         post.excerpt?.trim() ||
         (post.content
@@ -296,7 +318,11 @@ const GrapesJSBuilder = ({
         : `<div style="width:100%; height:190px; border-radius:16px; background:#f1f5f9;"></div>`;
 
       return `
+<<<<<<< HEAD
         <div data-post-card-id="${post._id}" style="flex:1 1 260px; max-width:340px;">
+=======
+        <div data-post-card-id="${post._id}" style="flex:0 0 280px; width:280px;">
+>>>>>>> b44416c608102f593c67f2e8f6359133e0a5703d
           ${imageHtml}
           <div style="margin-top:20px;">
             ${categoriesHtml}
@@ -304,7 +330,11 @@ const GrapesJSBuilder = ({
               <a href="${postUrl}" target="_parent" style="color:#5b5fef; text-decoration:none;">${post.title}</a>
             </h4>
             <p style="color:#94a3b8; font-size:14px; line-height:1.6; margin:0 0 16px;">${excerptHtml}</p>
+<<<<<<< HEAD
             <a href="${postUrl}" target="_parent" style="font-weight:700; font-size:14px; color:#5b5fef; text-decoration:none; display:inline-block; margin-bottom:16px;">Read More &rarr;</a>
+=======
+            <a href="${postPreviewUrl}" target="_blank" rel="noopener noreferrer" style="font-weight:700; font-size:14px; color:#5b5fef; text-decoration:none; display:inline-block; margin-bottom:16px;">Read More &rarr;</a>
+>>>>>>> b44416c608102f593c67f2e8f6359133e0a5703d
             <div style="display:flex; align-items:center; gap:16px; color:#94a3b8; font-size:13px; font-weight:500;">
               <span>${dateStr}</span>
               <span>Admin</span>
@@ -374,6 +404,16 @@ const GrapesJSBuilder = ({
 
               const blogListUrl = `/blog/${blog.slug}`;
 
+<<<<<<< HEAD
+=======
+              // Posts scroll horizontally in a single row instead of wrapping
+              // onto new lines — data-blog-scroll-id gives the arrow buttons
+              // below a stable target to scroll via scrollBy(), and
+              // overflow-x:hidden keeps anything past the visible strip out
+              // of view until the user scrolls it into place.
+              const scrollId = `blog-scroll-${blog._id}`;
+
+>>>>>>> b44416c608102f593c67f2e8f6359133e0a5703d
               const blockContent = `
                 <div data-blog-list-id="${blog._id}" style="max-width:1200px; margin:0 auto; padding:60px 20px; font-family:inherit;">
                   <div style="display:flex; gap:60px; align-items:flex-start; flex-wrap:wrap;">
@@ -382,11 +422,19 @@ const GrapesJSBuilder = ({
                       <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px;">${blog.description || "Welcome to our blog section, where knowledge meets inspiration. Explore insightful articles, expert tips, and the latest trends in our field."}</p>
                       <a href="${blogListUrl}" target="_parent" style="display:inline-block; padding:12px 28px; border:1px solid #e2e8f0; border-radius:999px; color:#0f172a; font-weight:600; font-size:14px; text-decoration:none; margin-bottom:56px;">View All</a>
                       <div style="display:flex; gap:12px;">
+<<<<<<< HEAD
                         <span style="width:40px; height:40px; border-radius:50%; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:16px;">&larr;</span>
                         <span style="width:40px; height:40px; border-radius:50%; background:#5b5fef; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:16px;">&rarr;</span>
                       </div>
                     </div>
                     <div style="flex:1 1 480px; display:flex; flex-wrap:wrap; gap:32px;">
+=======
+                        <span onclick="document.getElementById('${scrollId}') && document.getElementById('${scrollId}').scrollBy({left:-312,behavior:'smooth'})" style="width:40px; height:40px; border-radius:50%; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:16px; cursor:pointer; user-select:none;">&larr;</span>
+                        <span onclick="document.getElementById('${scrollId}') && document.getElementById('${scrollId}').scrollBy({left:312,behavior:'smooth'})" style="width:40px; height:40px; border-radius:50%; background:#5b5fef; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:16px; cursor:pointer; user-select:none;">&rarr;</span>
+                      </div>
+                    </div>
+                    <div id="${scrollId}" style="flex:1 1 480px; min-width:0; display:flex; flex-wrap:nowrap; gap:32px; overflow-x:hidden; scroll-behavior:smooth;">
+>>>>>>> b44416c608102f593c67f2e8f6359133e0a5703d
                       ${postsHtml}
                     </div>
                   </div>
@@ -861,6 +909,8 @@ const GrapesJSBuilder = ({
             featuredImageUrl,
             faqs,
             status: postStatus,
+            metaTitle: postMetaTitle,
+            metaDescription: postMetaDescription,
           }),
         });
         const data = await res.json();
@@ -1007,6 +1057,22 @@ const GrapesJSBuilder = ({
                 }}
               >
                 Chat Widget
+              </Button>
+            )}
+            {isPostMode && (
+              <Button
+                type="default"
+                onClick={() => setIsSeoModalOpen(true)}
+                style={{
+                  background: "#1e293b",
+                  color: "#cbd5e1",
+                  borderColor: "#334155",
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  height: 36,
+                }}
+              >
+                SEO
               </Button>
             )}
             {isPostMode && (
@@ -1161,6 +1227,44 @@ const GrapesJSBuilder = ({
           </div>
         </div>
       </Modal>
+
+      {isPostMode && (
+        <Modal
+          title="Post SEO"
+          open={isSeoModalOpen}
+          onCancel={() => setIsSeoModalOpen(false)}
+          footer={null}
+          centered
+          width={480}
+        >
+          <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>
+            These are saved together with the rest of the post when you click "Save Changes" —
+            they won't appear on the canvas, only in search results and link previews.
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13, color: "var(--text-primary)" }}>
+              Meta Title
+            </div>
+            <Input
+              size="large"
+              value={postMetaTitle}
+              onChange={(e) => setPostMetaTitle(e.target.value)}
+              placeholder="Title shown in search engine results"
+            />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13, color: "var(--text-primary)" }}>
+              Meta Description
+            </div>
+            <Input.TextArea
+              rows={3}
+              value={postMetaDescription}
+              onChange={(e) => setPostMetaDescription(e.target.value)}
+              placeholder="Short description shown in search engine results"
+            />
+          </div>
+        </Modal>
+      )}
 
       <style
         dangerouslySetInnerHTML={{
