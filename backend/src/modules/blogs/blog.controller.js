@@ -302,7 +302,6 @@ exports.updatePost = async (req, res, next) => {
   }
 };
 
-// Get single Blog Post details (with parent blog context) — used by the GrapesJS builder
 exports.getPostDetails = async (req, res, next) => {
   try {
     const { postId } = req.params;
@@ -316,11 +315,14 @@ exports.getPostDetails = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Parent blog not found' });
     }
 
+    const websiteTheme = await getLinkedWebsiteTheme(post.websiteId || blog.websiteId);
+
     res.json({
       success: true,
       data: {
         ...post.toObject(),
-        blog: blog.toObject()
+        blog: blog.toObject(),
+        websiteTheme
       }
     });
   } catch (error) {

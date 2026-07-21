@@ -9,12 +9,6 @@ const os = require('os');
 const axios = require('axios');
 const cloudinary = require('../../config/cloudinary');
 
-// Best-effort detection of a site's brand font + primary color from raw HTML/CSS
-// content, so a website's `theme` actually matches its design (used e.g. to
-// style the blog embed to match the site) instead of silently keeping the
-// schema's generic Inter/blue defaults. Works off content strings so it can be
-// reused both for a freshly-extracted template zip (local files) and for an
-// already-published site (HTML/CSS fetched from Cloudinary).
 function detectThemeFromContent(htmlContents, cssContents) {
   let fontFamily = null;
   let primaryColor = null;

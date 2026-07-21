@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
-// A post's body is only populated once someone opens "Edit in Builder" and
-// clicks Save — the basic post form (title/excerpt/featured image/meta)
-// never touches `html`. Rather than show a bare "empty" message whenever
-// that step was skipped, build a simple page out of whatever fields the
-// post *does* have, so title/image/excerpt/FAQs are never lost from view.
-const buildFallbackHtml = (post) => {
+const buildFallbackHtml = (post, themeFont, themeColor) => {
   const hasAnyContent =
     post.title || post.excerpt || post.featuredImageUrl || (post.faqs && post.faqs.length > 0);
 
   if (!hasAnyContent) {
-    return '<div style="padding:40px;text-align:center;font-family:sans-serif;">This post is currently empty.</div>';
+    return `<div style="padding:40px;text-align:center;font-family:'${themeFont}',sans-serif;">This post is currently empty.</div>`;
   }
 
   const image = post.featuredImageUrl
@@ -32,7 +27,7 @@ const buildFallbackHtml = (post) => {
           <details style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 2px rgba(15,23,42,0.04);">
             <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px;">
               <span style="font-weight:700; font-size:16px; color:#0f172a;">${item.question || ""}</span>
-              <span style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:#0f172a; display:flex; align-items:center; justify-content:center;">
+              <span style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:${themeColor}; display:flex; align-items:center; justify-content:center;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </span>
             </summary>
@@ -44,7 +39,7 @@ const buildFallbackHtml = (post) => {
     : "";
 
   return `
-    <div style="max-width:760px; margin:0 auto; padding:56px 24px;">
+    <div style="max-width:760px; margin:0 auto; padding:56px 24px; font-family:'${themeFont}', sans-serif;">
       <h1 style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 24px; color:#0f172a;">${post.title || "Untitled post"}</h1>
       ${image}
       ${excerpt}
@@ -59,6 +54,9 @@ const BlogPostPreviewView = () => {
   const { postId } = useParams();
   const [postData, setPostData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const themeFont = postData?.websiteTheme?.fontFamily || "Inter";
+  const themeColor = postData?.websiteTheme?.primaryColor || "#3b82f6";
+  const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -81,12 +79,11 @@ const BlogPostPreviewView = () => {
 
   useEffect(() => {
     const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap";
+    link.href = googleFontHref;
     link.rel = "stylesheet";
     document.head.appendChild(link);
     return () => document.head.removeChild(link);
-  }, []);
+  }, [googleFontHref]);
 
   if (loading) {
     return (
@@ -128,14 +125,23 @@ const BlogPostPreviewView = () => {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>${postData.title}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+          <link href="${googleFontHref}" rel="stylesheet">
           <style>
-            body { margin: 0; padding: 0; background: #fff; }
+            :root {
+              --site-font: '${themeFont}', 'Inter', sans-serif;
+              --brand-color: ${themeColor};
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background: #fff;
+              font-family: var(--site-font);
+            }
             ${postData.css || ""}
           </style>
         </head>
         <body>
-          ${postData.html || buildFallbackHtml(postData)}
+          ${postData.html || buildFallbackHtml(postData, themeFont, themeColor)}
         </body>
         </html>
       `}

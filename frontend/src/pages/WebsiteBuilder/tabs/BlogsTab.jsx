@@ -290,15 +290,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     setLinkModalVisible(false);
     if (!url || !savedRangeRef.current || !excerptRef.current) return;
 
-    // The URL modal's <Input autoFocus> steals DOM focus the instant it opens,
-    // which invalidates window.getSelection() for the excerpt div. Restoring
-    // the saved range and calling execCommand synchronously right here — in
-    // the same tick as setLinkModalVisible(false) — runs while the modal is
-    // still mid-close and focus hasn't actually returned yet, so the command
-    // silently no-ops. That's why this only ever "took" on the second try:
-    // by then there was no pending modal-close transition to race against.
-    // Explicitly refocusing the div and deferring to the next frame (after
-    // the modal has actually torn down) makes it work on the first attempt.
     const range = savedRangeRef.current;
     requestAnimationFrame(() => {
       if (!excerptRef.current) return;
@@ -325,11 +316,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
       return;
     }
     const range = selection.getRangeAt(0);
-
-    // If the selection sits entirely inside an existing format tag (p/h1-h6),
-    // re-tag that element in place instead of nesting a new tag inside it.
-    // Nesting (e.g. <h1><p>word</p></h1>) doesn't change the visible size,
-    // since <p> doesn't reset font-size/weight — it just inherits the h1's.
     let container = range.commonAncestorContainer;
     if (container.nodeType === 3) container = container.parentElement;
     let formatEl = null;
@@ -341,12 +327,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     }
 
     if (formatEl) {
-      // Don't compare against (formatEl, 0)/(formatEl, childCount) directly — per the DOM
-      // Range spec, an element-relative boundary point like (h1, 0) is NOT considered equal
-      // to (h1.firstChild, 0) even when they're the same visual position. That mismatch made
-      // this check fail for the common case (whole word selected), so it always fell through
-      // to the "wrap a new tag inside" branch below instead of replacing formatEl in place.
-      // Fix: normalize both the start and end of formatEl down to real leaf text-node points.
       const getLeafPoint = (node, atStart) => {
         if (node.nodeType === 3) return { node, offset: atStart ? 0 : node.length };
         const kids = node.childNodes;
@@ -378,14 +358,11 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     }
 
     const tag = document.createElement(tagName);
-    // Keep it inline so applying the tag to one word mid-sentence doesn't force a line break —
-    // the tag still carries its default styling (e.g. h1/h2/h3 size, p spacing) for formatting.
     if (inline) tag.style.display = "inline";
 
     try {
       range.surroundContents(tag);
     } catch (e) {
-      // Selection spans multiple elements (e.g. crosses an existing link) — extract then wrap instead.
       const contents = range.extractContents();
       tag.appendChild(contents);
       range.insertNode(tag);

@@ -12,13 +12,6 @@ const BlogEmbedView = () => {
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // The site's theme (font + brand color) is passed in as query params on the
-  // embed URL when this iframe is dropped onto a page (see GrapesJSBuilder's
-  // loadBlogs), so the blog matches the website it's embedded in. When this
-  // page is opened directly (e.g. /blog/:slug, with no query params) we fall
-  // back to the theme of the website the blog is linked to (returned by the
-  // API as `websiteTheme`), and only use the hardcoded defaults as a last
-  // resort for blogs that aren't linked to any website.
   const themeFont = searchParams.get("font") || blogData?.websiteTheme?.fontFamily || "Inter";
   const themeColor = searchParams.get("color") || blogData?.websiteTheme?.primaryColor || "#3b82f6";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
@@ -66,13 +59,7 @@ const BlogEmbedView = () => {
   const isEmbed = !!blogId;
   const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
 
-  // The app-wide ThemeProvider (see contexts/ThemeContext.jsx) wraps every route -
-  // including this public embed - in a ConfigProvider hardcoded to the dashboard's
-  // own font (Plus Jakarta Sans). AntD injects font-family via CSS-in-JS directly
-  // onto .ant-typography/.ant-card/.ant-btn/.ant-tag, which wins over the inherited
-  // value from the wrapper div's inline style below. Nesting a ConfigProvider here
-  // overrides the token for this subtree so AntD components actually pick up the
-  // detected site font instead of silently falling back to the dashboard default.
+
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
@@ -110,16 +97,11 @@ const BlogEmbedView = () => {
           <Row gutter={[32, 32]} align="stretch">
             {displayedPosts.map(post => {
               const postUrl = `/blog/${blogData.slug}/${post.slug}`;
-              // Same route the "Preview" button uses in the website builder —
-              // renders this post's actual saved html/css exactly as built
-              // in the GrapesJS post editor.
               const postWebsiteId = post.websiteId || blogData.websiteId;
               const postPreviewUrl = postWebsiteId
                 ? `/preview/website/${postWebsiteId}/blog-post/${post._id}`
                 : postUrl;
 
-              // The excerpt can contain rich text (e.g. a link inserted in the editor) and must be
-              // rendered as HTML rather than escaped text, or tags show up literally on the card.
               const excerptHtml = post.excerpt?.trim() || '';
               const fallbackPlainText = !excerptHtml && post.content
                 ? post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -127,9 +109,6 @@ const BlogEmbedView = () => {
 
               const rawExcerpt = excerptHtml || fallbackPlainText || 'Read the full post for more details.';
 
-              // Truncate on plain text (tags stripped) so we never cut an HTML tag in half,
-              // and append "..." ourselves so it always shows — the CSS line-clamp
-              // (blog-card-excerpt) is just a visual backstop, not the source of truth.
               const WORD_LIMIT = 30;
               const plainForTruncation = excerptHtml
                 ? excerptHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()

@@ -11,10 +11,6 @@ const BlogPostEmbedView = () => {
   const [blogData, setBlogData] = useState(null);
   const [postData, setPostData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Same as BlogEmbedView: the API returns the theme (font + brand color) of
-  // whichever website this blog is linked to, so a post matches the site it
-  // belongs to instead of always using the browser's default font/colors.
   const themeFont = blogData?.websiteTheme?.fontFamily || "Inter";
   const themeColor = blogData?.websiteTheme?.primaryColor || "#3b82f6";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
@@ -57,10 +53,6 @@ const BlogPostEmbedView = () => {
     );
   }
 
-  // Same fix as BlogEmbedView: without a local ConfigProvider, the app-wide
-  // ThemeProvider's hardcoded 'Plus Jakarta Sans' token wins over the inherited
-  // fontFamily below for every AntD component (Title/Text/Tag/Breadcrumb), so the
-  // detected site font never actually shows up on the public post page.
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
