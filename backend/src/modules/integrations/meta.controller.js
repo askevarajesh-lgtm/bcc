@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 const META_APP_ID = process.env.META_APP_ID || 'dummy_app_id';
 const META_APP_SECRET = process.env.META_APP_SECRET || 'dummy_app_secret';
-const META_REDIRECT_URI = process.env.META_REDIRECT_URI || 'http://localhost:5173/api/v1/integrations/meta/callback'; // Adjust for production
+const META_REDIRECT_URI = process.env.META_REDIRECT_URI || `${process.env.APP_URL || 'http://localhost:5500'}/api/integrations/meta/callback`;
 
 exports.generateAuthUrl = async (req, res, next) => {
   try {
