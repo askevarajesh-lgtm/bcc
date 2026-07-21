@@ -290,16 +290,30 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     setLinkModalVisible(false);
     if (!url || !savedRangeRef.current || !excerptRef.current) return;
 
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(savedRangeRef.current);
-    document.execCommand('createLink', false, url);
+    // The URL modal's <Input autoFocus> steals DOM focus the instant it opens,
+    // which invalidates window.getSelection() for the excerpt div. Restoring
+    // the saved range and calling execCommand synchronously right here — in
+    // the same tick as setLinkModalVisible(false) — runs while the modal is
+    // still mid-close and focus hasn't actually returned yet, so the command
+    // silently no-ops. That's why this only ever "took" on the second try:
+    // by then there was no pending modal-close transition to race against.
+    // Explicitly refocusing the div and deferring to the next frame (after
+    // the modal has actually torn down) makes it work on the first attempt.
+    const range = savedRangeRef.current;
+    requestAnimationFrame(() => {
+      if (!excerptRef.current) return;
+      excerptRef.current.focus();
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand('createLink', false, url);
 
-    excerptRef.current.querySelectorAll('a').forEach(a => {
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener noreferrer');
+      excerptRef.current.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+      handleExcerptInput();
     });
-    handleExcerptInput();
   };
 
   const FORMAT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6"];
