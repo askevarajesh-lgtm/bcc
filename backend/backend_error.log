@@ -271,4 +271,10 @@
     at Readable.read (node:internal/streams/readable:782:10)
     at flow (node:internal/streams/readable:1283:53)
     at resume_ (node:internal/streams/readable:1262:3)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-09T10:51:31.077Z\nundefined\n\n2026-07-14T12:59:56.990Z\nundefined\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-09T10:51:31.077Z\nundefined\n\n2026-07-14T12:59:56.990Z\nundefined\n\n2026-07-21T10:28:12.093Z\nError: Template extraction failed: E11000 duplicate key error collection: bcc.pages index: websiteId_1_path_1 dup key: { websiteId: ObjectId('6a5f49989bcbc4f202c2b970'), path: "/home" }
+    at exports.createWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:214:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-21T10:29:26.190Z\nError: Template extraction failed: E11000 duplicate key error collection: bcc.pages index: websiteId_1_path_1 dup key: { websiteId: ObjectId('6a5f49e29bcbc4f202c2b974'), path: "/home" }
+    at exports.createWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:214:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-21T10:30:12.601Z\nError: Template extraction failed: E11000 duplicate key error collection: bcc.pages index: websiteId_1_path_1 dup key: { websiteId: ObjectId('6a5f4a0d9bcbc4f202c2b977'), path: "/home" }
+    at exports.createWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:214:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-07-21T11:24:30.928Z\nundefined\n\n2026-07-21T11:24:45.013Z\nundefined\n\n

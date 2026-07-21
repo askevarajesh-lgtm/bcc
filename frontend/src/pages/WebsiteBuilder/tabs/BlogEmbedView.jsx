@@ -14,10 +14,13 @@ const BlogEmbedView = () => {
 
   // The site's theme (font + brand color) is passed in as query params on the
   // embed URL when this iframe is dropped onto a page (see GrapesJSBuilder's
-  // loadBlogs), so the blog matches the website it's embedded in instead of
-  // always falling back to hardcoded defaults.
-  const themeFont = searchParams.get("font") || "Inter";
-  const themeColor = searchParams.get("color") || "#3b82f6";
+  // loadBlogs), so the blog matches the website it's embedded in. When this
+  // page is opened directly (e.g. /blog/:slug, with no query params) we fall
+  // back to the theme of the website the blog is linked to (returned by the
+  // API as `websiteTheme`), and only use the hardcoded defaults as a last
+  // resort for blogs that aren't linked to any website.
+  const themeFont = searchParams.get("font") || blogData?.websiteTheme?.fontFamily || "Inter";
+  const themeColor = searchParams.get("color") || blogData?.websiteTheme?.primaryColor || "#3b82f6";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
 
   useEffect(() => {
@@ -200,11 +203,11 @@ const BlogEmbedView = () => {
           {isEmbed && posts.length >= 3 && (
             <div style={{ textAlign: "center", marginTop: 40 }}>
               <Button 
-                type="primary" 
+                // type="primary" 
                 size="large" 
                 href={`/blog/${blogData.slug}`} 
                 target="_parent"
-                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, background: themeColor, borderColor: themeColor, boxShadow: `0 4px 14px 0 ${themeColor}66` }}
+                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, background: themeColor, borderColor: themeColor, boxShadow: `0 4px 14px 0 ${themeColor}66`}}
               >
                 View More
               </Button>

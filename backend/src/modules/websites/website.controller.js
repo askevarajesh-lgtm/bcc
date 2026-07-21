@@ -9,6 +9,100 @@ const os = require('os');
 const axios = require('axios');
 const cloudinary = require('../../config/cloudinary');
 
+// Best-effort detection of a site's brand font + primary color from raw HTML/CSS
+// content, so a website's `theme` actually matches its design (used e.g. to
+// style the blog embed to match the site) instead of silently keeping the
+// schema's generic Inter/blue defaults. Works off content strings so it can be
+// reused both for a freshly-extracted template zip (local files) and for an
+// already-published site (HTML/CSS fetched from Cloudinary).
+function detectThemeFromContent(htmlContents, cssContents) {
+  let fontFamily = null;
+  let primaryColor = null;
+
+  // 1) A linked Google Font is the strongest signal of the site's intended font
+  for (const html of htmlContents) {
+    const fontLinkMatch = html.match(/fonts\.googleapis\.com\/css2?\?family=([^"'&]+)/i);
+    if (fontLinkMatch) {
+      fontFamily = decodeURIComponent(fontLinkMatch[1]).split(':')[0].replace(/\+/g, ' ');
+      break;
+    }
+  }
+
+  const combinedCss = cssContents.join('\n');
+
+  // 2) Otherwise fall back to the first non-generic font-family declared in the CSS
+  if (!fontFamily) {
+    const generic = ['sans-serif', 'serif', 'monospace', 'arial', 'helvetica', 'times new roman', 'inherit', 'initial'];
+    const fontFamilyMatches = combinedCss.matchAll(/font-family\s*:\s*['"]?([A-Za-z0-9 ]+)['"]?/gi);
+    for (const m of fontFamilyMatches) {
+      const candidate = m[1].trim();
+      if (candidate && !generic.includes(candidate.toLowerCase())) {
+        fontFamily = candidate;
+        break;
+      }
+    }
+  }
+
+  // 3) An explicit CSS custom property (--primary, --brand-color, etc.) is the strongest color signal
+  const varMatch = combinedCss.match(/--(?:primary|brand|theme|accent|main)[a-z-]*\s*:\s*(#[0-9a-fA-F]{3,6})/i);
+  if (varMatch) {
+    primaryColor = varMatch[1];
+  } else {
+    // 4) Otherwise use the most frequently used non-grayscale hex color in the CSS
+    const hexMatches = combinedCss.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || [];
+    const counts = {};
+    for (const hex of hexMatches) {
+      const normalized = hex.toLowerCase();
+      const [r, g, b] = normalized.length === 4
+        ? [normalized[1], normalized[2], normalized[3]].map(c => parseInt(c + c, 16))
+        : [normalized.slice(1, 3), normalized.slice(3, 5), normalized.slice(5, 7)].map(c => parseInt(c, 16));
+      const isGrayscale = (Math.max(r, g, b) - Math.min(r, g, b)) < 15; // catches whites/blacks/grays
+      if (isGrayscale) continue;
+      counts[normalized] = (counts[normalized] || 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) primaryColor = sorted[0][0];
+  }
+
+  return { fontFamily, primaryColor };
+}
+
+// Wrapper used during template zip extraction, where files are still on local disk.
+function detectThemeFromTemplateFiles(htmlFiles, cssFiles) {
+  const htmlContents = htmlFiles.map(f => {
+    try { return fs.readFileSync(f, 'utf8'); } catch (e) { return ''; }
+  });
+  const cssContents = cssFiles.map(f => {
+    try { return fs.readFileSync(f, 'utf8'); } catch (e) { return ''; }
+  });
+  return detectThemeFromContent(htmlContents, cssContents);
+}
+
+// Wrapper used to re-detect theme for an already-published website: its pages'
+// `html` field is stored directly in Mongo, but the CSS it links to (uploaded
+// during template import) lives on Cloudinary, so it has to be fetched.
+async function detectThemeFromPublishedPages(pages) {
+  const htmlContents = pages.map(p => p.html || '');
+
+  const cssUrls = new Set();
+  for (const html of htmlContents) {
+    const linkMatches = html.matchAll(/<link[^>]+href=["']([^"']+\.css)["'][^>]*>/gi);
+    for (const m of linkMatches) cssUrls.add(m[1]);
+  }
+
+  const cssContents = [];
+  for (const url of cssUrls) {
+    try {
+      const response = await axios.get(url, { responseType: 'text', timeout: 10000 });
+      cssContents.push(typeof response.data === 'string' ? response.data : '');
+    } catch (e) {
+      // Skip any CSS file that fails to download rather than failing the whole detection
+    }
+  }
+
+  return detectThemeFromContent(htmlContents, cssContents);
+}
+
 // Create Website
 exports.createWebsite = async (req, res, next) => {
   try {
@@ -116,6 +210,19 @@ exports.createWebsite = async (req, res, next) => {
             } else {
               assetFiles.push(file);
             }
+          }
+
+          // Auto-detect the template's font/brand color and save it as the website's
+          // theme, so anything reading website.theme (e.g. the blog embed) matches the
+          // imported design instead of the schema's generic Inter/blue defaults.
+          const cssFiles = assetFiles.filter(f => f.toLowerCase().endsWith('.css'));
+          const detectedTheme = detectThemeFromTemplateFiles(htmlFiles, cssFiles);
+          if (detectedTheme.fontFamily || detectedTheme.primaryColor) {
+            savedWebsite.theme = {
+              fontFamily: detectedTheme.fontFamily || savedWebsite.theme.fontFamily,
+              primaryColor: detectedTheme.primaryColor || savedWebsite.theme.primaryColor
+            };
+            await savedWebsite.save();
           }
 
           const assetUrlMap = {}; // Maps relative path to Cloudinary URL
@@ -513,6 +620,41 @@ exports.cloneWebsite = async (req, res, next) => {
     }
 
     res.status(201).json({ success: true, data: savedWebsite, message: 'Website cloned successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Re-detect and save a website's theme from its already-saved pages. Mainly for
+// websites created before automatic theme detection existed on template import,
+// so their blog embeds (and anything else reading website.theme) can be brought
+// in line with the site's real design without having to recreate the website.
+exports.syncWebsiteTheme = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    if (!website) {
+      return res.status(404).json({ success: false, error: 'Website not found' });
+    }
+
+    const pages = await Page.find({ websiteId: id, isDeleted: false });
+    if (pages.length === 0) {
+      return res.status(400).json({ success: false, error: 'This website has no pages to detect a theme from' });
+    }
+
+    const detected = await detectThemeFromPublishedPages(pages);
+    if (!detected.fontFamily && !detected.primaryColor) {
+      return res.status(200).json({ success: true, data: website, message: 'No distinct font or brand color could be detected from this site\'s pages' });
+    }
+
+    website.theme = {
+      fontFamily: detected.fontFamily || website.theme.fontFamily,
+      primaryColor: detected.primaryColor || website.theme.primaryColor
+    };
+    website.updatedBy = req.user?._id;
+    const saved = await website.save();
+
+    res.json({ success: true, data: saved, message: 'Theme synced from site pages' });
   } catch (error) {
     next(error);
   }

@@ -12,6 +12,13 @@ const BlogPostEmbedView = () => {
   const [postData, setPostData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Same as BlogEmbedView: the API returns the theme (font + brand color) of
+  // whichever website this blog is linked to, so a post matches the site it
+  // belongs to instead of always using the browser's default font/colors.
+  const themeFont = blogData?.websiteTheme?.fontFamily || "Inter";
+  const themeColor = blogData?.websiteTheme?.primaryColor || "#3b82f6";
+  const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -51,10 +58,11 @@ const BlogPostEmbedView = () => {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: "inherit" }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+      <link rel="stylesheet" href={googleFontHref} />
       <Breadcrumb style={{ marginBottom: 32 }}>
         <Breadcrumb.Item>
-          <a href={`/blog/${blogData.slug}`} style={{ color: "var(--accent-primary)", fontWeight: 600 }}>{blogData.name}</a>
+          <a href={`/blog/${blogData.slug}`} style={{ color: themeColor, fontWeight: 600 }}>{blogData.name}</a>
         </Breadcrumb.Item>
         <Breadcrumb.Item>{postData.title}</Breadcrumb.Item>
       </Breadcrumb>
@@ -81,7 +89,7 @@ const BlogPostEmbedView = () => {
       {postData.categories && postData.categories.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {postData.categories.map((cat, idx) => (
-            <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
+            <Tag key={idx} style={{ borderRadius: 4, fontWeight: 600, color: themeColor, background: `${themeColor}1a`, border: `1px solid ${themeColor}40` }}>{cat}</Tag>
           ))}
         </div>
       )}

@@ -207,6 +207,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
   const [fontFamily, setFontFamily] = useState(activeWebsite.theme?.fontFamily || "Inter");
   const [primaryColor, setPrimaryColor] = useState(activeWebsite.theme?.primaryColor || "#3b82f6");
+  const [syncingTheme, setSyncingTheme] = useState(false);
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
   const [savingWidget, setSavingWidget] = useState(false);
@@ -374,6 +375,33 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
     }
   };
 
+  const handleSyncTheme = async () => {
+    try {
+      setSyncingTheme(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}/sync-theme`, {
+        method: "POST",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.data?.theme) {
+          setFontFamily(data.data.theme.fontFamily);
+          setPrimaryColor(data.data.theme.primaryColor);
+          activeWebsite.theme = data.data.theme;
+        }
+        message.success(data.message || "Theme synced from site pages");
+      } else {
+        message.error(data.error || "Failed to sync theme");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error syncing theme");
+    } finally {
+      setSyncingTheme(false);
+    }
+  };
+
   const handleSavePage = (updatedPage) => {
     setPages(pages.map(p => p._id === updatedPage._id ? updatedPage : p));
   };
@@ -493,8 +521,15 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
                 {/* Website Theme */}
                 <div style={{ border: "1px solid var(--border-color)", borderRadius: 16, padding: 24, marginBottom: 32, background: "var(--bg-primary)" }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><PenTool size={16} color="var(--accent-primary)"/> Theme</div>
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 20, fontWeight: 500 }}>Default font and brand color used across this site — including embedded blocks like blogs, so they match the rest of the site instead of falling back to generic defaults.</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><PenTool size={16} color="var(--accent-primary)"/> Theme</div>
+                    {role !== 'agency_client' && (
+                      <Button size="small" loading={syncingTheme} onClick={handleSyncTheme} style={{ borderRadius: 6, fontWeight: 600, fontSize: 12 }}>
+                        Sync from pages
+                      </Button>
+                    )}
+                  </div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 20, fontWeight: 500 }}>Default font and brand color used across this site — including embedded blocks like blogs, so they match the rest of the site instead of falling back to generic defaults. If this site was created from a template, use "Sync from pages" to detect its actual font/color.</div>
 
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>SITE FONT</div>

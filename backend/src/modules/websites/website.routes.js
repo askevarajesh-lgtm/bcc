@@ -12,6 +12,7 @@ router.get('/:id', websiteController.getWebsiteDetails);
 router.put('/:id', websiteController.updateWebsite);
 router.delete('/:id', websiteController.deleteWebsite);
 router.post('/:id/clone', websiteController.cloneWebsite);
+router.post('/:id/sync-theme', websiteController.syncWebsiteTheme);
 
 // Page actions
 router.get('/:websiteId/pages/:pageId', websiteController.getPage);
