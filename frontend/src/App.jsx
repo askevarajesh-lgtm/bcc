@@ -115,6 +115,10 @@ import SuperAdminSubscriptions from './pages/SuperAdmin/Subscriptions';
 import SuperAdminIntegrations from './pages/SuperAdmin/Integrations';
 import SuperAdminAdmins from './pages/SuperAdmin/Admins';
 
+// Ekta HR / HRMS Pages (Commander Admin)
+import EktaHrStaffPage from './pages/integrations/EktaHrStaffPage';
+import EktaHrAttendanceModulePage from './pages/integrations/EktaHrAttendanceModulePage';
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -270,6 +274,12 @@ const AppRoutes = () => {
           <Route path="settings/notifications" element={<PlaceholderPage title="Notifications" description="Configure email and in-app alerts." icon={Bell} />} />
           <Route path="settings/billing" element={<PlaceholderPage title="Billing" description="Manage subscription plans and payment methods." icon={CreditCard} />} />
           <Route path="settings/audit" element={<PlaceholderPage title="Audit Logs" description="Review system activity and security events." icon={Activity} />} />
+
+          {/* HRMS Routes (Commander Admin) */}
+          <Route path="hrms/staff" element={<EktaHrStaffPage />} />
+          <Route path="hrms/attendance" element={<EktaHrAttendanceModulePage />} />
+          <Route path="hrms/performance" element={<PlaceholderPage title="Performance" description="Employee performance tracking." icon={Activity} />} />
+          <Route path="hrms/daily-reports" element={<PlaceholderPage title="Daily Reports" description="Daily attendance and activity reports." icon={Bell} />} />
         </Route>
       </Route>
 

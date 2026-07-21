@@ -58,6 +58,21 @@ router.post(
   integrationController.fetchWhatsAppLeads,
 );
 
-// Ekta HR integration endpoints removed
+// Ekta HR integration endpoints
+router.post(
+  "/ekta/validate",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.validateEktaApi,
+);
+router.post(
+  "/:id/ekta/sync/staff",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.syncEktaStaff,
+);
+router.post(
+  "/:id/ekta/sync/attendance",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.syncEktaAttendance,
+);
 
 module.exports = router;

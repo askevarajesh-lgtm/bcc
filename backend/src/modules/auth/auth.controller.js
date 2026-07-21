@@ -11,10 +11,14 @@ exports.signin = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email })
-      .populate('agencyId', 'companyName name logo')
+      .populate('agencyId', 'companyName name logo status')
       .populate('brandId', 'companyName name logo');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
+    }
+
+    if (user.status === 'suspended' || (user.agencyId && user.agencyId.status === 'suspended')) {
+      return res.status(403).json({ success: false, error: 'Your Agency has been suspended. Please contact your Administrator or Support Team for further assistance.' });
     }
 
     const isMatch = await user.comparePassword(password);
@@ -100,11 +104,15 @@ exports.signin = async (req, res, next) => {
 exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('agencyId', 'companyName name logo')
+      .populate('agencyId', 'companyName name logo status')
       .populate('brandId', 'companyName name logo domain contactEmail industry');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.status === 'suspended' || (user.agencyId && user.agencyId.status === 'suspended')) {
+      return res.status(403).json({ success: false, error: 'Your Agency has been suspended. Please contact your Administrator or Support Team for further assistance.' });
     }
 
     let features = user.features || [];

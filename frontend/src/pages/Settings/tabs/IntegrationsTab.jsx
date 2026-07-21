@@ -6,12 +6,14 @@ import {
   useUpdateIntegrationMutation,
 } from "../../../api/integrationApi";
 import useCompanyIntegrations from "../../../hooks/useCompanyIntegrations";
+import { useAuth } from "../../../contexts/AuthContext";
 
 // Import config pages
 import WhatsAppConfigPage from "../../integrations/WhatsAppConfigPage";
 import SmsConfigPage from "../../integrations/SmsConfigPage";
 import EmailConfigPage from "../../integrations/EmailConfigPage";
 import WebsiteConfigPage from "../../integrations/WebsiteConfigPage";
+import EktaHrInlineConfigPage from "../../integrations/EktaHrInlineConfigPage";
 
 const { Title, Text } = Typography;
 
@@ -281,6 +283,15 @@ const WebsiteIcon = () => (
   </svg>
 );
 
+const EktaHrIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 const GearIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -298,6 +309,7 @@ const IntegrationsTab = () => {
   const { data, refetch } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
   const companyIntegrations = useCompanyIntegrations();
+  const { role } = useAuth();
   
   const [selectedConfig, setSelectedConfig] = useState(null);
 
@@ -307,6 +319,8 @@ const IntegrationsTab = () => {
   const smsIntegration = integrations.find((i) => i.type === "sms");
   const emailIntegration = integrations.find((i) => i.type === "email");
   const websiteIntegration = integrations.find((i) => i.type === "website");
+  const ektaIntegration = integrations.find((i) => i.type === "ekta");
+  const isCommanderAdmin = role === "commander_admin";
 
   const handleToggle = async (integration, enabled) => {
     try {
@@ -396,6 +410,7 @@ const IntegrationsTab = () => {
         {selectedConfig.type === 'sms' && <SmsConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'email' && <EmailConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'website' && <WebsiteConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
+        {selectedConfig.type === 'ekta' && <EktaHrInlineConfigPage onBack={handleBack} />}
       </div>
     );
   }
@@ -440,6 +455,15 @@ const IntegrationsTab = () => {
             title="Lead Management Integration"
             description="Configure and manage lead integrations from Website forms and WhatsApp"
           />
+          {isCommanderAdmin && (
+            <IntegrationCard
+              type="ekta"
+              integration={ektaIntegration}
+              icon={<EktaHrIcon />}
+              title="Ekta HR Integration"
+              description="Sync employee data and attendance info with Ekta HR management system"
+            />
+          )}
         </div>
       </div>
     </>

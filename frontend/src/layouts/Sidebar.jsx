@@ -29,6 +29,7 @@ import {
   Users,
   Zap,
   HelpCircle,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
@@ -210,6 +211,16 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/ops/deliverables', icon: getIcon(FileText), label: role === 'commander_admin' ? 'Global Deliverables' : 'Deliverables' },
       ],
     },
+    ...(role === 'commander_admin' ? [
+      {
+        key: 'hrms',
+        label: collapsed ? 'HRM' : 'HRMS',
+        children: [
+          { key: '/hrms/staff', icon: getIcon(Users), label: 'Staff' },
+          { key: '/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' },
+        ],
+      }
+    ] : []),
     {
       key: 'settings',
       label: collapsed ? 'SET' : 'SETTINGS',
@@ -225,6 +236,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         ]),
       ],
     },
+    
   ];
 
   const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
@@ -250,7 +262,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       accentSoft="rgba(59, 130, 246, 0.12)"
       menuItems={menuItems}
       selectedKeys={getSelectedKeys()}
-      defaultOpenKeys={['clients', 'workspace', 'intelligence', 'ops', 'settings']}
+      defaultOpenKeys={['clients', 'workspace', 'intelligence', 'ops', 'settings', 'hrms']}
       onNavigate={navigate}
       partner={{
         initials: getInitials(user?.name),

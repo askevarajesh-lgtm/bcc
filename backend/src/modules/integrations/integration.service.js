@@ -256,6 +256,9 @@ const updateIntegration = async (
   }
 
   Object.assign(integration, integrationData);
+  if (integrationData.config !== undefined) {
+    integration.markModified('config');
+  }
   await integration.save();
 
   return integration;
@@ -408,64 +411,92 @@ const validateEktaApi = async (payload, companyId, role) => {
     throw new Error("Ekta API Key is required");
   }
 
-  // Validate/normalize storage shape
-  const config = {
-    ...(typeof payload?.config === "object" && payload.config
-      ? payload.config
-      : {}),
-    api: {
-      apiKey,
-    },
-  };
+  // Determine the scoped companyId for this role
+  const scopedCompanyId = ["super_admin", "supreme_super_admin", "commander_admin"].includes(role)
+    ? null
+    : companyId;
 
-  // If updating an existing integration
+  // Helper: merge config preserving staff/attendance settings
+  const buildConfig = (existing) => ({
+    ...(existing?.config || {}),
+    api: { apiKey },
+    staff: {
+      ...(existing?.config?.staff || {}),
+      ...(payload?.staff || {}),
+    },
+    attendance: {
+      ...(existing?.config?.attendance || {}),
+      ...(payload?.attendance || {}),
+    },
+  });
+
+  // ── 1. Try to find by explicit integrationId first ──────────────────────────
   if (integrationId) {
     const query = { _id: integrationId, type: "ekta" };
-    if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
-    else if (companyId) query.companyId = companyId;
+    // Non-privileged roles must also match their companyId
+    if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+      query.companyId = companyId;
+    }
 
     const integration = await Integration.findOne(query);
     if (!integration) {
       throw new Error("Ekta integration not found");
     }
 
-    // Preserve staff/attendance settings if they already exist in config
-    integration.config = {
-      ...(integration.config || {}),
-      ...config,
-      staff: {
-        ...(integration.config?.staff || {}),
-        ...(payload?.staff || {}),
-      },
-      attendance: {
-        ...(integration.config?.attendance || {}),
-        ...(payload?.attendance || {}),
-      },
-      api: {
-        apiKey,
-      },
-    };
-
+    integration.config = buildConfig(integration);
     integration.isActive = true;
+    integration.markModified("config");
     await integration.save();
-
     return integration;
   }
 
-  // Create new integration (tenant-scoped)
-  const created = await Integration.create({
-    name: "Ekta HR Integration",
-    type: "ekta",
-    companyId,
-    isActive: true,
-    config: {
-      api: { apiKey },
-      staff: { enabled: false, endpoint: null },
-      attendance: { enabled: false, endpoint: null },
-    },
-  });
+  // ── 2. No integrationId — find ANY existing Ekta integration ──────────────
+  //    We search WITHOUT companyId filter because the record might have been
+  //    stored with a non-null companyId (e.g. workspaceId) on a previous save.
+  //    If we find one, update it and re-scope the companyId to the correct value.
+  const existing = await Integration.findOne({ type: "ekta" }).sort({ createdAt: -1 });
 
-  return created;
+  if (existing) {
+    existing.config = buildConfig(existing);
+    existing.isActive = true;
+    existing.companyId = scopedCompanyId; // re-scope to the correct tenant
+    existing.markModified("config");
+    await existing.save();
+    return existing;
+  }
+
+  // ── 3. Nothing found — create fresh record, with E11000 safety net ──────────
+  //    A stale unique index (e.g. integrationId_1) may be present in MongoDB from
+  //    a previous schema version. If the INSERT fails with a duplicate key error we
+  //    do one final fallback findOne to grab whatever already exists and update it.
+  try {
+    const created = await Integration.create({
+      name: "Ekta HR Integration",
+      type: "ekta",
+      companyId: scopedCompanyId,
+      isActive: true,
+      config: {
+        api: { apiKey },
+        staff: { enabled: false, endpoint: null },
+        attendance: { enabled: false, endpoint: null },
+      },
+    });
+    return created;
+  } catch (createErr) {
+    // E11000 — stale index or race condition: fetch whatever is there and update
+    if (createErr.code === 11000) {
+      const fallback = await Integration.findOne({ type: "ekta" }).sort({ createdAt: -1 });
+      if (fallback) {
+        fallback.config = buildConfig(fallback);
+        fallback.isActive = true;
+        fallback.companyId = scopedCompanyId;
+        fallback.markModified("config");
+        await fallback.save();
+        return fallback;
+      }
+    }
+    throw createErr;
+  }
 };
 
 /**
@@ -480,8 +511,9 @@ const syncEktaStaff = async (integrationId, payload, companyId, role) => {
   }
 
   const query = { _id: integrationId, type: "ekta" };
-  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
-  else if (companyId) query.companyId = companyId;
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+    query.companyId = companyId;
+  }
 
   const integration = await Integration.findOne(query);
   if (!integration) {
@@ -607,8 +639,9 @@ const syncEktaAttendance = async (integrationId, payload, companyId, role) => {
   }
 
   const query = { _id: integrationId, type: "ekta" };
-  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) query.companyId = companyId;
-  else if (companyId) query.companyId = companyId;
+  if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+    query.companyId = companyId;
+  }
 
   const integration = await Integration.findOne(query);
   if (!integration) {
