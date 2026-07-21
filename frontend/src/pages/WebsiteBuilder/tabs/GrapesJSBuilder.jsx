@@ -149,16 +149,6 @@ const GrapesJSBuilder = ({
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [savingWidget, setSavingWidget] = useState(false);
   const [assignedWidget, setAssignedWidget] = useState(null);
-  // Posts created/edited in this builder default to "draft" on the backend
-  // (BlogPostSchema.status default) and previously had no way to be
-  // published from here — handleSave() never sent a `status` field, so
-  // every post saved through this editor stayed a draft forever. Public
-  // blog embeds (`/api/blogs/:id/public`, used by the "Blogs" block you
-  // drag onto a page) only return posts with status "published", so those
-  // posts silently never appeared in the page editor's Blog List block —
-  // even though the individual Post Preview button (which reads the post
-  // back unfiltered) showed them fine. This toggle + the status field
-  // added to the save payload below closes that gap.
   const [postStatus, setPostStatus] = useState(activePost?.status || "draft");
 
   useEffect(() => {
@@ -200,9 +190,6 @@ const GrapesJSBuilder = ({
       e.setComponents(sourceContent.html || "");
       e.setStyle(sourceContent.css || "");
     } else if (isPostMode) {
-      // Default post template — Title / Featured Image / Excerpt are real
-      // GrapesJS components (marked with data-post-field) so they're edited
-      // directly on the canvas, the same as any other element.
       e.setComponents(`
         <div style="padding: 50px 40px; max-width: 820px; margin: 0 auto; font-family: Inter, sans-serif;">
           <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; max-height:360px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
@@ -261,7 +248,7 @@ const GrapesJSBuilder = ({
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((blog) => {
             const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:600px; border:0; border-radius:16px;"></iframe>`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:800px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`blog-${blog._id}`, {
               label: blog.name,
@@ -303,18 +290,11 @@ const GrapesJSBuilder = ({
       }
     };
 
-    // In post mode we only want the post itself (title/image/excerpt + basic
-    // content blocks) — not the Forms / QR Links / Blogs embed categories,
-    // which are page-level concerns and don't belong inside a single post.
     if (!isPostMode) {
       loadForms();
       loadBlogs();
       loadQRs();
     } else {
-      // Register Title / Featured Image / Excerpt as draggable GrapesJS
-      // blocks under a dedicated "Post" category. They're plain components
-      // marked with data-post-field so they can be dragged in, edited
-      // in-canvas like anything else, and read back out on save.
       e.BlockManager.add("post-title-block", {
         label: "Post Title",
         category: "Post",
@@ -334,38 +314,37 @@ const GrapesJSBuilder = ({
         attributes: { class: "fa fa-align-left" },
       });
 
-      // FAQ Section — a container (data-post-field="faq") holding repeatable
-      // .faq-item blocks, each with a data-faq-question / data-faq-answer
-      // pair. Both are read back out into a structured faqs[] array on save.
-      //
-      // Accordion behavior uses native <details>/<summary> — no JS and no
-      // stylesheet rules needed, both of which are unreliable here: <script>
-      // tags inserted via dangerouslySetInnerHTML never execute on the live
-      // published post page, and that page only renders the saved `html`,
-      // not the saved `css` (see BlogPostEmbedView), so class-based CSS
-      // rules would show correctly in this editor but silently vanish once
-      // published. Everything below is inline styles + a plain <svg>, which
-      // travels safely with the HTML wherever it's rendered.
-      //
-      // NOTE: blocks are dropped in with the `open` attribute set, so the
-      // answer stays visible and directly editable in the canvas (clicking
-      // the collapsed summary here just selects/toggles the component rather
-      // than reliably opening it for text editing). `open` is stripped back
-      // out on save (see handleSave) so the *published* post still starts
-      // collapsed for readers.
+      const faqItemHtml = (question, answer, open) => `
+          <details class="faq-item"${open ? " open" : ""} style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 2px rgba(15,23,42,0.04);">
+            <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">${question}</span>
+              <span style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:#0f172a; display:flex; align-items:center; justify-content:center;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </span>
+            </summary>
+            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.7; margin-top:12px;">${answer}</div>
+          </details>`;
+
       e.BlockManager.add("post-faq-section-block", {
         label: "FAQ Section",
         category: "Post",
         content: `
-          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; border-top:1px solid #e2e8f0;">
-            <h2 style="font-size:24px; font-weight:800; margin:0 0 20px; color:#0f172a;">Frequently Asked Questions</h2>
-            <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-              <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Question goes here?</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </summary>
-              <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Answer goes here.</div>
-            </details>
+          <div data-post-field="faq" style="margin-top:40px; padding-top:32px;">
+            <div style="text-align:center; margin-bottom:32px;">
+              <span style="display:inline-flex; align-items:center; gap:2px; background:#eef2ff; border:1px solid #e0e7ff; border-radius:999px; padding:4px; margin-bottom:20px;">
+                <span style="background:#6366f1; color:#ffffff; font-weight:700; font-size:13px; padding:6px 16px; border-radius:999px;">Brand</span>
+                <span style="color:#0f172a; font-weight:700; font-size:13px; padding:6px 16px;">FAQ</span>
+              </span>
+              <h2 style="font-size:32px; font-weight:800; margin:0 0 12px; color:#0f172a; line-height:1.25;">Frequently answer <span style="color:#6366f1;">questions</span></h2>
+              <p style="font-size:15px; color:#64748b; margin:0;">Manage it all with a fully customizable, no code platform</p>
+            </div>
+            ${faqItemHtml(
+              "What is Customer Relationship Management (CRM)?",
+              "Customer Relationship Management (CRM) is a platform that helps companies manage interactions with current and potential customers. CRM software enhances customer relationships by connecting with customers, streamlining activities, and improving retention.",
+              true
+            )}
+            ${faqItemHtml("What is CRM Software Used For?", "Its answer.", true)}
+            ${faqItemHtml("Manage your finances from any device", "Its answer.", true)}
           </div>
         `,
         attributes: { class: "fa fa-question-circle" },
@@ -373,15 +352,7 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-faq-item-block", {
         label: "FAQ Item",
         category: "Post",
-        content: `
-          <details class="faq-item" open style="border-bottom:1px solid #e2e8f0; padding:16px 0;">
-            <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a;">Another question?</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.6; margin-top:8px;">Its answer.</div>
-          </details>
-        `,
+        content: faqItemHtml("Another question?", "Its answer.", true),
         attributes: { class: "fa fa-plus-square" },
       });
     }
