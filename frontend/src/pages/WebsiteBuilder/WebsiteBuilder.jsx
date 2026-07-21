@@ -242,7 +242,6 @@ const WebsiteBuilder = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Websites</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with funnels, forms, and domain management built in.</Text>
         </div>

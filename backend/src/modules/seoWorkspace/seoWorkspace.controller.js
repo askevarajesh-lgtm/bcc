@@ -13,11 +13,10 @@ const dataForSeoService = require('../seoIntelligence/dataForSeo.service');
 exports.getProjects = async (req, res) => {
   try {
     const companyId = req.user.companyId || req.user.agencyId || req.user._id;
-    const query = { companyId, isDeleted: false };
-    const isClientRole = ['agency_client', 'client', 'brand_manager', 'brand_super_admin', 'brand_team_user'].includes(req.user.role);
-    if (isClientRole) {
-      query.clientId = req.user.brandId || req.user._id;
-    } else if (req.query.clientId) {
+    // Strictly isolate data: Users only see projects they explicitly created
+    const query = { companyId, isDeleted: false, createdBy: req.user._id };
+
+    if (req.query.clientId) {
       query.clientId = req.query.clientId;
     }
 
@@ -146,7 +145,17 @@ exports.runAudit = async (req, res) => {
 
 exports.getAudits = async (req, res) => {
   try {
-    const query = req.query.projectId ? { projectId: req.query.projectId } : {};
+    const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
+    const projectIds = projects.map(p => p._id);
+    
+    const query = { projectId: { $in: projectIds } };
+    if (req.query.projectId) {
+      if (!projectIds.some(id => id.toString() === req.query.projectId)) {
+        return res.json([]);
+      }
+      query.projectId = req.query.projectId;
+    }
+    
     const audits = await WorkspaceAudit.find(query).populate('projectId', 'name').sort({ createdAt: -1 });
     res.json(audits);
   } catch (error) {
@@ -156,7 +165,17 @@ exports.getAudits = async (req, res) => {
 
 exports.getKeywords = async (req, res) => {
   try {
-    const query = req.query.projectId ? { projectId: req.query.projectId } : {};
+    const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
+    const projectIds = projects.map(p => p._id);
+    
+    const query = { projectId: { $in: projectIds } };
+    if (req.query.projectId) {
+      if (!projectIds.some(id => id.toString() === req.query.projectId)) {
+        return res.json([]);
+      }
+      query.projectId = req.query.projectId;
+    }
+
     const keywords = await WorkspaceKeyword.find(query).populate('projectId', 'name').sort({ 'metrics.searchVolume': -1 });
     res.json(keywords);
   } catch (error) {
@@ -166,7 +185,17 @@ exports.getKeywords = async (req, res) => {
 
 exports.getStrategies = async (req, res) => {
   try {
-    const query = req.query.projectId ? { projectId: req.query.projectId } : {};
+    const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
+    const projectIds = projects.map(p => p._id);
+    
+    const query = { projectId: { $in: projectIds } };
+    if (req.query.projectId) {
+      if (!projectIds.some(id => id.toString() === req.query.projectId)) {
+        return res.json([]);
+      }
+      query.projectId = req.query.projectId;
+    }
+
     const strategies = await WorkspaceStrategy.find(query).populate('projectId', 'name').sort({ createdAt: -1 });
     res.json(strategies);
   } catch (error) {
@@ -214,10 +243,10 @@ exports.publishStrategy = async (req, res) => {
 exports.getAnalytics = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const project = await WorkspaceProject.findById(projectId);
+    const project = await WorkspaceProject.findOne({ _id: projectId, createdBy: req.user._id });
     
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
 
     const thirtyDaysAgo = new Date();
@@ -247,6 +276,10 @@ exports.getAnalytics = async (req, res) => {
 
 exports.getTasks = async (req, res) => {
   try {
+    const project = await WorkspaceProject.findOne({ _id: req.params.projectId, createdBy: req.user._id });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
     const tasks = await WorkspaceTask.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
@@ -292,6 +325,10 @@ exports.updateTaskStatus = async (req, res) => {
 
 exports.getReports = async (req, res) => {
   try {
+    const project = await WorkspaceProject.findOne({ _id: req.params.projectId, createdBy: req.user._id });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
     const reports = await WorkspaceReport.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
     res.json(reports);
   } catch (error) {

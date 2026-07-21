@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions } from 'antd';
-import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 
 const availableFeatures = [
-  { id: 'strategy', label: 'Strategy' },
-  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },
   { id: 'ads', label: 'Performance Ads' },
-  { id: 'crm', label: 'CRM & Leads' },
-  { id: 'website', label: 'Websites' },
   { id: 'analytics', label: 'Analytics & Attribution' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
   { id: 'benchmark', label: 'Benchmark' },
-  { id: 'seo', label: 'Seo Intelligence' },
-  { id: 'marketplace', label: 'Masketplace' }
 ];
 
 const DirectPackagesTab = () => {
@@ -129,57 +125,6 @@ const DirectPackagesTab = () => {
     }));
   };
 
-  const columns = [
-    {
-      title: 'Package Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text) => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong>,
-    },
-    {
-      title: 'Price',
-      dataIndex: 'price',
-      key: 'price',
-      render: (text) => <Text type="secondary" style={{ fontWeight: 600 }}>{text || 'Custom'}</Text>,
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Included Features',
-      key: 'features',
-      render: (_, record) => {
-        const featureLabels = record.features.map(fId => {
-          const feat = availableFeatures.find(a => a.id === fId);
-          return feat ? feat.label : fId;
-        });
-
-        return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {featureLabels.slice(0, 3).map(feat => (
-              <Tag key={feat} color="blue">{feat}</Tag>
-            ))}
-            {featureLabels.length > 3 && <Tag>+{featureLabels.length - 3}</Tag>}
-          </div>
-        );
-      }
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      align: 'right',
-      render: (_, record) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button type="text" icon={<Eye size={16} />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<Edit size={16} />} onClick={() => handleOpenModal(record)} />
-          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record._id)} />
-        </div>
-      )
-    }
-  ];
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
@@ -190,21 +135,150 @@ const DirectPackagesTab = () => {
         <Button 
           type="primary" 
           icon={<Plus size={16} />} 
-          style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}
+          style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}
           onClick={() => handleOpenModal()}
         >
           Create Package
         </Button>
       </div>
 
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, padding: 16, border: '1px solid var(--border-color)' }}>
-        <Table 
-          columns={columns} 
-          dataSource={packages} 
-          rowKey="_id" 
-          pagination={false}
-          loading={loading}
-        />
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+        gap: '24px' 
+      }}>
+        {packages.map((pkg, index) => {
+          const colors = [
+            'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+            'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+          ];
+          const bg = colors[index % colors.length];
+
+          return (
+          <div key={pkg._id} style={{
+            background: '#fff',
+            borderRadius: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.08)',
+            transition: 'transform 0.2s ease',
+            overflow: 'hidden',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          >
+            {/* Top Color Block */}
+            <div style={{
+              background: bg,
+              padding: '32px 24px',
+              color: '#fff',
+              position: 'relative',
+              textAlign: 'center'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  color: 'rgba(255,255,255,0.9)'
+                }}>
+                  {pkg.name}
+                </div>
+
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '56px', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                  {pkg.price ? (isNaN(pkg.price) ? pkg.price : `₹${pkg.price}`) : 'Custom'}
+                </span>
+              </div>
+              
+              <div style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                PER MONTH
+              </div>
+
+              <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: '4px' }}>
+                 <Button type="text" size="small" icon={<Edit size={14} color="#fff" />} onClick={() => handleOpenModal(pkg)} style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} />
+                 <Button type="text" size="small" icon={<Trash2 size={14} color="#fff" />} onClick={() => handleDelete(pkg._id)} style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} />
+              </div>
+            </div>
+
+            {/* Bottom Features Block */}
+            <div style={{ padding: '32px 24px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', marginBottom: '32px' }}>
+                <div style={{
+                   background: '#fff',
+                   border: '1px solid #e5e7eb',
+                   padding: '6px 14px',
+                   borderRadius: '20px',
+                   fontSize: '13px',
+                   color: '#4b5563',
+                   fontWeight: 500,
+                   boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                }}>
+                  Up to {pkg.userCount || 5} Team Members
+                </div>
+                
+                {availableFeatures.map(feat => {
+                  const isIncluded = pkg.features?.includes(feat.id);
+                  if (!isIncluded) return null;
+                  return (
+                    <div key={feat.id} style={{
+                       background: '#fff',
+                       border: '1px solid #e5e7eb',
+                       padding: '6px 14px',
+                       borderRadius: '20px',
+                       fontSize: '13px',
+                       color: '#4b5563',
+                       fontWeight: 500,
+                       boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                    }}>
+                      {feat.label}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <Button 
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  borderRadius: '24px',
+                  background: bg,
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.1)'
+                }}
+                onClick={() => handleView(pkg)}
+              >
+                View Details <span style={{ fontSize: '18px' }}>→</span>
+              </Button>
+              
+              <div style={{ marginTop: '12px', fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>
+                {pkg.description || 'Flexible billing options available'}
+              </div>
+            </div>
+          </div>
+          );
+        })}
+        {packages.length === 0 && !loading && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '64px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
+            <Text type="secondary">No packages found. Create one to get started.</Text>
+          </div>
+        )}
       </div>
 
       <Modal

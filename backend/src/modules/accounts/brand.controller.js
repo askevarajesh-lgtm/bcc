@@ -61,6 +61,23 @@ exports.createBrand = async (req, res, next) => {
       if (!agencyId) {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }
+
+      // Check clients limit
+      const agencyUserDoc = await User.findById(agencyId).populate('plan');
+      const maxClients = agencyUserDoc?.plan?.clients || 10;
+
+      const currentClientsCount = await User.countDocuments({
+        agencyId,
+        role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] },
+        isDirect: false
+      });
+
+      if (currentClientsCount >= maxClients) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'You have reached the maximum limit allowed by your current package. If you need additional capacity, please raise a support ticket or upgrade your package.'
+        });
+      }
     } else {
       isDirect = true;
     }

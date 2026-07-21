@@ -10,6 +10,10 @@ const masterItemSchema = new mongoose.Schema({
     name: { type: String, trim: true },
     count: { type: Number, default: 0 }
   }],
+  applicableAccess: [{
+    name: { type: String, trim: true },
+    value: { type: String, trim: true }
+  }],
   description: {
     type: String,
     trim: true

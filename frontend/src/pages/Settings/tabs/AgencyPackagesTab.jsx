@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions } from 'antd';
-import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 
 const availableFeatures = [
-  { id: 'strategy', label: 'Strategy' },
-  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },
   { id: 'ads', label: 'Performance Ads' },
-  { id: 'crm', label: 'CRM & Leads' },
-  { id: 'website', label: 'Websites' },
   { id: 'analytics', label: 'Analytics & Attribution' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
   { id: 'benchmark', label: 'Benchmark' },
-  { id: 'seo', label: 'Seo Intelligence' },
-  { id: 'marketplace', label: 'Masketplace' }
 ];
 
 const AgencyPackagesTab = () => {
@@ -27,7 +23,7 @@ const AgencyPackagesTab = () => {
   const [editingPkg, setEditingPkg] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingPkg, setViewingPkg] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -110,95 +106,169 @@ const AgencyPackagesTab = () => {
       message.success("Package deleted successfully");
       fetchPackages();
     } catch (error) {
-      message.error("Failed to delete package");
+      message.error(error.response?.data?.message || "Failed to delete package");
     }
   };
 
   const toggleFeature = (featureId, checked) => {
     setFormData(prev => ({
       ...prev,
-      features: checked 
+      features: checked
         ? [...prev.features, featureId]
         : prev.features.filter(f => f !== featureId)
     }));
   };
 
-  const columns = [
-    {
-      title: 'Package Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text) => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong>,
-    },
-    {
-      title: 'Price',
-      dataIndex: 'price',
-      key: 'price',
-      render: (text) => <Text type="secondary" style={{ fontWeight: 600 }}>{text || 'Custom'}</Text>,
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Included Features',
-      key: 'features',
-      render: (_, record) => {
-        const featureLabels = record.features.map(fId => {
-          const feat = availableFeatures.find(a => a.id === fId);
-          return feat ? feat.label : fId;
-        });
-
-        return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {featureLabels.slice(0, 3).map(feat => (
-              <Tag key={feat} color="blue">{feat}</Tag>
-            ))}
-            {featureLabels.length > 3 && <Tag>+{featureLabels.length - 3}</Tag>}
-          </div>
-        );
-      }
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      align: 'right',
-      render: (_, record) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button type="text" icon={<Eye size={16} />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<Edit size={16} />} onClick={() => handleOpenModal(record)} />
-          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record._id)} />
-        </div>
-      )
-    }
-  ];
-
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <div>
           <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Agency Packages</Title>
           <Text type="secondary">Define feature tiers and pricing for your agency accounts.</Text>
         </div>
-        <Button 
-          type="primary" 
-          icon={<Plus size={16} />} 
-          style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}
+        <Button
+          type="primary"
+          icon={<Plus size={16} />}
+          style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}
           onClick={() => handleOpenModal()}
         >
           Create Package
         </Button>
       </div>
 
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, padding: 16, border: '1px solid var(--border-color)' }}>
-        <Table 
-          columns={columns} 
-          dataSource={packages} 
-          rowKey="_id" 
-          pagination={false}
-          loading={loading}
-        />
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: '24px'
+      }}>
+        {packages.map(pkg => (
+          <div key={pkg._id} style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '24px',
+            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            cursor: 'default'
+          }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.04)';
+            }}
+          >
+            {/* Top Inset Block */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(244,244,245,0.8) 0%, rgba(228,228,231,0.5) 100%)',
+              borderRadius: '20px',
+              padding: '24px',
+              paddingBottom: '40px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{
+                  background: '#fff',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  color: '#111',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}>
+                  {pkg.name}
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Button type="text" size="small" icon={<Edit size={14} />} onClick={() => handleOpenModal(pkg)} style={{ color: '#666' }} />
+                  <Button type="text" danger size="small" icon={<Trash2 size={14} />} onClick={() => handleDelete(pkg._id)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '16px' }}>
+                <span style={{ fontSize: '42px', fontWeight: 800, lineHeight: 1, color: '#111', letterSpacing: '-1px' }}>
+                  {pkg.price ? (isNaN(pkg.price) ? pkg.price : `₹${pkg.price}`) : 'Custom'}
+                </span>
+                <span style={{ fontSize: '15px', color: '#666', fontWeight: 500 }}>
+                  /month
+                </span>
+              </div>
+
+              <Text style={{ fontSize: '13px', color: '#444', fontWeight: 500 }}>
+                {pkg.description || 'Perfect for your business'}
+              </Text>
+
+              {/* Overlapping Button */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-24px',
+                left: '24px',
+                right: '24px',
+                height: '48px',
+                zIndex: 10
+              }}>
+                <Button
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '24px',
+                    background: 'linear-gradient(180deg, #222 0%, #000 100%)',
+                    color: '#fff',
+                    border: '1px solid #000',
+                    fontWeight: 600,
+                    fontSize: '15px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.2), 0 0 0 4px var(--bg-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  onClick={() => handleView(pkg)}
+                >
+                  View Details
+                </Button>
+              </div>
+            </div>
+
+            {/* Bottom Features Block */}
+            <div style={{ padding: '48px 24px 24px 24px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Check size={14} strokeWidth={2.5} color="#a1a1aa" />
+                  <Text style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 }}>Up to {pkg.users || 5} Team Members</Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Check size={14} strokeWidth={2.5} color="#a1a1aa" />
+                  <Text style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 }}>Manage {pkg.clients || 10} Clients</Text>
+                </div>
+
+                {availableFeatures.map(feat => {
+                  const isIncluded = pkg.features?.includes(feat.id);
+                  if (!isIncluded) return null;
+                  return (
+                    <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Check size={14} strokeWidth={2.5} color="#a1a1aa" />
+                      <Text style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 }}>{feat.label}</Text>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
+        {packages.length === 0 && !loading && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '64px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
+            <Text type="secondary">No packages found. Create one to get started.</Text>
+          </div>
+        )}
       </div>
 
       <Modal
@@ -214,51 +284,51 @@ const AgencyPackagesTab = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16, paddingRight: 8 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Package Name <span style={{color: 'red'}}>*</span></label>
-            <Input 
-              value={formData.name} 
-              onChange={e => setFormData({...formData, name: e.target.value})} 
-              placeholder="e.g., VIP Tier" 
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Package Name <span style={{ color: 'red' }}>*</span></label>
+            <Input
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., VIP Tier"
               size="large"
             />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
-            <Input.TextArea 
-              value={formData.description} 
-              onChange={e => setFormData({...formData, description: e.target.value})} 
-              placeholder="Brief description of this tier" 
+            <Input.TextArea
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description of this tier"
               rows={2}
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{color: 'red'}}>*</span></label>
-            <Input 
-              value={formData.price} 
-              onChange={e => setFormData({...formData, price: e.target.value})} 
-              placeholder="e.g., ₹5.0L/mo" 
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{ color: 'red' }}>*</span></label>
+            <Input
+              value={formData.price}
+              onChange={e => setFormData({ ...formData, price: e.target.value })}
+              placeholder="e.g., ₹5.0L/mo"
               size="large"
             />
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Users - Count <span style={{color: 'red'}}>*</span></label>
-              <Input 
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Users - Count <span style={{ color: 'red' }}>*</span></label>
+              <Input
                 type="number"
-                value={formData.users} 
-                onChange={e => setFormData({...formData, users: e.target.value})} 
-                placeholder="e.g., 5" 
+                value={formData.users}
+                onChange={e => setFormData({ ...formData, users: e.target.value })}
+                placeholder="e.g., 5"
                 size="large"
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Clients - Count <span style={{color: 'red'}}>*</span></label>
-              <Input 
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Clients - Count <span style={{ color: 'red' }}>*</span></label>
+              <Input
                 type="number"
-                value={formData.clients} 
-                onChange={e => setFormData({...formData, clients: e.target.value})} 
-                placeholder="e.g., 10" 
+                value={formData.clients}
+                onChange={e => setFormData({ ...formData, clients: e.target.value })}
+                placeholder="e.g., 10"
                 size="large"
               />
             </div>
@@ -270,9 +340,9 @@ const AgencyPackagesTab = () => {
               {availableFeatures.map(feat => (
                 <div key={feat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{feat.label}</span>
-                  <Switch 
-                    size="small" 
-                    checked={formData.features.includes(feat.id)} 
+                  <Switch
+                    size="small"
+                    checked={formData.features.includes(feat.id)}
                     onChange={(checked) => toggleFeature(feat.id, checked)}
                   />
                 </div>
@@ -296,16 +366,16 @@ const AgencyPackagesTab = () => {
         {viewingPkg && (
           <div>
             {/* Header */}
-            <div style={{ 
-              background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)', 
+            <div style={{
+              background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
               padding: '32px 24px',
               color: '#fff',
               position: 'relative'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ 
-                  width: 64, height: 64, borderRadius: 16, 
-                  background: 'rgba(255,255,255,0.2)', 
+                <div style={{
+                  width: 64, height: 64, borderRadius: 16,
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255,255,255,0.3)'
@@ -321,8 +391,8 @@ const AgencyPackagesTab = () => {
 
             {/* Content */}
             <div style={{ padding: '24px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-              <div style={{ 
-                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24
               }}>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE</Text>
@@ -350,21 +420,21 @@ const AgencyPackagesTab = () => {
                   {availableFeatures.map(feat => {
                     const isIncluded = viewingPkg.features?.includes(feat.id);
                     return (
-                      <div 
-                        key={feat.id} 
-                        style={{ 
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                          background: isIncluded ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-tertiary)', 
-                          padding: '12px 16px', 
+                      <div
+                        key={feat.id}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          background: isIncluded ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-tertiary)',
+                          padding: '12px 16px',
                           borderRadius: 8,
                           border: isIncluded ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-color)',
                           opacity: isIncluded ? 1 : 0.6
                         }}
                       >
-                        <span style={{ 
-                          fontSize: 13, 
-                          fontWeight: 600, 
-                          color: isIncluded ? 'var(--text-primary)' : 'var(--text-secondary)' 
+                        <span style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: isIncluded ? 'var(--text-primary)' : 'var(--text-secondary)'
                         }}>
                           {feat.label}
                         </span>

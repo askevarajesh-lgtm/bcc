@@ -1,3 +1,3 @@
 import React from 'react';
-const BulkActionBar = () => <div>BulkActionBar Stub</div>;
+const BulkActionBar = () => <div></div>;
 export default BulkActionBar;

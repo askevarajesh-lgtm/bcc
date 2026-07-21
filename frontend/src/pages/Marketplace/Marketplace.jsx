@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Search, BarChart2, FileText, CheckCircle2, Edit2, Eye, EyeOff, Plus, Play, Shield, Activity, Mail, FileCheck, Video, BookOpen } from 'lucide-react';
 import SEOWorkspace from './SEOWorkspace';
 import Content from '../Content/Content';
+import AIStudio from '../AIStudio/AIStudio';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
@@ -132,34 +133,220 @@ const Marketplace = () => {
     </Card>
   );
 
+  const [purchasedPlans, setPurchasedPlans] = useState({
+    seo: false,
+    content: false,
+    design: false
+  });
+
+  const handlePurchase = (plan) => {
+    setPurchasedPlans(prev => ({ ...prev, [plan]: true }));
+  };
+
+  const PricingCard = ({ title, subtitle, price, features, onPurchase }) => {
+    const gradId = `flowerGrad-${title.replace(/\s+/g, '')}`;
+
+    return (
+      <div style={{
+        padding: '60px 20px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '50vh',
+      }}>
+        <Card 
+          className="glassmorphism"
+          style={{ 
+            maxWidth: 420, 
+            width: '100%', 
+            borderRadius: 24, 
+            boxShadow: 'var(--shadow-md, 0 10px 40px rgba(0,0,0,0.1))',
+            border: '1px solid var(--border-color, rgba(0,0,0,0.05))',
+            background: 'var(--bg-secondary, #FDFCF7)', // Adapts to theme
+            position: 'relative',
+            overflow: 'hidden'
+          }} 
+          bodyStyle={{ padding: '40px 32px' }}
+        >
+          {/* Decorative Flower Star on top right */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: 160,
+            height: 160,
+            zIndex: 0,
+            pointerEvents: 'none',
+            transform: 'translate(20%, -20%)'
+          }}>
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <defs>
+                <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#FFA07A" />
+                  <stop offset="30%" stopColor="#FF69B4" />
+                  <stop offset="70%" stopColor="#DA70D6" />
+                  <stop offset="100%" stopColor="#FFD700" />
+                </linearGradient>
+              </defs>
+              <path d="M50 10 C 60 10, 65 20, 70 25 C 80 20, 90 25, 90 35 C 90 40, 85 45, 80 50 C 85 55, 90 60, 90 70 C 90 80, 80 85, 70 80 C 65 85, 60 95, 50 95 C 40 95, 35 85, 30 80 C 20 85, 10 80, 10 70 C 10 60, 15 55, 20 50 C 15 45, 10 40, 10 35 C 10 25, 20 20, 30 25 C 35 20, 40 10, 50 10 Z" fill={`url(#${gradId})`} opacity="0.9" />
+              {/* Inner star matches the card's adaptive background */}
+              <path d="M50 28 Q 50 50 28 50 Q 50 50 50 72 Q 50 50 72 50 Q 50 50 50 28 Z" fill="var(--bg-secondary, #FDFCF7)" />
+            </svg>
+          </div>
+
+          {/* Card Content - elevated above background */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            
+            <div style={{ 
+              display: 'inline-block',
+              borderRadius: 20, 
+              padding: '6px 16px', 
+              background: 'var(--bg-primary, #FFFFFF)', 
+              color: 'var(--text-primary, #333)',
+              border: '1px solid var(--border-color, transparent)',
+              fontWeight: 500,
+              fontSize: '13px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              marginBottom: 32
+            }}>
+              {price} USD / month
+            </div>
+
+            <Title level={2} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary, #111)', fontSize: '28px' }}>
+              {title}
+            </Title>
+            <Text style={{ display: 'block', marginTop: 6, marginBottom: 32, fontSize: '15px', color: 'var(--text-secondary, #A09D96)' }}>
+              {subtitle}
+            </Text>
+            
+            <Text style={{ display: 'block', marginBottom: 20, color: 'var(--text-secondary, #A09D96)', fontSize: '13px' }}>
+              What's included:
+            </Text>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {features.map((feature, idx) => (
+                 <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    <div style={{ marginTop: 2 }}>
+                       {/* Small bold icons adaptive to theme */}
+                       {idx === 0 && <CheckCircle2 size={18} color="var(--text-primary, #111)" strokeWidth={2.5} />}
+                       {idx === 1 && <BarChart2 size={18} color="var(--text-primary, #111)" strokeWidth={2.5} />}
+                       {idx === 2 && <Shield size={18} color="var(--text-primary, #111)" strokeWidth={2.5} />}
+                       {idx > 2 && <Activity size={18} color="var(--text-primary, #111)" strokeWidth={2.5} />}
+                    </div>
+                    <Text style={{ fontSize: '14px', color: 'var(--text-primary, #222)', fontWeight: 500 }}>
+                      {feature}
+                    </Text>
+                 </div>
+              ))}
+            </div>
+
+            <Text style={{ display: 'block', marginTop: 32, marginBottom: 8, color: 'var(--text-secondary, #A09D96)', fontSize: '13px' }}>
+              Ready to start?
+            </Text>
+            
+            <div style={{ 
+              padding: '6px 6px 6px 16px', 
+              background: 'var(--bg-primary, #EAE8E1)', 
+              borderRadius: 12, 
+              border: '1px solid var(--border-color, transparent)',
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                 <Shield size={14} color="var(--text-secondary, #666)" />
+                 <Text style={{ fontSize: '13px', color: 'var(--text-secondary, #666)', fontWeight: 500 }}>Secure Access</Text>
+              </div>
+              <Button 
+                type="primary" 
+                style={{ 
+                  borderRadius: 8, 
+                  fontWeight: 600,
+                  padding: '0 20px',
+                  height: 38
+                }} 
+                onClick={onPurchase}
+              >
+                Purchase
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5 }}>MARKETPLACE</Text>
-        {!isAgencyRole && (
-          <Title level={2} style={{ margin: '4px 0 8px 0', fontWeight: 800 }}>SEO Workspace</Title>
-        )}
+        <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Marketplace</Title>
       </motion.div>
 
-      {isAgencyRole ? (
-        <Tabs defaultActiveKey="1" style={{ marginTop: 16 }}>
-          <TabPane tab="SEO" key="1">
-            <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
-              <Title level={2} style={{ margin: '4px 0 24px 0', fontWeight: 800 }}>SEO Workspace</Title>
-              <SEOWorkspace />
-            </motion.div>
-          </TabPane>
-          <TabPane tab="Content" key="2">
-            <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
+      <Tabs defaultActiveKey="1" style={{ marginTop: 16 }}>
+        <TabPane tab="SEO" key="1">
+          <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
+            {purchasedPlans.seo ? (
+              <>
+                <Title level={2} style={{ margin: '4px 0 24px 0', fontWeight: 800 }}>SEO Workspace</Title>
+                <SEOWorkspace />
+              </>
+            ) : (
+              <PricingCard 
+                title="SEO & AEO Agent" 
+                subtitle="Unlock full access to AI-powered SEO tools and automated audits." 
+                price="25" 
+                features={[
+                  "Complete SEO & AEO Toolkit", 
+                  "Automated Technical Audits", 
+                  "AI Keyword Strategy Builder", 
+                  "Competitor Analysis & Reporting"
+                ]}
+                onPurchase={() => handlePurchase('seo')} 
+              />
+            )}
+          </motion.div>
+        </TabPane>
+        <TabPane tab="Content" key="2">
+          <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
+            {purchasedPlans.content ? (
               <Content />
-            </motion.div>
-          </TabPane>
-        </Tabs>
-      ) : (
-        <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
-          <SEOWorkspace />
-        </motion.div>
-      )}
+            ) : (
+              <PricingCard 
+                title="Content Agent" 
+                subtitle="Supercharge your content pipeline with generative AI and publishing." 
+                price="20" 
+                features={[
+                  "End-to-End Content Pipeline", 
+                  "AI Article Generation", 
+                  "Content Calendar & Planning", 
+                  "1-Click CMS Publishing"
+                ]}
+                onPurchase={() => handlePurchase('content')} 
+              />
+            )}
+          </motion.div>
+        </TabPane>
+        <TabPane tab="AI Studio" key="3">
+          <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
+            {purchasedPlans.design ? (
+              <AIStudio />
+            ) : (
+              <PricingCard 
+                title="Design Agent" 
+                subtitle="Generate high-quality visual assets powered by generative AI." 
+                price="20" 
+                features={[
+                  "AI Image & Visual Generation", 
+                  "High-Quality Design Exports", 
+                  "Asset Library & Organization", 
+                  "Video Generation Tools"
+                ]}
+                onPurchase={() => handlePurchase('design')} 
+              />
+            )}
+          </motion.div>
+        </TabPane>
+      </Tabs>
 
     </motion.div>
 

@@ -47,6 +47,16 @@ exports.updatePackage = async (req, res) => {
 
 exports.deletePackage = async (req, res) => {
   try {
+    const User = require('../auth/user.model');
+    const isAssigned = await User.exists({ plan: req.params.id });
+    
+    if (isAssigned) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This package cannot be deleted because it is currently assigned to one or more Agencies or Clients. Please remove or reassign those associations before deleting the package.' 
+      });
+    }
+
     const pkg = await AgencyPackage.findByIdAndDelete(req.params.id);
     if (!pkg) {
       return res.status(404).json({ success: false, message: 'Package not found' });

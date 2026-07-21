@@ -106,7 +106,7 @@ exports.getInvoices = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name price description status categories startDate endDate handlingDuration'
+          select: 'name price description status categories applicableAccess startDate endDate handlingDuration'
         }
       })
       .populate('createdBy', 'name email roleName')
@@ -137,7 +137,7 @@ exports.getInvoice = async (req, res, next) => {
         select: 'proposalNumber name masterItems',
         populate: {
           path: 'masterItems',
-          select: 'name itemCode category categories price duration description startDate endDate handlingDuration'
+          select: 'name itemCode category categories price duration description applicableAccess startDate endDate handlingDuration'
         }
       });
     if (!invoice) {

@@ -39,6 +39,23 @@ exports.createAgencyUser = async (req, res, next) => {
     const { name, email, password } = req.body;
     const role = 'agency_manager';
 
+    // Fetch the agency user's plan to get limits
+    const agencyUserDoc = await User.findById(agencyId).populate('plan');
+    const maxUsers = agencyUserDoc?.plan?.users || agencyUserDoc?.allowedUsers || 5;
+
+    // Count existing agency team members
+    const currentUsersCount = await User.countDocuments({
+      agencyId,
+      role: { $in: ['agency_manager', 'agency_super_admin'] }
+    });
+
+    if (currentUsersCount >= maxUsers) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You have reached the maximum limit allowed by your current package. If you need additional capacity, please raise a support ticket or upgrade your package.'
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });

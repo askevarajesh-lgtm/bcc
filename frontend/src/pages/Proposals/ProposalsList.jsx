@@ -132,6 +132,78 @@ const ProposalsList = () => {
               <Descriptions.Item label="Amount">₹{selectedProposal.grandTotal?.toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="Status"><Tag color={selectedProposal.status === 'Approved' ? 'green' : 'blue'}>{selectedProposal.status}</Tag></Descriptions.Item>
             </Descriptions>
+
+            {/* Standard Packages */}
+            {selectedProposal.masterItems && selectedProposal.masterItems.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <Title level={5}>Included Packages</Title>
+                {selectedProposal.masterItems.map((item, index) => (
+                  <Card size="small" key={index} style={{ marginBottom: 12 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{item.name}</div>
+                    
+                    {/* Render Categories if available */}
+                    {item.categories && item.categories.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <Text type="secondary" strong>Categories:</Text>
+                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                          {item.categories.map((cat, idx) => (
+                            <li key={`cat-${idx}`}><Text type="secondary">{cat.name}: <strong>{cat.count || cat.quantity}</strong></Text></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Render Deliverables if available */}
+                    {item.applicableAccess && item.applicableAccess.length > 0 && (
+                      <div>
+                        <Text type="secondary" strong>Deliverables:</Text>
+                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                          {item.applicableAccess.map((access, idx) => (
+                            <li key={`acc-${idx}`}><Text type="secondary">{access.name}: <strong>{access.value}</strong></Text></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Custom Packages */}
+            {selectedProposal.customMasterItems && selectedProposal.customMasterItems.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <Title level={5}>Custom Packages</Title>
+                {selectedProposal.customMasterItems.map((item, index) => (
+                  <Card size="small" key={index} style={{ marginBottom: 12 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{item.customPackageName || 'Custom Package'}</div>
+                    
+                    {/* Render Custom Categories if available */}
+                    {item.customCategories && item.customCategories.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <Text type="secondary" strong>Categories:</Text>
+                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                          {item.customCategories.map((cat, idx) => (
+                            <li key={`ccat-${idx}`}><Text type="secondary">{cat.categoryName || cat.name}: <strong>{cat.quantity || cat.count}</strong></Text></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Render Custom Deliverables if available */}
+                    {item.customApplicableAccess && item.customApplicableAccess.length > 0 && (
+                      <div>
+                        <Text type="secondary" strong>Deliverables:</Text>
+                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                          {item.customApplicableAccess.map((access, idx) => (
+                            <li key={`cacc-${idx}`}><Text type="secondary">{access.name}: <strong>{access.value}</strong></Text></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Modal>

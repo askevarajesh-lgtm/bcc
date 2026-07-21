@@ -378,6 +378,13 @@ const projectSchema = new mongoose.Schema(
         cost: { type: Number, default: 0 },
       },
     ],
+    applicableAccess: [
+      {
+        name: String,
+        value: String,
+        completed: { type: Boolean, default: false }
+      }
+    ],
   },
   {
     timestamps: true,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message, Row, Col, Switch } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message, Row, Col, Switch, Divider } from 'antd';
+import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -69,6 +70,7 @@ const ProposalForm = () => {
                customPrice: item.price,
                customCategories: categories,
                customCategoryCounts: categoryCounts,
+               customApplicableAccess: item.applicableAccess || [],
                customHandlingDuration: item.handlingDuration
              });
           }
@@ -150,7 +152,8 @@ const ProposalForm = () => {
           price: values.customPrice,
           handlingDuration: values.customHandlingDuration,
           status: 'active',
-          categories: formattedCategories
+          categories: formattedCategories,
+          applicableAccess: values.customApplicableAccess || []
         };
       }
 
@@ -225,6 +228,7 @@ const ProposalForm = () => {
                       customPrice: selectedMasterItem.price,
                       customCategories: categories,
                       customCategoryCounts: categoryCounts,
+                      customApplicableAccess: selectedMasterItem.applicableAccess || [],
                       customHandlingDuration: selectedMasterItem.handlingDuration
                     });
                   }
@@ -264,6 +268,19 @@ const ProposalForm = () => {
                 <Descriptions.Item label="Categories">
                   {selectedMasterItem.categories?.map((cat, index) => <Tag key={cat._id || index} color="purple">{cat.name}</Tag>)}
                 </Descriptions.Item>
+
+                {selectedMasterItem.applicableAccess?.length > 0 && (
+                  <Descriptions.Item label="Applicable Access / Deliverables" span={2}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {selectedMasterItem.applicableAccess.map((access, index) => (
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 4 }}>
+                          <Text strong>{access.name}</Text>
+                          <Text>{access.value}</Text>
+                        </div>
+                      ))}
+                    </div>
+                  </Descriptions.Item>
+                )}
               </Descriptions>
             </div>
           )}
@@ -302,6 +319,38 @@ const ProposalForm = () => {
                   ) : null;
                 }}
               </Form.Item>
+
+              <Divider orientation="left">Applicable Access / Deliverables</Divider>
+              <Form.List name="customApplicableAccess">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'name']}
+                          rules={[{ required: true, message: 'Missing access name' }]}
+                        >
+                          <Input placeholder="Access Name (e.g., Website Maintenance)" style={{ width: 300 }} />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'value']}
+                          rules={[{ required: true, message: 'Missing value' }]}
+                        >
+                          <Input placeholder="Value (e.g., Yes, Monthly, 1)" style={{ width: 200 }} />
+                        </Form.Item>
+                        <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} />
+                      </Space>
+                    ))}
+                    <Form.Item>
+                      <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                        Add Applicable Access Item
+                      </Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
 
               <Form.Item label="Description" name="customDescription">
                 <Input.TextArea rows={4} />

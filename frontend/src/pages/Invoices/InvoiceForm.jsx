@@ -264,6 +264,19 @@ const InvoiceForm = () => {
                   {item.categories?.map((cat, index) => <Tag key={cat._id || index} color="purple">{cat.name}</Tag>)}
                   {(!item.categories || item.categories.length === 0) && 'No categories'}
                 </Descriptions.Item>
+
+                {item.applicableAccess && item.applicableAccess.length > 0 && (
+                  <Descriptions.Item label="Applicable Access / Deliverables" span={2}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {item.applicableAccess.map((access, index) => (
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 4 }}>
+                          <Typography.Text strong>{access.name}</Typography.Text>
+                          <Typography.Text>{access.value}</Typography.Text>
+                        </div>
+                      ))}
+                    </div>
+                  </Descriptions.Item>
+                )}
               </Descriptions>
             </div>
           ))}

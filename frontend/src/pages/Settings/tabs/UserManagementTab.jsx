@@ -62,7 +62,7 @@ const UserManagementTab = () => {
   const [draftPermissions, setDraftPermissions] = useState({});
 
   const getPermissionGroupsForRole = (currentRole, feats = []) => {
-    const hasF = (f) => feats.length === 0 || feats.includes(f);
+    const hasF = (f) => feats.includes(f);
 
     if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(currentRole)) {
       return {
@@ -71,7 +71,7 @@ const UserManagementTab = () => {
         'Workspace': [
           'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
           'Social Media', 'Performance Ads', 'CRM & Leads', 
-          'Automation', 'Task Management', 'Websites'
+          'Task Management', 'Websites'
         ],
         'Intelligence': [
           'Analytics & Attribution', 'MOS Score', 'ChatGPT', 'Canva', 
@@ -93,18 +93,15 @@ const UserManagementTab = () => {
       };
 
       // Workspace
-      if (hasF('strategy')) groups.Workspace.push('Strategy');
-      if (hasF('aistudio')) groups.Workspace.push('AI Studio');
       if (hasF('social')) groups.Workspace.push('Social Media');
       if (hasF('ads')) groups.Workspace.push('Performance Ads');
       if (hasF('crm')) groups.Workspace.push('CRM & Leads');
       
       // Default Workspace Modules
-      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Automation');
+      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management');
 
       if (hasF('website')) groups.Workspace.push('Websites');
       if (hasF('marketplace')) groups.Workspace.push('Marketplace');
-      if (hasF('seo')) groups.Workspace.push('SEO / AEO / GEO');
 
       // Intelligence
       if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');
@@ -124,24 +121,36 @@ const UserManagementTab = () => {
 
       return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
-      return {
+      const groups = {
         'General': ['Command Center', 'Settings'],
         'Clients': ['Support'],
-        'Workspace': [
-          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
-          'Social Media', 'Performance Ads', 'CRM & Leads',
-          'Automation', 'Task Management', 'Websites',
-          'Meetings', 'Calendar', 'Deliverables'
-        ],
-        'Intelligence': [
-          'Analytics & Attribution', 'MOS Score', 'AI Co-Pilot', 'ChatGPT', 'Canva', 
-          'AI Agent', 'Benchmarks', 'Reports', 'SEO Intelligence'
-        ],
-        'Agency Ops': [
-          'People', 'Time Tracking', 'Resources', 'Finance', 
-          'Profitability', 'Sales Pipeline', 'Business Intel'
-        ]
+        'Workspace': [],
+        'Intelligence': [],
+        'Agency Ops': []
       };
+
+      // Workspace conditional modules
+      if (hasF('social')) groups.Workspace.push('Social Media');
+      if (hasF('ads')) groups.Workspace.push('Performance Ads');
+      if (hasF('crm')) groups.Workspace.push('CRM & Leads');
+      if (hasF('website')) groups.Workspace.push('Websites');
+      
+      // Workspace default modules
+      groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables');
+
+      // Intelligence conditional modules
+      if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');
+      if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
+      if (hasF('canva')) groups.Intelligence.push('Canva');
+      if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
+      
+      // Intelligence default modules
+      groups.Intelligence.push('Reports');
+
+      // Agency Ops default modules
+      groups['Agency Ops'].push('People', 'Time Tracking', 'Sales Pipeline');
+
+      return groups;
     }
     return {
       'General': ['Dashboard', 'Tasks', 'Settings']
@@ -159,7 +168,13 @@ const UserManagementTab = () => {
         api.get('/roles')
       ]);
       const allUsers = usersRes.data?.data || [];
-      setUsers(allUsers.filter(u => !['agency_super_admin', 'agency_manager', 'agency_client', 'client'].includes(u.role)));
+      const excludedRoles = [
+        'supreme_super_admin', 'superadmin', 'super_admin', 'commander_admin', 'admin',
+        'agency_super_admin', 'agency_manager',
+        'brand_super_admin', 'brand_manager',
+        'manager', 'agency_client', 'client'
+      ];
+      setUsers(allUsers.filter(u => !excludedRoles.includes(u.role)));
       setDepartments(deptsRes.data?.data || []);
       setRoles(rolesRes.data?.data || []);
     } catch (err) {

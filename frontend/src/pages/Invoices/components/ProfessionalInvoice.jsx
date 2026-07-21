@@ -30,6 +30,26 @@ const ProfessionalInvoice = ({ invoice }) => {
               {record.description}
             </div>
           )}
+          {record.categories && record.categories.length > 0 && (
+            <div style={{ fontSize: "12px", marginTop: "8px" }}>
+              <Text strong style={{ display: 'block', marginBottom: '4px', color: sectionLabelColor }}>Categories:</Text>
+              <ul style={{ paddingLeft: '16px', margin: 0, color: textSecondaryColor }}>
+                {record.categories.map((cat, index) => (
+                  <li key={`cat-${index}`}>{cat.name}: <strong>{cat.count}</strong></li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {record.applicableAccess && record.applicableAccess.length > 0 && (
+            <div style={{ fontSize: "12px", marginTop: "8px" }}>
+              <Text strong style={{ display: 'block', marginBottom: '4px', color: sectionLabelColor }}>Deliverables:</Text>
+              <ul style={{ paddingLeft: '16px', margin: 0, color: textSecondaryColor }}>
+                {record.applicableAccess.map((access, index) => (
+                  <li key={`acc-${index}`}>{access.name}: <strong>{access.value}</strong></li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       ),
     },

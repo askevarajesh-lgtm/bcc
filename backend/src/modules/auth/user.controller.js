@@ -148,6 +148,62 @@ exports.createUser = async (req, res, next) => {
       else if (!userData.role) userData.role = 'user';
     }
 
+    // Enforce users limit for agency team members
+    if (userData.agencyId && !userData.brandId && !userData.isDirect) {
+      const agencyUserDoc = await User.findById(userData.agencyId).populate('plan');
+      
+      if (agencyUserDoc) {
+        const maxUsers = agencyUserDoc.plan?.users || agencyUserDoc.allowedUsers || 5;
+        
+        const currentUsersCount = await User.countDocuments({
+          agencyId: userData.agencyId,
+          brandId: null, 
+          role: { $nin: ['agency_client'] } 
+        });
+
+        if (currentUsersCount >= maxUsers) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'You have reached the maximum limit allowed by your current package. If you need additional capacity, please raise a support ticket or upgrade your package.'
+          });
+        }
+      }
+    }
+
+    // Enforce users limit for brand team members (Direct Brands and Agency Clients)
+    if (userData.brandId) {
+      const brandDoc = await User.findById(userData.brandId);
+      if (brandDoc && brandDoc.packageName) {
+        let maxUsers = 0;
+        
+        if (brandDoc.isDirect) {
+          const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
+          const pkg = await DirectClientPackage.findOne({ name: brandDoc.packageName, createdBy: brandDoc.createdBy });
+          if (pkg) maxUsers = pkg.userCount;
+        } else {
+          // Agency Client
+          const AgencyPackage = require('../agencyPackages/agencyPackage.model');
+          const pkg = await AgencyPackage.findOne({ name: brandDoc.packageName }); // Agency Packages might not be strictly filtered by createdBy if global, but we can assume name is unique enough for the agency
+          if (pkg) maxUsers = pkg.users; // Or maybe brand packages for agency clients are stored elsewhere? Wait, no, Agency Package is for the agency itself. Agency Clients might not have a package with user limit? 
+        }
+
+        // Wait, if it's not direct, does the agency client have a limit?
+        // Let's assume if maxUsers is found we apply it. If it's a Direct Brand, it will definitely apply.
+        if (maxUsers > 0) {
+          const currentUsersCount = await User.countDocuments({
+            brandId: userData.brandId
+          });
+
+          if (currentUsersCount >= maxUsers) {
+            return res.status(400).json({ 
+              success: false, 
+              message: 'You have reached the maximum limit allowed by your current package. If you need additional capacity, please raise a support ticket or upgrade your package.'
+            });
+          }
+        }
+      }
+    }
+
     const user = await User.create(userData);
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;

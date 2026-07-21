@@ -56,10 +56,12 @@ exports.createWebsite = async (req, res, next) => {
               publicId = match[1];
             }
 
-            // Generate an authenticated download URL
+            // Generate an authenticated download URL using the Admin API
+            // Note: The template is uploaded as 'upload' type, not 'authenticated',
+            // but the account requires API-signed URLs for downloading raw files.
             const downloadUrl = cloudinary.utils.private_download_url(publicId, '', {
               resource_type: 'raw',
-              type: 'authenticated'
+              type: 'upload'
             });
 
             const response = await axios({
@@ -207,6 +209,8 @@ exports.createWebsite = async (req, res, next) => {
 
         } catch (zipErr) {
           console.error("Error processing template zip:", zipErr);
+          fs.writeFileSync(path.join(os.tmpdir(), 'template_error_log.txt'), zipErr.stack || zipErr.toString());
+          throw new Error('Template extraction failed: ' + zipErr.message);
         }
       }
     }

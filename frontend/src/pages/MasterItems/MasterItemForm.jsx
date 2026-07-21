@@ -1,7 +1,8 @@
 import React from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, Row, Col, message } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Row, Col, message, Divider } from 'antd';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
+import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -54,6 +55,7 @@ const MasterItemForm = () => {
           status: item.status,
           categories,
           categoryCounts,
+          applicableAccess: item.applicableAccess || [],
           handlingDuration: item.handlingDuration || "1 Month",
         });
       } else {
@@ -80,6 +82,7 @@ const MasterItemForm = () => {
       const payload = {
         name: values.name,
         categories: formattedCategories,
+        applicableAccess: values.applicableAccess || [],
         description: values.description,
         price: values.price,
         status: values.status,
@@ -150,6 +153,38 @@ const MasterItemForm = () => {
               ))}
             </div>
           )}
+
+          <Divider orientation="left">Applicable Access / Deliverables</Divider>
+          <Form.List name="applicableAccess">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'name']}
+                      rules={[{ required: true, message: 'Missing access name' }]}
+                    >
+                      <Input placeholder="Access Name (e.g., Website Maintenance)" style={{ width: 300 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'value']}
+                      rules={[{ required: true, message: 'Missing value' }]}
+                    >
+                      <Input placeholder="Value (e.g., Yes, Monthly, 1)" style={{ width: 200 }} />
+                    </Form.Item>
+                    <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} />
+                  </Space>
+                ))}
+                <Form.Item>
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    Add Applicable Access Item
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
 
           <Form.Item label="Description" name="description">
             <TextArea rows={4} />

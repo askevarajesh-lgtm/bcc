@@ -8,18 +8,14 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const availableFeatures = [
-  { id: 'strategy', label: 'Strategy' },
-  { id: 'aistudio', label: 'Ai Studio' },
+  { id: 'crm', label: 'CRM & Leads' },
+  { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },
   { id: 'ads', label: 'Performance Ads' },
-  { id: 'crm', label: 'CRM & Leads' },
-  { id: 'website', label: 'Websites' },
   { id: 'analytics', label: 'Analytics & Attribution' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
   { id: 'benchmark', label: 'Benchmark' },
-  { id: 'seo', label: 'Seo Intelligence' },
-  { id: 'marketplace', label: 'Marketplace' }
 ];
 
 const PortalSettings = () => {

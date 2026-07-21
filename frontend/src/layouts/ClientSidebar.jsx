@@ -123,7 +123,6 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       key: role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard',
       icon: getIcon(LayoutDashboard),
       label: role === 'agency_client' ? 'Dashboard' : 'Command Center',
-      ...(['brand_super_admin', 'brand_manager'].includes(role) ? {} : { featureId: 'dashboard' }),
     },
   ];
 
@@ -157,7 +156,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', leadsCount), featureId: 'crm' });
     workspaceChildren.push({ key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
     workspaceChildren.push({ key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace', featureId: 'marketplace' });
+    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
   } else if (role === 'agency_client') {
     workspaceChildren.push({ key: '/client/workspace/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
     workspaceChildren.push({ key: '/client/workspace/aistudio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
@@ -165,9 +164,11 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/client/workspace/ads', icon: getIcon(Target), label: 'Performance Ads', featureId: 'ads' });
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
+    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
   } else {
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
+    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
   }
 
   if (workspaceChildren.length > 0) {

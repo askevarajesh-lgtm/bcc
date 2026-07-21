@@ -1267,9 +1267,9 @@ const getProjectById = async (
     .populate("workflowRevisionRequestedBy", "name email")
     .populate(
       "masterItemId",
-      "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories categories isActive",
+      "name description deliverables itemType pricingModel basePrice handlingAmount campaignAmount handlingDuration numberOfPosters numberOfVideos numberOfShoots digitalMarketingPackages campaignPackages seoPackages websitePackages designingPackages selectedCategories categories applicableAccess isActive",
     )
-    .populate("masterItemIds", "name itemCode category categories price duration description")
+    .populate("masterItemIds", "name itemCode category categories applicableAccess price duration description")
     .populate("planId", "name")
     .populate("milestones.completedBy", "name email");
 

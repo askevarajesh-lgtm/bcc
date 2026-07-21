@@ -128,8 +128,14 @@ const MasterItemDetailsCard = ({
 
         {selectedCategories && selectedCategories.length > 0 && selectedCategories.map((cat, idx) => {
           const rawName = cat.name || cat.categoryName || "";
-          const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
-          if (isStandard) return null; // Avoid duplicating posters, videos, shoots if they are in categories
+          const isPoster = rawName.toLowerCase().includes("poster");
+          const isVideo = rawName.toLowerCase().includes("video");
+          const isShoot = rawName.toLowerCase().includes("shoot");
+          
+          // Only skip if the legacy separate fields are actually going to render them
+          if (isPoster && posters > 0) return null;
+          if (isVideo && videos > 0) return null;
+          if (isShoot && shoots > 0) return null;
 
           const singularName = rawName.toLowerCase().endsWith('s') ? rawName.slice(0, -1) : rawName;
           const formattedName = singularName ? `Number of ${singularName.charAt(0).toUpperCase() + singularName.slice(1)}s` : "Unknown Item";
@@ -143,6 +149,19 @@ const MasterItemDetailsCard = ({
             </Descriptions.Item>
           );
         })}
+
+        {service.applicableAccess && service.applicableAccess.length > 0 && (
+          <Descriptions.Item label="Applicable Access / Deliverables" span={2}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {service.applicableAccess.map((access, index) => (
+                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0', paddingBottom: 4 }}>
+                  <Text strong>{access.name}</Text>
+                  <Text>{access.value}</Text>
+                </div>
+              ))}
+            </div>
+          </Descriptions.Item>
+        )}
 
         <Descriptions.Item label="Campaign Alone">
           {service.campaignAlone ? 'Yes' : 'No'}
