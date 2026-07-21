@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Typography, Result, Spin, Tag, Breadcrumb } from "antd";
+import { ConfigProvider, Typography, Result, Spin, Tag, Breadcrumb } from "antd";
 import { Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -57,7 +57,12 @@ const BlogPostEmbedView = () => {
     );
   }
 
+  // Same fix as BlogEmbedView: without a local ConfigProvider, the app-wide
+  // ThemeProvider's hardcoded 'Plus Jakarta Sans' token wins over the inherited
+  // fontFamily below for every AntD component (Title/Text/Tag/Breadcrumb), so the
+  // detected site font never actually shows up on the public post page.
   return (
+    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
       <link rel="stylesheet" href={googleFontHref} />
       <Breadcrumb style={{ marginBottom: 32 }}>
@@ -106,6 +111,7 @@ const BlogPostEmbedView = () => {
         />
       )}
     </div>
+    </ConfigProvider>
   );
 };
 

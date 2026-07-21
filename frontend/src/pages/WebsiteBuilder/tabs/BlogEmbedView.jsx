@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
+import { ConfigProvider, Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
 import { Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -66,7 +66,15 @@ const BlogEmbedView = () => {
   const isEmbed = !!blogId;
   const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
 
+  // The app-wide ThemeProvider (see contexts/ThemeContext.jsx) wraps every route -
+  // including this public embed - in a ConfigProvider hardcoded to the dashboard's
+  // own font (Plus Jakarta Sans). AntD injects font-family via CSS-in-JS directly
+  // onto .ant-typography/.ant-card/.ant-btn/.ant-tag, which wins over the inherited
+  // value from the wrapper div's inline style below. Nesting a ConfigProvider here
+  // overrides the token for this subtree so AntD components actually pick up the
+  // detected site font instead of silently falling back to the dashboard default.
   return (
+    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
       <link rel="stylesheet" href={googleFontHref} />
       <style>{`
@@ -216,6 +224,7 @@ const BlogEmbedView = () => {
         </>
       )}
     </div>
+    </ConfigProvider>
   );
 };
 
