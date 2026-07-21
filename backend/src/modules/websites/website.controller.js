@@ -360,7 +360,7 @@ exports.getPage = async (req, res, next) => {
 exports.updateWebsite = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, status, faviconUrl, trackingPixels, chatWidgetId, pages } = req.body;
+    const { name, description, status, faviconUrl, trackingPixels, chatWidgetId, pages, theme } = req.body;
 
     const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
     if (!website) {
@@ -374,6 +374,9 @@ exports.updateWebsite = async (req, res, next) => {
     if (chatWidgetId !== undefined) website.chatWidgetId = chatWidgetId;
     if (trackingPixels) {
       website.trackingPixels = { ...website.trackingPixels, ...trackingPixels };
+    }
+    if (theme) {
+      website.theme = { ...(website.theme?.toObject ? website.theme.toObject() : website.theme), ...theme };
     }
     website.updatedBy = req.user?._id;
 

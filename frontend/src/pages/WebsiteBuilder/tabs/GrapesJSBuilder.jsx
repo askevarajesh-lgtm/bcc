@@ -247,7 +247,7 @@ const GrapesJSBuilder = ({
 
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((blog) => {
-            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
+            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}?font=${encodeURIComponent(activeWebsite?.theme?.fontFamily || "Inter")}&color=${encodeURIComponent(activeWebsite?.theme?.primaryColor || "#3b82f6")}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:800px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`blog-${blog._id}`, {

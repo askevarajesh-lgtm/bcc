@@ -205,6 +205,8 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
   const [description, setDescription] = useState(activeWebsite.description || "");
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
+  const [fontFamily, setFontFamily] = useState(activeWebsite.theme?.fontFamily || "Inter");
+  const [primaryColor, setPrimaryColor] = useState(activeWebsite.theme?.primaryColor || "#3b82f6");
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
   const [savingWidget, setSavingWidget] = useState(false);
@@ -353,11 +355,12 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           "Content-Type": "application/json",
           "Authorization": token ? `Bearer ${token}` : ""
         },
-        body: JSON.stringify({ name: websiteName, description, status, pages })
+        body: JSON.stringify({ name: websiteName, description, status, pages, theme: { fontFamily, primaryColor } })
       });
       const data = await res.json();
       if (data.success) {
         message.success("Changes saved successfully!");
+        activeWebsite.theme = { fontFamily, primaryColor };
         // Update local activeWebsite to reflect new saved pages (backend returns updated pages)
         if (data.data && data.data.pages) {
            setPages(data.data.pages);
@@ -487,6 +490,38 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Website Theme */}
+                <div style={{ border: "1px solid var(--border-color)", borderRadius: 16, padding: 24, marginBottom: 32, background: "var(--bg-primary)" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><PenTool size={16} color="var(--accent-primary)"/> Theme</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 20, fontWeight: 500 }}>Default font and brand color used across this site — including embedded blocks like blogs, so they match the rest of the site instead of falling back to generic defaults.</div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>SITE FONT</div>
+                    <Select size="middle" value={fontFamily} onChange={setFontFamily} style={{ width: "100%" }} disabled={role === 'agency_client'}>
+                      <Option value="Inter">Inter</Option>
+                      <Option value="Poppins">Poppins</Option>
+                      <Option value="Roboto">Roboto</Option>
+                      <Option value="Lato">Lato</Option>
+                      <Option value="Playfair Display">Playfair Display</Option>
+                      <Option value="Montserrat">Montserrat</Option>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>BRAND COLOR</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="color"
+                        value={primaryColor}
+                        onChange={e => setPrimaryColor(e.target.value)}
+                        disabled={role === 'agency_client'}
+                        style={{ width: 40, height: 32, padding: 0, border: '1px solid var(--border-color)', borderRadius: 6, background: 'none', cursor: role === 'agency_client' ? 'not-allowed' : 'pointer' }}
+                      />
+                      <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Tracking Pixels */}
                 <div style={{ border: "1px solid var(--border-color)", borderRadius: 16, padding: 24, marginBottom: 32, background: "var(--bg-primary)" }}>

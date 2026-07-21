@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
 import { Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const BlogEmbedView = () => {
   const { blogId, blogSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // The site's theme (font + brand color) is passed in as query params on the
+  // embed URL when this iframe is dropped onto a page (see GrapesJSBuilder's
+  // loadBlogs), so the blog matches the website it's embedded in instead of
+  // always falling back to hardcoded defaults.
+  const themeFont = searchParams.get("font") || "Inter";
+  const themeColor = searchParams.get("color") || "#3b82f6";
+  const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
 
   useEffect(() => {
     fetchBlog();
@@ -55,8 +64,20 @@ const BlogEmbedView = () => {
   const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: "inherit" }}>
-      <style>{`.excerpt-content, .excerpt-content * { background-color: transparent !important; }`}</style>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+      <link rel="stylesheet" href={googleFontHref} />
+      <style>{`
+        .excerpt-content, .excerpt-content * { background-color: transparent !important; }
+        .excerpt-content p { margin: 0; }
+        .blog-card-excerpt {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-height: 0;
+        }
+      `}</style>
       {/* Blog Header */}
       <div style={{ textAlign: "center", marginBottom: 60 }}>
         <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{name}</Title>
@@ -75,7 +96,7 @@ const BlogEmbedView = () => {
         </div>
       ) : (
         <>
-          <Row gutter={[32, 32]}>
+          <Row gutter={[32, 32]} align="stretch">
             {displayedPosts.map(post => {
               const postUrl = `/blog/${blogData.slug}/${post.slug}`;
               // Same route the "Preview" button uses in the website builder —
@@ -93,19 +114,20 @@ const BlogEmbedView = () => {
                 ? post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
                 : '';
 
-              // Word count is measured on plain text (tags stripped) so we don't cut an HTML tag in half.
-              const plainForCount = excerptHtml
-                ? excerptHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-                : fallbackPlainText;
-              const WORD_LIMIT = 20;
-              const words = plainForCount.split(' ').filter(Boolean);
-              const isLong = words.length > WORD_LIMIT;
+              const rawExcerpt = excerptHtml || fallbackPlainText || 'Read the full post for more details.';
 
-              // Full text is always rendered — the max-height clamp truncates it visually,
-              // and "Read More" links out to the fully built post preview.
-              const excerptContent = excerptHtml
-                ? excerptHtml
-                : (fallbackPlainText || 'Read the full post for more details.');
+              // Truncate on plain text (tags stripped) so we never cut an HTML tag in half,
+              // and append "..." ourselves so it always shows — the CSS line-clamp
+              // (blog-card-excerpt) is just a visual backstop, not the source of truth.
+              const WORD_LIMIT = 30;
+              const plainForTruncation = excerptHtml
+                ? excerptHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                : rawExcerpt;
+              const words = plainForTruncation.split(' ').filter(Boolean);
+              const isTruncated = words.length > WORD_LIMIT;
+              const excerptContent = isTruncated
+                ? `${words.slice(0, WORD_LIMIT).join(' ')}...`
+                : rawExcerpt;
 
               return (
                 <Col xs={24} md={12} lg={8} key={post._id}>
@@ -126,7 +148,7 @@ const BlogEmbedView = () => {
                     {post.categories && post.categories.length > 0 && (
                       <div style={{ marginBottom: 16 }}>
                         {post.categories.map((cat, idx) => (
-                          <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
+                          <Tag key={idx} style={{ borderRadius: 4, fontWeight: 600, color: themeColor, background: `${themeColor}1a`, border: `1px solid ${themeColor}40` }}>{cat}</Tag>
                         ))}
                       </div>
                     )}
@@ -136,30 +158,30 @@ const BlogEmbedView = () => {
                       </a>
                     </Title>
 
-                    <Paragraph
-                      className="excerpt-content"
+                    <div
+                      className="excerpt-content blog-card-excerpt"
                       style={{
                         color: '#475569',
                         fontSize: 15,
                         lineHeight: 1.6,
                         flex: 1,
-                        marginBottom: 16,
-                        overflow: 'hidden',
-                        maxHeight: isLong ? '8em' : 'none'
+                        minHeight: 0,
+                        marginBottom: 16
                       }}
-                    >
-                      <span dangerouslySetInnerHTML={{ __html: excerptContent }} />
-                    </Paragraph>
+                      dangerouslySetInnerHTML={{ __html: excerptContent }}
+                    />
 
-                    <Button
-                      type="link"
-                      href={postPreviewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600 }}
-                    >
-                      Read More
-                    </Button>
+                    {isTruncated && (
+                      <Button
+                        type="link"
+                        href={postPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600, color: themeColor }}
+                      >
+                        Read More
+                      </Button>
+                    )}
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -182,7 +204,7 @@ const BlogEmbedView = () => {
                 size="large" 
                 href={`/blog/${blogData.slug}`} 
                 target="_parent"
-                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)' }}
+                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, background: themeColor, borderColor: themeColor, boxShadow: `0 4px 14px 0 ${themeColor}66` }}
               >
                 View More
               </Button>
