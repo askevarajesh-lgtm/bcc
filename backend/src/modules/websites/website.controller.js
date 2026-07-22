@@ -99,18 +99,19 @@ async function detectThemeFromPublishedPages(pages) {
 
 // Downloads a template's zip to `zipPath`, trying a few strategies in order
 // since Cloudinary accounts vary in how raw/zip delivery is configured:
-//   1) A signed delivery URL built from the exact public_id captured at
-//      upload time. This is Cloudinary's documented workaround for the
-//      "restricted media types" security default (introduced ~2024) that
-//      blocks *unsigned* public delivery of zip/raw files with a 401 even
-//      though the resource itself uploaded fine.
-//   2) The plain stored zipUrl, for accounts/resources where unsigned raw
-//      delivery is allowed.
-//   3) The legacy `type: 'authenticated'` signed download URL, for any
-//      template records whose zip was actually uploaded as an authenticated
-//      resource (older/manually-seeded templates).
+//   1) The `type: 'authenticated'` signed download URL, built from the exact
+//      public_id captured at upload time — this is the primary path now
+//      that zipUpload.js uploads templates as authenticated resources. This
+//      account has Cloudinary's "restricted media types" security setting
+//      enabled, which blocks *public* delivery of zip/raw files with a 401
+//      even when the URL is signed, so `type: 'upload'` (signed or not)
+//      never works here — only a genuinely authenticated resource does.
+//   2) A signed delivery URL against `type: 'upload'`, and
+//   3) the plain stored zipUrl —
+//      both kept only as fallbacks for any template record whose zip was
+//      actually uploaded as a public resource (e.g. before this fix).
 // Throws a single Error summarizing every attempt if all three fail, so the
-// caller can surface something more useful than a bare "404".
+// caller can surface something more useful than a bare "404"/"401".
 async function downloadTemplateZip(templateRecord, zipPath) {
   const attempts = [];
 
@@ -131,6 +132,18 @@ async function downloadTemplateZip(templateRecord, zipPath) {
     }
   };
 
+  let publicId = templateRecord.zipPublicId;
+  if (!publicId) {
+    const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
+    const match = templateRecord.zipUrl.match(regex);
+    publicId = match && match[1] ? match[1] : templateRecord.zipUrl;
+  }
+  const authenticatedUrl = cloudinary.utils.private_download_url(publicId, 'zip', {
+    resource_type: 'raw',
+    type: 'authenticated',
+  });
+  if (await tryFetch('authenticated download URL', authenticatedUrl)) return;
+
   if (templateRecord.zipPublicId) {
     const signedUrl = cloudinary.url(templateRecord.zipPublicId, {
       resource_type: 'raw',
@@ -142,18 +155,6 @@ async function downloadTemplateZip(templateRecord, zipPath) {
   }
 
   if (await tryFetch('direct zipUrl', templateRecord.zipUrl)) return;
-
-  let publicId = templateRecord.zipPublicId;
-  if (!publicId) {
-    const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
-    const match = templateRecord.zipUrl.match(regex);
-    publicId = match && match[1] ? match[1] : templateRecord.zipUrl;
-  }
-  const authenticatedUrl = cloudinary.utils.private_download_url(publicId, '', {
-    resource_type: 'raw',
-    type: 'authenticated',
-  });
-  if (await tryFetch('authenticated download URL', authenticatedUrl)) return;
 
   throw new Error(`All download attempts failed — ${attempts.join('; ')}`);
 }
