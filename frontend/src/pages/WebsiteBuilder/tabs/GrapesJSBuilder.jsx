@@ -165,12 +165,24 @@ const getSiteHeaderFooter = (website) => {
   return parseHeaderFooterFromHtml(homePage.html);
 };
 
-// The imported template's real CSS lives as <link rel="stylesheet"> tags inside
-// the raw page HTML (uploaded to Cloudinary at import time — see website.controller.js).
-// GrapesJS only ever receives component markup via setComponents/setStyle, so those
-// <link> tags never make it into the canvas iframe's <head> on their own, which is why
-// the builder loses the template's fonts/colors/layout even though the published
-// preview (which renders the raw HTML inside its own <head>) looks correct.
+const DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const normalizeFeaturedImageHeight = (html) => {
+  if (!html) return html;
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const img = doc.querySelector('[data-post-field="image"]');
+    if (img && !img.style.height) {
+      img.style.height = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      img.style.maxHeight = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      if (!img.style.objectFit) img.style.objectFit = "cover";
+    }
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error("Failed to normalize featured image height", err);
+    return html;
+  }
+};
+
 const extractStylesheetUrls = (html) => {
   if (!html) return [];
   try {
@@ -215,20 +227,10 @@ const GrapesJSBuilder = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // Load initial HTML/CSS if it exists
     const sourceContent = isPostMode ? activePost : activePage;
     const siteFont = activeWebsite?.theme?.fontFamily || "Inter";
     const brandColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
 
-    // Pull in the actual template stylesheet(s) so the canvas renders with the
-    // same fonts/colors/layout as the published site instead of browser defaults.
-    // IMPORTANT: only do this in page mode. In post mode the published preview
-    // (BlogPostPreviewView.jsx) never loads the template's own CSS either — posts
-    // are meant to render as self-contained, full-width content. Template
-    // stylesheets are frequently full of `!important` layout/container rules
-    // with higher specificity than our plain `body > *` width override below,
-    // so loading them here would (and did) collapse the post content back down
-    // to the template's narrow centered column instead of full width.
     const homePageForAssets = Array.isArray(activeWebsite?.pages)
       ? activeWebsite.pages.find((p) => p.isHome) ||
         activeWebsite.pages.find((p) => p.html) ||
@@ -279,10 +281,6 @@ const GrapesJSBuilder = ({
         styleEl.id = "bcc-theme-vars";
         canvasDoc.head.appendChild(styleEl);
       }
-      // Mirror the render-time overrides the published post preview applies
-      // (see BlogPostPreviewView.jsx) so what you see while building matches
-      // what visitors actually get: full-width sections and the live theme
-      // font/brand color, even on FAQ markup saved before these vars existed.
       const postRenderOverrides = isPostMode
         ? `
           body { font-family: var(--site-font), sans-serif; }
@@ -312,15 +310,22 @@ const GrapesJSBuilder = ({
       styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; } ${postRenderOverrides}`;
     });
 
+    const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
+    const siteName = activeWebsite?.name || "Your Site";
+
+    const fallbackHeaderHtml = `<header style="display:flex; align-items:center; justify-content:space-between; padding:20px 40px; font-family:var(--site-font, '${siteFont}'), sans-serif; border-bottom:1px solid #e2e8f0;"><div style="font-weight:800; font-size:20px; color:#0f172a;">${siteName}</div><nav style="display:flex; gap:24px; font-size:15px; font-weight:600; color:#334155;"><span>Home</span><span>About</span><span>Contact</span></nav></header>`;
+    const fallbackFooterHtml = `<footer style="padding:32px 40px; text-align:center; font-family:var(--site-font, '${siteFont}'), sans-serif; color:#64748b; font-size:14px; border-top:1px solid #e2e8f0;">© ${new Date().getFullYear()} ${siteName}. All rights reserved.</footer>`;
+
     if (sourceContent.html || sourceContent.css) {
-      e.setComponents(sourceContent.html || "");
+      e.setComponents(
+        isPostMode ? normalizeFeaturedImageHeight(sourceContent.html || "") : (sourceContent.html || ""),
+      );
       e.setStyle(sourceContent.css || "");
     } else if (isPostMode) {
-      const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
       e.setComponents(`
         ${siteHeaderHtml}
         <div style="width:100%; box-sizing:border-box; padding: 50px 40px; font-family: var(--site-font, '${siteFont}'), sans-serif;">
-          <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; max-height:360px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
+          <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
           <h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a;">${initialPostTitle || "Post title"}</h1>
           <p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; margin:0 0 32px;">${initialPostExcerpt || "A short summary shown in blog listings."}</p>
           <div style="font-size:16px; line-height:1.8; color:#1e293b;">
@@ -330,7 +335,6 @@ const GrapesJSBuilder = ({
         ${siteFooterHtml}
       `);
     } else {
-      const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
       e.setComponents(`
         ${siteHeaderHtml}
         <div style="padding: 50px; text-align: center; font-family: var(--site-font, '${siteFont}'), sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>
@@ -339,6 +343,19 @@ const GrapesJSBuilder = ({
     }
 
     setEditor(e);
+
+    e.BlockManager.add("site-header-block", {
+      label: "Header",
+      category: "Basic",
+      content: siteHeaderHtml || fallbackHeaderHtml,
+      attributes: { class: "fa fa-window-maximize" },
+    });
+    e.BlockManager.add("site-footer-block", {
+      label: "Footer",
+      category: "Basic",
+      content: siteFooterHtml || fallbackFooterHtml,
+      attributes: { class: "fa fa-window-minimize" },
+    });
 
     // Fetch forms and register them as GrapesJS blocks
     const loadForms = async () => {
@@ -435,7 +452,7 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-featured-image-block", {
         label: "Featured Image",
         category: "Post",
-        content: `<img data-post-field="image" src="https://placehold.co/800x400?text=Featured+Image" alt="Featured image" style="width:100%; max-height:360px; object-fit:cover; border-radius:12px;" />`,
+        content: `<img data-post-field="image" src="https://placehold.co/800x400?text=Featured+Image" alt="Featured image" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px;" />`,
         attributes: { class: "fa fa-image" },
       });
       e.BlockManager.add("post-excerpt-block", {

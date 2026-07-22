@@ -2,10 +2,8 @@ const Blog = require('./blog.model');
 const BlogPost = require('./blog-post.model');
 const BlogCategory = require('./blog-category.model');
 const Website = require('../websites/website.model');
+const { getSiteChrome } = require('../websites/website.chrome');
 
-// Helper: fetch the theme (font + brand color) of the website a blog is linked to,
-// so public blog pages can render with the same look as the website instead of
-// always falling back to hardcoded defaults.
 async function getLinkedWebsiteTheme(websiteId) {
   if (!websiteId) return null;
   const website = await Website.findOne({ _id: websiteId, isDeleted: false }).select('theme');
@@ -13,6 +11,16 @@ async function getLinkedWebsiteTheme(websiteId) {
   return {
     fontFamily: website.theme?.fontFamily || 'Inter',
     primaryColor: website.theme?.primaryColor || '#3b82f6'
+  };
+}
+
+async function getLinkedWebsiteChrome(websiteId) {
+  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [] };
+  const chrome = await getSiteChrome(websiteId);
+  return {
+    siteHeaderHtml: chrome.headerHtml,
+    siteFooterHtml: chrome.footerHtml,
+    siteStylesheetUrls: chrome.stylesheetUrls
   };
 }
 
@@ -119,12 +127,14 @@ exports.getPublicBlog = async (req, res, next) => {
     const posts = await BlogPost.find({ blogId: id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
     const postsWithCategoryNames = await resolvePostCategoryNames(id, posts);
     const websiteTheme = await getLinkedWebsiteTheme(blog.websiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(blog.websiteId);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
         posts: postsWithCategoryNames,
-        websiteTheme
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {
@@ -144,12 +154,14 @@ exports.getPublicBlogBySlug = async (req, res, next) => {
     const posts = await BlogPost.find({ blogId: blog._id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
     const postsWithCategoryNames = await resolvePostCategoryNames(blog._id, posts);
     const websiteTheme = await getLinkedWebsiteTheme(blog.websiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(blog.websiteId);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
         posts: postsWithCategoryNames,
-        websiteTheme
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {

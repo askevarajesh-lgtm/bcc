@@ -52,11 +52,21 @@ const BlogPostEmbedView = () => {
       />
     );
   }
+  const siteHeaderHtml = blogData.siteHeaderHtml || "";
+  const siteFooterHtml = blogData.siteFooterHtml || "";
+  const siteStylesheetUrls = blogData.siteStylesheetUrls || [];
 
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif`, '--site-font': `'${themeFont}', sans-serif`, '--brand-color': themeColor }}>
+    <div style={{ fontFamily: `'${themeFont}', 'Inter', sans-serif`, '--site-font': `'${themeFont}', sans-serif`, '--brand-color': themeColor }}>
       <link rel="stylesheet" href={googleFontHref} />
+      {siteStylesheetUrls.map((href) => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
+      {siteHeaderHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteHeaderHtml }} />
+      )}
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
       <style>{`
         [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * { font-family: var(--site-font) !important; }
         [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
@@ -83,7 +93,7 @@ const BlogPostEmbedView = () => {
         <img
           src={postData.featuredImageUrl}
           alt={postData.title}
-          style={{ width: "100%", maxHeight: 420, objectFit: "cover", borderRadius: 16, marginBottom: 32 }}
+          style={{ width: "100%", height: 280, maxHeight: 280, objectFit: "cover", borderRadius: 16, marginBottom: 32 }}
         />
       )}
       
@@ -114,6 +124,10 @@ const BlogPostEmbedView = () => {
           style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
           dangerouslySetInnerHTML={{ __html: postData.excerpt || "No content provided." }}
         />
+      )}
+      </div>
+      {siteFooterHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteFooterHtml }} />
       )}
     </div>
     </ConfigProvider>

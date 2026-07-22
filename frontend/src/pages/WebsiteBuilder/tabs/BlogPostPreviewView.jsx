@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
+const DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const normalizeFeaturedImageHeight = (html) => {
+  if (!html) return html;
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const img = doc.querySelector('[data-post-field="image"]');
+    if (img && !img.style.height) {
+      img.style.height = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      img.style.maxHeight = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      if (!img.style.objectFit) img.style.objectFit = "cover";
+    }
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error("Failed to normalize featured image height", err);
+    return html;
+  }
+};
+
 const buildFallbackHtml = (post, themeFont, themeColor) => {
   const hasAnyContent =
     post.title || post.excerpt || post.featuredImageUrl || (post.faqs && post.faqs.length > 0);
@@ -10,7 +28,7 @@ const buildFallbackHtml = (post, themeFont, themeColor) => {
   }
 
   const image = post.featuredImageUrl
-    ? `<img src="${post.featuredImageUrl}" alt="${post.title || ""}" style="width:100%; max-height:420px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />`
+    ? `<img src="${post.featuredImageUrl}" alt="${post.title || ""}" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />`
     : "";
 
   const excerpt = post.excerpt
@@ -189,7 +207,7 @@ const BlogPostPreviewView = () => {
           </style>
         </head>
         <body>
-          ${postData.html || buildFallbackHtml(postData, themeFont, themeColor)}
+          ${postData.html ? normalizeFeaturedImageHeight(postData.html) : buildFallbackHtml(postData, themeFont, themeColor)}
         </body>
         </html>
       `}

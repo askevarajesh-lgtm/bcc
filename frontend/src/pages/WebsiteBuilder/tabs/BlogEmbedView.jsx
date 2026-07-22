@@ -58,12 +58,21 @@ const BlogEmbedView = () => {
   const { name, description, posts = [] } = blogData;
   const isEmbed = !!blogId;
   const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
-
+  const siteHeaderHtml = !isEmbed ? (blogData.siteHeaderHtml || "") : "";
+  const siteFooterHtml = !isEmbed ? (blogData.siteFooterHtml || "") : "";
+  const siteStylesheetUrls = !isEmbed ? (blogData.siteStylesheetUrls || []) : [];
 
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+    <div style={{ fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
       <link rel="stylesheet" href={googleFontHref} />
+      {siteStylesheetUrls.map((href) => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
+      {siteHeaderHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteHeaderHtml }} />
+      )}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px" }}>
       <style>{`
         .excerpt-content, .excerpt-content * { background-color: transparent !important; }
         .excerpt-content p { margin: 0; }
@@ -201,6 +210,10 @@ const BlogEmbedView = () => {
             </div>
           )}
         </>
+      )}
+      </div>
+      {siteFooterHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteFooterHtml }} />
       )}
     </div>
     </ConfigProvider>
