@@ -97,6 +97,67 @@ async function detectThemeFromPublishedPages(pages) {
   return detectThemeFromContent(htmlContents, cssContents);
 }
 
+// Downloads a template's zip to `zipPath`, trying a few strategies in order
+// since Cloudinary accounts vary in how raw/zip delivery is configured:
+//   1) A signed delivery URL built from the exact public_id captured at
+//      upload time. This is Cloudinary's documented workaround for the
+//      "restricted media types" security default (introduced ~2024) that
+//      blocks *unsigned* public delivery of zip/raw files with a 401 even
+//      though the resource itself uploaded fine.
+//   2) The plain stored zipUrl, for accounts/resources where unsigned raw
+//      delivery is allowed.
+//   3) The legacy `type: 'authenticated'` signed download URL, for any
+//      template records whose zip was actually uploaded as an authenticated
+//      resource (older/manually-seeded templates).
+// Throws a single Error summarizing every attempt if all three fail, so the
+// caller can surface something more useful than a bare "404".
+async function downloadTemplateZip(templateRecord, zipPath) {
+  const attempts = [];
+
+  const tryFetch = async (label, url) => {
+    try {
+      const response = await axios({ method: 'GET', url, responseType: 'stream' });
+      await new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(zipPath);
+        response.data.pipe(writer);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+      return true;
+    } catch (err) {
+      const status = err.response?.status;
+      attempts.push(`${label}${status ? ` (HTTP ${status})` : ''}: ${err.message}`);
+      return false;
+    }
+  };
+
+  if (templateRecord.zipPublicId) {
+    const signedUrl = cloudinary.url(templateRecord.zipPublicId, {
+      resource_type: 'raw',
+      type: 'upload',
+      sign_url: true,
+      secure: true,
+    });
+    if (await tryFetch('signed upload URL', signedUrl)) return;
+  }
+
+  if (await tryFetch('direct zipUrl', templateRecord.zipUrl)) return;
+
+  let publicId = templateRecord.zipPublicId;
+  if (!publicId) {
+    const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
+    const match = templateRecord.zipUrl.match(regex);
+    publicId = match && match[1] ? match[1] : templateRecord.zipUrl;
+  }
+  const authenticatedUrl = cloudinary.utils.private_download_url(publicId, '', {
+    resource_type: 'raw',
+    type: 'authenticated',
+  });
+  if (await tryFetch('authenticated download URL', authenticatedUrl)) return;
+
+  throw new Error(`All download attempts failed — ${attempts.join('; ')}`);
+}
+
 // Create Website
 exports.createWebsite = async (req, res, next) => {
   try {
@@ -120,7 +181,11 @@ exports.createWebsite = async (req, res, next) => {
 
     // Initialize default pages
     let newPages = [];
-    
+    // Surfaced to the response (instead of only console.error) so a failed
+    // template import is visible to the caller rather than silently
+    // producing a website with just the generic blank Home page.
+    let templateImportWarning = null;
+
     // If template is provided, extract zip and read all html
     if (type === 'template' && templateName) {
       const templateRecord = await Template.findOne({ name: templateName, isDeleted: false });
@@ -135,34 +200,9 @@ exports.createWebsite = async (req, res, next) => {
         try {
           // Determine if it's a Cloudinary URL or local path (for backward compatibility)
           const isCloudinary = templateRecord.zipUrl.startsWith('http');
-          
+
           if (isCloudinary) {
-            // Extract public ID from Cloudinary URL reliably using regex
-            let publicId = templateRecord.zipUrl;
-            const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
-            const match = templateRecord.zipUrl.match(regex);
-            if (match && match[1]) {
-              publicId = match[1];
-            }
-
-            // Generate an authenticated download URL
-            const downloadUrl = cloudinary.utils.private_download_url(publicId, '', {
-              resource_type: 'raw',
-              type: 'authenticated'
-            });
-
-            const response = await axios({
-              method: 'GET',
-              url: downloadUrl,
-              responseType: 'stream'
-            });
-            
-            await new Promise((resolve, reject) => {
-              const writer = fs.createWriteStream(zipPath);
-              response.data.pipe(writer);
-              writer.on('finish', resolve);
-              writer.on('error', reject);
-            });
+            await downloadTemplateZip(templateRecord, zipPath);
           } else {
             // Local fallback
             const localZipPath = path.join(__dirname, '..', '..', templateRecord.zipUrl);
@@ -309,7 +349,10 @@ exports.createWebsite = async (req, res, next) => {
 
         } catch (zipErr) {
           console.error("Error processing template zip:", zipErr);
+          templateImportWarning = `Couldn't import pages from the "${templateName}" template (${zipErr.message || 'download/extract failed'}), so this site was created with just a blank Home page instead.`;
         }
+      } else {
+        templateImportWarning = `Template "${templateName}" was not found or has no uploaded file, so this site was created with just a blank Home page instead.`;
       }
     }
 
@@ -353,6 +396,7 @@ exports.createWebsite = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      warning: templateImportWarning || undefined,
       data: {
         ...savedWebsite.toObject(),
         pages: newPages.map(p => ({ _id: p._id, title: p.title, path: p.path, status: p.status, isHome: p.isHome }))

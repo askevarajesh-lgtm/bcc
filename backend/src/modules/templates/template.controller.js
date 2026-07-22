@@ -57,6 +57,7 @@ exports.uploadTemplate = async (req, res, next) => {
       description: description || '',
       featuresCount: featuresCount ? parseInt(featuresCount) : 1,
       zipUrl: req.file.path && req.file.path.startsWith('http') ? req.file.path : `uploads/templates/${req.file.filename}`, // Local or Cloudinary URL
+      zipPublicId: req.file.path && req.file.path.startsWith('http') ? (req.file.filename || '') : '', // Cloudinary public_id (raw resource), used to rebuild a reliable download URL later
       isRealData: true
     });
 

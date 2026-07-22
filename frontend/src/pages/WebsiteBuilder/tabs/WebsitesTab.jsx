@@ -308,44 +308,91 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
     navigate(`${basePath}/chat-widgets`);
   };
 
-  const handleAddPage = () => {
-    if (!newPageTitle.trim()) return;
-    const path = `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
-    const newPage = {
-      _id: `temp-${Date.now()}`,
-      key: `temp-${Date.now()}`,
-      title: newPageTitle,
-      path,
-      status: "Draft",
-      isHome: false,
-      layoutJson: { sections: [] },
-      html: "",
-      css: ""
-    };
-    setPages([...pages, newPage]);
-    setNewPageTitle("");
-  };
+  const [addingPage, setAddingPage] = useState(false);
 
-  const handleDuplicatePage = (pageId) => {
-    const pageToDuplicate = pages.find(p => p._id === pageId || p.key === pageId);
-    if (pageToDuplicate) {
-      const newPage = {
-        ...pageToDuplicate,
-        _id: `temp-${Date.now()}`,
-        key: `temp-${Date.now()}`,
-        title: `${pageToDuplicate.title} Copy`,
-        path: `${pageToDuplicate.path}-copy`,
-        isHome: false,
-        customHeadCode: pageToDuplicate.customHeadCode || "",
-        customBodyCode: pageToDuplicate.customBodyCode || ""
-      };
-      setPages([...pages, newPage]);
+  // Previously this only pushed a client-side `temp-<timestamp>` page into
+  // local state; it was never persisted to the backend until the unrelated
+  // "Save Changes" button was clicked. That's why a newly-added page
+  // vanished on refresh, and why "Edit in Builder" 404'd immediately after
+  // adding one — the builder route fetches the page by _id from the server,
+  // and that temp id never existed there. Now it's created via the real
+  // addPage endpoint right away, so the returned page has a real _id from
+  // the first click.
+  const handleAddPage = async () => {
+    if (!newPageTitle.trim() || addingPage) return;
+    const path = `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
+    setAddingPage(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}/pages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ title: newPageTitle, path })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPages(prev => [...prev, data.data]);
+        setNewPageTitle("");
+      } else {
+        message.error(data.error || "Failed to add page");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error adding page");
+    } finally {
+      setAddingPage(false);
     }
   };
 
-  const handleDeletePage = (pageId) => {
-    setPages(pages.filter(p => (p._id !== pageId && p.key !== pageId)));
+  // Same fix as handleAddPage: duplicate immediately via the backend's own
+  // duplicatePage endpoint (which already copies html/css/layoutJson) rather
+  // than stashing an unsaved temp copy in local state.
+  const handleDuplicatePage = async (pageId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${pageId}/duplicate`, {
+        method: "POST",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPages(prev => [...prev, data.data]);
+      } else {
+        message.error(data.error || "Failed to duplicate page");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error duplicating page");
+    }
   };
+
+  // Delete immediately too, for the same reason — leaving this as a local-only
+  // change meant a deleted page would silently reappear on refresh since it
+  // was never actually removed server-side.
+  const handleDeletePage = async (pageId) => {
+    const previousPages = pages;
+    setPages(pages.filter(p => (p._id !== pageId && p.key !== pageId)));
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/websites/${activeWebsite.key}/pages/${pageId}`, {
+        method: "DELETE",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
+      const data = await res.json();
+      if (!data.success) {
+        message.error(data.error || "Failed to delete page");
+        setPages(previousPages);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error deleting page");
+      setPages(previousPages);
+    }
+  };
+
 
   const handleSaveSettings = async () => {
     try {
@@ -709,8 +756,8 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
                     {role !== 'agency_client' && (
                       <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
-                        <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} style={{ flex: 1, borderRadius: 8 }} />
-                        <Button size="large" type="primary" onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
+                        <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} onPressEnter={handleAddPage} style={{ flex: 1, borderRadius: 8 }} />
+                        <Button size="large" type="primary" loading={addingPage} onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
                           Add Page
                         </Button>
                       </div>
@@ -1041,6 +1088,9 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         });
         const resData = await res.json();
         if (resData.success) {
+          if (resData.warning) {
+            message.warning(resData.warning, 8);
+          }
           const newWebsite = {
             key: resData.data._id,
             name: resData.data.name,

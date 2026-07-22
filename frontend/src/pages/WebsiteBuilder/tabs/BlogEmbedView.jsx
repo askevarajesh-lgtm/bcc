@@ -161,7 +161,7 @@ const BlogEmbedView = () => {
                       dangerouslySetInnerHTML={{ __html: excerptContent }}
                     />
 
-                    {isTruncated && (
+                    {/* {isTruncated && ( */}
                       <Button
                         type="link"
                         href={postPreviewUrl}
@@ -171,7 +171,7 @@ const BlogEmbedView = () => {
                       >
                         Read More
                       </Button>
-                    )}
+                    {/* )} */}
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

@@ -8,6 +8,7 @@ const TemplateSchema = new mongoose.Schema({
   featuresCount: { type: Number, default: 1 },
   thumbnailColor: { type: String, default: 'var(--accent-primary)' },
   zipUrl: { type: String, default: '' },
+  zipPublicId: { type: String, default: '' },
   isRealData: { type: Boolean, default: true },
   isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
