@@ -138,6 +138,54 @@ const BlogPostPreviewView = () => {
               font-family: var(--site-font);
             }
             ${postData.css || ""}
+
+            /* --- Render-time overrides, kept after the post's own CSS so they win --- */
+            /* Full width: whatever width a section ended up with in the builder
+               (e.g. from a canvas resize), stretch every top-level section to
+               the full page width instead of a narrow centered column. */
+            body > * {
+              width: 100% !important;
+              max-width: 100% !important;
+              box-sizing: border-box;
+            }
+            /* Brand color/font: forces the live theme onto FAQ elements even for
+               posts saved long before var(--site-font)/var(--brand-color)
+               existed. These selectors key off the FAQ block's markup shape
+               (data-post-field="faq" / .faq-item / data-faq-question), which
+               has been constant across every version of the block, so this
+               works on old posts directly — no class or data migration needed. */
+            [data-post-field="faq"],
+            [data-post-field="faq"] *,
+            .faq-item,
+            .faq-item * {
+              font-family: var(--site-font) !important;
+            }
+            /* "Brand" pill + FAQ icon circle: solid brand-color backgrounds */
+            [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
+            .faq-item summary span[style*="border-radius:999px"] {
+              background: var(--brand-color) !important;
+            }
+            /* "questions" accent word in the heading: brand-color text */
+            [data-post-field="faq"] h2 span {
+              color: var(--brand-color) !important;
+            }
+            /* Soft pill wrapper behind "Brand FAQ": tinted brand-color background/border */
+            [data-post-field="faq"] > div:first-child > span:first-child {
+              background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+              border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+            }
+            /* Belt-and-suspenders for posts saved after this fix, which also
+               carry these classes directly on the relevant elements. */
+            .bcc-brand-bg {
+              background: var(--brand-color) !important;
+            }
+            .bcc-brand-text {
+              color: var(--brand-color) !important;
+            }
+            .bcc-brand-tint {
+              background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+              border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+            }
           </style>
         </head>
         <body>

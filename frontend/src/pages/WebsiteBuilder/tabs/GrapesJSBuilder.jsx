@@ -113,14 +113,9 @@ const getWidgetHtmlOnly = (widget) => {
   `;
 };
 
-// Elements we never want to mistake for the header/footer (preloaders,
-// scripts, etc.) when falling back to positional detection below.
 const NON_CONTENT_SELECTOR =
   "script, style, noscript, #spinner, #preloader, .preloader, .loader-wrapper, .loader, .td-preloader-wrap";
 
-// Pulls the header/footer markup out of a page's saved HTML so it can be
-// reused as the default header/footer for brand-new pages and blog posts.
-// Falls back gracefully (empty strings) if nothing recognizable is found.
 const parseHeaderFooterFromHtml = (html) => {
   if (!html) return { header: "", footer: "" };
   try {
@@ -128,8 +123,6 @@ const parseHeaderFooterFromHtml = (html) => {
     const body = doc.body;
     if (!body) return { header: "", footer: "" };
 
-    // 1) Prefer an explicit <header>/<footer> tag or an obvious header/footer
-    //    class — most reliable when present.
     let headerEl = doc.querySelector(
       "header, [data-gjs-type='header'], .site-header, .main-header, #header",
     );
@@ -137,11 +130,6 @@ const parseHeaderFooterFromHtml = (html) => {
       "footer, [data-gjs-type='footer'], .site-footer, .main-footer, #footer",
     );
 
-    // 2) Many template sites never use a real <header>/<footer> tag at all
-    //    (e.g. a bare top navbar, or sections named otherwise). In that case
-    //    fall back to a positional convention that holds for virtually every
-    //    static page: the first real top-level section of <body> is the
-    //    nav/header and the last is the footer.
     const topLevelChildren = Array.from(body.children).filter(
       (el) => !el.matches(NON_CONTENT_SELECTOR),
     );
@@ -167,9 +155,6 @@ const parseHeaderFooterFromHtml = (html) => {
   }
 };
 
-// The site's home page is the single source of truth for the header/footer
-// (see the "Header and footer are synced from your home page" notice on the
-// Websites tab), so every new page/post should seed itself from there.
 const getSiteHeaderFooter = (website) => {
   if (!website || !Array.isArray(website.pages)) return { header: "", footer: "" };
   const homePage =
@@ -192,20 +177,10 @@ const GrapesJSBuilder = ({
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
-  // In-page save confirmation. We show this instead of relying only on antd's
-  // static `message` API — on this full-screen builder route the message
-  // toast can end up rendered but visually stuck behind/outside the builder's
-  // canvas, so it only becomes visible after navigating away (e.g. back to
-  // the Websites page). Rendering our own banner inside this component
-  // guarantees it shows right here, right after Save Changes is clicked.
-  const [saveToast, setSaveToast] = useState(null); // { type: 'success' | 'error', text: string } | null
+  const [saveToast, setSaveToast] = useState(null); 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
-  // Post title / excerpt / featured image are no longer separate React
-  // inputs — they live as real, editable GrapesJS components inside the
-  // canvas (see the "Post" block category below). These are just the
-  // initial/fallback values used to seed the canvas and as a fallback on save.
   const initialPostTitle = activePost?.title || "";
   const initialPostExcerpt = activePost?.excerpt || "";
   const initialPostFeaturedImageUrl = activePost?.featuredImageUrl || "";
@@ -254,19 +229,28 @@ const GrapesJSBuilder = ({
     // Load initial HTML/CSS if it exists
     const sourceContent = isPostMode ? activePost : activePage;
     const siteFont = activeWebsite?.theme?.fontFamily || "Inter";
+    const brandColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
+
+    e.on("load", () => {
+      const canvasDoc = e.Canvas.getDocument();
+      if (!canvasDoc) return;
+      let styleEl = canvasDoc.getElementById("bcc-theme-vars");
+      if (!styleEl) {
+        styleEl = canvasDoc.createElement("style");
+        styleEl.id = "bcc-theme-vars";
+        canvasDoc.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; }`;
+    });
+
     if (sourceContent.html || sourceContent.css) {
       e.setComponents(sourceContent.html || "");
       e.setStyle(sourceContent.css || "");
     } else if (isPostMode) {
-      // Brand-new blog post: seed it with the site's real header/footer (pulled
-      // from the home page) so it matches the rest of the site instead of
-      // rendering as a bare, unstyled page. The body itself is full-width
-      // (no max-width/auto-margin column) so it lines up edge-to-edge with
-      // the rest of the site's sections.
       const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
       e.setComponents(`
         ${siteHeaderHtml}
-        <div style="width:100%; box-sizing:border-box; padding: 50px 40px; font-family: '${siteFont}', sans-serif;">
+        <div style="width:100%; box-sizing:border-box; padding: 50px 40px; font-family: var(--site-font, '${siteFont}'), sans-serif;">
           <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; max-height:360px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
           <h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a;">${initialPostTitle || "Post title"}</h1>
           <p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; margin:0 0 32px;">${initialPostExcerpt || "A short summary shown in blog listings."}</p>
@@ -277,13 +261,10 @@ const GrapesJSBuilder = ({
         ${siteFooterHtml}
       `);
     } else {
-      // Brand-new page: same idea — seed with the home page's header/footer
-      // so every new page is consistent by default, per the "synced from
-      // your home page" promise shown on the Websites tab.
       const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
       e.setComponents(`
         ${siteHeaderHtml}
-        <div style="padding: 50px; text-align: center; font-family: '${siteFont}', sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>
+        <div style="padding: 50px; text-align: center; font-family: var(--site-font, '${siteFont}'), sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>
         ${siteFooterHtml}
       `);
     }
@@ -328,7 +309,7 @@ const GrapesJSBuilder = ({
 
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((blog) => {
-            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}?font=${encodeURIComponent(activeWebsite?.theme?.fontFamily || "Inter")}&color=${encodeURIComponent(activeWebsite?.theme?.primaryColor || "#3b82f6")}`;
+            const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
             const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:800px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`blog-${blog._id}`, {
@@ -379,7 +360,7 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-title-block", {
         label: "Post Title",
         category: "Post",
-        content: `<h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a;">Post title</h1>`,
+        content: `<h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a; font-family:var(--site-font, '${siteFont}'), sans-serif;">Post title</h1>`,
         attributes: { class: "fa fa-header" },
       });
       e.BlockManager.add("post-featured-image-block", {
@@ -391,45 +372,40 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-excerpt-block", {
         label: "Excerpt",
         category: "Post",
-        content: `<p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6;">A short summary shown in blog listings.</p>`,
+        content: `<p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; font-family:var(--site-font, '${siteFont}'), sans-serif;">A short summary shown in blog listings.</p>`,
         attributes: { class: "fa fa-align-left" },
       });
 
-      // Previously hardcoded to indigo (#6366f1) regardless of the site's
-      // actual brand color/font, which is why the FAQ block looked
-      // off-theme. Both now come from the website's saved theme, with the
-      // same defaults GrapesJSBuilder already uses elsewhere (blog embeds).
       const faqThemeColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
       const faqThemeFont = activeWebsite?.theme?.fontFamily || "Inter";
-      // Light/soft tints of the theme color for the pill background/border,
-      // done via 2-digit alpha hex (e.g. #3b82f61a) so it works for any hex
-      // color without a color-math dependency.
-      const faqTintBg = `${faqThemeColor}1a`;
-      const faqTintBorder = `${faqThemeColor}33`;
+      const faqFontFamily = `var(--site-font, '${faqThemeFont}'), sans-serif`;
+      const faqColor = `var(--brand-color, ${faqThemeColor})`;
+      const faqTintBg = `color-mix(in srgb, ${faqColor} 10%, transparent)`;
+      const faqTintBorder = `color-mix(in srgb, ${faqColor} 20%, transparent)`;
 
       const faqItemHtml = (question, answer, open) => `
-          <details class="faq-item"${open ? " open" : ""} style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 2px rgba(15,23,42,0.04); font-family:'${faqThemeFont}', sans-serif;">
+          <details class="faq-item"${open ? " open" : ""} style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 2px rgba(15,23,42,0.04); font-family:${faqFontFamily};">
             <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px;">
-              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a; font-family:'${faqThemeFont}', sans-serif;">${question}</span>
-              <span style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:${faqThemeColor}; display:flex; align-items:center; justify-content:center;">
+              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a; font-family:${faqFontFamily};">${question}</span>
+              <span class="bcc-brand-bg" style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:${faqColor}; display:flex; align-items:center; justify-content:center;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </span>
             </summary>
-            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.7; margin-top:12px; font-family:'${faqThemeFont}', sans-serif;">${answer}</div>
+            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.7; margin-top:12px; font-family:${faqFontFamily};">${answer}</div>
           </details>`;
 
       e.BlockManager.add("post-faq-section-block", {
         label: "FAQ Section",
         category: "Post",
         content: `
-          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; font-family:'${faqThemeFont}', sans-serif;">
+          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; font-family:${faqFontFamily};">
             <div style="text-align:center; margin-bottom:32px;">
-              <span style="display:inline-flex; align-items:center; gap:2px; background:${faqTintBg}; border:1px solid ${faqTintBorder}; border-radius:999px; padding:4px; margin-bottom:20px;">
-                <span style="background:${faqThemeColor}; color:#ffffff; font-weight:700; font-size:13px; padding:6px 16px; border-radius:999px; font-family:'${faqThemeFont}', sans-serif;">Brand</span>
-                <span style="color:#0f172a; font-weight:700; font-size:13px; padding:6px 16px; font-family:'${faqThemeFont}', sans-serif;">FAQ</span>
+              <span class="bcc-brand-tint" style="display:inline-flex; align-items:center; gap:2px; background:${faqTintBg}; border:1px solid ${faqTintBorder}; border-radius:999px; padding:4px; margin-bottom:20px;">
+                <span class="bcc-brand-bg" style="background:${faqColor}; color:#ffffff; font-weight:700; font-size:13px; padding:6px 16px; border-radius:999px; font-family:${faqFontFamily};">Brand</span>
+                <span style="color:#0f172a; font-weight:700; font-size:13px; padding:6px 16px; font-family:${faqFontFamily};">FAQ</span>
               </span>
-              <h2 style="font-size:32px; font-weight:800; margin:0 0 12px; color:#0f172a; line-height:1.25; font-family:'${faqThemeFont}', sans-serif;">Frequently answer <span style="color:${faqThemeColor};">questions</span></h2>
-              <p style="font-size:15px; color:#64748b; margin:0; font-family:'${faqThemeFont}', sans-serif;">Manage it all with a fully customizable, no code platform</p>
+              <h2 style="font-size:32px; font-weight:800; margin:0 0 12px; color:#0f172a; line-height:1.25; font-family:${faqFontFamily};">Frequently answer <span class="bcc-brand-text" style="color:${faqColor};">questions</span></h2>
+              <p style="font-size:15px; color:#64748b; margin:0; font-family:${faqFontFamily};">Manage it all with a fully customizable, no code platform</p>
             </div>
             ${faqItemHtml(
               "What is Customer Relationship Management (CRM)?",
@@ -652,7 +628,6 @@ const GrapesJSBuilder = ({
   useEffect(() => {
     if (editor) {
       injectChatWidgetToCanvas(editor, assignedWidget);
-      // Re-inject on load
       editor.on("load", () => {
         injectChatWidgetToCanvas(editor, assignedWidget);
       });
@@ -715,9 +690,6 @@ const GrapesJSBuilder = ({
       const token = localStorage.getItem("token");
 
       if (isPostMode) {
-        // Pull title / excerpt / featured image straight out of the canvas —
-        // they're real components (data-post-field="...") the user edited
-        // in place, not separate form inputs.
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
 
@@ -735,8 +707,6 @@ const GrapesJSBuilder = ({
           ? imageEl.getAttribute("src") || ""
           : initialPostFeaturedImageUrl;
 
-        // FAQ items are optional — walk every .faq-item inside the FAQ
-        // Section component and pull out its question/answer text.
         const faqs = [];
         const faqSection = doc.querySelector('[data-post-field="faq"]');
         if (faqSection) {
@@ -748,12 +718,6 @@ const GrapesJSBuilder = ({
             if (question || answer) faqs.push({ question, answer });
           });
         }
-
-        // FAQ blocks are dropped in with `open` set so the answer stays
-        // visible/editable in the canvas (see the block definitions above).
-        // Strip it back out here so the published post renders collapsed —
-        // readers get the accordion, the "open" attribute was purely an
-        // editing convenience and was never meant to reach the live page.
         doc.querySelectorAll(".faq-item[open]").forEach((item) => {
           item.removeAttribute("open");
         });
@@ -828,10 +792,6 @@ const GrapesJSBuilder = ({
       className={`builder-container ${isPreviewing ? "is-previewing" : ""}`}
       style={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
-      {/* Save confirmation banner — deliberately position: fixed with a very high
-          z-index so it's never hidden behind the GrapesJS canvas/panels, and shows
-          right here on the builder screen instead of only appearing once the user
-          navigates back to the Websites page. */}
       {saveToast && (
         <div
           role="status"
@@ -982,7 +942,6 @@ const GrapesJSBuilder = ({
           if (selectedComponent && selectedComponent.is("image")) {
             selectedComponent.addAttributes({ src: url });
           } else {
-            // If they opened Asset Manager without selecting image (e.g. from top bar), GrapesJS expects asset to be added
             editor.AssetManager.add(url);
           }
           setIsMediaModalOpen(false);

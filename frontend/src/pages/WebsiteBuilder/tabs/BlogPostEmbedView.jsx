@@ -55,8 +55,21 @@ const BlogPostEmbedView = () => {
 
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px", fontFamily: `'${themeFont}', 'Inter', sans-serif`, '--site-font': `'${themeFont}', sans-serif`, '--brand-color': themeColor }}>
       <link rel="stylesheet" href={googleFontHref} />
+      <style>{`
+        [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * { font-family: var(--site-font) !important; }
+        [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
+        .faq-item summary span[style*="border-radius:999px"] { background: var(--brand-color) !important; }
+        [data-post-field="faq"] h2 span { color: var(--brand-color) !important; }
+        [data-post-field="faq"] > div:first-child > span:first-child {
+          background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+          border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+        }
+        .bcc-brand-bg { background: var(--brand-color) !important; }
+        .bcc-brand-text { color: var(--brand-color) !important; }
+        .bcc-brand-tint { background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important; border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important; }
+      `}</style>
       <Breadcrumb style={{ marginBottom: 32 }}>
         <Breadcrumb.Item>
           <a href={`/blog/${blogData.slug}`} style={{ color: themeColor, fontWeight: 600 }}>{blogData.name}</a>
