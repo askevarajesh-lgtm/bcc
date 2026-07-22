@@ -165,6 +165,25 @@ const getSiteHeaderFooter = (website) => {
   return parseHeaderFooterFromHtml(homePage.html);
 };
 
+// The imported template's real CSS lives as <link rel="stylesheet"> tags inside
+// the raw page HTML (uploaded to Cloudinary at import time — see website.controller.js).
+// GrapesJS only ever receives component markup via setComponents/setStyle, so those
+// <link> tags never make it into the canvas iframe's <head> on their own, which is why
+// the builder loses the template's fonts/colors/layout even though the published
+// preview (which renders the raw HTML inside its own <head>) looks correct.
+const extractStylesheetUrls = (html) => {
+  if (!html) return [];
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
+      .map((l) => l.getAttribute("href"))
+      .filter((href) => !!href && /^https?:\/\//i.test(href));
+  } catch (err) {
+    console.error("Failed to extract stylesheet urls from template html", err);
+    return [];
+  }
+};
+
 const GrapesJSBuilder = ({
   activeWebsite = {},
   activePage = {},
@@ -196,6 +215,29 @@ const GrapesJSBuilder = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // Load initial HTML/CSS if it exists
+    const sourceContent = isPostMode ? activePost : activePage;
+    const siteFont = activeWebsite?.theme?.fontFamily || "Inter";
+    const brandColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
+
+    // Pull in the actual template stylesheet(s) so the canvas renders with the
+    // same fonts/colors/layout as the published site instead of browser defaults.
+    // IMPORTANT: only do this in page mode. In post mode the published preview
+    // (BlogPostPreviewView.jsx) never loads the template's own CSS either — posts
+    // are meant to render as self-contained, full-width content. Template
+    // stylesheets are frequently full of `!important` layout/container rules
+    // with higher specificity than our plain `body > *` width override below,
+    // so loading them here would (and did) collapse the post content back down
+    // to the template's narrow centered column instead of full width.
+    const homePageForAssets = Array.isArray(activeWebsite?.pages)
+      ? activeWebsite.pages.find((p) => p.isHome) ||
+        activeWebsite.pages.find((p) => p.html) ||
+        null
+      : null;
+    const templateCssUrls = isPostMode
+      ? []
+      : extractStylesheetUrls(sourceContent?.html || homePageForAssets?.html || "");
+
     const e = grapesjs.init({
       container: editorRef.current,
       fromElement: true,
@@ -222,14 +264,11 @@ const GrapesJSBuilder = ({
         styles: [
           // Basic reset or custom styles
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
+          // The imported template's own stylesheet(s) — page mode only (see comment above).
+          ...templateCssUrls,
         ],
       },
     });
-
-    // Load initial HTML/CSS if it exists
-    const sourceContent = isPostMode ? activePost : activePage;
-    const siteFont = activeWebsite?.theme?.fontFamily || "Inter";
-    const brandColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
 
     e.on("load", () => {
       const canvasDoc = e.Canvas.getDocument();
@@ -240,7 +279,37 @@ const GrapesJSBuilder = ({
         styleEl.id = "bcc-theme-vars";
         canvasDoc.head.appendChild(styleEl);
       }
-      styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; }`;
+      // Mirror the render-time overrides the published post preview applies
+      // (see BlogPostPreviewView.jsx) so what you see while building matches
+      // what visitors actually get: full-width sections and the live theme
+      // font/brand color, even on FAQ markup saved before these vars existed.
+      const postRenderOverrides = isPostMode
+        ? `
+          body { font-family: var(--site-font), sans-serif; }
+          body > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+          [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * {
+            font-family: var(--site-font) !important;
+          }
+          [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
+          .faq-item summary span[style*="border-radius:999px"] {
+            background: var(--brand-color) !important;
+          }
+          [data-post-field="faq"] h2 span {
+            color: var(--brand-color) !important;
+          }
+          [data-post-field="faq"] > div:first-child > span:first-child {
+            background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+            border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+          }
+          .bcc-brand-bg { background: var(--brand-color) !important; }
+          .bcc-brand-text { color: var(--brand-color) !important; }
+          .bcc-brand-tint {
+            background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+            border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+          }
+        `
+        : "";
+      styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; } ${postRenderOverrides}`;
     });
 
     if (sourceContent.html || sourceContent.css) {
