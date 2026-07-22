@@ -21,6 +21,18 @@ api.interceptors.request.use((config) => {
   }
   return config;
 }, (error) => {
+  if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    // Check if the error is specifically about being suspended or unauthorized
+    if (error.response.data && error.response.data.error && error.response.data.error.includes('suspended')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/signin';
+    } else if (error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/signin';
+    }
+  }
   return Promise.reject(error);
 });
 

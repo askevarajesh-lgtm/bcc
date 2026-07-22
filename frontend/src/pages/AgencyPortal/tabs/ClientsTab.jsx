@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm } from 'antd';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
@@ -33,6 +34,9 @@ const ClientsTab = () => {
   const [packages, setPackages] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  
+  const { features: agencyFeatures } = useAuth();
+  const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
 
   const fetchPackages = async () => {
     try {
@@ -173,7 +177,7 @@ const ClientsTab = () => {
     try {
       setLoading(true);
       const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
-      const res = await fetch(`/api/brands/${clientId}`, {
+      const res = await fetch(`/api/brands/${clientId}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -330,7 +334,7 @@ const ClientsTab = () => {
           <Form.Item name="features" label="Enabled Modules" help="Select which modules this client has access to.">
             <Checkbox.Group style={{ width: '100%' }}>
               <Row gutter={[16, 16]}>
-                {availableFeatures.map(feat => (
+                {allowedFeatures.map(feat => (
                   <Col span={12} key={feat.id}>
                     <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                       <Checkbox value={feat.id}>
@@ -524,7 +528,7 @@ const ClientsTab = () => {
                   const clientFeatures = selectedClient.features || [];
                   const clientPackage = selectedClient.packageName || 'Custom';
                   
-                  const enabledFeatures = availableFeatures.filter(feat => clientFeatures.includes(feat.id));
+                  const enabledFeatures = allowedFeatures.filter(feat => clientFeatures.includes(feat.id));
 
                   return (
                     <div style={{ marginTop: 16 }}>
@@ -672,7 +676,7 @@ const ClientsTab = () => {
                     Included Modules
                   </Text>
                   <Row gutter={[16, 16]}>
-                    {availableFeatures.map(feat => {
+                    {allowedFeatures.map(feat => {
                       const isIncluded = includedFeatures.includes(feat.id);
                       return (
                         <Col span={12} key={feat.id}>

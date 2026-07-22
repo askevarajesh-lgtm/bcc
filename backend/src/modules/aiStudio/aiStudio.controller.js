@@ -4,12 +4,29 @@ const AiConversation = require('./models/aiConversation.model');
 const cryptoUtils = require('../../utils/crypto');
 const axios = require('axios'); // For making API requests if needed
 
+// Helper to determine the correct workspace ID for AI features.
+// Agency employees use the agency's API key.
+// Clients (brand managers, agency clients) use their own API key.
+const getAiWorkspaceId = (req) => {
+  const user = req.user;
+  if (!user) return req.companyId || req.workspaceId;
+  
+  const clientRoles = ['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'];
+  if (clientRoles.includes(user.role)) {
+    // For clients, they act as their own workspace for AI settings
+    return user.brandId || user._id;
+  }
+  
+  // For agency employees and admins
+  return user.agencyId || user._id;
+};
+
 // --- Settings Endpoints ---
 
 const saveSettings = async (req, res) => {
   try {
     const { openaiApiKey, isEnabled, model } = req.body;
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
 
     if (!workspaceId) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });
@@ -47,7 +64,7 @@ const saveSettings = async (req, res) => {
 
 const getSettingsStatus = async (req, res) => {
   try {
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
     if (!workspaceId) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });
     }
@@ -86,7 +103,7 @@ const generateImage = async (req, res) => {
     const { prompt, model } = req.body;
     if (!prompt) return res.status(400).json({ success: false, message: 'Prompt is required' });
 
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
     let apiKey = null;
 
     if (workspaceId) {
@@ -172,7 +189,7 @@ const generateVideo = async (req, res) => {
 const saveAsset = async (req, res) => {
   try {
     const { type, prompt, url } = req.body;
-    const workspaceId = req.companyId || req.workspaceId; 
+    const workspaceId = getAiWorkspaceId(req); 
     const createdBy = req.user?._id;
 
     if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });
@@ -194,7 +211,7 @@ const saveAsset = async (req, res) => {
 
 const getAssets = async (req, res) => {
   try {
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
     if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });
 
     const assets = await AiAsset.find({ workspaceId, isDeleted: false }).sort({ createdAt: -1 });
@@ -207,7 +224,7 @@ const getAssets = async (req, res) => {
 const deleteAsset = async (req, res) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
 
     const asset = await AiAsset.findOneAndUpdate(
       { _id: id, workspaceId },
@@ -247,7 +264,7 @@ const uploadAiFile = async (req, res) => {
 
 const getConversations = async (req, res) => {
   try {
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
     if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });
 
     const conversations = await AiConversation.find({ workspaceId, isDeleted: false })
@@ -263,7 +280,7 @@ const getConversations = async (req, res) => {
 const getConversation = async (req, res) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
 
     const conversation = await AiConversation.findOne({ _id: id, workspaceId, isDeleted: false });
     if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
@@ -277,7 +294,7 @@ const getConversation = async (req, res) => {
 const deleteConversation = async (req, res) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
 
     const conversation = await AiConversation.findOneAndUpdate(
       { _id: id, workspaceId },
@@ -295,7 +312,7 @@ const deleteConversation = async (req, res) => {
 const sendMessage = async (req, res) => {
   try {
     const { sessionId, content, attachment } = req.body;
-    const workspaceId = req.companyId || req.workspaceId;
+    const workspaceId = getAiWorkspaceId(req);
     const createdBy = req.user?._id;
 
     if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized: No workspace context' });

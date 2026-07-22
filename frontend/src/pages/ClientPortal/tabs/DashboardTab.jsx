@@ -114,26 +114,12 @@ const DashboardTab = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5 }}>{dayjs().format('MMMM YYYY').toUpperCase()}</Text>
         <Title level={2} style={{ margin: '4px 0 8px 0', fontWeight: 800 }}>
           Good {dayjs().hour() < 12 ? 'morning' : dayjs().hour() < 17 ? 'afternoon' : 'evening'}, {user?.name || (role.includes('brand') ? 'Brand Team' : 'Team')}.
         </Title>
         <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>
           Here's your marketing performance overview.
         </Text>
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px 24px 24px 8px', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: 'var(--accent-warning)' }}>
-            <div style={{ background: 'rgba(245, 158, 11, 0.2)', padding: 12, borderRadius: '50%' }}><AlertTriangle size={20} /></div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>You have 2 content pieces pending your approval</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Review before 5 PM today to keep this week's content calendar on track.</div>
-            </div>
-          </div>
-          <Button style={{ color: 'var(--accent-warning)', border: '2px solid rgba(245, 158, 11, 0.4)', background: 'transparent', borderRadius: 12, fontWeight: 700, height: 40 }}>Review approvals</Button>
-        </div>
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -252,7 +238,7 @@ const DashboardTab = () => {
 
       {/* Invoices Section */}
       {sentInvoices.length > 0 && (
-        <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
+        <motion.div variants={itemVariants} style={{ marginBottom: 40, marginTop: 20 }}>
           <BubbleCard bodyStyle={{ padding: 0 }}>
             <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>

@@ -12,7 +12,7 @@ exports.signin = async (req, res, next) => {
 
     const user = await User.findOne({ email })
       .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo status');
+      .populate('brandId', 'companyName name logo status features');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
     }
@@ -77,6 +77,10 @@ exports.signin = async (req, res, next) => {
       }
     }
 
+    if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
+      features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
     res.json({
       success: true,
       token,
@@ -110,7 +114,7 @@ exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo domain contactEmail industry');
+      .populate('brandId', 'companyName name logo domain contactEmail industry features');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -162,6 +166,10 @@ exports.me = async (req, res, next) => {
       }
     }
 
+    if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
+      features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
     res.json({
       success: true,
       user: {
@@ -210,7 +218,7 @@ exports.impersonate = async (req, res, next) => {
 
     const user = await User.findById(targetUserId)
       .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo status');
+      .populate('brandId', 'companyName name logo status features');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found.' });
@@ -261,6 +269,10 @@ exports.impersonate = async (req, res, next) => {
       if (roleDoc && roleDoc.permissions) {
         rolePermissions = roleDoc.permissions;
       }
+    }
+
+    if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
+      features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
     res.json({

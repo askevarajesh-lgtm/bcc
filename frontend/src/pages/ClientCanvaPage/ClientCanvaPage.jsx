@@ -37,12 +37,38 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 // Mocking APIs that don't exist in the current project structure yet
-const useConnectCanvaMutation = () => [async () => {}, { isLoading: false }];
-const useCreateCanvaDesignMutation = () => [async () => {}, { isLoading: false }];
-const useDisconnectCanvaMutation = () => [async () => {}, { isLoading: false }];
-const useExportCanvaDesignMutation = () => [async () => {}, { isLoading: false }];
-const useGetCanvaDesignsQuery = () => ({ data: [], isLoading: false });
-const useGetCanvaStatusQuery = () => ({ data: { isConnected: false }, isLoading: false });
+const useConnectCanvaMutation = () => [
+  () => ({
+    unwrap: async () => ({ authUrl: window.location.pathname + '?canva_connected=true' })
+  }), 
+  { isLoading: false }
+];
+const useCreateCanvaDesignMutation = () => [
+  () => ({
+    unwrap: async () => ({ design: { canvaDesignId: 'mock-' + Date.now(), title: 'New Mock Design' } })
+  }), 
+  { isLoading: false }
+];
+const useDisconnectCanvaMutation = () => [
+  () => ({
+    unwrap: async () => {
+      window.location.assign(window.location.pathname);
+      return { success: true };
+    }
+  }), 
+  { isLoading: false }
+];
+const useExportCanvaDesignMutation = () => [
+  () => ({
+    unwrap: async () => ({ job: { status: 'completed' } })
+  }), 
+  { isLoading: false }
+];
+const useGetCanvaDesignsQuery = () => ({ data: { designs: [] }, isLoading: false });
+const useGetCanvaStatusQuery = () => {
+  const isConnected = new URLSearchParams(window.location.search).get('canva_connected') === 'true';
+  return { data: { connected: isConnected }, isLoading: false };
+};
 
 import { useTheme } from "../../contexts/ThemeContext";
 

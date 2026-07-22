@@ -160,7 +160,8 @@ exports.createUser = async (req, res, next) => {
         const currentUsersCount = await User.countDocuments({
           agencyId: userData.agencyId,
           brandId: null, 
-          role: { $nin: ['agency_super_admin', 'agency_manager', 'agency_client'] } 
+          _id: { $ne: userData.agencyId },
+          role: { $in: ['agency_manager', 'user'] }
         });
 
         if (currentUsersCount >= maxUsers) {
@@ -195,7 +196,8 @@ exports.createUser = async (req, res, next) => {
           maxUsers = Number(maxUsers) + Number(brandDoc.extraUsers || 0);
           const currentUsersCount = await User.countDocuments({
             brandId: userData.brandId,
-            role: { $nin: ['brand_super_admin', 'brand_manager'] }
+            _id: { $ne: userData.brandId },
+            role: { $in: ['brand_manager', 'user'] }
           });
 
           if (currentUsersCount >= maxUsers) {

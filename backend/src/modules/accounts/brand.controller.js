@@ -30,7 +30,8 @@ exports.getBrands = async (req, res, next) => {
     const data = await Promise.all(brands.map(async (brand) => {
       const usersCount = await User.countDocuments({
         brandId: brand._id,
-        role: { $in: ['user', 'brand_manager'] }
+        _id: { $ne: brand._id }, // Exclude the brand admin itself
+        role: { $in: ['brand_manager', 'user'] }
       });
 
       return {

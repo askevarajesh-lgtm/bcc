@@ -31,9 +31,9 @@ exports.createSupportTicket = async (req, res, next) => {
     const slaId = `SUP-TKT-${Date.now().toString().slice(-4)}${randomStr}`;
 
     const dueDate = new Date();
-    // Simple logic: Critical = 1 hour, Urgent = 4 hours, Normal = 24 hours
+    // Simple logic: Critical = 1 hour, High = 8 hours, Medium = 24 hours
     if (priority === 'Critical') dueDate.setHours(dueDate.getHours() + 1);
-    else if (priority === 'Urgent') dueDate.setHours(dueDate.getHours() + 4);
+    else if (priority === 'High') dueDate.setHours(dueDate.getHours() + 8);
     else dueDate.setHours(dueDate.getHours() + 24);
 
     const newSla = new SlaRecord({

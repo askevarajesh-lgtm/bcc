@@ -190,11 +190,11 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   } else if (role === 'agency_client') {
-    intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
+    // intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
     intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
     intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
     intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
-    intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
+    // intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   } else {
     intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
@@ -250,9 +250,11 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
   } else if (role === 'agency_client') {
+    settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
   } else {
+    settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
   }

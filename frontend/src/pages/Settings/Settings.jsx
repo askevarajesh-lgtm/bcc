@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Tabs } from 'antd';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 import AgencyTab from './tabs/AgencyTab';
 import IntegrationsTab from './tabs/IntegrationsTab';
@@ -19,9 +20,20 @@ const { Title, Text } = Typography;
 
 const SettingsPage = () => {
   const { role } = useAuth();
+  const location = useLocation();
+
   const [activeTab, setActiveTab] = useState(() => {
-    return ['agency_manager', 'brand_manager'].includes(role) ? '7' : '1';
+    if (location.state?.activeTab) return location.state.activeTab;
+    if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) return '1';
+    if (['agency_manager', 'brand_manager'].includes(role)) return '7';
+    return '9'; // Default to profile for regular users
   });
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -53,17 +65,14 @@ const SettingsPage = () => {
       case '10': return <DirectPackagesTab />;
       case '11': return <ClientPackagesTab />;
       case '9': return <UserSettingsTab />;
-      default: return <AgencyTab />;
+      default: return <UserSettingsTab />;
     }
   };
 
   const allTabs = [
     { key: '1', label: <strong style={{ fontWeight: 600 }}>Agency</strong> },
     { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
-    // { key: '3', label: <strong style={{ fontWeight: 600 }}>Team & Access</strong> },
     { key: '4', label: <strong style={{ fontWeight: 600 }}>Notifications</strong> },
-    // { key: '5', label: <strong style={{ fontWeight: 600 }}>Backend Config</strong> },
-    // { key: '6', label: <strong style={{ fontWeight: 600 }}>Access Matrix</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
     { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
     ...(['commander_admin', 'brand_super_admin', 'brand_manager'].includes(role) ? [] : [
@@ -75,9 +84,17 @@ const SettingsPage = () => {
     ]),
   ];
 
-  const tabItems = ['agency_manager', 'brand_manager'].includes(role) 
-    ? allTabs.filter(t => ['2', '7', '9', '11'].includes(t.key))
-    : allTabs;
+  let allowedKeys = [];
+  if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) {
+    allowedKeys = allTabs.map(t => t.key);
+  } else if (['agency_manager', 'brand_manager'].includes(role)) {
+    allowedKeys = ['2', '4', '7', '9', '11'];
+  } else {
+    // agency_user, brand_team_user, client, agency_client
+    allowedKeys = ['4', '9'];
+  }
+
+  const tabItems = allTabs.filter(t => allowedKeys.includes(t.key));
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >

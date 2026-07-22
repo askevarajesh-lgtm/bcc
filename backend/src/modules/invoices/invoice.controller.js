@@ -229,10 +229,22 @@ exports.sendInvoice = async (req, res, next) => {
       await invoice.save();
     }
 
+    // Populate before returning to frontend so it doesn't break UI
+    const populatedInvoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false })
+      .populate('clientId', 'name email address phone')
+      .populate({
+        path: 'proposalId',
+        select: 'proposalNumber name masterItems',
+        populate: {
+          path: 'masterItems',
+          select: 'name itemCode category categories price duration description applicableAccess startDate endDate handlingDuration'
+        }
+      });
+
     res.status(200).json({ 
       success: true, 
       message: `Invoice successfully sent via ${method}`,
-      data: invoice
+      data: populatedInvoice
     });
   } catch (error) {
     next(error);

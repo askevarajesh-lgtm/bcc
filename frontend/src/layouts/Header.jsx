@@ -72,6 +72,14 @@ const Header = () => {
     }
   };
 
+  const getSettingsPath = () => {
+    if (['supreme_super_admin', 'superadmin'].includes(role)) return '/superadmin/dashboard';
+    if (['commander_admin'].includes(role)) return '/settings/company';
+    if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) return '/agency/settings';
+    if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role)) return '/client/settings/company';
+    return '/user/settings';
+  };
+
   const notificationContent = (
     <div style={{ width: 300 }}>
       {loadingNotifs ? (
@@ -95,8 +103,7 @@ const Header = () => {
       )}
       <Button type="link" block onClick={() => {
         setNotifsVisible(false);
-        if (role.includes('brand') || role === 'client') navigate('/client/settings');
-        else navigate('/agency/settings'); // Notifications tab is inside settings
+        navigate(getSettingsPath(), { state: { activeTab: '4' } });
       }}>
         View All Notifications
       </Button>
@@ -246,17 +253,7 @@ const Header = () => {
 
   const handleUserMenuClick = ({ key }) => {
     if (key === 'profile') {
-      if (['supreme_super_admin', 'superadmin'].includes(role)) {
-        navigate('/superadmin/dashboard');
-      } else if (['commander_admin'].includes(role)) {
-        navigate('/settings/company');
-      } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
-        navigate('/agency/settings');
-      } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role)) {
-        navigate('/client/settings/company');
-      } else {
-        navigate('/user/settings');
-      }
+      navigate(getSettingsPath(), { state: { activeTab: '9' } });
     }
     if (key === 'logout') logout();
   };

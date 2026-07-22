@@ -43,4 +43,22 @@ export function getCloudinaryOriginalDeliveryUrl(url) {
   return url.replace(/\/upload\/([^v][^\/]+\/)+/, '/upload/');
 }
 
-export default { buildCloudinaryUrl, getCloudinaryThumbnail, getCloudinaryOriginalDeliveryUrl };
+/**
+ * Returns a URL that forces a download for a Cloudinary asset.
+ */
+export function getCloudinaryDownloadUrl(url, filename) {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('cloudinary.com')) return url;
+  
+  const cleanUrl = getCloudinaryOriginalDeliveryUrl(url);
+  let attachParam = 'fl_attachment';
+  
+  if (filename) {
+    const nameWithoutExt = filename.split('.').slice(0, -1).join('.') || filename;
+    attachParam = `fl_attachment:${encodeURIComponent(nameWithoutExt)}`;
+  }
+  
+  return cleanUrl.replace('/upload/', `/upload/${attachParam}/`);
+}
+
+export default { buildCloudinaryUrl, getCloudinaryThumbnail, getCloudinaryOriginalDeliveryUrl, getCloudinaryDownloadUrl };

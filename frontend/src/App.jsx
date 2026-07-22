@@ -481,7 +481,7 @@ const AppRoutes = () => {
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
           
-          <Route path="settings" element={<UserSettingsTab />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
 

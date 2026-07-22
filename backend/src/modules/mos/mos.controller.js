@@ -177,7 +177,7 @@ exports.generateActionPlan = async (req, res, next) => {
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const workspaceId = isAgency ? (req.user.agencyId || req.user._id) : req.user._id;
     
-    const settings = await AiSettings.findOne({ userId: workspaceId });
+    const settings = await AiSettings.findOne({ workspaceId });
     let apiKey = null;
     if (settings && settings.openaiApiKey) {
       apiKey = cryptoUtils.decrypt(settings.openaiApiKey);

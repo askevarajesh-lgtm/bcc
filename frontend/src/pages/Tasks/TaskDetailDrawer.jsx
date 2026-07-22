@@ -45,7 +45,7 @@ import {
 } from "../../api/taskApi";
 import { useActionPermissions } from "../../hooks/useActionPermissions";
 import { PERMISSION_ACTIONS } from "../../utils/actionPermissions";
-import { getCloudinaryOriginalDeliveryUrl } from "../../utils/cloudinaryUrl";
+import { getCloudinaryOriginalDeliveryUrl, getCloudinaryDownloadUrl } from "../../utils/cloudinaryUrl";
 import dayjs from "dayjs";
 import { isDurationTrackingTask, isCompletedTask } from "./taskDuration";
 import TaskReopenModal from "./TaskReopenModal";
@@ -646,6 +646,15 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
                         rel="noopener noreferrer"
                       >
                         View
+                      </Button>
+                      <Button
+                        type="link"
+                        size="small"
+                        href={getCloudinaryDownloadUrl(screenshot.url, screenshot.fileName)}
+                        download={screenshot.fileName || 'download'}
+                        rel="noopener noreferrer"
+                      >
+                        Download
                       </Button>
                       {isDurationTrackingTask(liveTask) &&
                         !["admin", "digital_marketing_coordinator"].includes(

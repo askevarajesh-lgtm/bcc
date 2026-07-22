@@ -48,7 +48,9 @@ exports.createAgencyUser = async (req, res, next) => {
     // Count existing agency team members
     const currentUsersCount = await User.countDocuments({
       agencyId,
-      role: { $in: ['agency_manager'] }
+      brandId: null,
+      _id: { $ne: agencyId },
+      role: { $in: ['agency_manager', 'user'] }
     });
 
     if (currentUsersCount >= maxUsers) {

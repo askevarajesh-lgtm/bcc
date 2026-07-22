@@ -440,7 +440,12 @@ const createFollowUp = async (meetingId, followUpData, companyId, userId) => {
     meeting._id
   );
 
-  return followUp.populate('assignedTo', 'name email role').populate('taskId', 'title status dueDate');
+  await followUp.populate([
+    { path: 'assignedTo', select: 'name email role' },
+    { path: 'taskId', select: 'title status dueDate' }
+  ]);
+
+  return followUp;
 };
 
 /**

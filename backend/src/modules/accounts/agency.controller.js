@@ -12,7 +12,9 @@ exports.getAgencies = async (req, res, next) => {
     const data = await Promise.all(agencies.map(async (agency) => {
       const usersCount = await User.countDocuments({
         agencyId: agency._id,
-        role: { $in: ['agency_manager', 'agency_super_admin'] }
+        brandId: null, // Ensure we do not count brand users
+        _id: { $ne: agency._id }, // Exclude the agency admin itself
+        role: { $in: ['agency_manager', 'user'] }
       });
       const clientsCount = await User.countDocuments({
         agencyId: agency._id,

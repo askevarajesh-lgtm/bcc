@@ -100,10 +100,6 @@ const UserSettingsTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <div style={{ marginBottom: 32 }}>
-        <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Account Settings</Title>
-        <Text type="secondary" style={{ fontSize: 16 }}>Manage your profile details and security preferences.</Text>
-      </div>
 
       <Card 
         className="glassmorphism" 

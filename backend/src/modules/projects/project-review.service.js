@@ -2,6 +2,7 @@ const Project = require("./project.model");
 const Task = require("../tasks/task.model");
 const Correction = require("./shimCorrectionModel");
 const User = require("./shimUserModel");
+const Invoice = require("../invoices/invoice.model");
 const { logAudit } = require("./shimAuditHelper");
 const { createTimelineEvent } = require("./shimTimelineHelper");
 const { sendWorkflowEmail } = require("./shimEmailService");
@@ -1091,6 +1092,107 @@ const completeProject = async (projectId, userId) => {
     action: "project_completed",
     details: { projectId, previousStatus },
   });
+
+  // Auto-Renewal Logic for Retainer Invoices
+  try {
+    if (project.invoiceId) {
+      const currentInvoice = await Invoice.findById(project.invoiceId);
+      if (currentInvoice && currentInvoice.invoiceType === 'Retainer') {
+        // Calculate new dates based on retainerDuration
+        const durationStr = currentInvoice.retainerDuration || '1 Month';
+        const match = durationStr.match(/(\d+)/);
+        const durationMonths = match ? Number(match[1]) : 1;
+
+        const newInvoiceDate = new Date();
+        const newDueDate = new Date();
+        newDueDate.setMonth(newDueDate.getMonth() + durationMonths);
+
+        // Generate a new invoice
+        const newInvoiceData = {
+          invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Will be overridden by pre-validate hook if not set, but good to have unique
+          proposalId: currentInvoice.proposalId,
+          clientId: currentInvoice.clientId,
+          amount: currentInvoice.amount,
+          tax: currentInvoice.tax,
+          discount: currentInvoice.discount,
+          grandTotal: currentInvoice.grandTotal,
+          paymentStatus: 'Pending',
+          invoiceStatus: 'Sent', // Auto-send to client's dashboard
+          invoiceDate: newInvoiceDate,
+          dueDate: newDueDate,
+          paymentMode: currentInvoice.paymentMode,
+          invoiceType: 'Retainer',
+          retainerDuration: currentInvoice.retainerDuration,
+          parentInvoiceId: currentInvoice._id,
+          adminId: currentInvoice.adminId,
+          agencyId: currentInvoice.agencyId,
+          brandId: currentInvoice.brandId,
+          createdBy: userId,
+        };
+        
+        // Remove manual invoiceNumber so pre-validate hook generates it
+        delete newInvoiceData.invoiceNumber;
+        
+        const newInvoice = await Invoice.create(newInvoiceData);
+        
+        // Auto-create new project (similar to renewProject but linked to the new invoice)
+        const newStartDate = project.renewalDate ? new Date(project.renewalDate) : new Date();
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setMonth(newEndDate.getMonth() + durationMonths);
+
+        const newRenewalDate = new Date(newEndDate);
+        newRenewalDate.setDate(newRenewalDate.getDate() + 1);
+
+        const newProjectData = {
+          name: project.name,
+          description: project.description,
+          clientId: project.clientId,
+          companyId: project.companyId,
+          createdBy: userId,
+          status: "created",
+          isActive: true,
+          startDate: newStartDate,
+          endDate: newEndDate,
+          renewalDate: newRenewalDate,
+          departments: project.departments,
+          invoiceId: newInvoice._id,
+          invoiceItemId: project.invoiceItemId,
+          masterItemId: project.masterItemId?._id || project.masterItemId,
+          masterItemIds: project.masterItemIds || [],
+          packageName: project.packageName,
+          planId: project.planId,
+          billingType: project.billingType,
+          invoiceType: "final",
+          invoiceDate: newInvoice.invoiceDate,
+          maxAllowedCorrections: project.maxAllowedCorrections,
+          numberOfPosters: project.numberOfPosters,
+          numberOfVideos: project.numberOfVideos,
+          numberOfShoots: project.numberOfShoots,
+          remainingPosters: project.numberOfPosters,
+          remainingVideos: project.numberOfVideos,
+          remainingShoots: project.numberOfShoots,
+          milestoneWorkflowType: project.milestoneWorkflowType,
+          selectedCategories: (project.selectedCategories || []).map((cat) => ({
+            name: cat.name,
+            categoryName: cat.categoryName,
+            quantity: cat.quantity,
+            remaining: cat.quantity,
+            cost: cat.cost,
+          })),
+        };
+
+        const newProject = await Project.create(newProjectData);
+        
+        await logAudit({
+          userId,
+          action: "auto_project_renewed",
+          details: { oldProjectId: project._id, newProjectId: newProject._id, newInvoiceId: newInvoice._id },
+        });
+      }
+    }
+  } catch (renewalError) {
+    console.error("[Project Review] Failed to auto-renew project and invoice:", renewalError);
+  }
 
   return project;
 };

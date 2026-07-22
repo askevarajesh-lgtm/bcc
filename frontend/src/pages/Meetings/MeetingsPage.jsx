@@ -764,17 +764,6 @@ const MeetingsPage = () => {
               </Form.Item>
 
               <Form.Item
-                name="leadId"
-                label="Lead"
-              >
-                <Select placeholder="Select lead" allowClear>
-                  {leads.map(l => (
-                    <Option key={l._id} value={l._id}>{l.fullName} ({l.companyName})</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
                 name="projectId"
                 label="Project"
               >
