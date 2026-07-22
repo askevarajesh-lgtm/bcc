@@ -236,8 +236,13 @@ const GrapesJSBuilder = ({
         activeWebsite.pages.find((p) => p.html) ||
         null
       : null;
+    // Post mode has no page of its own to pull stylesheet <link> tags from
+    // (activePost is just post content), but the header/footer it borrows
+    // below (getSiteHeaderFooter) come from the website's home page, so its
+    // stylesheet is what makes that header/footer actually look like the
+    // template instead of unstyled markup.
     const templateCssUrls = isPostMode
-      ? []
+      ? extractStylesheetUrls(homePageForAssets?.html || "")
       : extractStylesheetUrls(sourceContent?.html || homePageForAssets?.html || "");
 
     const e = grapesjs.init({
@@ -266,7 +271,9 @@ const GrapesJSBuilder = ({
         styles: [
           // Basic reset or custom styles
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
-          // The imported template's own stylesheet(s) — page mode only (see comment above).
+          // The imported template's own stylesheet(s) — the site's home page
+          // in page mode, or the same home page borrowed for its header/footer
+          // styling in post mode (see homePageForAssets/templateCssUrls above).
           ...templateCssUrls,
         ],
       },

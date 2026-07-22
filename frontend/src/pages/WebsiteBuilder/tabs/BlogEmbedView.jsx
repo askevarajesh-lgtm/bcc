@@ -106,10 +106,6 @@ const BlogEmbedView = () => {
           <Row gutter={[32, 32]} align="stretch">
             {displayedPosts.map(post => {
               const postUrl = `/blog/${blogData.slug}/${post.slug}`;
-              const postWebsiteId = post.websiteId || blogData.websiteId;
-              const postPreviewUrl = postWebsiteId
-                ? `/preview/website/${postWebsiteId}/blog-post/${post._id}`
-                : postUrl;
 
               const excerptHtml = post.excerpt?.trim() || '';
               const fallbackPlainText = !excerptHtml && post.content
@@ -173,9 +169,8 @@ const BlogEmbedView = () => {
                     {/* {isTruncated && ( */}
                       <Button
                         type="link"
-                        href={postPreviewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={postUrl}
+                        target="_parent"
                         style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600, color: themeColor }}
                       >
                         Read More

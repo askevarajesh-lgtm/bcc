@@ -6,6 +6,24 @@ import dayjs from "dayjs";
 
 const { Title, Text, Paragraph } = Typography;
 
+const DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const normalizeFeaturedImageHeight = (html) => {
+  if (!html) return html;
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const img = doc.querySelector('[data-post-field="image"]');
+    if (img && !img.style.height) {
+      img.style.height = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      img.style.maxHeight = DEFAULT_FEATURED_IMAGE_HEIGHT;
+      if (!img.style.objectFit) img.style.objectFit = "cover";
+    }
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error("Failed to normalize featured image height", err);
+    return html;
+  }
+};
+
 const BlogPostEmbedView = () => {
   const { blogSlug, postSlug } = useParams();
   const [blogData, setBlogData] = useState(null);
@@ -55,6 +73,7 @@ const BlogPostEmbedView = () => {
   const siteHeaderHtml = blogData.siteHeaderHtml || "";
   const siteFooterHtml = blogData.siteFooterHtml || "";
   const siteStylesheetUrls = blogData.siteStylesheetUrls || [];
+  const hasBuiltLayout = !!postData.html;
 
   return (
     <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
@@ -63,10 +82,6 @@ const BlogPostEmbedView = () => {
       {siteStylesheetUrls.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
-      {siteHeaderHtml && (
-        <div dangerouslySetInnerHTML={{ __html: siteHeaderHtml }} />
-      )}
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
       <style>{`
         [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * { font-family: var(--site-font) !important; }
         [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
@@ -79,54 +94,69 @@ const BlogPostEmbedView = () => {
         .bcc-brand-bg { background: var(--brand-color) !important; }
         .bcc-brand-text { color: var(--brand-color) !important; }
         .bcc-brand-tint { background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important; border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important; }
+        ${postData.css || ""}
       `}</style>
-      <Breadcrumb style={{ marginBottom: 32 }}>
-        <Breadcrumb.Item>
-          <a href={`/blog/${blogData.slug}`} style={{ color: themeColor, fontWeight: 600 }}>{blogData.name}</a>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>{postData.title}</Breadcrumb.Item>
-      </Breadcrumb>
-      
-      <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{postData.title}</Title>
 
-      {postData.featuredImageUrl && (
-        <img
-          src={postData.featuredImageUrl}
-          alt={postData.title}
-          style={{ width: "100%", height: 280, maxHeight: 280, objectFit: "cover", borderRadius: 16, marginBottom: 32 }}
-        />
-      )}
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#64748b', fontSize: 14, fontWeight: 500, marginBottom: 32 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Calendar size={16} /> {dayjs(postData.createdAt).format('MMMM D, YYYY')}
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <User size={16} /> Admin
-        </span>
-      </div>
-
-      {postData.categories && postData.categories.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
-          {postData.categories.map((cat, idx) => (
-            <Tag key={idx} style={{ borderRadius: 4, fontWeight: 600, color: themeColor, background: `${themeColor}1a`, border: `1px solid ${themeColor}40` }}>{cat}</Tag>
-          ))}
-        </div>
-      )}
-
-      {postData.content ? (
-        <div 
-          style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
-          dangerouslySetInnerHTML={{ __html: postData.content }}
-        />
+      {hasBuiltLayout ? (
+        // Rendered exactly like BlogPostPreviewView.jsx: the saved html already
+        // includes its own header/footer/content, so it's rendered as-is with
+        // no extra wrapper.
+        <div dangerouslySetInnerHTML={{ __html: normalizeFeaturedImageHeight(postData.html) }} />
       ) : (
-        <div
-          style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
-          dangerouslySetInnerHTML={{ __html: postData.excerpt || "No content provided." }}
-        />
+        <>
+          {siteHeaderHtml && (
+            <div dangerouslySetInnerHTML={{ __html: siteHeaderHtml }} />
+          )}
+          <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
+            <Breadcrumb style={{ marginBottom: 32 }}>
+              <Breadcrumb.Item>
+                <a href={`/blog/${blogData.slug}`} style={{ color: themeColor, fontWeight: 600 }}>{blogData.name}</a>
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>{postData.title}</Breadcrumb.Item>
+            </Breadcrumb>
+
+            <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{postData.title}</Title>
+
+            {postData.featuredImageUrl && (
+              <img
+                src={postData.featuredImageUrl}
+                alt={postData.title}
+                style={{ width: "100%", height: 280, maxHeight: 280, objectFit: "cover", borderRadius: 16, marginBottom: 32 }}
+              />
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#64748b', fontSize: 14, fontWeight: 500, marginBottom: 32 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calendar size={16} /> {dayjs(postData.createdAt).format('MMMM D, YYYY')}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <User size={16} /> Admin
+              </span>
+            </div>
+
+            {postData.categories && postData.categories.length > 0 && (
+              <div style={{ marginBottom: 32 }}>
+                {postData.categories.map((cat, idx) => (
+                  <Tag key={idx} style={{ borderRadius: 4, fontWeight: 600, color: themeColor, background: `${themeColor}1a`, border: `1px solid ${themeColor}40` }}>{cat}</Tag>
+                ))}
+              </div>
+            )}
+
+            {postData.content ? (
+              <div
+                style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
+                dangerouslySetInnerHTML={{ __html: postData.content }}
+              />
+            ) : (
+              <div
+                style={{ fontSize: 18, lineHeight: 1.8, color: '#334155' }}
+                dangerouslySetInnerHTML={{ __html: postData.excerpt || "No content provided." }}
+              />
+            )}
+          </div>
+        </>
       )}
-      </div>
-      {siteFooterHtml && (
+      {!hasBuiltLayout && siteFooterHtml && (
         <div dangerouslySetInnerHTML={{ __html: siteFooterHtml }} />
       )}
     </div>
