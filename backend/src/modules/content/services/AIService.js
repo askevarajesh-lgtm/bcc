@@ -4,12 +4,11 @@ const AiSettings = require('../../aiStudio/models/aiSettings.model');
 
 class AIService {
   async getApiKey(workspaceId) {
-    let apiKey = process.env.OPENAI_API_KEY;
-    if (workspaceId) {
-      const settings = await AiSettings.findOne({ workspaceId });
-      if (settings && settings.openaiApiKey) {
-        apiKey = cryptoUtils.decrypt(settings.openaiApiKey) || apiKey;
-      }
+    if (!workspaceId) return null;
+    let apiKey = null;
+    const settings = await AiSettings.findOne({ workspaceId });
+    if (settings && settings.openaiApiKey) {
+      apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
     }
     return apiKey;
   }

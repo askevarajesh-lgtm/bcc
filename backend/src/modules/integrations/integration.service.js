@@ -198,6 +198,7 @@ const getAllIntegrations = async (companyId, role) => {
     return integrations;
   }
 
+
   const company = await Company.findById(companyId)
     .select("name integrations")
     .lean();
@@ -210,6 +211,17 @@ const getAllIntegrations = async (companyId, role) => {
   );
 };
 
+const getPaymentIntegration = async (companyId) => {
+  const query = { type: 'payment' };
+  if (companyId && companyId !== 'null') {
+    query.companyId = companyId;
+  } else {
+    query.companyId = null;
+  }
+  const integration = await Integration.findOne(query);
+  return integration;
+};
+
 const createIntegration = async (integrationData, companyId, role) => {
   // Only super admin can create platform-level integrations
   if (integrationData.companyId === null && !["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
@@ -217,15 +229,26 @@ const createIntegration = async (integrationData, companyId, role) => {
   }
 
   const finalCompanyId =
-    ["super_admin", "supreme_super_admin", "commander_admin"].includes(role) && integrationData.companyId === null
+    ["super_admin", "supreme_super_admin", "commander_admin"].includes(role) && (integrationData.companyId === null || integrationData.companyId === undefined)
       ? null
-      : companyId;
+      : (integrationData.companyId !== undefined ? integrationData.companyId : companyId);
 
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(
       finalCompanyId,
       integrationData.type,
     );
+  }
+
+  // Prevent duplicate payment integrations - upsert if one already exists
+  if (integrationData.type === 'payment') {
+    const existing = await Integration.findOne({ type: 'payment', companyId: finalCompanyId });
+    if (existing) {
+      Object.assign(existing, { ...integrationData, companyId: finalCompanyId });
+      existing.markModified('config');
+      await existing.save();
+      return existing;
+    }
   }
 
   return await Integration.create({
@@ -1242,16 +1265,38 @@ const fetchWhatsAppLeads = async (integrationId, companyId, role) => {
 };
 
 const processWhatsAppLeads = async (leads, companyId, integrationCompanyId) => {
-  // Find an admin user for this company to act as creator
-  const companyAdmin = await User.findOne({
-    companyId: integrationCompanyId,
-    role: "admin",
+  const targetCompanyId = integrationCompanyId || companyId || null;
+
+  // Find a user for this company to act as creator
+  let companyAdmin = await User.findOne({
+    $or: [
+      { agencyId: targetCompanyId },
+      { brandId: targetCompanyId },
+      { workspaceId: targetCompanyId },
+    ],
+    role: { $in: ["admin", "super_admin", "supreme_super_admin", "commander_admin", "brand_manager", "agency_manager"] },
     isActive: true,
   });
 
   if (!companyAdmin) {
+    companyAdmin = await User.findOne({
+      $or: [
+        { agencyId: targetCompanyId },
+        { brandId: targetCompanyId },
+        { workspaceId: targetCompanyId },
+      ],
+      isActive: true,
+    });
+  }
+
+  if (!companyAdmin) {
+    // Ultimate fallback for global integrations
+    companyAdmin = await User.findOne({ role: "super_admin", isActive: true });
+  }
+
+  if (!companyAdmin) {
     throw new Error(
-      "No active admin found for this company to process lead submission",
+      "No active user found to process lead submission",
     );
   }
 
@@ -1324,7 +1369,7 @@ const processWhatsAppLeads = async (leads, companyId, integrationCompanyId) => {
       // Check for existing lead with same phone number in this company to avoid duplicates
       if (phone) {
         const existingLead = await Lead.findOne({
-          companyId: integrationCompanyId,
+          companyId: targetCompanyId,
           phoneNumber: phone,
         });
         if (existingLead) {
@@ -1343,7 +1388,7 @@ const processWhatsAppLeads = async (leads, companyId, integrationCompanyId) => {
           notes: notes || "",
           projectType: leadData.projectType || leadData.project,
         },
-        integrationCompanyId,
+        targetCompanyId,
         companyAdmin._id,
         companyAdmin,
       );
@@ -1374,10 +1419,11 @@ module.exports = {
   syncEktaAttendance,
   submitWebsiteLead,
   fetchWhatsAppLeads,
+  getPaymentIntegration,
   syncAllWhatsAppLeads,
 };
 
-async function syncAllWhatsAppLeads() {
+async function syncAllWhatsAppLeads(requestingCompanyId = null) {
   const integrations = await Integration.find({
     type: "website",
     isActive: true,
@@ -1389,7 +1435,7 @@ async function syncAllWhatsAppLeads() {
 
   for (const integration of integrations) {
     try {
-      await fetchWhatsAppLeads(integration._id, integration.companyId, "admin");
+      await fetchWhatsAppLeads(integration._id, requestingCompanyId || integration.companyId, "admin");
     } catch (err) {
       logger.error(
         `Failed to sync WhatsApp leads for integration ${integration._id}:`,

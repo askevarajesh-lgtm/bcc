@@ -9,8 +9,19 @@ const DataForSeoService = require('../dataForSeo.service');
 
 class AgentOrchestrator {
   constructor() {
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.dfsService = new DataForSeoService();
+  }
+
+  async _getOpenAIClient(workspaceId) {
+    if (!workspaceId) throw new Error("Workspace ID is required for AI features.");
+    const AiSettings = require('../../aiStudio/models/aiSettings.model');
+    const cryptoUtils = require('../../../utils/crypto');
+    const settings = await AiSettings.findOne({ workspaceId });
+    if (!settings || !settings.openaiApiKey) {
+       throw new Error("OpenAI API key is missing. Please configure it in settings.");
+    }
+    const apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
+    return new OpenAI({ apiKey });
   }
 
   async runOrchestration(projectId) {
@@ -21,7 +32,7 @@ class AgentOrchestrator {
       const audit = await SeoAudit.findOne({ projectId }).sort({ createdAt: -1 });
       
       // Step 1: AI Keyword Research
-      const keywordSeeds = await this._generateKeywordSeeds(project.siteUrl, project.name);
+      const keywordSeeds = await this._generateKeywordSeeds(project.siteUrl, project.name, project.createdBy || project.companyId);
       
       // Step 2: Fetch Real Data from DataForSEO
       let keywordsToSave = [];
@@ -98,11 +109,12 @@ class AgentOrchestrator {
     }
   }
 
-  async _generateKeywordSeeds(siteUrl, name) {
+  async _generateKeywordSeeds(siteUrl, name, workspaceId) {
+    const openai = await this._getOpenAIClient(workspaceId);
     const prompt = `You are an expert SEO Strategist. Generate 20 highly relevant SEO keyword targets for the website: ${siteUrl} (Company: ${name}).
 Return ONLY a comma-separated list of 20 keywords, nothing else.`;
     
-    const response = await this.openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
@@ -114,6 +126,8 @@ Return ONLY a comma-separated list of 20 keywords, nothing else.`;
   }
 
   async _generateContentStrategy(project, audit, keywords) {
+    const workspaceId = project.createdBy || project.companyId;
+    const openai = await this._getOpenAIClient(workspaceId);
     const kList = keywords.map(k => k.keyword).join(', ');
     const auditData = audit ? `Crawled ${audit.urlsCrawledCount || 0} pages. On-Page Score: ${audit.scores?.onPage || 0}` : 'No audit data available';
     
@@ -128,7 +142,7 @@ Format the output in clean Markdown with:
 3. Month 2: Content Creation (Propose 3 Blog Titles)
 4. Month 3: Off-Page & Authority Building`;
 
-    const response = await this.openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
@@ -139,6 +153,8 @@ Format the output in clean Markdown with:
   }
 
   async _generateImplementationTasks(project, strategyPlan, keywords) {
+    const workspaceId = project.createdBy || project.companyId;
+    const openai = await this._getOpenAIClient(workspaceId);
     const kList = keywords.slice(0, 5).map(k => k.keyword).join(', ');
     const promptObj = `You are an expert SEO Technical Assistant. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
       
@@ -150,7 +166,7 @@ Respond with a JSON object containing a "tasks" array. Each task object must hav
 `;
 
     try {
-      const responseObj = await this.openai.chat.completions.create({
+      const responseObj = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: promptObj }],
         temperature: 0.5,
@@ -169,6 +185,8 @@ Respond with a JSON object containing a "tasks" array. Each task object must hav
   async generateFinalReport(projectId, auditDiff) {
     const project = await SeoProject.findById(projectId);
     if (!project) throw new Error('Project not found');
+    const workspaceId = project.createdBy || project.companyId;
+    const openai = await this._getOpenAIClient(workspaceId);
 
     const prompt = `You are a Master SEO Reporter.
 Create an Executive Summary Final Report for ${project.name} (${project.siteUrl}).
@@ -180,7 +198,7 @@ Overall Score Change: ${auditDiff.diff.overall}
 
 Write a professional, client-facing Markdown report summarizing the ROI, what was improved, and next steps. Make it persuasive and clear.`;
 
-    const response = await this.openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,

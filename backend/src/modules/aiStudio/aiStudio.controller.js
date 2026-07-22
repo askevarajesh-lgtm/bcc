@@ -87,17 +87,17 @@ const generateImage = async (req, res) => {
     if (!prompt) return res.status(400).json({ success: false, message: 'Prompt is required' });
 
     const workspaceId = req.companyId || req.workspaceId;
-    let apiKey = process.env.OPENAI_API_KEY;
+    let apiKey = null;
 
     if (workspaceId) {
       const settings = await AiSettings.findOne({ workspaceId });
       if (settings && settings.openaiApiKey) {
-        apiKey = cryptoUtils.decrypt(settings.openaiApiKey) || apiKey;
+        apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
       }
     }
 
     if (!apiKey) {
-      return res.status(400).json({ success: false, message: 'OpenAI API key is missing. Please configure it in settings.' });
+      return res.status(400).json({ success: false, message: 'ChatGPT has been enabled for your organization, but no API key has been configured yet. Please add a valid API key in the integration settings to start using this feature.' });
     }
 
     // Map UI models to OpenAI models
@@ -303,17 +303,17 @@ const sendMessage = async (req, res) => {
 
     // 1. Get settings and API Key
     const settings = await AiSettings.findOne({ workspaceId });
-    if (!settings || !settings.isEnabled) {
+    if (settings && settings.isEnabled === false) {
       return res.status(403).json({ success: false, message: 'AI Assistant is currently disabled' });
     }
 
-    let apiKey = process.env.OPENAI_API_KEY;
+    let apiKey = null;
     if (settings && settings.openaiApiKey) {
-      apiKey = cryptoUtils.decrypt(settings.openaiApiKey) || apiKey;
+      apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
     }
 
     if (!apiKey) {
-      return res.status(400).json({ success: false, message: 'OpenAI API Key is missing. Please configure it in settings.' });
+      return res.status(400).json({ success: false, message: 'ChatGPT has been enabled for your organization, but no API key has been configured yet. Please add a valid API key in the integration settings to start using this feature.' });
     }
 
     const openAiModel = settings.model || 'gpt-4o-mini';

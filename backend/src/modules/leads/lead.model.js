@@ -82,8 +82,8 @@ const leadSchema = new mongoose.Schema(
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
-      required: true,
       index: true,
+      default: null,
     },
     clientId: {
       type: mongoose.Schema.Types.ObjectId,

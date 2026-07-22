@@ -9,7 +9,7 @@ const integrationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website", "meta_ads"],
+      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website", "meta_ads", "payment", "facebook_leads"],
       required: true,
     },
     name: {

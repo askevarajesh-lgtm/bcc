@@ -567,9 +567,9 @@ document.getElementById('tunepath-lead-form').addEventListener('submit', async (
               label="API Endpoint"
               name="whatsappApiUrl"
               rules={[{ required: true, message: "API Endpoint is required" }]}
-              help="The URL from where WhatsApp leads will be fetched."
+              help="The URL from where WhatsApp leads will be fetched. (e.g., https://api.bccmartech.com/v1/leads)"
             >
-              <Input placeholder="Enter Your Api Endpoint" disabled={!isWhatsappEditing} />
+              <Input placeholder="https://api.bccmartech.com/v1/leads" disabled={!isWhatsappEditing} />
             </Form.Item>
 
             <Form.Item

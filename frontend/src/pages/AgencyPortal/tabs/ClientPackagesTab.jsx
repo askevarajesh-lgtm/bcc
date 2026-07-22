@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Checkbox, Row, Col } from 'antd';
-import { Plus, Edit, Trash2, Eye, Star, Briefcase } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Star, Briefcase, Check, Rocket, Zap } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -108,81 +108,143 @@ const ClientPackagesTab = () => {
     }));
   };
 
-  const columns = [
-    {
-      title: 'Package Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text) => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong>,
-    },
-    {
-      title: 'Price',
-      dataIndex: 'price',
-      key: 'price',
-      render: (text) => <Text type="secondary" style={{ fontWeight: 600 }}>{text || 'Custom'}</Text>,
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Included Features',
-      key: 'features',
-      render: (_, record) => {
-        const featureLabels = record.features.map(fId => {
-          const feat = availableFeatures.find(a => a.id === fId);
-          return feat ? feat.label : fId;
-        });
-
-        return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {featureLabels.slice(0, 3).map(feat => (
-              <Tag key={feat} color="blue">{feat}</Tag>
-            ))}
-            {featureLabels.length > 3 && <Tag>+{featureLabels.length - 3}</Tag>}
-          </div>
-        );
-      }
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      align: 'right',
-      render: (_, record) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button type="text" icon={<Edit size={16} />} onClick={() => handleOpenModal(record)} />
-          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record._id)} />
-        </div>
-      )
-    }
-  ];
-
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Client Packages</Title>
-          <Text type="secondary">Define feature tiers and pricing for your clients.</Text>
-        </div>
+    <div style={{ paddingBottom: 40, width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 32 }}>
         <Button 
           type="primary" 
-          icon={<Plus size={16} />} 
-          style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}
+          style={{ 
+            height: 48,
+            padding: '0 28px',
+            background: 'var(--accent-primary)', 
+            color: 'white',
+            fontWeight: 600, 
+            borderRadius: 24,
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            fontSize: 15
+          }}
           onClick={() => handleOpenModal()}
         >
-          Create Package
+          Create New Package
         </Button>
       </div>
 
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, padding: 16, border: '1px solid var(--border-color)' }}>
-        <Table 
-          columns={columns} 
-          dataSource={packages} 
-          rowKey="_id" 
-          pagination={false}
-          loading={loading}
-        />
+      <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 32, flexWrap: 'wrap', width: '100%' }}>
+        {loading && <div style={{ padding: 40, color: 'var(--text-primary)' }}>Loading packages...</div>}
+        {!loading && packages.map((pkg, index) => {
+          const isPro = index % 2 !== 0;
+          const icon = isPro ? <Edit size={20} color="white" /> : <Rocket size={20} color="white" />;
+          
+          const featureLabels = pkg.features.map(fId => {
+            const feat = availableFeatures.find(a => a.id === fId);
+            return feat ? feat.label : fId;
+          });
+
+          return (
+            <div key={pkg._id} style={{
+              position: 'relative',
+              background: 'var(--bg-secondary)',
+              borderRadius: 24,
+              padding: '32px 32px 40px',
+              border: isPro ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+              boxShadow: isPro ? '0 20px 40px rgba(0,0,0,0.15)' : '0 10px 30px rgba(0,0,0,0.05)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 320,
+              maxWidth: 360,
+              flex: '1 1 320px',
+            }}>
+              {isPro && (
+                <>
+                  <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, height: 120,
+                    background: 'linear-gradient(90deg, #ffcba4 0%, #ff8993 30%, #b271d4 70%, #6f9bf1 100%)',
+                    zIndex: 0,
+                    opacity: 0.8
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    top: 20, left: 0, right: 0, bottom: 0,
+                    background: 'linear-gradient(to bottom, transparent 0%, var(--bg-secondary) 80px)',
+                    zIndex: 0
+                  }} />
+                </>
+              )}
+              
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                  <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--text-primary)' }}>{pkg.name}</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button type="text" icon={<Edit size={18} />} onClick={() => handleOpenModal(pkg)} style={{ padding: 0, height: 'auto', marginTop: -4, color: 'var(--text-secondary)' }} />
+                    <Button type="text" danger icon={<Trash2 size={18} />} onClick={() => handleDelete(pkg._id)} style={{ padding: 0, height: 'auto', marginTop: -4 }} />
+                  </div>
+                </div>
+
+                <div style={{ 
+                  width: 48, height: 48, borderRadius: 14, background: 'var(--accent-primary)', 
+                  display: 'flex', justifyContent: 'center', alignItems: 'center',
+                  marginBottom: 20,
+                  boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
+                }}>
+                  {icon}
+                </div>
+
+                <div style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 24, minHeight: 44, lineHeight: 1.5 }}>
+                  {pkg.description || (isPro ? 'For professionals who write every day' : 'Perfect for getting started')}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                  <span style={{ fontSize: 52, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)', letterSpacing: '-2px' }}>
+                    {pkg.price ? pkg.price.replace('/mo', '').replace('/month', '') : '$0'}
+                  </span>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 500 }}>
+                    / {pkg.price?.includes('mo') || pkg.price?.includes('month') ? 'month' : 'user / month'}
+                  </span>
+                </div>
+
+                <Button 
+                  type="primary" 
+                  style={{ 
+                    width: '100%', 
+                    height: 52, 
+                    borderRadius: 12, 
+                    background: 'var(--accent-primary)',
+                    border: 'none',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.25)',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    marginBottom: 32
+                  }}
+                  onClick={() => handleOpenModal(pkg)}
+                >
+                  Edit Package
+                </Button>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {featureLabels.map((feat, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ 
+                        minWidth: 20, width: 20, height: 20, borderRadius: '50%', background: 'var(--accent-primary)', 
+                        display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 2 
+                      }}>
+                        <Check size={12} color="white" strokeWidth={3} />
+                      </div>
+                      <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.5 }}>{feat}</span>
+                    </div>
+                  ))}
+                  {featureLabels.length === 0 && (
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontStyle: 'italic' }}>No specific features</span>
+                     </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <Modal

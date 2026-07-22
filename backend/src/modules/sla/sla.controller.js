@@ -11,18 +11,6 @@ const notifySlaEvent = async (sla, type, title, message, excludeUserId = null) =
     // Notify assignee
     if (sla.assignedTo) notifyUserIds.add(sla.assignedTo.toString());
     
-    // Notify admins of the agency/brand
-    const admins = await User.find({
-      $or: [
-        { agencyId: sla.agencyId },
-        { brandId: sla.clientId }
-      ],
-      role: { $in: ["agency_super_admin", "commander_admin", "brand_super_admin"] },
-      isActive: true
-    }).select('_id');
-    
-    admins.forEach(admin => notifyUserIds.add(admin._id.toString()));
-    
     // Don't notify the person who triggered the event
     if (excludeUserId) {
       notifyUserIds.delete(excludeUserId.toString());
@@ -44,6 +32,8 @@ const notifySlaEvent = async (sla, type, title, message, excludeUserId = null) =
     console.error("Failed to send SLA notification", err);
   }
 };
+
+exports.notifySlaEvent = notifySlaEvent;
 
 // Utility to generate dynamic SLA dashboard stats
 exports.getSlaDashboardStats = async (req, res, next) => {

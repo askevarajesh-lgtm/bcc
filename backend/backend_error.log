@@ -329,4 +329,29 @@ Require stack:
     at E:\Bcc Seo\backend\node_modules\router\index.js:295:15
     at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
     at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
-    at E:\Bcc Seo\backend\src\middlewares\rbac.middleware.js:31:5\n\n
+    at E:\Bcc Seo\backend\src\middlewares\rbac.middleware.js:31:5\n\n2026-07-22T04:55:06.392Z\nCastError: Cast to ObjectId failed for value "temp-1784696104472" (type string) at path "_id" for model "Page"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getPage (E:\Bcc Seo\backend\src\modules\websites\website.controller.js:349:18)\n\n2026-07-22T04:55:06.429Z\nCastError: Cast to ObjectId failed for value "temp-1784696104472" (type string) at path "_id" for model "Page"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getPage (E:\Bcc Seo\backend\src\modules\websites\website.controller.js:349:18)\n\n2026-07-22T04:57:57.556Z\nValidationError: Validation failed: status: `inactive` is not a valid enum value for path `status`.
+    at model.Query.validate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4189:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query._findOneAndUpdate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:3616:5)
+    at async maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:65)
+    at async exports.updateBrandStatus (E:\Bcc Seo\backend\src\modules\accounts\brand.controller.js:149:19)\n\n

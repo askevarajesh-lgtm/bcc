@@ -159,6 +159,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   opsChildren.push({ key: '/agency/businessintel', icon: getIcon(PieChart), label: 'Business Intel' });
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
+  opsChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
 
   if (opsChildren.length > 0) {
     menuItems.push({

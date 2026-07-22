@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Table, Tag, Space, Button, Typography, Input, Card, Modal, Select, Form, message, Upload, Row, Col, Tabs, Descriptions, Empty, DatePicker } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, AudioOutlined, PictureOutlined, VideoCameraOutlined, FileOutlined } from '@ant-design/icons';
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, AudioOutlined, PictureOutlined, VideoCameraOutlined, FileOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { 
   useCreateLeadMutation, 
@@ -13,6 +13,7 @@ import {
   useDeleteLeadNoteMutation,
   useAddLeadReminderMutation
 } from '../../api/leadApi';
+import { useSyncWhatsAppLeadsMutation } from '../../api/integrationApi';
 import dayjs from 'dayjs';
 import { useActionPermissions } from "../../hooks/useActionPermissions";
 
@@ -51,6 +52,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   const { data: bdeData } = useGetAssignableBdeUsersQuery();
   const [exportCsv, { isFetching: isExporting }] = useLazyExportLeadsCsvQuery();
   const [importCsv, { isLoading: isImporting }] = useImportLeadsCsvMutation();
+  const [syncWhatsApp, { isLoading: isSyncingWhatsApp }] = useSyncWhatsAppLeadsMutation();
 
   const bdeUsers = bdeData?.data?.users || [];
 
@@ -199,6 +201,16 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     return false; // Prevent default upload behavior
   };
 
+  const handleSyncWhatsApp = async () => {
+    try {
+      await syncWhatsApp().unwrap();
+      message.success('WhatsApp leads synchronized successfully');
+      refetch?.();
+    } catch (error) {
+      message.error(error?.data?.message || 'Failed to sync WhatsApp leads');
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <Card 
@@ -214,6 +226,14 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
           <Space>
             {canView && (
               <>
+                <Button 
+                  icon={<WhatsAppOutlined />} 
+                  loading={isSyncingWhatsApp} 
+                  onClick={handleSyncWhatsApp} 
+                  style={{ borderRadius: 8, fontWeight: 600, borderColor: '#25D366', color: '#25D366' }}
+                >
+                  Fetch WhatsApp Leads
+                </Button>
                 <Upload accept=".csv" showUploadList={false} customRequest={({ file }) => handleImport(file)}>
                   <Button icon={<UploadOutlined />} loading={isImporting} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
                 </Upload>

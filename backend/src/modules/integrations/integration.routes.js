@@ -15,6 +15,8 @@ router.post('/meta/ad-accounts', authMiddleware, metaController.saveSelectedAdAc
 
 router.use(authMiddleware);
 
+router.get('/payment/:companyId', integrationController.getPaymentIntegration);
+
 router.get(
   "/",
   rbacMiddleware(
@@ -44,7 +46,7 @@ router.put(
 );
 router.post(
   "/:id/send",
-  rbacMiddleware("admin", "supreme_super_admin", "commander_admin", "salesperson", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  rbacMiddleware("super_admin", "admin", "supreme_super_admin", "commander_admin", "salesperson", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
   integrationController.sendMessage,
 );
 router.get(
@@ -56,6 +58,11 @@ router.post(
   "/:id/whatsapp-leads/fetch",
   rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
   integrationController.fetchWhatsAppLeads,
+);
+router.post(
+  "/whatsapp-leads/sync",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.syncAllWhatsAppLeads,
 );
 
 // Ekta HR integration endpoints

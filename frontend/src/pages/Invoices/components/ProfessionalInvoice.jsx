@@ -1,6 +1,7 @@
 import React from "react";
-import { Typography, Row, Col, Table, Divider } from "antd";
+import { Typography, Row, Col, Table, Divider, Button, message } from "antd";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useGetPaymentIntegrationQuery } from "../../../api/integrationApi";
 
 const { Title, Text } = Typography;
 
@@ -13,6 +14,11 @@ const ProfessionalInvoice = ({ invoice }) => {
   const bodyTextColor = isDark ? "#f8fafc" : "#0b1220";
 
   if (!invoice) return null;
+
+  const companyId = invoice.agencyId?._id || invoice.adminId?._id;
+  const { data: paymentData } = useGetPaymentIntegrationQuery(companyId, { skip: !companyId });
+  const paymentIntegration = paymentData?.data?.integration;
+  const paymentConfig = paymentIntegration?.isActive ? paymentIntegration.config : null;
 
   // Derive items from masterItems if available
   const masterItems = invoice.proposalId?.masterItems || [];
@@ -222,6 +228,15 @@ const ProfessionalInvoice = ({ invoice }) => {
               <Text strong>Mode:</Text> {invoice.paymentMode || "Bank Transfer"}
               <br />
               {invoice.transactionId && <><Text strong>Transaction ID:</Text> {invoice.transactionId}</>}
+              
+              {paymentConfig && (paymentConfig.razorpayKeyId && paymentConfig.razorpayKeySecret) && invoice.paymentStatus !== "Paid" && (
+                <div style={{ marginTop: 16, padding: '12px', background: isDark ? '#1a2744' : '#f8f9fa', borderRadius: '8px', display: 'inline-block' }}>
+                  <Text strong style={{ display: 'block', marginBottom: 8 }}>Pay Now:</Text>
+                  <Button type="primary" style={{ backgroundColor: '#3395FF', borderColor: '#3395FF' }} onClick={() => message.info('Razorpay payment flow to be implemented')}>
+                    Pay with Razorpay
+                  </Button>
+                </div>
+              )}
             </Text>
           </Col>
           <Col span={12} style={{ textAlign: "right" }}>

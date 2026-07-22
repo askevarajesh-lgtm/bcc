@@ -246,12 +246,14 @@ const Header = () => {
 
   const handleUserMenuClick = ({ key }) => {
     if (key === 'profile') {
-      if (location.pathname.startsWith('/client')) {
-        navigate('/client/settings/company');
-      } else if (location.pathname.startsWith('/agency')) {
+      if (['supreme_super_admin', 'superadmin'].includes(role)) {
+        navigate('/superadmin/dashboard');
+      } else if (['commander_admin'].includes(role)) {
+        navigate('/settings/company');
+      } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
         navigate('/agency/settings');
-      } else if (location.pathname.startsWith('/superadmin')) {
-        navigate('/superadmin/dashboard'); // Or superadmin profile if exists
+      } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role)) {
+        navigate('/client/settings/company');
       } else {
         navigate('/user/settings');
       }

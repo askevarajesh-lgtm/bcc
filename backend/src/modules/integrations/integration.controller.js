@@ -35,7 +35,7 @@ const createIntegration = async (req, res) => {
       integration,
     });
   } catch (error) {
-    return sendError(res, 400, error.message);
+    return sendError(res, 400, error.stack || error.message);
   }
 };
 
@@ -163,6 +163,24 @@ const fetchWhatsAppLeads = async (req, res) => {
   }
 };
 
+const syncAllWhatsAppLeads = async (req, res) => {
+  try {
+    await integrationService.syncAllWhatsAppLeads(req.companyId);
+    return sendSuccess(res, "Sync started successfully", { success: true });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const getPaymentIntegration = async (req, res) => {
+  try {
+    const integration = await integrationService.getPaymentIntegration(req.params.companyId);
+    return sendSuccess(res, "Payment integration retrieved successfully", { integration });
+  } catch (error) {
+    return sendError(res, 500, error.message);
+  }
+};
+
 module.exports = {
   getAllIntegrations,
   createIntegration,
@@ -174,4 +192,6 @@ module.exports = {
   syncEktaAttendance,
   submitWebsiteLead,
   fetchWhatsAppLeads,
+  syncAllWhatsAppLeads,
+  getPaymentIntegration,
 };

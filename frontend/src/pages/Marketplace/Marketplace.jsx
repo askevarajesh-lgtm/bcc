@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Typography, Row, Col, Card, Button, Tabs, Tag } from 'antd';
+import { Typography, Row, Col, Card, Button, Tabs, Tag, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Search, BarChart2, FileText, CheckCircle2, Edit2, Eye, EyeOff, Plus, Play, Shield, Activity, Mail, FileCheck, Video, BookOpen } from 'lucide-react';
 import SEOWorkspace from './SEOWorkspace';
 import Content from '../Content/Content';
 import AIStudio from '../AIStudio/AIStudio';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGetMarketplacePurchasesQuery, useInitiatePurchaseMutation, useVerifyPurchaseMutation } from '../../api/marketplaceApi';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -133,14 +134,91 @@ const Marketplace = () => {
     </Card>
   );
 
-  const [purchasedPlans, setPurchasedPlans] = useState({
-    seo: false,
-    content: false,
-    design: false
-  });
+  const { data: purchasesData, refetch: refetchPurchases } = useGetMarketplacePurchasesQuery();
+  const [initiatePurchase] = useInitiatePurchaseMutation();
+  const [verifyPurchase] = useVerifyPurchaseMutation();
 
-  const handlePurchase = (plan) => {
-    setPurchasedPlans(prev => ({ ...prev, [plan]: true }));
+  const purchasedPlans = React.useMemo(() => {
+    const plans = { seo: false, content: false, design: false };
+    if (purchasesData?.data?.modules) {
+      purchasesData.data.modules.forEach(m => {
+        plans[m] = true;
+      });
+    }
+    return plans;
+  }, [purchasesData]);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePurchase = async (plan, amountInInr) => {
+    try {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        message.error("Razorpay SDK failed to load. Are you online?");
+        return;
+      }
+
+      // Initiate order
+      const { data: orderData, error: initiateError } = await initiatePurchase({ moduleName: plan, amount: amountInInr });
+      if (initiateError) {
+        throw new Error(initiateError.data?.message || "Failed to initiate purchase");
+      }
+
+      const { orderId, amount, currency, keyId } = orderData.data;
+
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: "Marketplace Module",
+        description: `Purchase for ${plan.toUpperCase()} Module`,
+        order_id: orderId,
+        handler: async function (response) {
+          try {
+            const verifyRes = await verifyPurchase({
+              moduleName: plan,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+
+            if (verifyRes.error) {
+              throw new Error(verifyRes.error.data?.message || "Payment verification failed");
+            }
+
+            message.success("Payment successful! Module unlocked.");
+            refetchPurchases();
+          } catch (err) {
+            message.error(err.message);
+          }
+        },
+        prefill: {
+          name: "Bcc Martech User",
+          email: "user@example.com",
+        },
+        theme: {
+          color: "#2563eb",
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
+    } catch (err) {
+      message.error(err.message || "Something went wrong during checkout");
+    }
   };
 
   const PricingCard = ({ title, subtitle, price, features, onPurchase }) => {
@@ -301,7 +379,7 @@ const Marketplace = () => {
                   "AI Keyword Strategy Builder", 
                   "Competitor Analysis & Reporting"
                 ]}
-                onPurchase={() => handlePurchase('seo')} 
+                onPurchase={() => handlePurchase('seo', 2075)} 
               />
             )}
           </motion.div>
@@ -321,7 +399,7 @@ const Marketplace = () => {
                   "Content Calendar & Planning", 
                   "1-Click CMS Publishing"
                 ]}
-                onPurchase={() => handlePurchase('content')} 
+                onPurchase={() => handlePurchase('content', 1660)} 
               />
             )}
           </motion.div>
@@ -341,7 +419,7 @@ const Marketplace = () => {
                   "Asset Library & Organization", 
                   "Video Generation Tools"
                 ]}
-                onPurchase={() => handlePurchase('design')} 
+                onPurchase={() => handlePurchase('design', 1660)} 
               />
             )}
           </motion.div>

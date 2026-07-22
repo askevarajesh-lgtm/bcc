@@ -41,12 +41,14 @@ exports.createAgencyUser = async (req, res, next) => {
 
     // Fetch the agency user's plan to get limits
     const agencyUserDoc = await User.findById(agencyId).populate('plan');
-    const maxUsers = agencyUserDoc?.plan?.users || agencyUserDoc?.allowedUsers || 5;
+    const baseUsersLimit = Number(agencyUserDoc?.plan?.users || agencyUserDoc?.allowedUsers || 5);
+    const extraUsersLimit = Number(agencyUserDoc?.extraUsers || 0);
+    const maxUsers = baseUsersLimit + extraUsersLimit;
 
     // Count existing agency team members
     const currentUsersCount = await User.countDocuments({
       agencyId,
-      role: { $in: ['agency_manager', 'agency_super_admin'] }
+      role: { $in: ['agency_manager'] }
     });
 
     if (currentUsersCount >= maxUsers) {

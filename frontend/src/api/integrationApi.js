@@ -97,6 +97,8 @@ export const useSyncFacebookLeadsMutation = createMutationHook((data) => ({ url:
 export const useTestTwilioConnectionMutation = createMutationHook((data) => ({ url: "/integrations/twilio/test", method: "POST", body: data }));
 export const useSaveTwilioIntegrationMutation = createMutationHook((data) => ({ url: "/integrations/twilio/save", method: "POST", body: data }));
 export const useGetTwilioIntegrationQuery = createQueryHook(() => "/integrations/twilio");
+export const useSyncWhatsAppLeadsMutation = createMutationHook('/integrations/whatsapp-leads/sync');
+export const useGetPaymentIntegrationQuery = createQueryHook(companyId => `/integrations/payment/${companyId}`);
 export const useGetSmsLogsQuery = createQueryHook((params) => ({ url: "/sms/logs", params }));
 
 // Event Config Hooks

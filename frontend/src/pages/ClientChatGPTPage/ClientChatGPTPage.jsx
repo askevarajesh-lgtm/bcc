@@ -2390,7 +2390,7 @@ const ClientChatGPTPage = () => {
             type="info"
             showIcon
             style={{ marginBottom: 18 }}
-            message="Use the platform default OpenAI key or save a custom key for this client workspace."
+            message="Save your organization's OpenAI API key to enable AI features for this workspace."
           />
 
           <Form.Item

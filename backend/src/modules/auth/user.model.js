@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema({
   companyName: { type: String, default: null },
   industry: { type: String, default: 'General' },
   isActive: { type: Boolean, default: true },
-  status: { type: String, enum: ['active', 'suspended', 'trial', 'churned'], default: 'active' },
+  status: { type: String, enum: ['active', 'suspended', 'trial', 'churned', 'inactive'], default: 'active' },
   
   modules: {
     chatgpt: { type: Boolean, default: false },
@@ -53,7 +53,11 @@ const UserSchema = new mongoose.Schema({
   isDirect: { type: Boolean, default: false },
   packageName: { type: String, default: null },
   features: [{ type: String }],
-  ga4PropertyId: { type: String, default: null }
+  ga4PropertyId: { type: String, default: null },
+  
+  // Custom Overrides (For Agency and Direct Brand)
+  extraUsers: { type: Number, default: 0 },
+  extraClients: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Hash password before saving

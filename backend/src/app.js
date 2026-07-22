@@ -5,6 +5,7 @@ const { default: MongoStore } = require('connect-mongo');
 const routes = require('./routes');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 const path = require('path');
+const marketplaceRoutes = require('./modules/marketplace/marketplace.routes');
 
 const app = express();
 

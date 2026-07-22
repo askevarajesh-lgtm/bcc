@@ -16,6 +16,7 @@ const agencyRoutes = require('../modules/accounts/agency.routes');
 const subscriptionRoutes = require('../modules/subscriptions/subscription.routes');
 const planUpgradeRequestRoutes = require('../modules/subscriptions/planUpgradeRequest.routes');
 const integrationRoutes = require('../modules/integrations/integration.routes');
+const facebookRoutes = require('../modules/integrations/facebook.routes');
 const userRoutes = require('../modules/auth/user.routes');
 const superadminRoutes = require('../modules/superadmin/superadmin.routes');
 const commanderRoutes = require('../modules/commander/commander.routes');
@@ -98,6 +99,7 @@ router.use('/agencies', agencyRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/plan-upgrades', planUpgradeRequestRoutes);
 router.use('/integrations', integrationRoutes);
+router.use('/facebook', facebookRoutes);
 router.use('/users', userRoutes);
 router.use('/superadmin', superadminRoutes);
 router.use('/commander', commanderRoutes);
@@ -136,5 +138,8 @@ router.use('/content', require('../modules/content/content.routes'));
 
 // Sidebar Mount
 router.use('/sidebar', require('../modules/sidebar/sidebar.routes'));
+
+// Marketplace Mount
+router.use('/marketplace', require('../modules/marketplace/marketplace.routes'));
 
 module.exports = router;

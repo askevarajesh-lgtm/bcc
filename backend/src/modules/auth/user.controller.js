@@ -153,12 +153,14 @@ exports.createUser = async (req, res, next) => {
       const agencyUserDoc = await User.findById(userData.agencyId).populate('plan');
       
       if (agencyUserDoc) {
-        const maxUsers = agencyUserDoc.plan?.users || agencyUserDoc.allowedUsers || 5;
+        const baseLimit = Number(agencyUserDoc.plan?.users || agencyUserDoc.allowedUsers || 5);
+        const extraLimit = Number(agencyUserDoc.extraUsers || 0);
+        const maxUsers = baseLimit + extraLimit;
         
         const currentUsersCount = await User.countDocuments({
           agencyId: userData.agencyId,
           brandId: null, 
-          role: { $nin: ['agency_client'] } 
+          role: { $nin: ['agency_super_admin', 'agency_manager', 'agency_client'] } 
         });
 
         if (currentUsersCount >= maxUsers) {
@@ -190,8 +192,10 @@ exports.createUser = async (req, res, next) => {
         // Wait, if it's not direct, does the agency client have a limit?
         // Let's assume if maxUsers is found we apply it. If it's a Direct Brand, it will definitely apply.
         if (maxUsers > 0) {
+          maxUsers = Number(maxUsers) + Number(brandDoc.extraUsers || 0);
           const currentUsersCount = await User.countDocuments({
-            brandId: userData.brandId
+            brandId: userData.brandId,
+            role: { $nin: ['brand_super_admin', 'brand_manager'] }
           });
 
           if (currentUsersCount >= maxUsers) {

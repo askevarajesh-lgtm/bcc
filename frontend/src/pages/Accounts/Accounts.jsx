@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space, Modal, Form, message, Dropdown, Checkbox } from 'antd';
+import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress, Avatar, Space, Modal, Form, message, Dropdown, Checkbox, InputNumber } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Plus, LayoutGrid, List, ArrowUpRight, Users, CircleDollarSign, Activity, AlertTriangle, MoreVertical, Edit2, Trash2, ShieldOff, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
@@ -72,7 +72,9 @@ const Accounts = () => {
         name: agency.name,
         email: agency.email,
         package: agency.plan?._id || agency.plan,
-        features: agency.features || []
+        features: agency.features || [],
+        extraUsers: agency.extraUsers || 0,
+        extraClients: agency.extraClients || 0
       });
     } else {
       setEditingAgency(null);
@@ -88,7 +90,9 @@ const Accounts = () => {
         await api.put(`/agencies/${editingAgency._id}`, {
           name: values.name,
           package: values.package,
-          features: values.features
+          features: values.features,
+          extraUsers: values.extraUsers || 0,
+          extraClients: values.extraClients || 0
         });
         message.success("Agency updated successfully");
       } else {
@@ -206,7 +210,22 @@ const Accounts = () => {
       key: 'package', 
       render: plan => <Text type="secondary" style={{ fontWeight: 600 }}>{plan?.name || 'Custom'}</Text> 
     },
-    { title: 'ALLOWED USERS', dataIndex: 'allowedUsers', key: 'allowedUsers', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
+    { 
+      title: 'USERS', 
+      key: 'users', 
+      render: (_, record) => {
+        const limit = (record.plan?.users || record.allowedUsers || 5) + (record.extraUsers || 0);
+        return <strong style={{ color: 'var(--text-primary)' }}>{record.usersCount || 0} / {limit}</strong>;
+      }
+    },
+    { 
+      title: 'CLIENTS', 
+      key: 'clients', 
+      render: (_, record) => {
+        const limit = (record.plan?.clients || 10) + (record.extraClients || 0);
+        return <strong style={{ color: 'var(--text-primary)' }}>{record.clientsCount || 0} / {limit}</strong>;
+      }
+    },
     { 
       title: 'CREATED DATE', 
       dataIndex: 'createdAt', 
@@ -401,6 +420,21 @@ const Accounts = () => {
               </Row>
             </Checkbox.Group>
           </Form.Item>
+
+          {editingAgency && (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label={<Text style={{ fontWeight: 600 }}>Extra Allowed Users</Text>} name="extraUsers" tooltip="Additional users beyond the package limit">
+                  <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} size="large" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<Text style={{ fontWeight: 600 }}>Extra Allowed Clients</Text>} name="extraClients" tooltip="Additional clients beyond the package limit">
+                  <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} size="large" />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel</Button>

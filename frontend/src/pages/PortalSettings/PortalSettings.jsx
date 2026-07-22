@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Select, Button, Switch, Input, Table, Tag, Avatar, ConfigProvider, Modal, Form, message, Drawer, Dropdown, Space, Popconfirm, Checkbox } from 'antd';
+import { Typography, Card, Select, Button, Switch, Input, Table, Tag, Avatar, ConfigProvider, Modal, Form, message, Drawer, Dropdown, Space, Popconfirm, Checkbox, InputNumber } from 'antd';
 import { motion } from 'framer-motion';
 import { ExternalLink, Upload, Pencil, Trash2, Plus, Palette, Layout, Database, Users, Bell, MoreVertical, Eye, Ban, CheckCircle } from 'lucide-react';
 import { useFeatures } from '../../contexts/FeatureContext';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -33,27 +34,25 @@ const PortalSettings = () => {
 
   const fetchBrands = async () => {
     try {
-      const res = await fetch('/api/brands', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDbBrands(data.data);
+      setLoading(true);
+      const res = await api.get('/brands');
+      if (res && res.data && res.data.success) {
+        setDbBrands(res.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch brands', error);
+      message.error('Failed to load Direct Brands');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchPackages = async () => {
     try {
       setPackagesLoading(true);
-      const res = await fetch('/api/direct-packages', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPackages(data.data);
+      const res = await api.get('/direct-packages');
+      if (res && res.data && res.data.success) {
+        setPackages(res.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch direct packages', error);
@@ -76,15 +75,8 @@ const PortalSettings = () => {
         features: values.features || []
       };
 
-      const res = await fetch('/api/brands', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
+      const res = await api.post('/brands', payload);
+      const data = res.data;
       
       if (data.success) {
         message.success('Direct Brand created successfully');
@@ -108,29 +100,22 @@ const PortalSettings = () => {
       const payload = {
         name: values.name,
         packageName: values.packageName,
-        features: values.features || []
+        features: values.features || [],
+        extraUsers: values.extraUsers || 0
       };
 
-      const res = await fetch(`/api/brands/${editingBrand._id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      
+      const res = await api.put(`/brands/${editingBrand._id}`, payload);
+      const data = res.data;
+
       if (data.success) {
-        message.success('Direct Brand updated successfully');
+        message.success('Brand updated successfully');
         setIsEditModalOpen(false);
-        editForm.resetFields();
         fetchBrands();
       } else {
         message.error(data.message || 'Failed to update brand');
       }
     } catch (error) {
-      message.error('An error occurred');
+      message.error(error.response?.data?.message || 'An error occurred while updating the brand');
     } finally {
       setLoading(false);
     }
@@ -197,7 +182,7 @@ const PortalSettings = () => {
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Direct Brand</Title>
@@ -255,6 +240,14 @@ const PortalSettings = () => {
                   )
                 },
                 {
+                  title: 'USERS',
+                  key: 'users',
+                  render: (_, record) => {
+                    const limit = (record.plan?.users || record.allowedUsers || 5) + (record.extraUsers || 0);
+                    return <strong style={{ color: 'var(--text-primary)' }}>{record.usersCount || 0} / {limit}</strong>;
+                  }
+                },
+                {
                   title: 'ACTIONS',
                   key: 'actions',
                   align: 'right',
@@ -269,7 +262,8 @@ const PortalSettings = () => {
                           editForm.setFieldsValue({
                             name: record.companyName || (record.name ? record.name.replace(' Admin', '') : ''),
                             packageName: record.packageName,
-                            features: record.features || []
+                            features: record.features || [],
+                            extraUsers: record.extraUsers || 0
                           });
                           setIsEditModalOpen(true);
                         }
@@ -442,6 +436,10 @@ const PortalSettings = () => {
               </Checkbox.Group>
             </Form.Item>
           </div>
+
+          <Form.Item name="extraUsers" label={<span><span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Extra Allowed Users</span></span>} tooltip="Additional users beyond the package limit">
+            <InputNumber min={0} size="large" style={{ width: '100%', borderRadius: 8 }} />
+          </Form.Item>
         </Form>
         </div>
       </Modal>

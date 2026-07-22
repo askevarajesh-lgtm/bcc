@@ -14,6 +14,7 @@ import SmsConfigPage from "../../integrations/SmsConfigPage";
 import EmailConfigPage from "../../integrations/EmailConfigPage";
 import WebsiteConfigPage from "../../integrations/WebsiteConfigPage";
 import EktaHrInlineConfigPage from "../../integrations/EktaHrInlineConfigPage";
+import PaymentConfigPage from "../../integrations/PaymentConfigPage";
 
 const { Title, Text } = Typography;
 
@@ -292,6 +293,13 @@ const EktaHrIcon = () => (
   </svg>
 );
 
+const PaymentIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+  </svg>
+);
+
 const GearIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -320,6 +328,7 @@ const IntegrationsTab = () => {
   const emailIntegration = integrations.find((i) => i.type === "email");
   const websiteIntegration = integrations.find((i) => i.type === "website");
   const ektaIntegration = integrations.find((i) => i.type === "ekta");
+  const paymentIntegration = integrations.find((i) => i.type === "payment");
   const isCommanderAdmin = role === "commander_admin";
 
   const handleToggle = async (integration, enabled) => {
@@ -411,6 +420,7 @@ const IntegrationsTab = () => {
         {selectedConfig.type === 'email' && <EmailConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'website' && <WebsiteConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'ekta' && <EktaHrInlineConfigPage onBack={handleBack} />}
+        {selectedConfig.type === 'payment' && <PaymentConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
       </div>
     );
   }
@@ -454,6 +464,13 @@ const IntegrationsTab = () => {
             icon={<WebsiteIcon />}
             title="Lead Management Integration"
             description="Configure and manage lead integrations from Website forms and WhatsApp"
+          />
+          <IntegrationCard
+            type="payment"
+            integration={paymentIntegration}
+            icon={<PaymentIcon />}
+            title="Payment Integration"
+            description="Configure QR codes and payment links for your organization"
           />
           {isCommanderAdmin && (
             <IntegrationCard

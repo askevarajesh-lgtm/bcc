@@ -27,13 +27,18 @@ exports.getBrands = async (req, res, next) => {
 
     const brands = await User.find(filter).sort({ createdAt: -1 }).populate('createdBy', 'name role roleName');
 
-    // Combine data
-    const data = brands.map(brand => {
+    const data = await Promise.all(brands.map(async (brand) => {
+      const usersCount = await User.countDocuments({
+        brandId: brand._id,
+        role: { $in: ['user', 'brand_manager'] }
+      });
+
       return {
         ...brand.toObject(),
         adminEmail: brand.email,
+        usersCount
       };
-    });
+    }));
 
     res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
@@ -64,7 +69,9 @@ exports.createBrand = async (req, res, next) => {
 
       // Check clients limit
       const agencyUserDoc = await User.findById(agencyId).populate('plan');
-      const maxClients = agencyUserDoc?.plan?.clients || 10;
+      const baseClientsLimit = Number(agencyUserDoc?.plan?.clients || 10);
+      const extraClientsLimit = Number(agencyUserDoc?.extraClients || 0);
+      const maxClients = baseClientsLimit + extraClientsLimit;
 
       const currentClientsCount = await User.countDocuments({
         agencyId,
@@ -211,12 +218,13 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, packageName, features, mrr } = req.body;
+    const { name, packageName, features, mrr, extraUsers } = req.body;
     let updates = {};
     if (name) updates.companyName = name;
     if (packageName !== undefined) updates.packageName = packageName;
     if (features !== undefined) updates.features = features;
     if (mrr !== undefined) updates.mrr = mrr;
+    if (extraUsers !== undefined) updates.extraUsers = extraUsers;
 
     const brand = await User.findOneAndUpdate(
       filter,

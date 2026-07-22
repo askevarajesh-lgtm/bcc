@@ -40,6 +40,7 @@ exports.createSupportTicket = async (req, res, next) => {
       slaId,
       clientId: req.user.brandId || req.user._id, 
       agencyId: assignee.agencyId || assignee._id,
+      assignedTo: assignee._id,
       clientType: 'Direct User Client',
       triggerType: 'Client Issue',
       entityType: 'SupportTicket',
@@ -56,6 +57,12 @@ exports.createSupportTicket = async (req, res, next) => {
     });
 
     await newSla.save();
+
+    // Notify the assignee
+    const { notifySlaEvent } = require('../sla/sla.controller');
+    if (notifySlaEvent) {
+      await notifySlaEvent(newSla, 'sla_triggered', 'New Support Ticket', `Ticket ${newSla.slaId} has been assigned to you: ${newSla.title}`, req.user?._id);
+    }
 
     res.status(201).json({ success: true, data: newSla });
   } catch (error) {

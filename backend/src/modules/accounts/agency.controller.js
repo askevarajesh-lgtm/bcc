@@ -8,7 +8,26 @@ exports.getAgencies = async (req, res, next) => {
       filter.createdBy = req.user._id;
     }
     const agencies = await User.find(filter).populate('plan').sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: agencies.length, data: agencies });
+
+    const data = await Promise.all(agencies.map(async (agency) => {
+      const usersCount = await User.countDocuments({
+        agencyId: agency._id,
+        role: { $in: ['agency_manager', 'agency_super_admin'] }
+      });
+      const clientsCount = await User.countDocuments({
+        agencyId: agency._id,
+        role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] },
+        isDirect: false
+      });
+      
+      return {
+        ...agency.toObject(),
+        usersCount,
+        clientsCount
+      };
+    }));
+
+    res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
     next(error);
   }
