@@ -165,15 +165,30 @@ const getSiteHeaderFooter = (website) => {
   return parseHeaderFooterFromHtml(homePage.html);
 };
 
-const DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const DEFAULT_FEATURED_IMAGE_ASPECT_RATIO = "16/9";
+const LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
 const normalizeFeaturedImageHeight = (html) => {
   if (!html) return html;
   try {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const img = doc.querySelector('[data-post-field="image"]');
-    if (img && !img.style.height) {
-      img.style.height = DEFAULT_FEATURED_IMAGE_HEIGHT;
-      img.style.maxHeight = DEFAULT_FEATURED_IMAGE_HEIGHT;
+    if (img) {
+      // A fixed pixel height (e.g. the old 280px default, tuned for the
+      // builder's own canvas width) looks squashed or overly tall once the
+      // same image renders in a narrower/wider container. Only swap it for a
+      // proportional aspect-ratio when the height is missing or still the
+      // untouched legacy default — a real resize (any other height value)
+      // reflects a deliberate choice in the builder, so leave that alone and
+      // just strip the stale max-height below.
+      if (!img.style.aspectRatio && (!img.style.height || img.style.height === LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT)) {
+        img.style.removeProperty("height");
+        img.style.aspectRatio = DEFAULT_FEATURED_IMAGE_ASPECT_RATIO;
+      }
+      // max-height is a stale leftover from the original insert default: once the
+      // image is resized in the builder its height style gets updated but this
+      // never gets cleared, so it silently clamps the resized image back down.
+      // aspect-ratio/height + object-fit:cover already handle sizing without it.
+      img.style.removeProperty("max-height");
       if (!img.style.objectFit) img.style.objectFit = "cover";
     }
     return doc.body.innerHTML;
@@ -332,7 +347,7 @@ const GrapesJSBuilder = ({
       e.setComponents(`
         ${siteHeaderHtml}
         <div style="width:100%; box-sizing:border-box; padding: 50px 40px; font-family: var(--site-font, '${siteFont}'), sans-serif;">
-          <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
+          <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
           <h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a;">${initialPostTitle || "Post title"}</h1>
           <p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; margin:0 0 32px;">${initialPostExcerpt || "A short summary shown in blog listings."}</p>
           <div style="font-size:16px; line-height:1.8; color:#1e293b;">
@@ -459,7 +474,7 @@ const GrapesJSBuilder = ({
       e.BlockManager.add("post-featured-image-block", {
         label: "Featured Image",
         category: "Post",
-        content: `<img data-post-field="image" src="https://placehold.co/800x400?text=Featured+Image" alt="Featured image" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px;" />`,
+        content: `<img data-post-field="image" src="https://placehold.co/800x400?text=Featured+Image" alt="Featured image" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px;" />`,
         attributes: { class: "fa fa-image" },
       });
       e.BlockManager.add("post-excerpt-block", {
@@ -542,6 +557,13 @@ const GrapesJSBuilder = ({
               opacity: 0 !important;
               visibility: hidden !important;
               pointer-events: none !important;
+            }
+            /* Posts saved before the featured-image max-height fix can still carry
+               a stale max-height:280px (from the old insert default) alongside a
+               larger resized height, which clamps the image back down. Neutralize
+               it here so the canvas reflects the real, resized height. */
+            [data-post-field="image"] {
+              max-height: none !important;
             }
           `;
           doc.head.appendChild(style);
@@ -800,6 +822,22 @@ const GrapesJSBuilder = ({
           ? imageEl.getAttribute("src") || ""
           : initialPostFeaturedImageUrl;
 
+        // Clean up a stale max-height:280px left over from the old insert
+        // default (see normalizeFeaturedImageHeight above) so a resized
+        // featured image no longer gets silently clamped back down, on this
+        // post and any future re-save of an older one.
+        let postCss = css;
+        if (imageEl) {
+          imageEl.style.removeProperty("max-height");
+          const imageElId = imageEl.getAttribute("id");
+          if (imageElId) {
+            postCss = postCss.replace(
+              new RegExp(`(#${imageElId}\\s*{[^}]*?)max-height\\s*:[^;]+;\\s*`, "g"),
+              "$1"
+            );
+          }
+        }
+
         const faqs = [];
         const faqSection = doc.querySelector('[data-post-field="faq"]');
         if (faqSection) {
@@ -830,7 +868,7 @@ const GrapesJSBuilder = ({
           },
           body: JSON.stringify({
             html: finalHtml,
-            css,
+            css: postCss,
             title,
             excerpt,
             featuredImageUrl,

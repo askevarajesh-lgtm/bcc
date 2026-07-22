@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
-const DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const DEFAULT_FEATURED_IMAGE_ASPECT_RATIO = "16/9";
+const LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
 const normalizeFeaturedImageHeight = (html) => {
   if (!html) return html;
   try {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const img = doc.querySelector('[data-post-field="image"]');
-    if (img && !img.style.height) {
-      img.style.height = DEFAULT_FEATURED_IMAGE_HEIGHT;
-      img.style.maxHeight = DEFAULT_FEATURED_IMAGE_HEIGHT;
+    if (img) {
+      // A fixed pixel height (e.g. the old 280px default, tuned for the
+      // builder's own canvas width) looks squashed or overly tall once the
+      // same image renders in a narrower/wider container. Only swap it for a
+      // proportional aspect-ratio when the height is missing or still the
+      // untouched legacy default — a real resize (any other height value)
+      // reflects a deliberate choice in the builder, so leave that alone and
+      // just strip the stale max-height below.
+      if (!img.style.aspectRatio && (!img.style.height || img.style.height === LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT)) {
+        img.style.removeProperty("height");
+        img.style.aspectRatio = DEFAULT_FEATURED_IMAGE_ASPECT_RATIO;
+      }
+      // max-height is a stale leftover from the old insert default even after
+      // the image was resized larger in the builder, which clamps it back
+      // down. aspect-ratio/height + object-fit:cover already size it correctly.
+      img.style.removeProperty("max-height");
       if (!img.style.objectFit) img.style.objectFit = "cover";
     }
     return doc.body.innerHTML;
@@ -28,7 +42,7 @@ const buildFallbackHtml = (post, themeFont, themeColor) => {
   }
 
   const image = post.featuredImageUrl
-    ? `<img src="${post.featuredImageUrl}" alt="${post.title || ""}" style="width:100%; height:280px; max-height:280px; object-fit:cover; border-radius:12px; margin-bottom:28px;" />`
+    ? `<img src="${post.featuredImageUrl}" alt="${post.title || ""}" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px; margin-bottom:28px;" />`
     : "";
 
   const excerpt = post.excerpt
@@ -203,6 +217,12 @@ const BlogPostPreviewView = () => {
             .bcc-brand-tint {
               background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
               border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+            }
+            /* Posts saved before the featured-image max-height fix can still carry
+               a stale max-height:280px alongside a larger resized height, which
+               clamps the image back down. Neutralize it here as a safety net. */
+            [data-post-field="image"] {
+              max-height: none !important;
             }
           </style>
         </head>
