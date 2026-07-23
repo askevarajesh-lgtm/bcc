@@ -23,11 +23,13 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import CRM from './pages/CRM/CRM';
 import WebsiteBuilder from './pages/WebsiteBuilder/WebsiteBuilder';
 import BuilderRouteWrapper from './pages/WebsiteBuilder/tabs/BuilderRouteWrapper';
+import BlogPostBuilderRouteWrapper from './pages/WebsiteBuilder/tabs/BlogPostBuilderRouteWrapper';
 import FormEmbedView from './pages/WebsiteBuilder/tabs/FormEmbedView';
 import BlogEmbedView from './pages/WebsiteBuilder/tabs/BlogEmbedView';
 import BlogPostEmbedView from './pages/WebsiteBuilder/tabs/BlogPostEmbedView';
 import QREmbedView from './pages/WebsiteBuilder/tabs/QREmbedView';
 import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
+import BlogPostPreviewView from './pages/WebsiteBuilder/tabs/BlogPostPreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
 import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
@@ -202,6 +204,7 @@ const AppRoutes = () => {
       <Route path="/blog/:blogSlug" element={<BlogEmbedView />} />
       <Route path="/blog/:blogSlug/:postSlug" element={<BlogPostEmbedView />} />
       <Route path="/preview/website/:websiteId/page/:pageId" element={<WebsitePreviewView />} />
+      <Route path="/preview/website/:websiteId/blog-post/:postId" element={<BlogPostPreviewView />} />
       
       {/* Super Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin']} />}>
@@ -251,6 +254,7 @@ const AppRoutes = () => {
           <Route path="workspace/invoices/:id/view" element={<InvoiceViewPage />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+          <Route path="workspace/website/:websiteId/blogs/:blogId/posts/:postId/edit" element={<BlogPostBuilderRouteWrapper />} />
 
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/mos" element={<MOSScore />} />
@@ -403,6 +407,7 @@ const AppRoutes = () => {
           
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
           <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+          <Route path="workspace/website/:websiteId/blogs/:blogId/posts/:postId/edit" element={<BlogPostBuilderRouteWrapper />} />
 
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/mos" element={<MOSScore />} />

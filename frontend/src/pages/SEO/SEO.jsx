@@ -33,9 +33,9 @@ const SEO = () => {
       const fetchedProjects = projectsRes.data.data || [];
       setProjects(fetchedProjects);
       setWorkspaceData({
-        audits: auditsRes.data || [],
-        keywords: keywordsRes.data || [],
-        strategies: strategiesRes.data || []
+        audits: auditsRes.data.data || [],
+        keywords: keywordsRes.data.data || [],
+        strategies: strategiesRes.data.data || []
       });
       if (fetchedProjects.length > 0) {
         setSelectedProjectId(fetchedProjects[0]._id);
@@ -65,6 +65,7 @@ const SEO = () => {
 
   const selectedProject = projects.find(p => p._id === selectedProjectId);
   const projectAudits = workspaceData.audits.filter(a => (a.projectId?._id || a.projectId) === selectedProjectId);
+  console.log('Project Audits:', workspaceData);
   const projectKeywords = workspaceData.keywords.filter(k => (k.projectId?._id || k.projectId) === selectedProjectId);
   const projectStrategies = workspaceData.strategies.filter(s => (s.projectId?._id || s.projectId) === selectedProjectId);
 

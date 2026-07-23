@@ -1,8 +1,19 @@
 const cron = require('node-cron');
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
+const WorkspaceAudit = require('../models/workspaceAudit.model');
+const WorkspaceReport = require('../models/workspaceReport.model');
 const WorkspaceAgentOrchestrator = require('./workspaceAgentOrchestrator.service');
+const auditLogService = require('./auditLog.service');
 const DataForSeoService = require('../../seoIntelligence/dataForSeo.service');
+const sendpulseService = require('../../../utils/sendpulse.service');
+
+// How long each frequency's "due" window is, in milliseconds.
+const FREQUENCY_MS = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000
+};
 
 class WorkspaceCronService {
   constructor() {
@@ -76,7 +87,7 @@ class WorkspaceCronService {
             if (drop >= 2) {
               console.log(`[Alert] Workspace Keyword "${kw.keyword}" dropped by ${drop} positions (Rank ${previousRank} -> ${currentRank})! Generating recovery task...`);
               try {
-                await this.orchestrator.generateTaskForRankDrop(project, kw, drop);
+                await this.orchestrator.seoMonitorAgent(project, kw, drop);
               } catch (taskErr) {
                 console.error(`[WorkspaceCronService] Error generating task for ${kw.keyword}:`, taskErr.message);
               }
@@ -89,7 +100,89 @@ class WorkspaceCronService {
     });
 
     this.jobs.push(dailyJob);
-    console.log('[WorkspaceCronService] Autopilot jobs scheduled.');
+
+    // Scheduled report delivery: WorkspaceReport.isScheduled/scheduleFrequency/
+    // emailRecipients were modeled from the start but nothing ever read them
+    // (Phase 4 fix). Runs hourly and checks every scheduled report definition
+    // for due-ness so daily/weekly/monthly schedules all get checked promptly
+    // without needing separate cron expressions per frequency.
+    const reportSchedulerJob = cron.schedule('15 * * * *', async () => {
+      console.log('[WorkspaceCronService] Checking scheduled reports...');
+      await this.runDueScheduledReports();
+    });
+
+    this.jobs.push(reportSchedulerJob);
+    console.log('[WorkspaceCronService] Autopilot + scheduled-report jobs scheduled.');
+  }
+
+  async runDueScheduledReports() {
+    try {
+      const scheduledReports = await WorkspaceReport.find({ isScheduled: true, scheduleFrequency: { $ne: null } });
+      const now = new Date();
+
+      for (const scheduleDef of scheduledReports) {
+        const intervalMs = FREQUENCY_MS[scheduleDef.scheduleFrequency];
+        if (!intervalMs) continue;
+
+        const lastRun = scheduleDef.lastRunAt || scheduleDef.createdAt;
+        const due = (now.getTime() - new Date(lastRun).getTime()) >= intervalMs;
+        if (!due) continue;
+
+        if (!scheduleDef.projectId) {
+          // Nothing to diff against without a project; skip rather than crash the loop.
+          continue;
+        }
+
+        try {
+          const audits = await WorkspaceAudit.find({ projectId: scheduleDef.projectId }).sort({ createdAt: -1 }).limit(2);
+          if (audits.length < 2) {
+            console.warn(`[WorkspaceCronService] Skipping scheduled report ${scheduleDef._id}: fewer than 2 audits available.`);
+            continue;
+          }
+
+          const latest = audits[0].metrics;
+          const previous = audits[1].metrics;
+          const auditDiff = {
+            diff: {
+              performance: latest.performance - previous.performance,
+              onPage: latest.onPage - previous.onPage,
+              crawlability: latest.crawlability - previous.crawlability,
+              overall: latest.overall - previous.overall
+            }
+          };
+
+          // The freshly generated instance is a one-off delivery, not itself
+          // a new recurring schedule — only scheduleDef keeps recurring.
+          const newReport = await this.orchestrator.seoReporterAgent(scheduleDef.projectId, auditDiff, {});
+
+          const project = await WorkspaceProject.findById(scheduleDef.projectId);
+          for (const recipient of scheduleDef.emailRecipients || []) {
+            try {
+              await sendpulseService.sendEmail(
+                recipient,
+                `Scheduled SEO Report: ${project?.name || 'Your Project'}`,
+                `<p>Your ${scheduleDef.scheduleFrequency} SEO report is ready.</p>
+                 <div>${newReport.content ? newReport.content.replace(/\n/g, '<br/>') : ''}</div>`
+              );
+            } catch (emailErr) {
+              console.error(`[WorkspaceCronService] Failed to email scheduled report to ${recipient}:`, emailErr.message);
+            }
+          }
+
+          scheduleDef.lastRunAt = now;
+          await scheduleDef.save();
+
+          auditLogService.record({
+            targetType: 'Report', targetId: scheduleDef._id, projectId: scheduleDef.projectId,
+            action: 'scheduled_run', fromValue: lastRun, toValue: now, userId: scheduleDef.createdBy
+          });
+        } catch (perReportErr) {
+          console.error(`[WorkspaceCronService] Error running scheduled report ${scheduleDef._id}:`, perReportErr.message);
+        }
+      }
+    } catch (error) {
+      console.error('[WorkspaceCronService] Error checking scheduled reports:', error);
+    }
   }
 
   stop() {

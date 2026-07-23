@@ -8,6 +8,7 @@ const storage = new CloudinaryStorage({
     folder: 'website_builder_templates',
     resource_type: 'raw',
     format: 'zip',
+    type: 'authenticated', // required so it can be fetched back later via a signed private_download_url — this Cloudinary account blocks public/unsigned delivery of zip/raw files (see website.controller.js's downloadTemplateZip)
   }
 });
 

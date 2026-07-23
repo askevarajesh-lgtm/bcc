@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
+import { useParams, useSearchParams } from "react-router-dom";
+import { ConfigProvider, Typography, Result, Spin, Card, Row, Col, Tag, Button } from "antd";
 import { Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const BlogEmbedView = () => {
   const { blogId, blogSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const [blogData, setBlogData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const themeFont = searchParams.get("font") || blogData?.websiteTheme?.fontFamily || "Inter";
+  const themeColor = searchParams.get("color") || blogData?.websiteTheme?.primaryColor || "#3b82f6";
+  const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
 
   useEffect(() => {
     fetchBlog();
@@ -53,9 +58,33 @@ const BlogEmbedView = () => {
   const { name, description, posts = [] } = blogData;
   const isEmbed = !!blogId;
   const displayedPosts = isEmbed ? posts.slice(0, 3) : posts;
+  const siteHeaderHtml = !isEmbed ? (blogData.siteHeaderHtml || "") : "";
+  const siteFooterHtml = !isEmbed ? (blogData.siteFooterHtml || "") : "";
+  const siteStylesheetUrls = !isEmbed ? (blogData.siteStylesheetUrls || []) : [];
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px", fontFamily: "inherit" }}>
+    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
+    <div style={{ fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+      <link rel="stylesheet" href={googleFontHref} />
+      {siteStylesheetUrls.map((href) => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
+      {siteHeaderHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteHeaderHtml }} />
+      )}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 20px" }}>
+      <style>{`
+        .excerpt-content, .excerpt-content * { background-color: transparent !important; }
+        .excerpt-content p { margin: 0; }
+        .blog-card-excerpt {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-height: 0;
+        }
+      `}</style>
       {/* Blog Header */}
       <div style={{ textAlign: "center", marginBottom: 60 }}>
         <Title level={1} style={{ fontWeight: 900, marginBottom: 16 }}>{name}</Title>
@@ -74,53 +103,102 @@ const BlogEmbedView = () => {
         </div>
       ) : (
         <>
-          <Row gutter={[32, 32]}>
-            {displayedPosts.map(post => (
-              <Col xs={24} md={12} lg={8} key={post._id}>
-                <Card 
-                  hoverable 
-                  style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
-                  bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
-                >
-                  {post.categories && post.categories.length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      {post.categories.map((cat, idx) => (
-                        <Tag color="blue" key={idx} style={{ borderRadius: 4, fontWeight: 600 }}>{cat}</Tag>
-                      ))}
-                    </div>
-                  )}
-                  <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
-                    <a href={`/blog/${blogData.slug}/${post.slug}`} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
-                      {post.title}
-                    </a>
-                  </Title>
-                  
-                  <Paragraph style={{ color: '#475569', fontSize: 15, flex: 1, marginBottom: 24 }} ellipsis={{ rows: 3 }}>
-                    {/* Extract plain text from HTML content or use description if available */}
-                    {post.content ? post.content.replace(/<[^>]+>/g, '') : "Read the full post for more details."}
-                  </Paragraph>
+          <Row gutter={[32, 32]} align="stretch">
+            {displayedPosts.map(post => {
+              const postUrl = `/blog/${blogData.slug}/${post.slug}`;
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <User size={14} /> Admin
-                    </span>
-                  </div>
-                </Card>
-              </Col>
-            ))}
+              const excerptHtml = post.excerpt?.trim() || '';
+              const fallbackPlainText = !excerptHtml && post.content
+                ? post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                : '';
+
+              const rawExcerpt = excerptHtml || fallbackPlainText || 'Read the full post for more details.';
+
+              const WORD_LIMIT = 30;
+              const plainForTruncation = excerptHtml
+                ? excerptHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                : rawExcerpt;
+              const words = plainForTruncation.split(' ').filter(Boolean);
+              const isTruncated = words.length > WORD_LIMIT;
+              const excerptContent = isTruncated
+                ? `${words.slice(0, WORD_LIMIT).join(' ')}...`
+                : rawExcerpt;
+
+              return (
+                <Col xs={24} md={12} lg={8} key={post._id}>
+                  <Card 
+                    hoverable 
+                    style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                    bodyStyle={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}
+                    cover={post.featuredImageUrl ? (
+                      <a href={postUrl} target="_parent">
+                        <img
+                          src={post.featuredImageUrl}
+                          alt={post.title}
+                          style={{ width: '100%', height: 180, objectFit: 'cover' }}
+                        />
+                      </a>
+                    ) : undefined}
+                  >
+                    {post.categories && post.categories.length > 0 && (
+                      <div style={{ marginBottom: 16 }}>
+                        {post.categories.map((cat, idx) => (
+                          <Tag key={idx} style={{ borderRadius: 4, fontWeight: 600, color: themeColor, background: `${themeColor}1a`, border: `1px solid ${themeColor}40` }}>{cat}</Tag>
+                        ))}
+                      </div>
+                    )}
+                    <Title level={4} style={{ marginTop: 0, marginBottom: 12, fontWeight: 800, lineHeight: 1.4 }}>
+                      <a href={postUrl} style={{ color: 'inherit', textDecoration: 'none' }} target="_parent">
+                        {post.title}
+                      </a>
+                    </Title>
+
+                    <div
+                      className="excerpt-content blog-card-excerpt"
+                      style={{
+                        color: '#475569',
+                        fontSize: 15,
+                        lineHeight: 1.6,
+                        flex: 1,
+                        minHeight: 0,
+                        marginBottom: 16
+                      }}
+                      dangerouslySetInnerHTML={{ __html: excerptContent }}
+                    />
+
+                    {/* {isTruncated && ( */}
+                      <Button
+                        type="link"
+                        href={postUrl}
+                        target="_parent"
+                        style={{ padding: 0, marginBottom: 16, alignSelf: 'flex-start', fontWeight: 600, color: themeColor }}
+                      >
+                        Read More
+                      </Button>
+                    {/* )} */}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#94a3b8', fontSize: 13, fontWeight: 500, marginTop: 'auto' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Calendar size={14} /> {dayjs(post.createdAt).format('MMM D, YYYY')}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <User size={14} /> Admin
+                      </span>
+                    </div>
+                  </Card>
+                </Col>
+              );
+            })}
           </Row>
 
           {isEmbed && posts.length >= 3 && (
             <div style={{ textAlign: "center", marginTop: 40 }}>
               <Button 
-                type="primary" 
+                // type="primary" 
                 size="large" 
                 href={`/blog/${blogData.slug}`} 
                 target="_parent"
-                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)' }}
+                style={{ borderRadius: 8, padding: '0 32px', height: 48, fontSize: 16, fontWeight: 600, background: themeColor, borderColor: themeColor, boxShadow: `0 4px 14px 0 ${themeColor}66`}}
               >
                 View More
               </Button>
@@ -128,7 +206,12 @@ const BlogEmbedView = () => {
           )}
         </>
       )}
+      </div>
+      {siteFooterHtml && (
+        <div dangerouslySetInnerHTML={{ __html: siteFooterHtml }} />
+      )}
     </div>
+    </ConfigProvider>
   );
 };
 

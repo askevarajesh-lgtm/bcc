@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag } from "antd";
-import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popconfirm, Tag, message, Modal } from "antd";
+import { Plus, Trash2, Edit3, Newspaper, LayoutTemplate, Settings, Tag as TagIcon, LayoutList, FileText, ArrowRight, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
@@ -198,6 +198,7 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     websiteId: editData.websiteId || "—",
     storeId: editData.storeId || "—",
     excerpt: editData.excerpt || "",
+    featuredImageUrl: editData.featuredImageUrl || "",
     metaTitle: editData.metaTitle || "",
     metaDescription: editData.metaDescription || "",
     isFeatured: !!editData.isFeatured
@@ -208,10 +209,202 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
     websiteId: "—",
     storeId: "—",
     excerpt: "",
+    featuredImageUrl: "",
     metaTitle: "",
     metaDescription: "",
     isFeatured: false
   });
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+  const excerptRef = useRef(null);
+  const [excerptMode, setExcerptMode] = useState('visual');
+
+  useEffect(() => {
+    if (excerptMode === 'visual' && excerptRef.current) {
+      excerptRef.current.innerHTML = formData.excerpt || "";
+    }
+  }, [excerptMode]);
+
+  const handleExcerptInput = () => {
+    setFormData(prev => ({ ...prev, excerpt: excerptRef.current.innerHTML }));
+  };
+
+  const handleExcerptCodeChange = (e) => {
+    setFormData(prev => ({ ...prev, excerpt: e.target.value }));
+  };
+
+  const handleExcerptFormat = (command) => {
+    if (excerptMode !== 'visual' || !excerptRef.current) return;
+    document.execCommand(command);
+    handleExcerptInput();
+  };
+
+  const stripPastedStyling = (node) => {
+    if (node.nodeType === 1) {
+      node.removeAttribute('style');
+      node.removeAttribute('class');
+      node.removeAttribute('bgcolor');
+      Array.from(node.childNodes).forEach(stripPastedStyling);
+    }
+  };
+
+  const handleExcerptPaste = (e) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    let cleanHtml;
+    if (html) {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      stripPastedStyling(temp);
+      cleanHtml = temp.innerHTML;
+    } else {
+      const text = e.clipboardData.getData('text/plain') || '';
+      cleanHtml = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+    document.execCommand('insertHTML', false, cleanHtml);
+    handleExcerptInput();
+  };
+
+  const savedRangeRef = useRef(null);
+  const [linkModalVisible, setLinkModalVisible] = useState(false);
+  const [linkUrlInput, setLinkUrlInput] = useState("");
+
+  const handleInsertLink = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
+      message.warning("Select a word in the excerpt first.");
+      return;
+    }
+    savedRangeRef.current = selection.getRangeAt(0).cloneRange();
+    setLinkUrlInput("");
+    setLinkModalVisible(true);
+  };
+
+  const handleConfirmInsertLink = () => {
+    const url = linkUrlInput.trim();
+    setLinkModalVisible(false);
+    if (!url || !savedRangeRef.current || !excerptRef.current) return;
+
+    const range = savedRangeRef.current;
+    requestAnimationFrame(() => {
+      if (!excerptRef.current) return;
+      excerptRef.current.focus();
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand('createLink', false, url);
+
+      excerptRef.current.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+      handleExcerptInput();
+    });
+  };
+
+  const FORMAT_TAGS = ["P", "H1", "H2", "H3", "H4", "H5", "H6"];
+
+  const handleWrapTag = (tagName, { inline = true } = {}) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !excerptRef.current || !excerptRef.current.contains(selection.anchorNode)) {
+      message.warning("Select a word in the excerpt first.");
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    let container = range.commonAncestorContainer;
+    if (container.nodeType === 3) container = container.parentElement;
+    let formatEl = null;
+    for (let node = container; node && node !== excerptRef.current; node = node.parentElement) {
+      if (node.nodeType === 1 && FORMAT_TAGS.includes(node.tagName)) {
+        formatEl = node;
+        break;
+      }
+    }
+
+    if (formatEl) {
+      const getLeafPoint = (node, atStart) => {
+        if (node.nodeType === 3) return { node, offset: atStart ? 0 : node.length };
+        const kids = node.childNodes;
+        if (!kids.length) return { node, offset: 0 };
+        return getLeafPoint(kids[atStart ? 0 : kids.length - 1], atStart);
+      };
+      const startPt = getLeafPoint(formatEl, true);
+      const endPt = getLeafPoint(formatEl, false);
+      const startBoundary = document.createRange();
+      startBoundary.setStart(startPt.node, startPt.offset);
+      startBoundary.setEnd(startPt.node, startPt.offset);
+      const endBoundary = document.createRange();
+      endBoundary.setStart(endPt.node, endPt.offset);
+      endBoundary.setEnd(endPt.node, endPt.offset);
+
+      const selectionCoversEl =
+        range.compareBoundaryPoints(Range.START_TO_START, startBoundary) <= 0 &&
+        range.compareBoundaryPoints(Range.END_TO_END, endBoundary) >= 0;
+
+      if (selectionCoversEl) {
+        const newTag = document.createElement(tagName);
+        if (inline) newTag.style.display = "inline";
+        newTag.innerHTML = formatEl.innerHTML;
+        formatEl.replaceWith(newTag);
+        selection.removeAllRanges();
+        handleExcerptInput();
+        return;
+      }
+    }
+
+    const tag = document.createElement(tagName);
+    if (inline) tag.style.display = "inline";
+
+    try {
+      range.surroundContents(tag);
+    } catch (e) {
+      const contents = range.extractContents();
+      tag.appendChild(contents);
+      range.insertNode(tag);
+    }
+
+    selection.removeAllRanges();
+    handleExcerptInput();
+  };
+
+  const handleFormatHeading = (level) => handleWrapTag(`h${level}`);
+
+  const handleFormatParagraph = () => handleWrapTag("p");
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingImage(true);
+      const token = localStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "blog-posts");
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        headers: { "Authorization": token ? `Bearer ${token}` : "" },
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFormData(prev => ({ ...prev, featuredImageUrl: data.data.url }));
+        message.success("Image uploaded successfully!");
+      } else {
+        message.error(data.error || "Failed to upload image");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error uploading image");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const isComplete = formData.title && formData.categoryId !== "—" && formData.excerpt && formData.metaTitle && formData.metaDescription;
 
@@ -231,6 +424,55 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
             onChange={e => setFormData({...formData, title: e.target.value})}
             style={{ borderRadius: 8 }} 
           />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>FEATURED IMAGE</div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: "none" }}
+          />
+          {formData.featuredImageUrl ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <img
+                src={formData.featuredImageUrl}
+                alt="Featured"
+                style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border-color)" }}
+              />
+              <Space>
+                <Button
+                  loading={uploadingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  Replace Image
+                </Button>
+                <Button
+                  danger
+                  icon={<X size={14} />}
+                  onClick={() => setFormData(prev => ({ ...prev, featuredImageUrl: "" }))}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  Remove
+                </Button>
+              </Space>
+            </div>
+          ) : (
+            <div style={{ border: "1px dashed var(--border-color)", borderRadius: 12, padding: 20, textAlign: "center", background: "var(--bg-primary)" }}>
+              <Button
+                icon={<ImagePlus size={16} />}
+                loading={uploadingImage}
+                onClick={() => fileInputRef.current?.click()}
+                style={{ borderRadius: 8, fontWeight: 600, marginBottom: 8 }}
+              >
+                Choose Image
+              </Button>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>Recommended 1200×630px.</div>
+            </div>
+          )}
         </div>
 
         <Row gutter={24} style={{ marginBottom: 24 }}>
@@ -260,45 +502,128 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           </Col>
         </Row>
 
-        <Row gutter={24} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEBSITE (OPTIONAL)</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Tag this post for a site; embed via Page builder → Blog.</div>
-            <Select 
-              size="large"
-              value={formData.websiteId}
-              onChange={v => setFormData({...formData, websiteId: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {websites.map(w => <Option key={w._id} value={w._id}>{w.name}</Option>)}
-            </Select>
-          </Col>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WEB STORE (OPTIONAL)</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Shows on storefront <code style={{color: '#ea580c'}}>/shop/{"{slug}"}/blog</code>.</div>
-            <Select 
-              size="large"
-              value={formData.storeId}
-              onChange={v => setFormData({...formData, storeId: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {stores.map(s => <Option key={s._id} value={s._id}>{s.name}</Option>)}
-            </Select>
-          </Col>
-        </Row>
-
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>EXCERPT</div>
-          <TextArea 
-            size="large"
-            value={formData.excerpt}
-            onChange={e => setFormData({...formData, excerpt: e.target.value})}
-            rows={3} 
-            style={{ borderRadius: 8 }} 
-          />
+
+          <style>{`
+            .excerpt-editable, .excerpt-editable * { background-color: transparent !important; }
+          `}</style>
+          <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}>
+            {/* Visual / Code tabs */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
+              <span
+                onClick={() => setExcerptMode('visual')}
+                style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: excerptMode === 'visual' ? "var(--text-primary)" : "var(--text-tertiary)" }}
+              >
+                Visual
+              </span>
+              <span style={{ color: "var(--border-color)" }}>|</span>
+              <span
+                onClick={() => setExcerptMode('code')}
+                style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: excerptMode === 'code' ? "var(--text-primary)" : "var(--text-tertiary)" }}
+              >
+                Code
+              </span>
+            </div>
+
+            {/* Formatting toolbar — only acts on the Visual editor */}
+            <div style={{
+              display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 14px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)",
+              opacity: excerptMode === 'code' ? 0.4 : 1, pointerEvents: excerptMode === 'code' ? "none" : "auto"
+            }}>
+              {[
+                { label: "b", title: "Bold", onClick: () => handleExcerptFormat('bold'), style: { fontWeight: 800 } },
+                { label: "i", title: "Italic", onClick: () => handleExcerptFormat('italic'), style: { fontStyle: "italic" } },
+                { label: "u", title: "Underline", onClick: () => handleExcerptFormat('underline'), style: { textDecoration: "underline" } },
+                { label: "del", title: "Strikethrough", onClick: () => handleExcerptFormat('strikeThrough'), style: { textDecoration: "line-through" } },
+                { label: "link", title: "Insert link", onClick: handleInsertLink },
+                { label: "P", title: "Paragraph", onClick: handleFormatParagraph },
+                { label: "H1", title: "Heading 1", onClick: () => handleFormatHeading(1) },
+                { label: "H2", title: "Heading 2", onClick: () => handleFormatHeading(2) },
+                { label: "H3", title: "Heading 3", onClick: () => handleFormatHeading(3) },
+              ].map(btn => (
+                <button
+                  key={btn.label}
+                  type="button"
+                  title={btn.title}
+                  onClick={btn.onClick}
+                  style={{
+                    minWidth: 32, height: 28, padding: "0 10px", fontSize: 12, borderRadius: 4,
+                    border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", cursor: "pointer",
+                    ...btn.style
+                  }}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Content area */}
+            {excerptMode === 'visual' ? (
+              <div
+                ref={excerptRef}
+                contentEditable
+                className="excerpt-editable"
+                suppressContentEditableWarning
+                onInput={handleExcerptInput}
+                onPaste={handleExcerptPaste}
+                style={{
+                  minHeight: 140,
+                  padding: "14px 16px",
+                  fontSize: 14,
+                  background: "var(--bg-primary)",
+                  color: "var(--text-primary)",
+                  lineHeight: 1.7
+                }}
+              />
+            ) : (
+              <textarea
+                value={formData.excerpt}
+                onChange={handleExcerptCodeChange}
+                spellCheck={false}
+                style={{
+                  width: "100%",
+                  minHeight: 140,
+                  padding: "14px 16px",
+                  fontSize: 13,
+                  fontFamily: "'Fira Code', 'Courier New', monospace",
+                  background: "var(--bg-primary)",
+                  color: "var(--text-primary)",
+                  border: "none",
+                  outline: "none",
+                  resize: "vertical",
+                  lineHeight: 1.7
+                }}
+              />
+            )}
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8 }}>
+            Select a word in Visual mode, then click a format button — "link" makes it clickable, P wraps it in a paragraph tag, H1/H2/H3 change its size.
+          </div>
         </div>
+
+        <Modal
+          title="Insert Link"
+          open={linkModalVisible}
+          onOk={handleConfirmInsertLink}
+          onCancel={() => setLinkModalVisible(false)}
+          centered
+          width={400}
+          okText="Insert"
+        >
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 8 }}>
+            Enter the link URL (e.g. https://example.com)
+          </div>
+          <Input
+            autoFocus
+            size="large"
+            placeholder="https://example.com"
+            value={linkUrlInput}
+            onChange={e => setLinkUrlInput(e.target.value)}
+            onPressEnter={handleConfirmInsertLink}
+          />
+        </Modal>
 
         <Row gutter={24} style={{ marginBottom: 32 }}>
           <Col span={12}>
@@ -331,7 +656,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Featured post</span>
         </div>
 
-        {isComplete && (
           <Button 
             type="primary" 
             size="large"
@@ -340,7 +664,6 @@ const CreatePostView = ({ setView, handleCreatePost, itemVariants, websites, sto
           >
             {editData ? "Update blog post" : "Create blog post"}
           </Button>
-        )}
       </Card>
     </motion.div>
   );

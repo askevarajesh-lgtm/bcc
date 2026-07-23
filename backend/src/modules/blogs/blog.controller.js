@@ -1,6 +1,28 @@
 const Blog = require('./blog.model');
 const BlogPost = require('./blog-post.model');
 const BlogCategory = require('./blog-category.model');
+const Website = require('../websites/website.model');
+const { getSiteChrome } = require('../websites/website.chrome');
+
+async function getLinkedWebsiteTheme(websiteId) {
+  if (!websiteId) return null;
+  const website = await Website.findOne({ _id: websiteId, isDeleted: false }).select('theme');
+  if (!website) return null;
+  return {
+    fontFamily: website.theme?.fontFamily || 'Inter',
+    primaryColor: website.theme?.primaryColor || '#3b82f6'
+  };
+}
+
+async function getLinkedWebsiteChrome(websiteId) {
+  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [] };
+  const chrome = await getSiteChrome(websiteId);
+  return {
+    siteHeaderHtml: chrome.headerHtml,
+    siteFooterHtml: chrome.footerHtml,
+    siteStylesheetUrls: chrome.stylesheetUrls
+  };
+}
 
 // Create Blog
 exports.createBlog = async (req, res, next) => {
@@ -41,7 +63,14 @@ exports.createBlog = async (req, res, next) => {
 exports.getBlogs = async (req, res, next) => {
   try {
     const workspaceId = req.workspaceId;
-    const blogs = await Blog.find({ workspaceId, isDeleted: false }).sort({ updatedAt: -1 });
+    const { websiteId } = req.query;
+
+    const query = { workspaceId, isDeleted: false };
+    if (websiteId) {
+      query.websiteId = websiteId;
+    }
+
+    const blogs = await Blog.find(query).sort({ updatedAt: -1 });
 
     const data = await Promise.all(blogs.map(async (blog) => {
       const postsCount = await BlogPost.countDocuments({ blogId: blog._id, isDeleted: false });
@@ -96,11 +125,16 @@ exports.getPublicBlog = async (req, res, next) => {
     }
 
     const posts = await BlogPost.find({ blogId: id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
+    const postsWithCategoryNames = await resolvePostCategoryNames(id, posts);
+    const websiteTheme = await getLinkedWebsiteTheme(blog.websiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(blog.websiteId);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
-        posts
+        posts: postsWithCategoryNames,
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {
@@ -118,17 +152,34 @@ exports.getPublicBlogBySlug = async (req, res, next) => {
     }
 
     const posts = await BlogPost.find({ blogId: blog._id, isDeleted: false, status: 'published' }).sort({ createdAt: -1 });
+    const postsWithCategoryNames = await resolvePostCategoryNames(blog._id, posts);
+    const websiteTheme = await getLinkedWebsiteTheme(blog.websiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(blog.websiteId);
     res.json({
       success: true,
       data: {
         ...blog.toObject(),
-        posts
+        posts: postsWithCategoryNames,
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {
     next(error);
   }
 };
+
+// Helper: replace stored category id strings with their display names for public responses
+async function resolvePostCategoryNames(blogId, posts) {
+  const categoryDocs = await BlogCategory.find({ blogId, isDeleted: false });
+  const idToName = new Map(categoryDocs.map(cat => [String(cat._id), cat.name]));
+
+  return posts.map(post => {
+    const plain = post.toObject();
+    plain.categories = (plain.categories || []).map(catIdOrName => idToName.get(String(catIdOrName)) || catIdOrName);
+    return plain;
+  });
+}
 
 // Update Blog Settings
 exports.updateBlog = async (req, res, next) => {
@@ -188,7 +239,7 @@ exports.getPosts = async (req, res, next) => {
 exports.addPost = async (req, res, next) => {
   try {
     const { blogId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl, faqs, html, css, layoutJson } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: 'Post title is required' });
@@ -210,9 +261,14 @@ exports.addPost = async (req, res, next) => {
       websiteId: websiteId && websiteId !== '—' ? websiteId : null,
       storeId: storeId && storeId !== '—' ? storeId : null,
       excerpt: excerpt || "",
+      featuredImageUrl: featuredImageUrl || "",
+      faqs: Array.isArray(faqs) ? faqs : [],
       metaTitle: metaTitle || "",
       metaDescription: metaDescription || "",
-      isFeatured: !!isFeatured
+      isFeatured: !!isFeatured,
+      html: html || "",
+      css: css || "",
+      layoutJson: layoutJson || {}
     });
 
     const saved = await post.save();
@@ -225,7 +281,7 @@ exports.addPost = async (req, res, next) => {
 exports.updatePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured } = req.body;
+    const { title, content, status, categories, websiteId, storeId, excerpt, metaTitle, metaDescription, isFeatured, featuredImageUrl, faqs, html, css, layoutJson } = req.body;
 
     const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
     if (!post) {
@@ -242,12 +298,45 @@ exports.updatePost = async (req, res, next) => {
     if (websiteId !== undefined) post.websiteId = websiteId && websiteId !== '—' ? websiteId : null;
     if (storeId !== undefined) post.storeId = storeId && storeId !== '—' ? storeId : null;
     if (excerpt !== undefined) post.excerpt = excerpt;
+    if (featuredImageUrl !== undefined) post.featuredImageUrl = featuredImageUrl;
+    if (faqs !== undefined) post.faqs = Array.isArray(faqs) ? faqs : [];
     if (metaTitle !== undefined) post.metaTitle = metaTitle;
     if (metaDescription !== undefined) post.metaDescription = metaDescription;
     if (isFeatured !== undefined) post.isFeatured = isFeatured;
+    if (html !== undefined) post.html = html;
+    if (css !== undefined) post.css = css;
+    if (layoutJson !== undefined) post.layoutJson = layoutJson;
 
     const saved = await post.save();
     res.json({ success: true, data: saved });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getPostDetails = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const post = await BlogPost.findOne({ _id: postId, isDeleted: false });
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Blog post not found' });
+    }
+
+    const blog = await Blog.findOne({ _id: post.blogId, workspaceId: req.workspaceId, isDeleted: false });
+    if (!blog) {
+      return res.status(404).json({ success: false, error: 'Parent blog not found' });
+    }
+
+    const websiteTheme = await getLinkedWebsiteTheme(post.websiteId || blog.websiteId);
+
+    res.json({
+      success: true,
+      data: {
+        ...post.toObject(),
+        blog: blog.toObject(),
+        websiteTheme
+      }
+    });
   } catch (error) {
     next(error);
   }

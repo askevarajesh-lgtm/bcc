@@ -10,11 +10,13 @@ const WebsiteSchema = new mongoose.Schema({
     metaPixelId: { type: String, default: "" },
     ga4Id: { type: String, default: "" },
     gtmId: { type: String, default: "" },
-    tiktokPixelId: { type: String, default: "" },
-    customHeadCode: { type: String, default: "" },
-    customBodyCode: { type: String, default: "" }
+    tiktokPixelId: { type: String, default: "" }
   },
   chatWidgetId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatWidget', default: null },
+  theme: {
+    fontFamily: { type: String, default: 'Inter' },
+    primaryColor: { type: String, default: '#3b82f6' }
+  },
   domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'Domain' },
   isDeleted: { type: Boolean, default: false, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId },

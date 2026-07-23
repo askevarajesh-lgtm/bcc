@@ -9,6 +9,9 @@ const PageSchema = new mongoose.Schema({
   layoutJson: { type: mongoose.Schema.Types.Mixed, default: {} },
   html: { type: String, default: "" },
   css: { type: String, default: "" },
+  stylesheetUrls: { type: [String], default: [] },
+  customHeadCode: { type: String, default: "" },
+  customBodyCode: { type: String, default: "" },
   isDeleted: { type: Boolean, default: false, required: true }
 }, { timestamps: true });
 

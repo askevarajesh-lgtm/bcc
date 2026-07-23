@@ -113,18 +113,169 @@ const getWidgetHtmlOnly = (widget) => {
   `;
 };
 
+const NON_CONTENT_SELECTOR =
+  "script, style, noscript, #spinner, #preloader, .preloader, .loader-wrapper, .loader, .td-preloader-wrap, " +
+  ".back-to-top, #back-to-top, .backtotop, .back-to-top-btn, .scroll-top, .scrolltop, .scroll-to-top, .scrollup, .go-top, .gotop, .totop";
+
+const GENERIC_CLASS_RE =
+  /^(container|container-fluid|row|col(-\w+)?(-\d+)?|[pm][trblxy]?-\d+|wow|fade\w*|text-(center|left|right|white|dark)|d-\w+|position-\w+|w-100|h-100)$/i;
+
+const significantClassTokens = (el) =>
+  (el.className || "")
+    .toString()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((c) => !GENERIC_CLASS_RE.test(c));
+
+const shareStyleSignal = (elA, elB) => {
+  const a = significantClassTokens(elA);
+  const b = new Set(significantClassTokens(elB));
+  return a.some((c) => b.has(c));
+};
+
+const isNavLike = (el) =>
+  el.matches("nav") ||
+  !!el.querySelector("nav") ||
+  el.matches('[class*="navbar"]') ||
+  !!el.querySelector('[class*="navbar"]');
+
+const isFooterSignal = (el) =>
+  el.matches('[class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+
+const buildHeaderGroup = (children) => {
+  if (children.length === 0) return [];
+  const lookahead = Math.min(children.length, 3);
+  for (let i = 0; i < lookahead; i++) {
+    if (isNavLike(children[i])) return children.slice(0, i + 1);
+  }
+  return [children[0]]; 
+};
+
+const buildFooterGroup = (children) => {
+  const n = children.length;
+  if (n === 0) return [];
+  const lookback = Math.min(n, 3);
+  const group = [children[n - 1]];
+  for (let i = n - 2; i >= n - lookback; i--) {
+    const el = children[i];
+    if (isFooterSignal(el) || shareStyleSignal(el, group[0])) {
+      group.unshift(el);
+    } else {
+      break;
+    }
+  }
+  return group;
+};
+
+const parseHeaderFooterFromHtml = (html) => {
+  if (!html) return { header: "", footer: "" };
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const body = doc.body;
+    if (!body) return { header: "", footer: "" };
+
+    const headerEl = doc.querySelector(
+      "header, [data-gjs-type='header'], .site-header, .main-header, #header",
+    );
+    const footerEl = doc.querySelector(
+      "footer, [data-gjs-type='footer'], .site-footer, .main-footer, #footer",
+    );
+
+    const topLevelChildren = Array.from(body.children).filter(
+      (el) => !el.matches(NON_CONTENT_SELECTOR),
+    );
+
+    let headerGroup = headerEl ? [headerEl] : [];
+    let footerGroup = footerEl ? [footerEl] : [];
+
+    if (headerGroup.length === 0 && topLevelChildren.length > 1) {
+      headerGroup = buildHeaderGroup(topLevelChildren);
+    }
+    if (footerGroup.length === 0 && topLevelChildren.length > 1) {
+      footerGroup = buildFooterGroup(topLevelChildren);
+    }
+
+    // Guard against a single-section page grabbing the same element(s) twice.
+    if (headerGroup.length && footerGroup.length && headerGroup.some((h) => footerGroup.includes(h))) {
+      footerGroup = [];
+    }
+
+    return {
+      header: headerGroup.map((el) => el.outerHTML).join("\n"),
+      footer: footerGroup.map((el) => el.outerHTML).join("\n"),
+    };
+  } catch (err) {
+    console.error("Failed to parse header/footer from home page", err);
+    return { header: "", footer: "" };
+  }
+};
+
+const getSiteHeaderFooter = (website) => {
+  if (!website || !Array.isArray(website.pages)) return { header: "", footer: "" };
+  const homePage =
+    website.pages.find((p) => p.isHome) ||
+    website.pages.find((p) => p.html) ||
+    null;
+  if (!homePage || !homePage.html) return { header: "", footer: "" };
+  return parseHeaderFooterFromHtml(homePage.html);
+};
+
+const DEFAULT_FEATURED_IMAGE_ASPECT_RATIO = "16/9";
+const LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT = "280px";
+const normalizeFeaturedImageHeight = (html) => {
+  if (!html) return html;
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const img = doc.querySelector('[data-post-field="image"]');
+    if (img) {
+      if (!img.style.aspectRatio && (!img.style.height || img.style.height === LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT)) {
+        img.style.removeProperty("height");
+        img.style.aspectRatio = DEFAULT_FEATURED_IMAGE_ASPECT_RATIO;
+      }
+      img.style.removeProperty("max-height");
+      if (!img.style.objectFit) img.style.objectFit = "cover";
+    }
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error("Failed to normalize featured image height", err);
+    return html;
+  }
+};
+
+const extractStylesheetUrls = (html) => {
+  if (!html) return [];
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
+      .map((l) => l.getAttribute("href"))
+      .filter((href) => !!href && /^https?:\/\//i.test(href));
+  } catch (err) {
+    console.error("Failed to extract stylesheet urls from template html", err);
+    return [];
+  }
+};
+
 const GrapesJSBuilder = ({
-  activeWebsite,
-  activePage,
+  activeWebsite = {},
+  activePage = {},
+  activePost = {},
+  mode = "page",
   setEditingPage,
   onSave,
 }) => {
+  const isPostMode = mode === "post";
   const editorRef = useRef(null);
+  const stylesheetUrlsRef = useRef([]);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveToast, setSaveToast] = useState(null); 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const initialPostTitle = activePost?.title || "";
+  const initialPostExcerpt = activePost?.excerpt || "";
+  const initialPostFeaturedImageUrl = activePost?.featuredImageUrl || "";
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(
     activeWebsite.chatWidgetId || "none",
@@ -132,9 +283,28 @@ const GrapesJSBuilder = ({
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [savingWidget, setSavingWidget] = useState(false);
   const [assignedWidget, setAssignedWidget] = useState(null);
+  const [postStatus, setPostStatus] = useState(activePost?.status || "draft");
 
   useEffect(() => {
     if (!editorRef.current) return;
+
+    const sourceContent = isPostMode ? activePost : activePage;
+    const siteFont = activeWebsite?.theme?.fontFamily || "Inter";
+    const brandColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
+
+    const homePageForAssets = Array.isArray(activeWebsite?.pages)
+      ? activeWebsite.pages.find((p) => p.isHome) ||
+        activeWebsite.pages.find((p) => p.html) ||
+        null
+      : null;
+    const resolveCssUrls = (page) =>
+      page?.stylesheetUrls?.length ? page.stylesheetUrls : extractStylesheetUrls(page?.html || "");
+
+    const templateCssUrls = isPostMode
+      ? resolveCssUrls(homePageForAssets)
+      : (resolveCssUrls(sourceContent).length ? resolveCssUrls(sourceContent) : resolveCssUrls(homePageForAssets));
+
+    stylesheetUrlsRef.current = templateCssUrls;
 
     const e = grapesjs.init({
       container: editorRef.current,
@@ -162,22 +332,95 @@ const GrapesJSBuilder = ({
         styles: [
           // Basic reset or custom styles
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
+          ...templateCssUrls,
         ],
       },
     });
 
-    // Load initial HTML/CSS if it exists
-    if (activePage.html || activePage.css) {
-      e.setComponents(activePage.html || "");
-      e.setStyle(activePage.css || "");
-    } else {
-      // Default empty template
+    e.on("load", () => {
+      const canvasDoc = e.Canvas.getDocument();
+      if (!canvasDoc) return;
+      let styleEl = canvasDoc.getElementById("bcc-theme-vars");
+      if (!styleEl) {
+        styleEl = canvasDoc.createElement("style");
+        styleEl.id = "bcc-theme-vars";
+        canvasDoc.head.appendChild(styleEl);
+      }
+      const postRenderOverrides = isPostMode
+        ? `
+          body { font-family: var(--site-font), sans-serif; }
+          body > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+          [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * {
+            font-family: var(--site-font) !important;
+          }
+          [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,
+          .faq-item summary span[style*="border-radius:999px"] {
+            background: var(--brand-color) !important;
+          }
+          [data-post-field="faq"] h2 span {
+            color: var(--brand-color) !important;
+          }
+          [data-post-field="faq"] > div:first-child > span:first-child {
+            background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+            border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+          }
+          .bcc-brand-bg { background: var(--brand-color) !important; }
+          .bcc-brand-text { color: var(--brand-color) !important; }
+          .bcc-brand-tint {
+            background: color-mix(in srgb, var(--brand-color) 10%, transparent) !important;
+            border-color: color-mix(in srgb, var(--brand-color) 20%, transparent) !important;
+          }
+        `
+        : "";
+      styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; } ${postRenderOverrides}`;
+    });
+
+    const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
+    const siteName = activeWebsite?.name || "Your Site";
+
+    const fallbackHeaderHtml = `<header style="display:flex; align-items:center; justify-content:space-between; padding:20px 40px; font-family:var(--site-font, '${siteFont}'), sans-serif; border-bottom:1px solid #e2e8f0;"><div style="font-weight:800; font-size:20px; color:#0f172a;">${siteName}</div><nav style="display:flex; gap:24px; font-size:15px; font-weight:600; color:#334155;"><span>Home</span><span>About</span><span>Contact</span></nav></header>`;
+    const fallbackFooterHtml = `<footer style="padding:32px 40px; text-align:center; font-family:var(--site-font, '${siteFont}'), sans-serif; color:#64748b; font-size:14px; border-top:1px solid #e2e8f0;">© ${new Date().getFullYear()} ${siteName}. All rights reserved.</footer>`;
+
+    if (sourceContent.html || sourceContent.css) {
       e.setComponents(
-        '<div style="padding: 50px; text-align: center; font-family: Inter, sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>',
+        isPostMode ? normalizeFeaturedImageHeight(sourceContent.html || "") : (sourceContent.html || ""),
       );
+      e.setStyle(sourceContent.css || "");
+    } else if (isPostMode) {
+      e.setComponents(`
+        ${siteHeaderHtml}
+        <div style="width:100%; box-sizing:border-box; padding: 50px 40px; font-family: var(--site-font, '${siteFont}'), sans-serif;">
+          <img data-post-field="image" src="${initialPostFeaturedImageUrl || "https://placehold.co/800x400?text=Featured+Image"}" alt="Featured image" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px; margin-bottom:28px;" />
+          <h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a;">${initialPostTitle || "Post title"}</h1>
+          <p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; margin:0 0 32px;">${initialPostExcerpt || "A short summary shown in blog listings."}</p>
+          <div style="font-size:16px; line-height:1.8; color:#1e293b;">
+            <p>Start writing your blog post content here, or drag more blocks in from the panel.</p>
+          </div>
+        </div>
+        ${siteFooterHtml}
+      `);
+    } else {
+      e.setComponents(`
+        ${siteHeaderHtml}
+        <div style="padding: 50px; text-align: center; font-family: var(--site-font, '${siteFont}'), sans-serif;"><h1>Welcome to M1 Growth platform Builder</h1><p>Start dragging blocks from the right panel to build your page!</p></div>
+        ${siteFooterHtml}
+      `);
     }
 
     setEditor(e);
+
+    e.BlockManager.add("site-header-block", {
+      label: "Header",
+      category: "Basic",
+      content: siteHeaderHtml || fallbackHeaderHtml,
+      attributes: { class: "fa fa-window-maximize" },
+    });
+    e.BlockManager.add("site-footer-block", {
+      label: "Footer",
+      category: "Basic",
+      content: siteFooterHtml || fallbackFooterHtml,
+      attributes: { class: "fa fa-window-minimize" },
+    });
 
     // Fetch forms and register them as GrapesJS blocks
     const loadForms = async () => {
@@ -191,7 +434,7 @@ const GrapesJSBuilder = ({
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((form) => {
             const embedUrl = `${window.location.origin}/embed/form/${form._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; min-height:520px; border:0; border-radius:16px;"></iframe>`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${form.name}" style="width:100%; height:520px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`form-${form._id}`, {
               label: form.name,
@@ -218,7 +461,7 @@ const GrapesJSBuilder = ({
         if (data.success && Array.isArray(data.data)) {
           data.data.forEach((blog) => {
             const embedUrl = `${window.location.origin}/embed/blog/${blog._id}`;
-            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; min-height:600px; border:0; border-radius:16px;"></iframe>`;
+            const iframeCode = `<iframe src="${embedUrl}" title="${blog.name}" style="width:100%; height:800px; border:0; border-radius:16px;"></iframe>`;
 
             e.BlockManager.add(`blog-${blog._id}`, {
               label: blog.name,
@@ -260,9 +503,79 @@ const GrapesJSBuilder = ({
       }
     };
 
-    loadForms();
-    loadBlogs();
-    loadQRs();
+    if (!isPostMode) {
+      loadForms();
+      loadBlogs();
+      loadQRs();
+    } else {
+      e.BlockManager.add("post-title-block", {
+        label: "Post Title",
+        category: "Post",
+        content: `<h1 data-post-field="title" style="font-size:36px; font-weight:800; line-height:1.2; margin:0 0 14px; color:#0f172a; font-family:var(--site-font, '${siteFont}'), sans-serif;">Post title</h1>`,
+        attributes: { class: "fa fa-header" },
+      });
+      e.BlockManager.add("post-featured-image-block", {
+        label: "Featured Image",
+        category: "Post",
+        content: `<img data-post-field="image" src="https://placehold.co/800x400?text=Featured+Image" alt="Featured image" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px;" />`,
+        attributes: { class: "fa fa-image" },
+      });
+      e.BlockManager.add("post-excerpt-block", {
+        label: "Excerpt",
+        category: "Post",
+        content: `<p data-post-field="excerpt" style="font-size:17px; color:#64748b; line-height:1.6; font-family:var(--site-font, '${siteFont}'), sans-serif;">A short summary shown in blog listings.</p>`,
+        attributes: { class: "fa fa-align-left" },
+      });
+
+      const faqThemeColor = activeWebsite?.theme?.primaryColor || "#3b82f6";
+      const faqThemeFont = activeWebsite?.theme?.fontFamily || "Inter";
+      const faqFontFamily = `var(--site-font, '${faqThemeFont}'), sans-serif`;
+      const faqColor = `var(--brand-color, ${faqThemeColor})`;
+      const faqTintBg = `color-mix(in srgb, ${faqColor} 10%, transparent)`;
+      const faqTintBorder = `color-mix(in srgb, ${faqColor} 20%, transparent)`;
+
+      const faqItemHtml = (question, answer, open) => `
+          <details class="faq-item"${open ? " open" : ""} style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 2px rgba(15,23,42,0.04); font-family:${faqFontFamily};">
+            <summary style="list-style:none; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+              <span data-faq-question style="font-weight:700; font-size:16px; color:#0f172a; font-family:${faqFontFamily};">${question}</span>
+              <span class="bcc-brand-bg" style="flex-shrink:0; width:32px; height:32px; border-radius:999px; background:${faqColor}; display:flex; align-items:center; justify-content:center;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </span>
+            </summary>
+            <div data-faq-answer style="font-size:15px; color:#64748b; line-height:1.7; margin-top:12px; font-family:${faqFontFamily};">${answer}</div>
+          </details>`;
+
+      e.BlockManager.add("post-faq-section-block", {
+        label: "FAQ Section",
+        category: "Post",
+        content: `
+          <div data-post-field="faq" style="margin-top:40px; padding-top:32px; font-family:${faqFontFamily};">
+            <div style="text-align:center; margin-bottom:32px;">
+              <span class="bcc-brand-tint" style="display:inline-flex; align-items:center; gap:2px; background:${faqTintBg}; border:1px solid ${faqTintBorder}; border-radius:999px; padding:4px; margin-bottom:20px;">
+                <span class="bcc-brand-bg" style="background:${faqColor}; color:#ffffff; font-weight:700; font-size:13px; padding:6px 16px; border-radius:999px; font-family:${faqFontFamily};">Brand</span>
+                <span style="color:#0f172a; font-weight:700; font-size:13px; padding:6px 16px; font-family:${faqFontFamily};">FAQ</span>
+              </span>
+              <h2 style="font-size:32px; font-weight:800; margin:0 0 12px; color:#0f172a; line-height:1.25; font-family:${faqFontFamily};">Frequently answer <span class="bcc-brand-text" style="color:${faqColor};">questions</span></h2>
+              <p style="font-size:15px; color:#64748b; margin:0; font-family:${faqFontFamily};">Manage it all with a fully customizable, no code platform</p>
+            </div>
+            ${faqItemHtml(
+              "What is Customer Relationship Management (CRM)?",
+              "Customer Relationship Management (CRM) is a platform that helps companies manage interactions with current and potential customers. CRM software enhances customer relationships by connecting with customers, streamlining activities, and improving retention.",
+              true
+            )}
+            ${faqItemHtml("What is CRM Software Used For?", "Its answer.", true)}
+            ${faqItemHtml("Manage your finances from any device", "Its answer.", true)}
+          </div>
+        `,
+        attributes: { class: "fa fa-question-circle" },
+      });
+      e.BlockManager.add("post-faq-item-block", {
+        label: "FAQ Item",
+        category: "Post",
+        content: faqItemHtml("Another question?", "Its answer.", true),
+        attributes: { class: "fa fa-plus-square" },
+      });
+    }
 
     // Hide common HTML template preloaders/spinners inside the canvas
     e.on("load", () => {
@@ -271,6 +584,9 @@ const GrapesJSBuilder = ({
         if (doc) {
           const style = doc.createElement("style");
           style.innerHTML = `
+            /* Match the published preview's reset so nothing renders with
+               stray default browser spacing on the sides */
+            body { margin: 0; padding: 0; }
             /* Hide preloaders in builder so they don't block the canvas */
             #spinner, #preloader, .preloader, .loader-wrapper, .loader {
               display: none !important;
@@ -284,6 +600,13 @@ const GrapesJSBuilder = ({
               opacity: 0 !important;
               visibility: hidden !important;
               pointer-events: none !important;
+            }
+            /* Posts saved before the featured-image max-height fix can still carry
+               a stale max-height:280px (from the old insert default) alongside a
+               larger resized height, which clamps the image back down. Neutralize
+               it here so the canvas reflects the real, resized height. */
+            [data-post-field="image"] {
+              max-height: none !important;
             }
           `;
           doc.head.appendChild(style);
@@ -337,7 +660,7 @@ const GrapesJSBuilder = ({
     return () => {
       e.destroy();
     };
-  }, [activePage.html, activePage.css]);
+  }, [activePage.html, activePage.css, activePost?.html, activePost?.css]);
 
   useEffect(() => {
     const fetchWidgets = async () => {
@@ -463,12 +786,17 @@ const GrapesJSBuilder = ({
   useEffect(() => {
     if (editor) {
       injectChatWidgetToCanvas(editor, assignedWidget);
-      // Re-inject on load
       editor.on("load", () => {
         injectChatWidgetToCanvas(editor, assignedWidget);
       });
     }
   }, [editor, assignedWidget]);
+
+  useEffect(() => {
+    if (!saveToast) return;
+    const timer = setTimeout(() => setSaveToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [saveToast]);
 
   const handleSaveWidgetAssignment = async () => {
     try {
@@ -518,6 +846,91 @@ const GrapesJSBuilder = ({
     try {
       setSaving(true);
       const token = localStorage.getItem("token");
+
+      if (isPostMode) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        const titleEl = doc.querySelector('[data-post-field="title"]');
+        const excerptEl = doc.querySelector('[data-post-field="excerpt"]');
+        const imageEl = doc.querySelector('[data-post-field="image"]');
+
+        const title = titleEl
+          ? titleEl.textContent.trim()
+          : initialPostTitle;
+        const excerpt = excerptEl
+          ? excerptEl.textContent.trim()
+          : initialPostExcerpt;
+        const featuredImageUrl = imageEl
+          ? imageEl.getAttribute("src") || ""
+          : initialPostFeaturedImageUrl;
+
+        let postCss = css;
+        if (imageEl) {
+          imageEl.style.removeProperty("max-height");
+          const imageElId = imageEl.getAttribute("id");
+          if (imageElId) {
+            postCss = postCss.replace(
+              new RegExp(`(#${imageElId}\\s*{[^}]*?)max-height\\s*:[^;]+;\\s*`, "g"),
+              "$1"
+            );
+          }
+        }
+
+        const faqs = [];
+        const faqSection = doc.querySelector('[data-post-field="faq"]');
+        if (faqSection) {
+          faqSection.querySelectorAll(".faq-item").forEach((item) => {
+            const qEl = item.querySelector("[data-faq-question]");
+            const aEl = item.querySelector("[data-faq-answer]");
+            const question = qEl ? qEl.textContent.trim() : "";
+            const answer = aEl ? aEl.textContent.trim() : "";
+            if (question || answer) faqs.push({ question, answer });
+          });
+        }
+        doc.querySelectorAll(".faq-item[open]").forEach((item) => {
+          item.removeAttribute("open");
+        });
+        const finalHtml = doc.body.innerHTML;
+
+        if (!title) {
+          setSaveToast({ type: "error", text: "Add a Post Title block with some text before saving." });
+          setSaving(false);
+          return;
+        }
+
+        const res = await fetch(`/api/blogs/posts/${activePost._id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            html: finalHtml,
+            css: postCss,
+            title,
+            excerpt,
+            featuredImageUrl,
+            faqs,
+            status: postStatus,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSaveToast({
+            type: "success",
+            text:
+              postStatus === "published"
+                ? "Blog post saved and published!"
+                : "Blog post saved as draft. Switch to \"Published\" and save again to make it appear in Blog List blocks."
+          });
+          onSave(data.data);
+        } else {
+          setSaveToast({ type: "error", text: data.error || "Failed to save blog post" });
+        }
+        return;
+      }
+
       const res = await fetch(
         `/api/websites/${activeWebsite.key}/pages/${activePage._id}`,
         {
@@ -526,19 +939,19 @@ const GrapesJSBuilder = ({
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
           },
-          body: JSON.stringify({ html, css }),
+          body: JSON.stringify({ html, css, stylesheetUrls: stylesheetUrlsRef.current }),
         },
       );
       const data = await res.json();
       if (data.success) {
-        message.success("Page saved successfully!");
+        setSaveToast({ type: "success", text: "Page saved successfully!" });
         onSave(data.data);
       } else {
-        message.error(data.error || "Failed to save page");
+        setSaveToast({ type: "error", text: data.error || "Failed to save page" });
       }
     } catch (err) {
       console.error(err);
-      message.error("An error occurred while saving");
+      setSaveToast({ type: "error", text: "An error occurred while saving" });
     } finally {
       setSaving(false);
     }
@@ -549,6 +962,31 @@ const GrapesJSBuilder = ({
       className={`builder-container ${isPreviewing ? "is-previewing" : ""}`}
       style={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
+      {saveToast && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100000,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 20px",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            color: "#fff",
+            background: saveToast.type === "success" ? "#16a34a" : "#dc2626",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+          }}
+        >
+          {saveToast.text}
+        </div>
+      )}
+
       {/* Custom Premium Top Bar */}
       {!isPreviewing && (
         <div
@@ -596,25 +1034,39 @@ const GrapesJSBuilder = ({
               }}
             >
               M1 Growth platform Builder:{" "}
-              <span style={{ color: "#3b82f6" }}>{activePage.title}</span>
+              <span style={{ color: "#3b82f6" }}>
+                {isPostMode ? activePost.title : activePage.title}
+              </span>
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Button
-              type="default"
-              onClick={() => setIsChatModalOpen(true)}
-              style={{
-                background: "#1e293b",
-                color: "#cbd5e1",
-                borderColor: "#334155",
-                fontWeight: 600,
-                borderRadius: 6,
-                height: 36,
-              }}
-            >
-              Chat Widget
-            </Button>
+            {!isPostMode && (
+              <Button
+                type="default"
+                onClick={() => setIsChatModalOpen(true)}
+                style={{
+                  background: "#1e293b",
+                  color: "#cbd5e1",
+                  borderColor: "#334155",
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  height: 36,
+                }}
+              >
+                Chat Widget
+              </Button>
+            )}
+            {isPostMode && (
+              <Select
+                value={postStatus}
+                onChange={(v) => setPostStatus(v)}
+                style={{ width: 130, height: 36 }}
+              >
+                <Option value="draft">Draft</Option>
+                <Option value="published">Published</Option>
+              </Select>
+            )}
             <Button
               type="primary"
               onClick={handleSave}
@@ -660,7 +1112,6 @@ const GrapesJSBuilder = ({
           if (selectedComponent && selectedComponent.is("image")) {
             selectedComponent.addAttributes({ src: url });
           } else {
-            // If they opened Asset Manager without selecting image (e.g. from top bar), GrapesJS expects asset to be added
             editor.AssetManager.add(url);
           }
           setIsMediaModalOpen(false);

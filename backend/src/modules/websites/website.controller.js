@@ -1,12 +1,146 @@
 const Website = require('./website.model');
 const Page = require('./page.model');
+const { extractStylesheetUrls } = require('./website.chrome');
 const Template = require('../templates/template.model');
+const Blog = require('../blogs/blog.model');
 const unzipper = require('unzipper');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const axios = require('axios');
 const cloudinary = require('../../config/cloudinary');
+
+function detectThemeFromContent(htmlContents, cssContents) {
+  let fontFamily = null;
+  let primaryColor = null;
+
+  // 1) A linked Google Font is the strongest signal of the site's intended font
+  for (const html of htmlContents) {
+    const fontLinkMatch = html.match(/fonts\.googleapis\.com\/css2?\?family=([^"'&]+)/i);
+    if (fontLinkMatch) {
+      fontFamily = decodeURIComponent(fontLinkMatch[1]).split(':')[0].replace(/\+/g, ' ');
+      break;
+    }
+  }
+
+  const combinedCss = cssContents.join('\n');
+
+  // 2) Otherwise fall back to the first non-generic font-family declared in the CSS
+  if (!fontFamily) {
+    const generic = ['sans-serif', 'serif', 'monospace', 'arial', 'helvetica', 'times new roman', 'inherit', 'initial'];
+    const fontFamilyMatches = combinedCss.matchAll(/font-family\s*:\s*['"]?([A-Za-z0-9 ]+)['"]?/gi);
+    for (const m of fontFamilyMatches) {
+      const candidate = m[1].trim();
+      if (candidate && !generic.includes(candidate.toLowerCase())) {
+        fontFamily = candidate;
+        break;
+      }
+    }
+  }
+
+  // 3) An explicit CSS custom property (--primary, --brand-color, etc.) is the strongest color signal
+  const varMatch = combinedCss.match(/--(?:primary|brand|theme|accent|main)[a-z-]*\s*:\s*(#[0-9a-fA-F]{3,6})/i);
+  if (varMatch) {
+    primaryColor = varMatch[1];
+  } else {
+    // 4) Otherwise use the most frequently used non-grayscale hex color in the CSS
+    const hexMatches = combinedCss.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || [];
+    const counts = {};
+    for (const hex of hexMatches) {
+      const normalized = hex.toLowerCase();
+      const [r, g, b] = normalized.length === 4
+        ? [normalized[1], normalized[2], normalized[3]].map(c => parseInt(c + c, 16))
+        : [normalized.slice(1, 3), normalized.slice(3, 5), normalized.slice(5, 7)].map(c => parseInt(c, 16));
+      const isGrayscale = (Math.max(r, g, b) - Math.min(r, g, b)) < 15; // catches whites/blacks/grays
+      if (isGrayscale) continue;
+      counts[normalized] = (counts[normalized] || 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) primaryColor = sorted[0][0];
+  }
+
+  return { fontFamily, primaryColor };
+}
+
+// Wrapper used during template zip extraction, where files are still on local disk.
+function detectThemeFromTemplateFiles(htmlFiles, cssFiles) {
+  const htmlContents = htmlFiles.map(f => {
+    try { return fs.readFileSync(f, 'utf8'); } catch (e) { return ''; }
+  });
+  const cssContents = cssFiles.map(f => {
+    try { return fs.readFileSync(f, 'utf8'); } catch (e) { return ''; }
+  });
+  return detectThemeFromContent(htmlContents, cssContents);
+}
+
+async function detectThemeFromPublishedPages(pages) {
+  const htmlContents = pages.map(p => p.html || '');
+
+  const cssUrls = new Set();
+  for (const html of htmlContents) {
+    const linkMatches = html.matchAll(/<link[^>]+href=["']([^"']+\.css)["'][^>]*>/gi);
+    for (const m of linkMatches) cssUrls.add(m[1]);
+  }
+
+  const cssContents = [];
+  for (const url of cssUrls) {
+    try {
+      const response = await axios.get(url, { responseType: 'text', timeout: 10000 });
+      cssContents.push(typeof response.data === 'string' ? response.data : '');
+    } catch (e) {
+      // Skip any CSS file that fails to download rather than failing the whole detection
+    }
+  }
+
+  return detectThemeFromContent(htmlContents, cssContents);
+}
+
+async function downloadTemplateZip(templateRecord, zipPath) {
+  const attempts = [];
+
+  const tryFetch = async (label, url) => {
+    try {
+      const response = await axios({ method: 'GET', url, responseType: 'stream' });
+      await new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(zipPath);
+        response.data.pipe(writer);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+      return true;
+    } catch (err) {
+      const status = err.response?.status;
+      attempts.push(`${label}${status ? ` (HTTP ${status})` : ''}: ${err.message}`);
+      return false;
+    }
+  };
+
+  let publicId = templateRecord.zipPublicId;
+  if (!publicId) {
+    const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
+    const match = templateRecord.zipUrl.match(regex);
+    publicId = match && match[1] ? match[1] : templateRecord.zipUrl;
+  }
+  const authenticatedUrl = cloudinary.utils.private_download_url(publicId, 'zip', {
+    resource_type: 'raw',
+    type: 'authenticated',
+  });
+  if (await tryFetch('authenticated download URL', authenticatedUrl)) return;
+
+  if (templateRecord.zipPublicId) {
+    const signedUrl = cloudinary.url(templateRecord.zipPublicId, {
+      resource_type: 'raw',
+      type: 'upload',
+      sign_url: true,
+      secure: true,
+    });
+    if (await tryFetch('signed upload URL', signedUrl)) return;
+  }
+
+  if (await tryFetch('direct zipUrl', templateRecord.zipUrl)) return;
+
+  throw new Error(`All download attempts failed — ${attempts.join('; ')}`);
+}
 
 // Create Website
 exports.createWebsite = async (req, res, next) => {
@@ -31,7 +165,11 @@ exports.createWebsite = async (req, res, next) => {
 
     // Initialize default pages
     let newPages = [];
-    
+    // Surfaced to the response (instead of only console.error) so a failed
+    // template import is visible to the caller rather than silently
+    // producing a website with just the generic blank Home page.
+    let templateImportWarning = null;
+
     // If template is provided, extract zip and read all html
     if (type === 'template' && templateName) {
       const templateRecord = await Template.findOne({ name: templateName, isDeleted: false });
@@ -46,7 +184,7 @@ exports.createWebsite = async (req, res, next) => {
         try {
           // Determine if it's a Cloudinary URL or local path (for backward compatibility)
           const isCloudinary = templateRecord.zipUrl.startsWith('http');
-          
+
           if (isCloudinary) {
             // Extract public ID from Cloudinary URL reliably using regex
             let publicId = templateRecord.zipUrl;
@@ -119,6 +257,16 @@ exports.createWebsite = async (req, res, next) => {
             }
           }
 
+          const cssFiles = assetFiles.filter(f => f.toLowerCase().endsWith('.css'));
+          const detectedTheme = detectThemeFromTemplateFiles(htmlFiles, cssFiles);
+          if (detectedTheme.fontFamily || detectedTheme.primaryColor) {
+            savedWebsite.theme = {
+              fontFamily: detectedTheme.fontFamily || savedWebsite.theme.fontFamily,
+              primaryColor: detectedTheme.primaryColor || savedWebsite.theme.primaryColor
+            };
+            await savedWebsite.save();
+          }
+
           const assetUrlMap = {}; // Maps relative path to Cloudinary URL
 
           // Upload assets sequentially to avoid overwhelming Cloudinary API
@@ -181,6 +329,8 @@ exports.createWebsite = async (req, res, next) => {
             const pagePath = isHome ? '/home' : `/${pageName.toLowerCase()}`;
             const pageTitle = pageName.charAt(0).toUpperCase() + pageName.slice(1);
 
+            const stylesheetUrls = extractStylesheetUrls(htmlContent);
+
             const newPage = new Page({
               websiteId: savedWebsite._id,
               title: isHome ? 'Home' : pageTitle,
@@ -189,6 +339,7 @@ exports.createWebsite = async (req, res, next) => {
               isHome,
               html: htmlContent,
               css: '', // CSS is linked via <link> tags from Cloudinary now
+              stylesheetUrls,
               layoutJson: { sections: [] }
             });
             await newPage.save();
@@ -209,9 +360,10 @@ exports.createWebsite = async (req, res, next) => {
 
         } catch (zipErr) {
           console.error("Error processing template zip:", zipErr);
-          fs.writeFileSync(path.join(os.tmpdir(), 'template_error_log.txt'), zipErr.stack || zipErr.toString());
-          throw new Error('Template extraction failed: ' + zipErr.message);
+          templateImportWarning = `Couldn't import pages from the "${templateName}" template (${zipErr.message || 'download/extract failed'}), so this site was created with just a blank Home page instead.`;
         }
+      } else {
+        templateImportWarning = `Template "${templateName}" was not found or has no uploaded file, so this site was created with just a blank Home page instead.`;
       }
     }
 
@@ -255,6 +407,7 @@ exports.createWebsite = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      warning: templateImportWarning || undefined,
       data: {
         ...savedWebsite.toObject(),
         pages: newPages.map(p => ({ _id: p._id, title: p.title, path: p.path, status: p.status, isHome: p.isHome }))
@@ -289,12 +442,14 @@ exports.getWebsites = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    // Map pages count onto websites
+    // Map pages count and blogs count onto websites
     const data = await Promise.all(websites.map(async (web) => {
       const pagesCount = await Page.countDocuments({ websiteId: web._id, isDeleted: false });
+      const blogsCount = await Blog.countDocuments({ websiteId: web._id, isDeleted: false });
       return {
         ...web.toObject(),
-        pagesCount
+        pagesCount,
+        blogsCount
       };
     }));
 
@@ -361,7 +516,7 @@ exports.getPage = async (req, res, next) => {
 exports.updateWebsite = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, status, faviconUrl, trackingPixels, chatWidgetId, pages } = req.body;
+    const { name, description, status, faviconUrl, trackingPixels, chatWidgetId, pages, theme } = req.body;
 
     const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
     if (!website) {
@@ -375,6 +530,9 @@ exports.updateWebsite = async (req, res, next) => {
     if (chatWidgetId !== undefined) website.chatWidgetId = chatWidgetId;
     if (trackingPixels) {
       website.trackingPixels = { ...website.trackingPixels, ...trackingPixels };
+    }
+    if (theme) {
+      website.theme = { ...(website.theme?.toObject ? website.theme.toObject() : website.theme), ...theme };
     }
     website.updatedBy = req.user?._id;
 
@@ -405,7 +563,10 @@ exports.updateWebsite = async (req, res, next) => {
             isHome: p.isHome || false,
             layoutJson: p.layoutJson || { sections: [] },
             html: p.html || '',
-            css: p.css || ''
+            css: p.css || '',
+            stylesheetUrls: p.stylesheetUrls || [],
+            customHeadCode: p.customHeadCode || '',
+            customBodyCode: p.customBodyCode || ''
           });
           const savedPage = await newPage.save();
           finalPages.push(savedPage);
@@ -418,7 +579,9 @@ exports.updateWebsite = async (req, res, next) => {
                 title: p.title,
                 path: p.path,
                 status: p.status,
-                isHome: p.isHome
+                isHome: p.isHome,
+                customHeadCode: p.customHeadCode || '',
+                customBodyCode: p.customBodyCode || ''
               }
             },
             { new: true }
@@ -499,7 +662,8 @@ exports.cloneWebsite = async (req, res, next) => {
       isHome: p.isHome,
       layoutJson: p.layoutJson,
       html: p.html,
-      css: p.css
+      css: p.css,
+      stylesheetUrls: p.stylesheetUrls
     }));
 
     if (clonedPages.length > 0) {
@@ -507,6 +671,41 @@ exports.cloneWebsite = async (req, res, next) => {
     }
 
     res.status(201).json({ success: true, data: savedWebsite, message: 'Website cloned successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Re-detect and save a website's theme from its already-saved pages. Mainly for
+// websites created before automatic theme detection existed on template import,
+// so their blog embeds (and anything else reading website.theme) can be brought
+// in line with the site's real design without having to recreate the website.
+exports.syncWebsiteTheme = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    if (!website) {
+      return res.status(404).json({ success: false, error: 'Website not found' });
+    }
+
+    const pages = await Page.find({ websiteId: id, isDeleted: false });
+    if (pages.length === 0) {
+      return res.status(400).json({ success: false, error: 'This website has no pages to detect a theme from' });
+    }
+
+    const detected = await detectThemeFromPublishedPages(pages);
+    if (!detected.fontFamily && !detected.primaryColor) {
+      return res.status(200).json({ success: true, data: website, message: 'No distinct font or brand color could be detected from this site\'s pages' });
+    }
+
+    website.theme = {
+      fontFamily: detected.fontFamily || website.theme.fontFamily,
+      primaryColor: detected.primaryColor || website.theme.primaryColor
+    };
+    website.updatedBy = req.user?._id;
+    const saved = await website.save();
+
+    res.json({ success: true, data: saved, message: 'Theme synced from site pages' });
   } catch (error) {
     next(error);
   }
@@ -579,7 +778,12 @@ exports.duplicatePage = async (req, res, next) => {
       path: newPath,
       status: 'Draft',
       isHome: false,
-      layoutJson: page.layoutJson
+      layoutJson: page.layoutJson,
+      html: page.html,
+      css: page.css,
+      stylesheetUrls: page.stylesheetUrls,
+      customHeadCode: page.customHeadCode,
+      customBodyCode: page.customBodyCode
     });
 
     const saved = await duplicated.save();
@@ -593,7 +797,7 @@ exports.duplicatePage = async (req, res, next) => {
 exports.updatePage = async (req, res, next) => {
   try {
     const { websiteId, pageId } = req.params;
-    const { title, path, layoutJson, html, css, status } = req.body;
+    const { title, path, layoutJson, html, css, status, customHeadCode, customBodyCode, stylesheetUrls } = req.body;
 
     const page = await Page.findOne({ _id: pageId, websiteId, isDeleted: false });
     if (!page) {
@@ -614,7 +818,10 @@ exports.updatePage = async (req, res, next) => {
     if (layoutJson !== undefined) page.layoutJson = layoutJson;
     if (html !== undefined) page.html = html;
     if (css !== undefined) page.css = css;
+    if (stylesheetUrls !== undefined) page.stylesheetUrls = stylesheetUrls;
     if (status) page.status = status;
+    if (customHeadCode !== undefined) page.customHeadCode = customHeadCode;
+    if (customBodyCode !== undefined) page.customBodyCode = customBodyCode;
 
     const saved = await page.save();
     res.json({ success: true, data: saved });
