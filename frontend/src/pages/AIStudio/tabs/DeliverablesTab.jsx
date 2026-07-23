@@ -120,7 +120,7 @@ const DeliverablesTab = () => {
       </div>
 
       <Card bordered={false} className="glassmorphism" style={{ borderRadius: 12 }}>
-        <Table 
+        <Table scroll={{ x: 800 }}  
           columns={columns} 
           dataSource={deliverables} 
           rowKey="_id" 

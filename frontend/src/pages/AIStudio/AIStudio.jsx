@@ -5,7 +5,7 @@ import { Sparkles, Image as ImageIcon, Video, Library, Send, Key } from 'lucide-
 
 import { AIStudioProvider, useAIStudio } from './context/AIStudioContext';
 import DesignWorkTab from './tabs/DesignWorkTab';
-import VideoTab from './tabs/VideoTab';
+// import VideoTab from './tabs/VideoTab';
 import AssetLibraryTab from './tabs/AssetLibraryTab';
 import DeliverablesTab from './tabs/DeliverablesTab';
 
@@ -40,7 +40,7 @@ const AIStudioContent = () => {
       ),
       children: <DesignWorkTab />
     },
-    {
+    /* {
       key: 'video',
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -48,7 +48,7 @@ const AIStudioContent = () => {
         </span>
       ),
       children: <VideoTab />
-    },
+    }, */
     {
       key: 'assets',
       label: (

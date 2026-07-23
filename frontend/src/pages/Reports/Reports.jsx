@@ -199,14 +199,6 @@ const Reports = () => {
             bordered={false}
             style={{ width: 130 }} 
           />
-          <Button 
-            type="primary" 
-            icon={<Download size={16} />} 
-            onClick={() => message.info('Exporting report...')}
-            style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 36, fontWeight: 600, border: 'none', marginLeft: 8 }}
-          >
-            Export Report
-          </Button>
         </div>
       </motion.div>
 

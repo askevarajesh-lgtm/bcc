@@ -1057,6 +1057,31 @@ a {
   background: rgba(59, 130, 246, 0.035) !important;
 }
 
+@media (max-width: 1300px) {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .app-header__left {
+    flex: 1 1 auto;
+    min-width: 250px;
+  }
+  
+  .app-header__actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  
+  .ant-card {
+    overflow-x: auto;
+  }
+
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
 @media (max-width: 1180px) {
   .app-header {
     height: 98px;

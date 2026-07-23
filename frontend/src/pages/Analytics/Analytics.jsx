@@ -92,9 +92,9 @@ const Analytics = () => {
         <BarChart2 size={48} style={{ color: 'var(--accent-secondary)' }} />
       </div>
       <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Analytics & Attribution</Title>
-      <Tag color="processing" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Coming Soon</Tag>
+      <Tag color="warning" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Upgrade Required</Tag>
       <Text type="secondary" style={{ maxWidth: 450, fontSize: 16, lineHeight: 1.6 }}>
-        We are building a powerful new hub for your data. Unified performance metrics and attribution models will be available here shortly.
+        This module is available in this package. Purchase or upgrade your package to enable access.
       </Text>
     </motion.div>
   );

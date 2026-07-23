@@ -125,9 +125,9 @@ const TimeTracking = () => {
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Time Tracking</Title>
           <Text type="secondary" style={{ fontWeight: 500 }}>Log billable and non-billable hours across clients and campaigns.</Text>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {/* <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Export Timesheet</Button>
-        </div>
+        </div> */}
       </motion.div>
 
       <motion.div variants={itemVariants}>

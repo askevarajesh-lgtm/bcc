@@ -10,7 +10,7 @@ const AgencySubscriptionsTab = () => {
       <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Subscriptions</Title>
       <Text type="secondary">Manage your clients' subscription plans.</Text>
       <div className="glassmorphism" style={{ padding: '40px', marginTop: '24px', borderRadius: 16, textAlign: 'center' }}>
-        <Text type="secondary">Subscription management coming soon.</Text>
+        <Text type="secondary">This module is available in this package. Purchase or upgrade your package to enable access.</Text>
       </div>
     </motion.div>
   );

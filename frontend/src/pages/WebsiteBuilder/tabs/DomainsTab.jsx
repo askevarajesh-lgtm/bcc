@@ -454,6 +454,7 @@ const DomainsTab = ({ itemVariants }) => {
             columns={columns}
             dataSource={filtered}
             pagination={false}
+            scroll={{ x: 800 }}
             locale={{
               emptyText: (
                 <div style={{ padding: "80px 0", textAlign: "center" }}>

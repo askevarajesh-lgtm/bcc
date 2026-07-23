@@ -338,6 +338,7 @@ router.get("/auth/facebook", (req, res) => {
     url.searchParams.set("scope", FB_SCOPES);
     url.searchParams.set("state", state);
     url.searchParams.set("response_type", "code");
+    url.searchParams.set("auth_type", "rerequest");
 
     res.redirect(url.toString());
   })();

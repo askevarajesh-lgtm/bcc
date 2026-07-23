@@ -138,6 +138,9 @@ const Marketplace = () => {
   const [initiatePurchase] = useInitiatePurchaseMutation();
   const [verifyPurchase] = useVerifyPurchaseMutation();
 
+  const [purchasingPlan, setPurchasingPlan] = useState(null);
+  const [mockPurchased, setMockPurchased] = useState([]);
+
   const purchasedPlans = React.useMemo(() => {
     const plans = { seo: false, content: false, design: false };
     if (purchasesData?.data?.modules) {
@@ -145,8 +148,9 @@ const Marketplace = () => {
         plans[m] = true;
       });
     }
+    mockPurchased.forEach(m => plans[m] = true);
     return plans;
-  }, [purchasesData]);
+  }, [purchasesData, mockPurchased]);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -163,6 +167,15 @@ const Marketplace = () => {
   };
 
   const handlePurchase = async (plan, amountInInr) => {
+    // TEMPORARY MOCK FLOW
+    setPurchasingPlan(plan);
+    setTimeout(() => {
+      setMockPurchased(prev => [...prev, plan]);
+      message.success("Payment successful! Module unlocked.");
+      setPurchasingPlan(null);
+    }, 3000);
+
+    /* --- ORIGINAL PAYMENT INTEGRATION (UNDER DEVELOPMENT) ---
     try {
       const res = await loadRazorpayScript();
       if (!res) {
@@ -219,9 +232,10 @@ const Marketplace = () => {
     } catch (err) {
       message.error(err.message || "Something went wrong during checkout");
     }
+    ---------------------------------------------------------- */
   };
 
-  const PricingCard = ({ title, subtitle, price, features, onPurchase }) => {
+  const PricingCard = ({ title, subtitle, price, features, onPurchase, loading }) => {
     const gradId = `flowerGrad-${title.replace(/\s+/g, '')}`;
 
     return (
@@ -337,6 +351,7 @@ const Marketplace = () => {
               </div>
               <Button 
                 type="primary" 
+                loading={loading}
                 style={{ 
                   borderRadius: 8, 
                   fontWeight: 600,
@@ -380,6 +395,7 @@ const Marketplace = () => {
                   "Competitor Analysis & Reporting"
                 ]}
                 onPurchase={() => handlePurchase('seo', 2075)} 
+                loading={purchasingPlan === 'seo'}
               />
             )}
           </motion.div>
@@ -400,6 +416,7 @@ const Marketplace = () => {
                   "1-Click CMS Publishing"
                 ]}
                 onPurchase={() => handlePurchase('content', 1660)} 
+                loading={purchasingPlan === 'content'}
               />
             )}
           </motion.div>
@@ -420,6 +437,7 @@ const Marketplace = () => {
                   "Video Generation Tools"
                 ]}
                 onPurchase={() => handlePurchase('design', 1660)} 
+                loading={purchasingPlan === 'design'}
               />
             )}
           </motion.div>

@@ -172,10 +172,6 @@ const Benchmarks = () => {
           <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
             {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
           </Select>
-
-          <Button type="default" icon={<Download size={16} />} style={{ height: 40, borderRadius: 0, fontWeight: 700 }}>
-            Export Report
-          </Button>
         </div>
       </motion.div>
 

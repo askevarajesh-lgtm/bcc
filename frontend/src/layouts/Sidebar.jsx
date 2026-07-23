@@ -196,7 +196,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { 
           key: 'semrush_menu', 
           icon: getIcon(Search), 
-          label: 'Semrush',
+          label: 'SEO/AEO/GEO',
           children: [
             { key: '/intelligence/semrush/dashboard', label: 'Dashboard' },
             { key: '/intelligence/semrush/keyword-research', label: 'Keyword Research' },

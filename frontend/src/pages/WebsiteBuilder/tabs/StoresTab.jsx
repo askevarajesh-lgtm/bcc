@@ -213,7 +213,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={products} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={products} pagination={false} size="middle" />
         </Card>
       </motion.div>
     );
@@ -271,7 +271,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
         </div>
 
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={pages} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={pages} pagination={false} size="middle" />
         </Card>
 
         <div style={{ color: "var(--text-tertiary)", fontSize: 12, fontWeight: 500, marginTop: 16, textAlign: 'center' }}>
@@ -348,7 +348,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-color)", fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>
           Top products (30 days)
         </div>
-        <Table 
+        <Table scroll={{ x: 800 }}  
           columns={[
             { title: "PRODUCT", key: "product" },
             { title: "UNITS", key: "units" },
@@ -376,7 +376,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={[]} pagination={false} locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No orders yet.</div> }} />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={[]} pagination={false} locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No orders yet.</div> }} />
         </Card>
       </motion.div>
     );
@@ -402,7 +402,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={collections} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={collections} pagination={false} size="middle" />
         </Card>
       </motion.div>
     );
@@ -419,7 +419,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={[]} pagination={false} locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No customers yet.</div> }} />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={[]} pagination={false} locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No customers yet.</div> }} />
         </Card>
       </motion.div>
     );
@@ -445,7 +445,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table columns={columns} dataSource={discounts} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={discounts} pagination={false} size="middle" />
         </Card>
       </motion.div>
     );
@@ -699,7 +699,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
       case "email": return renderEmail();
       default: return (
         <div style={{ padding: 100, textAlign: "center", color: "var(--text-tertiary)", fontSize: 16, fontWeight: 600 }}>
-          Module {activeSubTab} coming soon.
+          This module is available in this package. Purchase or upgrade your package to enable access.
         </div>
       );
     }
@@ -1028,7 +1028,7 @@ const StoresTab = ({ itemVariants }) => {
         </Space>
       </div>
 
-      <Table
+      <Table scroll={{ x: 800 }} 
         columns={columns}
         dataSource={stores}
         pagination={false}

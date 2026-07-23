@@ -3,7 +3,7 @@ import { Typography, Row, Col, Card, Button, Select } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Plus, Palette, Video, FolderOpen, BookOpen, LayoutGrid, Clock, AlertCircle, Image as ImageIcon, Briefcase } from 'lucide-react';
 import DesignWorkTab from './tabs/DesignWorkTab';
-import VideoTab from './tabs/VideoTab';
+// import VideoTab from './tabs/VideoTab';
 import AssetLibraryTab from './tabs/AssetLibraryTab';
 import BrandGuidelinesTab from './tabs/BrandGuidelinesTab';
 import DeliverablesTab from './tabs/DeliverablesTab';
@@ -34,7 +34,7 @@ const Creative = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Design Work': return <DesignWorkTab itemVariants={itemVariants} />;
-      case 'Video': return <VideoTab itemVariants={itemVariants} />;
+      // case 'Video': return <VideoTab itemVariants={itemVariants} />;
       case 'Asset Library': return <AssetLibraryTab itemVariants={itemVariants} />;
       case 'Brand Guidelines': return <BrandGuidelinesTab itemVariants={itemVariants} />;
       case 'Deliverables': return <DeliverablesTab itemVariants={itemVariants} />;
@@ -109,7 +109,7 @@ const Creative = () => {
           <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border-color)', marginBottom: 24, overflowX: 'auto' }}>
             {[
               { id: 'Design Work', icon: <Palette size={16} /> },
-              { id: 'Video', icon: <Video size={16} /> },
+              // { id: 'Video', icon: <Video size={16} /> },
               { id: 'Asset Library', icon: <FolderOpen size={16} /> },
               { id: 'Brand Guidelines', icon: <BookOpen size={16} /> },
               { id: 'Deliverables', icon: <LayoutGrid size={16} /> }

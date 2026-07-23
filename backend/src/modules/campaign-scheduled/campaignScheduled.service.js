@@ -47,8 +47,11 @@ const PINTEREST_REDIRECT_URI = (
 const META_GRAPH = "https://graph.facebook.com/v20.0";
 
 const FB_SCOPES = [
+  "pages_manage_posts",
   "pages_read_engagement",
   "pages_show_list",
+  "instagram_basic",
+  "instagram_content_publish"
 ].join(",");
 const LINKEDIN_SCOPES = [
   "openid",

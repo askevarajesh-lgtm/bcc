@@ -132,7 +132,15 @@ exports.getDashboardData = async (req, res) => {
       { $match: taskMatch },
       { $group: {
         _id: null,
-        totalTaskHours: { $sum: { $ifNull: ["$timeSpent", { $divide: ["$workDurationMinutes", 60] }] } }
+        totalTaskHours: { 
+          $sum: { 
+            $cond: [
+              { $gt: ["$timeSpent", 0] }, 
+              "$timeSpent", 
+              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
+            ] 
+          } 
+        }
       }}
     ]);
 
@@ -172,7 +180,15 @@ exports.getDashboardData = async (req, res) => {
       { $match: { ...taskMatch, assignedTo: { $ne: null } } },
       { $group: {
         _id: { employee: "$assignedTo", dayOfWeek: { $isoDayOfWeek: { $ifNull: ["$workCompletedAt", "$updatedAt"] } } },
-        hours: { $sum: { $ifNull: ["$timeSpent", { $divide: ["$workDurationMinutes", 60] }] } }
+        hours: { 
+          $sum: { 
+            $cond: [
+              { $gt: ["$timeSpent", 0] }, 
+              "$timeSpent", 
+              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
+            ] 
+          } 
+        }
       }}
     ]);
 
@@ -201,24 +217,29 @@ exports.getDashboardData = async (req, res) => {
       
       const getDayHours = (day) => {
         const log = empLogs.find(l => l._id.dayOfWeek === day);
-        return log ? parseFloat(log.hours.toFixed(1)) : '-';
+        if (!log || log.hours === 0) return '-';
+        let h = parseFloat(log.hours.toFixed(1));
+        return h === 0 ? 0.1 : h; // Minimum 0.1h for any logged time
       };
 
-      const total = empLogs.reduce((sum, log) => sum + log.hours, 0);
+      const mon = getDayHours(1);
+      const tue = getDayHours(2);
+      const wed = getDayHours(3);
+      const thu = getDayHours(4);
+      const fri = getDayHours(5);
+      const sat = getDayHours(6);
+      const sun = getDayHours(7);
+
+      const daysArr = [mon, tue, wed, thu, fri, sat, sun];
+      const visualTotal = daysArr.reduce((sum, val) => sum + (val === '-' ? 0 : val), 0);
 
       return {
         name: u.name,
         role: u.role,
         initials: u.name ? u.name.substring(0, 2).toUpperCase() : 'UN',
         color: colors[i % colors.length],
-        mon: getDayHours(1),
-        tue: getDayHours(2),
-        wed: getDayHours(3),
-        thu: getDayHours(4),
-        fri: getDayHours(5),
-        sat: getDayHours(6),
-        sun: getDayHours(7),
-        total: parseFloat(total.toFixed(1))
+        mon, tue, wed, thu, fri, sat, sun,
+        total: parseFloat(visualTotal.toFixed(1))
       };
     });
 
@@ -281,20 +302,39 @@ exports.getTeamTaskPerformance = async (req, res) => {
 
     const completedStatuses = ['completed', 'done', 'validated', 'complete', 'review', 'REVIEW'];
     
+    // Date range: current week (Monday to Sunday)
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = now.getDay() || 7; 
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(now.getDate() - day + 1);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
     const performanceAgg = await Task.aggregate([
       { 
         $match: { 
           $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }], 
           status: { $in: completedStatuses }, 
-          assignedTo: { $ne: null } 
+          assignedTo: { $ne: null },
+          updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
         } 
       },
       { 
         $group: {
           _id: "$assignedTo",
           tasksCompleted: { $sum: 1 },
-          totalTimeSpentHours: { $sum: { $ifNull: ["$timeSpent", 0] } },
-          totalWorkDurationMinutes: { $sum: { $ifNull: ["$workDurationMinutes", 0] } }
+          totalTimeSpentHours: { 
+            $sum: { 
+              $cond: [
+                { $gt: ["$timeSpent", 0] }, 
+                "$timeSpent", 
+                { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
+              ] 
+            } 
+          }
         }
       }
     ]);
@@ -310,10 +350,7 @@ exports.getTeamTaskPerformance = async (req, res) => {
         name: u ? u.name : 'Unknown',
         role: u ? u.role : 'Member',
         tasksCompleted: p.tasksCompleted,
-        // Calculate total hours based on manually logged timeSpent (hours) OR automatic workDurationMinutes (converted to hours)
-        totalTimeSpent: p.totalTimeSpentHours > 0 
-          ? p.totalTimeSpentHours 
-          : parseFloat((p.totalWorkDurationMinutes / 60).toFixed(1))
+        totalTimeSpent: parseFloat(p.totalTimeSpentHours.toFixed(1))
       };
     });
 

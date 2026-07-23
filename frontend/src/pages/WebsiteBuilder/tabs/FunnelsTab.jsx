@@ -534,7 +534,7 @@ const FunnelsTab = ({ itemVariants }) => {
         <Input placeholder="Search for Funnels" prefix={<Search size={16} color="var(--text-tertiary)" />} value={searchText} onChange={(e) => setSearchText(e.target.value)} style={{ width: 300, borderRadius: 8, height: 40 }} />
       </div>
 
-      <Table
+      <Table scroll={{ x: 800 }} 
         columns={columns}
         dataSource={funnels}
         pagination={false}

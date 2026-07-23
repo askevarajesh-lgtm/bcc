@@ -29,7 +29,7 @@ const Semrush = () => {
           <Search size={32} style={{ color: 'var(--accent-secondary)' }} />
         </div>
         <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 800 }}>Semrush</Title>
+          <Title level={2} style={{ margin: 0, fontWeight: 800 }}>SEO/AEO/GEO</Title>
           <Text type="secondary" style={{ fontSize: 16 }}>
             SEO Intelligence & Analytics
           </Text>

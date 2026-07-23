@@ -243,6 +243,7 @@ const KeywordResearchTab = () => {
                   showSizeChanger: false,
                   style: { padding: '0 24px 24px 0' }
                 }}
+                scroll={{ x: 800 }}
               />
             </div>
           </motion.div>

@@ -21,6 +21,7 @@ const availableFeatures = [
 
 const Accounts = () => {
   const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [agencies, setAgencies] = useState([]);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -246,11 +247,21 @@ const Accounts = () => {
 
   const filteredAgencies = React.useMemo(() => {
     return agencies.filter(agency => {
-      if (filter === 'All') return true;
-      if (filter === 'Active') return agency.status === 'active';
-      return agency.status === filter.toLowerCase();
+      let matchesFilter = true;
+      if (filter !== 'All') {
+        matchesFilter = agency.status === (filter === 'Active' ? 'active' : filter.toLowerCase());
+      }
+      
+      let matchesSearch = true;
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        matchesSearch = (agency.name && agency.name.toLowerCase().includes(query)) || 
+                        (agency.email && agency.email.toLowerCase().includes(query));
+      }
+      
+      return matchesFilter && matchesSearch;
     });
-  }, [agencies, filter]);
+  }, [agencies, filter, searchQuery]);
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -260,7 +271,6 @@ const Accounts = () => {
           <Text type="secondary">Manage your agency accounts and provision packages.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Download size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Export</Button>
           <Button type="primary" onClick={() => handleOpenModal()} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Agency</Button>
         </div>
       </motion.div>
@@ -338,16 +348,9 @@ const Accounts = () => {
           <Input.Search 
             placeholder="Search agencies..." 
             style={{ width: '100%', maxWidth: 360 }} 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Select defaultValue="All" style={{ width: 130 }} popupMatchSelectWidth={false}>
-              <Option value="All">Package: All</Option>
-            </Select>
-            <div style={{ display: 'flex', gap: 8, borderLeft: '1px solid var(--border-color)', paddingLeft: 12 }}>
-              <Button icon={<LayoutGrid size={16} />} style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} />
-              <Button icon={<List size={16} />} type="primary" style={{ background: 'var(--accent-primary)', border: 'none' }} />
-            </div>
-          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -360,7 +363,6 @@ const Accounts = () => {
             size="middle"
             loading={loading}
             scroll={{ x: 1000 }} 
-            style={{ minWidth: 1000 }}
           />
         </div>
       </motion.div>

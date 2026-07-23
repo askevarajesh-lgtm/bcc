@@ -447,7 +447,7 @@ const IntegrationsPage = () => {
             : "/settings/integrations/website/new",
         );
       } else {
-        message.info(`${title} coming soon`);
+        message.info(`This module is available in this package. Purchase or upgrade your package to enable access.`);
       }
     };
 

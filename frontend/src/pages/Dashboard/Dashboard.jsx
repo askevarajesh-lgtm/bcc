@@ -95,7 +95,6 @@ const Dashboard = () => {
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Live performance matrix and operational health.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Calendar size={16} />} style={{ borderRadius: 12, height: 44, padding: '0 20px', borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-elevated)', fontWeight: 600, boxShadow: 'var(--shadow-sm)' }}>Last 30 days</Button>
           <Button type="primary" onClick={() => navigate('/intelligence/reporting')} icon={<Download size={16} />} style={{ borderRadius: 12, height: 44, padding: '0 24px', background: 'linear-gradient(135deg, var(--accent-primary), #60a5fa)', border: 'none', fontWeight: 700, boxShadow: 'var(--shadow-glow)' }}>Generate Report</Button>
         </div>
       </motion.div>

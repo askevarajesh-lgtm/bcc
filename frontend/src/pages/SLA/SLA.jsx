@@ -52,6 +52,11 @@ const SLA = () => {
     setPagination(newPagination);
   };
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setPagination(prev => ({ ...prev, current: 1 }));
+  };
+
   const handleView = async (slaId) => {
     try {
       const res = await slaApi.getSlaById(slaId);
@@ -248,11 +253,14 @@ const SLA = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
               <Input.Search 
                 placeholder="Search SLAs..." 
-                onSearch={val => setFilters({ ...filters, search: val })} 
+                value={filters.search}
+                onChange={e => handleFilterChange({ ...filters, search: e.target.value })} 
+                onSearch={val => handleFilterChange({ ...filters, search: val })} 
                 style={{ width: '100%', maxWidth: 360 }} 
+                allowClear
               />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Select value={filters.triggerType} onChange={val => setFilters({...filters, triggerType: val})} style={{ width: 140 }}>
+                <Select value={filters.triggerType} onChange={val => handleFilterChange({...filters, triggerType: val})} style={{ width: 140 }}>
                   <Option value="All">All Types</Option>
                   <Option value="Due Date">Due Date</Option>
                   <Option value="Payment">Payment</Option>
@@ -262,7 +270,7 @@ const SLA = () => {
                   <Button 
                     key={f} 
                     type={filters.status === f ? 'primary' : 'default'} 
-                    onClick={() => setFilters({ ...filters, status: f })}
+                    onClick={() => handleFilterChange({ ...filters, status: f })}
                     style={{ 
                       borderRadius: 20, 
                       background: filters.status === f ? 'var(--text-primary)' : 'transparent',

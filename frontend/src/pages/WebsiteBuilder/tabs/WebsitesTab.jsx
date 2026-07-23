@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin } from "antd";
+import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin, Pagination } from "antd";
 import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2, Code2, Newspaper } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -201,6 +201,8 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
 
 const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [pages, setPages] = useState(activeWebsite.pages || []);
+  const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
+  const pagesPageSize = 10;
   const [newPageTitle, setNewPageTitle] = useState("");
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
   const [description, setDescription] = useState(activeWebsite.description || "");
@@ -764,44 +766,56 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                     )}
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                      {pages.map((page, index) => (
-                        <div key={page._id || page.key || index} style={{ borderBottom: index < pages.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                              <div style={{ width: 48, height: 48, borderRadius: 12, background: page.isHome ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)', border: page.isHome ? 'none' : '1px solid var(--border-color)', color: page.isHome ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <FileText size={24} />
-                              </div>
-                              <div>
-                                <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
-                                  {page.title}
-                                  {page.isHome && <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>}
+                      {(() => {
+                        const displayedPages = pages.slice((pagesCurrentPage - 1) * pagesPageSize, pagesCurrentPage * pagesPageSize);
+                        return displayedPages.map((page, index) => (
+                          <div key={page._id || page.key || index} style={{ borderBottom: index < displayedPages.length - 1 ? "1px solid var(--border-color)" : "none", paddingBottom: 24, marginBottom: 24 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: page.isHome ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)', border: page.isHome ? 'none' : '1px solid var(--border-color)', color: page.isHome ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <FileText size={24} />
                                 </div>
-                                <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
+                                <div>
+                                  <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, color: 'var(--text-primary)' }}>
+                                    {page.title}
+                                    {page.isHome && <Tag style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10 }}>HOME</Tag>}
+                                  </div>
+                                  <div style={{ color: "var(--text-tertiary)", fontSize: 13, fontWeight: 500 }}>{page.path}</div>
+                                </div>
                               </div>
+                              <Select
+                                size="large"
+                                value={page.status || "Draft"}
+                                onChange={(val) => {
+                                  setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
+                                }}
+                                style={{ width: 120 }}
+                                disabled={role === 'agency_client'}
+                              >
+                                <Option value="Draft">Draft</Option>
+                                <Option value="Published">Published</Option>
+                              </Select>
                             </div>
-                            <Select
-                              size="large"
-                              value={page.status || "Draft"}
-                              onChange={(val) => {
-                                setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
-                              }}
-                              style={{ width: 120 }}
-                              disabled={role === 'agency_client'}
-                            >
-                              <Option value="Draft">Draft</Option>
-                              <Option value="Published">Published</Option>
-                            </Select>
+                            <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
+                              {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
+                              <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
+                              {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
+                              {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
+                              {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                            {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
-                            <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
-                            {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
-                            {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
-                            {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
-                          </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
+                    {pages.length > pagesPageSize && (
+                      <Pagination
+                        current={pagesCurrentPage}
+                        total={pages.length}
+                        pageSize={pagesPageSize}
+                        onChange={(page) => setPagesCurrentPage(page)}
+                        style={{ textAlign: 'center', marginTop: 24 }}
+                      />
+                    )}
                   </>
                 ) : (
                   <>
@@ -1299,10 +1313,10 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       </div>
 
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-        <Table
+        <Table scroll={{ x: 800 }} 
           columns={columns}
           dataSource={websites.filter(w => w.name.toLowerCase().includes(searchText.toLowerCase()))}
-          pagination={false}
+          pagination={{ pageSize: 10, position: ['bottomRight'] }}
           locale={{
             emptyText: (
               <div style={{ padding: "80px 0", textAlign: "center" }}>

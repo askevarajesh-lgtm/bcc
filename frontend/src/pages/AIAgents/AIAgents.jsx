@@ -360,7 +360,7 @@ const AIAgents = () => {
                     </div>
                     <div>
                       <Title level={5} style={{ margin: '0 0 6px 0', fontWeight: 700, color: 'var(--text-primary)' }}>{agent.name}</Title>
-                      {idx >= 7 && <Tag style={{ borderRadius: 12, fontSize: 10, border: 'none', background: 'var(--bg-tertiary)' }}>Coming Soon</Tag>}
+                      {idx >= 7 && <Tag style={{ borderRadius: 12, fontSize: 10, border: 'none', background: 'var(--bg-tertiary)' }}>Upgrade Required</Tag>}
                     </div>
                   </div>
                   

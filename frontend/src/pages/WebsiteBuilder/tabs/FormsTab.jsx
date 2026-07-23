@@ -246,6 +246,7 @@ const FormsTab = ({ itemVariants }) => {
             dataSource={forms}
             loading={isLoadingForms}
             pagination={false}
+            scroll={{ x: 800 }}
             locale={{
               emptyText: (
                 <div style={{ padding: "80px 0", textAlign: "center" }}>
@@ -304,6 +305,7 @@ const FormsTab = ({ itemVariants }) => {
             loading={isLoadingAnalytics}
             rowKey="form"
             pagination={false}
+            scroll={{ x: 800 }}
             locale={{ emptyText: <div style={{ padding: '40px 0', color: 'var(--text-secondary)', fontWeight: 500 }}>No analytics data yet.</div> }}
           />
         </Card>
@@ -404,6 +406,7 @@ const FormsTab = ({ itemVariants }) => {
             dataSource={submissions}
             loading={isLoadingSubmissions}
             pagination={{ pageSize: 20 }}
+            scroll={{ x: 1000 }}
             locale={{ emptyText: <div style={{ padding: '40px 0', color: 'var(--text-secondary)', fontWeight: 500 }}>No submissions yet.</div> }}
           />
         </Card>

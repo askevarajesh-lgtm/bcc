@@ -24,11 +24,11 @@ const PlaceholderPage = ({ title, description, icon: Icon }) => {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <div style={{ marginTop: 16 }}>
-              <Title level={4} style={{ color: 'var(--text-primary)' }}>Coming Soon</Title>
+              <Title level={4} style={{ color: 'var(--text-primary)' }}>Upgrade Required</Title>
               <Text type="secondary" style={{ display: 'block', maxWidth: 400, margin: '0 auto 24px' }}>
-                The {title} module is currently under development. Our team is working hard to bring you premium features for this section.
+                This module is available in this package. Purchase or upgrade your package to enable access.
               </Text>
-              <Button type="primary" size="large" style={{ borderRadius: 8 }}>Notify Me When Ready</Button>
+              <Button type="primary" size="large" style={{ borderRadius: 8 }}>Upgrade Plan</Button>
             </div>
           }
         />

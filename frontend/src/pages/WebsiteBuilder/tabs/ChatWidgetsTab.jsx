@@ -479,7 +479,7 @@ const ChatWidgetsTab = ({ itemVariants }) => {
         </div>
 
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-          <Table
+          <Table scroll={{ x: 800 }} 
             columns={columns}
             dataSource={filtered}
             pagination={false}
