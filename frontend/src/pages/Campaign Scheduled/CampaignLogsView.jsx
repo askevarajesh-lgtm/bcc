@@ -72,7 +72,10 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
           _platformStatus: pStatus,
           _platformError: pubInfo.error || post.error_message,
           _externalId: pubInfo.externalId,
-          _url: pubInfo.url
+          _url: pubInfo.url,
+          likes: pubInfo.likes !== undefined ? pubInfo.likes : (platforms.length === 1 ? post.likes : 0),
+          comments: pubInfo.comments !== undefined ? pubInfo.comments : (platforms.length === 1 ? post.comments : 0),
+          shares: pubInfo.shares !== undefined ? pubInfo.shares : (platforms.length === 1 ? post.shares : 0),
         });
       });
     });

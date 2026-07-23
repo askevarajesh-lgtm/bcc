@@ -1606,6 +1606,9 @@ async function refreshPostMetrics(
         likes += metrics.likes;
         comments += metrics.comments;
         shares += metrics.shares;
+        nextPublications[accountId].likes = metrics.likes;
+        nextPublications[accountId].comments = metrics.comments;
+        nextPublications[accountId].shares = metrics.shares;
         if (metrics.url) nextPublications[accountId].url = metrics.url;
         touched = true;
       } else if (
@@ -1620,6 +1623,9 @@ async function refreshPostMetrics(
         likes += metrics.likes;
         comments += metrics.comments;
         shares += metrics.shares;
+        nextPublications[accountId].likes = metrics.likes;
+        nextPublications[accountId].comments = metrics.comments;
+        nextPublications[accountId].shares = metrics.shares;
         if (metrics.url) nextPublications[accountId].url = metrics.url;
         touched = true;
       } else if (
@@ -1630,6 +1636,9 @@ async function refreshPostMetrics(
         likes += metrics.likes;
         comments += metrics.comments;
         shares += metrics.shares;
+        nextPublications[accountId].likes = metrics.likes;
+        nextPublications[accountId].comments = metrics.comments;
+        nextPublications[accountId].shares = metrics.shares;
         if (metrics.url) nextPublications[accountId].url = metrics.url;
         touched = true;
       } else if (
@@ -1640,6 +1649,9 @@ async function refreshPostMetrics(
         likes += metrics.likes;
         comments += metrics.comments;
         shares += metrics.shares;
+        nextPublications[accountId].likes = metrics.likes;
+        nextPublications[accountId].comments = metrics.comments;
+        nextPublications[accountId].shares = metrics.shares;
         if (metrics.url) nextPublications[accountId].url = metrics.url;
         touched = true;
       } else if (
@@ -1650,6 +1662,9 @@ async function refreshPostMetrics(
         likes += metrics.likes;
         comments += metrics.comments;
         shares += metrics.shares;
+        nextPublications[accountId].likes = metrics.likes;
+        nextPublications[accountId].comments = metrics.comments;
+        nextPublications[accountId].shares = metrics.shares;
         if (metrics.url) nextPublications[accountId].url = metrics.url;
         touched = true;
       }
@@ -2065,6 +2080,9 @@ async function dispatchPost(post, options = {}) {
           aggregateMetrics.likes += Number(ytResult.metrics.likes) || 0;
           aggregateMetrics.comments += Number(ytResult.metrics.comments) || 0;
           aggregateMetrics.shares += Number(ytResult.metrics.shares) || 0;
+          platformResults[account.id].likes = Number(ytResult.metrics.likes) || 0;
+          platformResults[account.id].comments = Number(ytResult.metrics.comments) || 0;
+          platformResults[account.id].shares = Number(ytResult.metrics.shares) || 0;
           hasAnyMetrics = true;
         }
       } else if (account.platform === "linkedin") {
