@@ -300,9 +300,18 @@ export default function PostEditor({
     const next = { ...platformOptions };
     let changed = false;
     selectedPlatforms.forEach((p) => {
-      if (!next[p]) {
-        next[p] = (PLATFORM_POST_OPTIONS[p] || [])[0]?.value;
-        changed = true;
+      // Check if p is already a key in next, rather than truthiness,
+      // to avoid infinite loop if the default value is undefined.
+      if (!(p in next)) {
+        const defaultOption = (PLATFORM_POST_OPTIONS[p] || [])[0]?.value;
+        if (defaultOption !== undefined) {
+          next[p] = defaultOption;
+          changed = true;
+        } else {
+          // Explicitly set to null to indicate it has been processed
+          next[p] = null;
+          changed = true;
+        }
       }
     });
     if (changed) setPlatformOptions(next);

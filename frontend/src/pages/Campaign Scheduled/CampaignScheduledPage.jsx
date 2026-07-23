@@ -27,6 +27,15 @@ import { useAuth } from "../../contexts/AuthContext";
 import NoClientSelected from "./NoClientSelected";
 import DashboardView from "./DashboardView";
 
+const enabledIntegrations = {
+  googleBusiness: true,
+  facebook: true,
+  instagram: true,
+  linkedin: true,
+  youtube: true,
+  pinterest: true
+};
+
 export default function CampaignScheduledPage() {
   const { Text, Paragraph } = Typography;
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -73,14 +82,6 @@ export default function CampaignScheduledPage() {
   const isAdminView = user?.role?.includes("admin") || user?.role?.includes("agency");
 
   // Bypassed company integrations check since the API slices were missing from this project
-  const enabledIntegrations = {
-    googleBusiness: true,
-    facebook: true,
-    instagram: true,
-    linkedin: true,
-    youtube: true,
-    pinterest: true
-  };
   useEffect(() => {
     if (!isAdminView) return;
 

@@ -9,6 +9,8 @@ import { Card, Empty, Input, Pagination, Tag, Typography } from "antd";
 
 const { Text, Title } = Typography;
 
+const PAGE_SIZE_OPTIONS = ["5", "10", "20", "50"];
+
 function getPostMetrics(post) {
   const likes = Number(post?.likes);
   const comments = Number(post?.comments);
@@ -256,7 +258,7 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
                 setPageSize(size);
               }}
               showSizeChanger
-              pageSizeOptions={["5", "10", "20", "50"]}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
               showTotal={(total) => `Total ${total} items`}
             />
           </div>
