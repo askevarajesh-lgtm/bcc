@@ -48,22 +48,48 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const publishedPosts = useMemo(
-    () => posts.filter((post) => post.status === "Published"),
-    [posts],
-  );
+  const flattenedLogs = useMemo(() => {
+    const logs = [];
+    posts.forEach((post) => {
+      if (post.status !== "Published" && post.status !== "Failed" && !post.platform_publications) return;
+
+      const platforms = post.platforms || [];
+      if (platforms.length === 0) {
+        logs.push({ ...post, _logId: post.id, _platformStatus: post.status });
+        return;
+      }
+
+      platforms.forEach((platformId) => {
+        const pubInfo = (post.platform_publications || {})[platformId] || {};
+        const pStatus = pubInfo.status || (post.status === "Published" ? "Published" : "Failed");
+        
+        if (pStatus !== "Published" && pStatus !== "Failed") return;
+
+        logs.push({
+          ...post,
+          _logId: `${post.id}-${platformId}`,
+          _platformId: platformId,
+          _platformStatus: pStatus,
+          _platformError: pubInfo.error || post.error_message,
+          _externalId: pubInfo.externalId,
+          _url: pubInfo.url
+        });
+      });
+    });
+    return logs;
+  }, [posts]);
 
   const filteredPosts = useMemo(() => {
     const search = query.trim().toLowerCase();
-    if (!search) return publishedPosts;
+    if (!search) return flattenedLogs;
 
-    return publishedPosts.filter((post) => {
+    return flattenedLogs.filter((log) => {
       return (
-        (post.caption || "").toLowerCase().includes(search) ||
-        (post.campaign || "").toLowerCase().includes(search)
+        (log.caption || "").toLowerCase().includes(search) ||
+        (log.campaign || "").toLowerCase().includes(search)
       );
     });
-  }, [publishedPosts, query]);
+  }, [flattenedLogs, query]);
 
   // Reset to first page when query changes
   useEffect(() => {
@@ -102,42 +128,45 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
       ) : (
         <>
           <div className="campaign-logs-list">
-            {paginatedPosts.map((post) => {
-              const metrics = getPostMetrics(post);
-              const platformLabels = getPlatformLabels(
-                post.platforms || [],
-                accounts,
-              );
+            {paginatedPosts.map((log) => {
+              const metrics = getPostMetrics(log);
+              const platformLabels = log._platformId 
+                ? getPlatformLabels([log._platformId], accounts) 
+                : getPlatformLabels(log.platforms || [], accounts);
 
               return (
                 <Card
-                  key={post.id}
+                  key={log._logId}
                   className="campaign-scheduler-surface campaign-log-row campaign-log-card"
                 >
                   <div className="campaign-log-single-row">
                     <div className="campaign-log-left">
                       <div className="campaign-log-card-head">
                         <div className="campaign-log-title-wrap">
-                          <Tag color="green">Published</Tag>
-                          <Tag>{post.campaign || "General"}</Tag>
+                          {log._platformStatus === "Failed" ? (
+                            <Tag color="error">Failed</Tag>
+                          ) : (
+                            <Tag color="green">Published</Tag>
+                          )}
+                          <Tag>{log.campaign || "General"}</Tag>
                           <Text className="campaign-log-date">
-                            <CalendarOutlined /> {getScheduleText(post)}
+                            <CalendarOutlined /> {getScheduleText(log)}
                           </Text>
                         </div>
                         <Text className="campaign-log-id">
-                          #{String(post.id || "").slice(0, 8)}
+                          #{String(log.id || "").slice(0, 8)}
                         </Text>
                       </div>
 
                       <Title level={6} className="campaign-log-caption">
-                        {post.caption || "-"}
+                        {log.caption || "-"}
                       </Title>
 
                       <div className="campaign-log-platforms">
                         {platformLabels.length > 0 ? (
-                          platformLabels.map((label) => (
+                          platformLabels.map((label, idx) => (
                             <Tag
-                              key={`${post.id}-${label}`}
+                              key={`${log._logId}-${idx}`}
                               className="campaign-log-platform-tag"
                             >
                               {label}
@@ -149,6 +178,22 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
                           </Text>
                         )}
                       </div>
+
+                      {log._platformStatus === "Failed" && log._platformError && (
+                        <div style={{ marginTop: 8 }}>
+                          <Text type="danger" style={{ fontSize: '0.85rem' }}>
+                            Error: {log._platformError}
+                          </Text>
+                        </div>
+                      )}
+                      
+                      {log._url && (
+                        <div style={{ marginTop: 8 }}>
+                          <Typography.Link href={log._url} target="_blank" rel="noopener noreferrer">
+                            View Post
+                          </Typography.Link>
+                        </div>
+                      )}
                     </div>
 
                     <div className="campaign-log-metric-group">

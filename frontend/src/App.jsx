@@ -37,8 +37,8 @@ import Semrush from './pages/Semrush/Semrush';
 import DashboardTab from './pages/Semrush/components/DashboardTab';
 import KeywordResearchTab from './pages/Semrush/components/KeywordResearchTab';
 import DomainOverviewTab from './pages/Semrush/components/DomainOverviewTab';
+import OrganicKeywordsTab from './pages/Semrush/components/OrganicKeywordsTab';
 import BacklinkAnalyticsTab from './pages/Semrush/components/BacklinkAnalyticsTab';
-import SiteHealthTab from './pages/Semrush/components/SiteHealthTab';
 import Content from './pages/Content/Content';
 import AIStudio from './pages/AIStudio/AIStudio';
 import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
@@ -270,8 +270,8 @@ const AppRoutes = () => {
             <Route path="dashboard" element={<DashboardTab />} />
             <Route path="keyword-research" element={<KeywordResearchTab />} />
             <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
             <Route path="backlink-analytics" element={<BacklinkAnalyticsTab />} />
-            <Route path="site-health" element={<SiteHealthTab />} />
           </Route>
 
           <Route path="ops/team" element={<Teams />} />

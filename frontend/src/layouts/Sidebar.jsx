@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -36,6 +36,35 @@ import PortalSidebar from './PortalSidebar';
 import { slaApi } from '../api/slaApi';
 import { sidebarApi } from '../api/sidebarApi';
 import api from '../services/api';
+
+const getInitials = (name) => {
+  if (!name) return 'U';
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+};
+
+const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
+
+const getBadge = (text, type = 'neutral') => (
+  <span className={`sidebar-menu-badge sidebar-menu-badge--${type}`}>{text}</span>
+);
+
+const getLabel = (text, badgeText, badgeType) => {
+  if (!badgeText) return text;
+  return (
+    <div className="sidebar-menu-label">
+      <span>{text}</span>
+      {getBadge(badgeText, badgeType)}
+    </div>
+  );
+};
+
+const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
@@ -110,34 +139,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     fetchSidebarCounts();
   }, []);
 
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
-  };
-
-  const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
-
-  const getBadge = (text, type = 'neutral') => (
-    <span className={`sidebar-menu-badge sidebar-menu-badge--${type}`}>{text}</span>
-  );
-
-  const getLabel = (text, badgeText, badgeType) => {
-    if (!badgeText) return text;
-    return (
-      <div className="sidebar-menu-label">
-        <span>{text}</span>
-        {getBadge(badgeText, badgeType)}
-      </div>
-    );
-  };
-
-  const menuItems = [
+  const menuItems = useMemo(() => [
     {
       key: '/dashboard',
       icon: getIcon(LayoutDashboard),
@@ -190,19 +192,19 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         // { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
-        { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
-        // { 
-        //   key: 'semrush_menu', 
-        //   icon: getIcon(Search), 
-        //   label: 'Semrush',
-        //   children: [
-        //     { key: '/intelligence/semrush/dashboard', label: 'Dashboard' },
-        //     { key: '/intelligence/semrush/keyword-research', label: 'Keyword Research' },
-        //     { key: '/intelligence/semrush/domain-overview', label: 'Domain Overview' },
-        //     { key: '/intelligence/semrush/backlink-analytics', label: 'Backlink Analytics' },
-        //     { key: '/intelligence/semrush/site-health', label: 'Site Health' },
-        //   ]
-        // },
+        // { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
+        { 
+          key: 'semrush_menu', 
+          icon: getIcon(Search), 
+          label: 'Semrush',
+          children: [
+            { key: '/intelligence/semrush/dashboard', label: 'Dashboard' },
+            { key: '/intelligence/semrush/keyword-research', label: 'Keyword Research' },
+            { key: '/intelligence/semrush/domain-overview', label: 'Domain Overview' },
+            { key: '/intelligence/semrush/organic-keywords', label: 'Organic Keywords' },
+            { key: '/intelligence/semrush/backlink-analytics', label: 'Backlink Analytics' },
+          ]
+        },
       ],
     },
 
@@ -249,18 +251,16 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       ],
     },
     
-  ];
+  ], [collapsed, role, agenciesCount, slaCount, accountsCount, leadsCount, mosScore, pipelineCount]);
 
-  const flattenItems = (items) => items.flatMap((item) => item.children ? flattenItems(item.children) : item);
-
-  const getSelectedKeys = () => {
+  const selectedKeys = useMemo(() => {
     const flatItems = flattenItems(menuItems);
     const match = flatItems
-      .filter((item) => item.key.startsWith('/'))
+      .filter((item) => item.key && item.key.startsWith('/'))
       .sort((a, b) => b.key.length - a.key.length)
       .find((item) => location.pathname.startsWith(item.key));
     return [match?.key || '/dashboard'];
-  };
+  }, [menuItems, location.pathname]);
 
   return (
     <PortalSidebar
@@ -273,7 +273,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       accent="#3b82f6"
       accentSoft="rgba(59, 130, 246, 0.12)"
       menuItems={menuItems}
-      selectedKeys={getSelectedKeys()}
+      selectedKeys={selectedKeys}
       defaultOpenKeys={['clients', 'workspace', 'intelligence', 'ops', 'settings', 'hrms']}
       onNavigate={navigate}
       partner={{
@@ -287,3 +287,4 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 };
 
 export default Sidebar;
+

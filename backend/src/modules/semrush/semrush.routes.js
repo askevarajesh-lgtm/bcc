@@ -10,5 +10,6 @@ router.get('/domain-overview', semrushController.getDomainOverview);
 router.get('/keyword-research', semrushController.getKeywordResearch);
 router.get('/backlinks', semrushController.getBacklinksOverview);
 router.get('/site-health', semrushController.getSiteHealth);
+router.get('/domain-keywords-drilldown', semrushController.getDomainKeywordsDrilldown);
 
 module.exports = router;

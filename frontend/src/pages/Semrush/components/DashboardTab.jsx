@@ -128,28 +128,28 @@ const DashboardTab = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
               <MetricCard 
                 title="Authority Score" 
-                value={data.As || data.score || '-'} 
+                value={data['Rank'] || data.score || '-'} 
                 icon={<Trophy size={24} />} 
                 color="#faad14"
                 delay={0.1}
               />
               <MetricCard 
                 title="Organic Traffic" 
-                value={formatNumber(data.Ot)} 
+                value={formatNumber(data['Organic Traffic'])} 
                 icon={<TrendingUp size={24} />} 
                 color="#52c41a"
                 delay={0.2}
               />
               <MetricCard 
                 title="Organic Keywords" 
-                value={formatNumber(data.Or)} 
+                value={formatNumber(data['Organic Keywords'])} 
                 icon={<Globe size={24} />} 
                 color="#1890ff"
                 delay={0.3}
               />
               <MetricCard 
                 title="Ad Traffic" 
-                value={formatNumber(data.At)} 
+                value={formatNumber(data['Adwords Traffic'])} 
                 icon={<MousePointerClick size={24} />} 
                 color="#722ed1"
                 delay={0.4}

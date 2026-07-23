@@ -224,7 +224,15 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <Title level={4} style={{ margin: 0, fontSize: 18, color: "var(--text-primary)" }}>Website library</Title>
-                <Text type="secondary">Select a layout to jump-start your project</Text>
+                <Text type="secondary">
+                  {isCreating ? (
+                    <span style={{ color: "var(--accent-info)", fontWeight: 500, display: "flex", alignItems: "center", gap: 8 }}>
+                      <Spin size="small" /> Website template is currently being uploaded...
+                    </span>
+                  ) : (
+                    "Select a layout to jump-start your project"
+                  )}
+                </Text>
               </div>
               <Space>
                 <Button 

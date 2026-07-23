@@ -156,80 +156,97 @@ const SiteHealthTab = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 24 }}>
-              <Title level={3} style={{ margin: 0 }}>Site Audit for <span style={{ color: '#13c2c2' }}>{domain}</span></Title>
+              <Title level={3} style={{ margin: 0 }}>Basic SEO Health for <span style={{ color: '#13c2c2' }}>{domain}</span></Title>
+              <Tag color="cyan">Computed from Analytics Data</Tag>
             </div>
-
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-              
               <motion.div 
-                className="semrush-chart-card" style={{ marginTop: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                className="semrush-chart-card" style={{ marginTop: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px 20px' }}
                 initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <Title level={4} style={{ color: '#595959', marginBottom: 40 }}>Overall Site Health</Title>
-                
-                <div style={{ position: 'relative', width: 220, height: 220 }}>
-                  <Progress 
-                    type="dashboard" 
-                    percent={data.overallScore || 0} 
-                    strokeColor={healthColor}
-                    trailColor="#f5f5f5"
-                    format={() => ''}
-                    size={220}
-                    strokeWidth={8}
-                    gapDegree={60}
-                  />
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '50%', left: '50%', 
-                    transform: 'translate(-50%, -50%)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center'
-                  }}>
-                    <Text strong style={{ fontSize: 48, color: healthColor, lineHeight: 1 }}>{data.overallScore || 0}%</Text>
-                    <Text type="secondary" style={{ marginTop: 8, fontWeight: 500 }}>Crawled: {Number(data.crawledPages || 0).toLocaleString()}</Text>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 40, width: '100%', display: 'flex', justifyContent: 'space-around' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Errors</Text>
-                    <Text strong style={{ fontSize: 24, color: '#ff4d4f' }}>
-                      {issuesData.filter(i => i.type === 'Error').reduce((acc, curr) => acc + curr.count, 0)}
-                    </Text>
-                  </div>
-                  <div style={{ width: 1, background: '#f0f0f0' }}></div>
-                  <div style={{ textAlign: 'center' }}>
-                    <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Warnings</Text>
-                    <Text strong style={{ fontSize: 24, color: '#faad14' }}>
-                      {issuesData.filter(i => i.type === 'Warning').reduce((acc, curr) => acc + curr.count, 0)}
-                    </Text>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                className="semrush-chart-card" style={{ marginTop: 0 }}
-                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <div className="semrush-chart-header">
-                  <h3 className="semrush-chart-title">Technical Audit Issues</h3>
-                  <Text type="secondary">Identified SEO issues categorized by severity</Text>
-                </div>
-                
-                <div className="semrush-table-wrapper" style={{ background: 'var(--bg-secondary)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  <Table 
-                    columns={columns}
-                    dataSource={issuesData}
-                    pagination={false}
-                    size="middle"
-                  />
-                </div>
+                <Title level={4} style={{ color: '#8c8c8c', marginBottom: 24, fontWeight: 500 }}>Overall Health Score</Title>
+                <Progress 
+                  type="dashboard" 
+                  percent={data.overallScore} 
+                  strokeColor={healthColor}
+                  format={percent => (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: -10 }}>
+                      <span style={{ fontSize: 48, fontWeight: 700, color: '#141414', lineHeight: 1 }}>{percent}</span>
+                      <span style={{ fontSize: 14, color: '#8c8c8c' }}>/ 100</span>
+                    </div>
+                  )}
+                  size={200}
+                  strokeWidth={8}
+                />
+                <Text type="secondary" style={{ marginTop: 24, maxWidth: 200 }}>
+                  A composite score based on Authority, Organic Traffic, Keywords, and Backlink quality.
+                </Text>
               </motion.div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <motion.div 
+                  className="semrush-chart-card" style={{ marginTop: 0, background: 'linear-gradient(to bottom right, #f6ffed, #ffffff)', border: '1px solid #b7eb8f' }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                     <div style={{ background: '#52c41a', padding: 8, borderRadius: 8, color: 'white', display: 'flex' }}>
+                       <HeartPulse size={20} />
+                     </div>
+                     <Title level={4} style={{ margin: 0, color: '#389e0d' }}>SEO Strengths</Title>
+                  </div>
+                  {data.insights?.strengths?.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {data.insights.strengths.map((s, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 12, padding: '12px', background: 'rgba(255,255,255,0.8)', borderRadius: 8 }}>
+                          <AlertTriangle size={18} color="#52c41a" style={{ marginTop: 2, flexShrink: 0 }} />
+                          <div>
+                            <Text strong style={{ display: 'block', marginBottom: 4 }}>{s.title}</Text>
+                            <Text type="secondary">{s.desc}</Text>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Text type="secondary">No major SEO strengths detected.</Text>
+                  )}
+                </motion.div>
+
+                <motion.div 
+                  className="semrush-chart-card" style={{ marginTop: 0, background: 'linear-gradient(to bottom right, #fff1f0, #ffffff)', border: '1px solid #ffa39e' }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                     <div style={{ background: '#ff4d4f', padding: 8, borderRadius: 8, color: 'white', display: 'flex' }}>
+                       <XCircle size={20} />
+                     </div>
+                     <Title level={4} style={{ margin: 0, color: '#cf1322' }}>SEO Weaknesses</Title>
+                  </div>
+                  {data.insights?.weaknesses?.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {data.insights.weaknesses.map((w, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 12, padding: '12px', background: 'rgba(255,255,255,0.8)', borderRadius: 8 }}>
+                          <XCircle size={18} color="#ff4d4f" style={{ marginTop: 2, flexShrink: 0 }} />
+                          <div>
+                            <Text strong style={{ display: 'block', marginBottom: 4 }}>{w.title}</Text>
+                            <Text type="secondary">{w.desc}</Text>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Text type="secondary">No major SEO weaknesses detected.</Text>
+                  )}
+                </motion.div>
+              </div>
             </div>
+
           </motion.div>
         ) : !error ? (
           <motion.div 
@@ -239,8 +256,8 @@ const SiteHealthTab = () => {
             className="semrush-empty-state"
           >
             <HeartPulse style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>Site Health Audit</Title>
-            <Text type="secondary">Enter a domain above to perform a technical SEO scan and discover critical issues.</Text>
+            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>Basic SEO Health</Title>
+            <Text type="secondary">Enter a domain above to calculate its overall SEO health score.</Text>
           </motion.div>
         ) : null}
       </AnimatePresence>

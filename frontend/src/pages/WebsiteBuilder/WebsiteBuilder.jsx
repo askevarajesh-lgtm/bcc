@@ -73,9 +73,9 @@ const WebsiteBuilder = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <LayoutGrid size={16} /> },
-    { id: 'funnels', label: 'Funnels', icon: <LayoutTemplate size={16} /> },
+    // { id: 'funnels', label: 'Funnels', icon: <LayoutTemplate size={16} /> },
     { id: 'websites', label: 'Websites', icon: <Globe size={16} /> },
-    { id: 'stores', label: 'Stores', icon: <Store size={16} /> },
+    // { id: 'stores', label: 'Stores', icon: <Store size={16} /> },
     { id: 'forms', label: 'Forms', icon: <FileText size={16} /> },
     { id: 'blogs', label: 'Blogs', icon: <LayoutTemplate size={16} /> },
     { id: 'qr-links', label: 'QR Links', icon: <QrCode size={16} /> },

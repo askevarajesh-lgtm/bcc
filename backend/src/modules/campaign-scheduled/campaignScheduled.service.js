@@ -1998,6 +1998,7 @@ async function dispatchPost(post, options = {}) {
   const results = [];
   const errors = [];
   const deliveries = [];
+  const platformResults = {};
   const aggregateMetrics = { likes: 0, comments: 0, shares: 0 };
   let hasAnyMetrics = false;
   for (const platformId of post.platforms) {
@@ -2022,6 +2023,7 @@ async function dispatchPost(post, options = {}) {
       if (account.platform === "facebook") {
         const fbResult = await postToFacebook(account, post);
         results.push(`Facebook/${account.page_name}: ${fbResult.externalId}`);
+        platformResults[account.id] = { status: "Published", platform: "facebook", externalId: fbResult.externalId, url: fbResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "facebook",
@@ -2036,6 +2038,7 @@ async function dispatchPost(post, options = {}) {
         }
         const igResult = await postToInstagram(account, post, options);
         results.push(`Instagram/${account.username}: ${igResult.externalId}`);
+        platformResults[account.id] = { status: "Published", platform: "instagram", externalId: igResult.externalId, url: igResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "instagram",
@@ -2051,6 +2054,7 @@ async function dispatchPost(post, options = {}) {
         results.push(
           `YouTube/${account.page_name || account.username}: ${ytResult.externalId}`,
         );
+        platformResults[account.id] = { status: "Published", platform: "youtube", externalId: ytResult.externalId, url: ytResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "youtube",
@@ -2066,6 +2070,7 @@ async function dispatchPost(post, options = {}) {
       } else if (account.platform === "linkedin") {
         const liResult = await postToLinkedIn(account, post, options);
         results.push(`LinkedIn/${account.page_name}: ${liResult.externalId}`);
+        platformResults[account.id] = { status: "Published", platform: "linkedin", externalId: liResult.externalId, url: liResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "linkedin",
@@ -2075,6 +2080,7 @@ async function dispatchPost(post, options = {}) {
       } else if (account.platform === "google_business") {
         const gbpResult = await postToGoogleBusiness(account, post);
         results.push(`GoogleBusiness/${account.page_name}: ${gbpResult.externalId}`);
+        platformResults[account.id] = { status: "Published", platform: "google_business", externalId: gbpResult.externalId, url: gbpResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "google_business",
@@ -2084,6 +2090,7 @@ async function dispatchPost(post, options = {}) {
       } else if (account.platform === "pinterest") {
         const pinResult = await postToPinterest(account, post, options);
         results.push(`Pinterest/${account.page_name || account.username}: ${pinResult.externalId}`);
+        platformResults[account.id] = { status: "Published", platform: "pinterest", externalId: pinResult.externalId, url: pinResult.url };
         deliveries.push({
           accountId: account.id,
           platform: "pinterest",
@@ -2104,6 +2111,7 @@ async function dispatchPost(post, options = {}) {
       errors.push(
         `${account.platform}/${account.page_name || account.username}: ${fullMsg}`,
       );
+      platformResults[account.id] = { status: "Failed", platform: account.platform, error: fullMsg };
     }
   }
 
@@ -2115,9 +2123,10 @@ async function dispatchPost(post, options = {}) {
     : `Failed: ${errors.join(" | ")}`;
 
   return {
-    success: errors.length === 0 && results.length > 0,
+    success: results.length > 0 || errors.length === 0,
     message: msg,
     deliveries,
+    platformResults,
     metrics: hasAnyMetrics ? aggregateMetrics : null,
   };
 }
@@ -2164,22 +2173,15 @@ async function processDuePosts() {
       changedScopes.add(scopeKey);
 
       const result = await dispatchPost(post);
-      if (result.success) {
-        const publicationMap = {};
-        for (const item of result.deliveries || []) {
-          publicationMap[item.accountId] = {
-            platform: item.platform,
-            externalId: item.externalId,
-            ...(item.url ? { url: item.url } : {}),
-          };
-        }
+      if (result.success || Object.keys(result.platformResults || {}).length > 0) {
+        const publicationMap = result.platformResults || {};
         await Post.updateOne(
           { _id: post._id },
           {
             $set: {
-              status: "Published",
+              status: result.success ? "Published" : "Failed",
               published_at: new Date().toISOString(),
-              error_message: null,
+              error_message: result.success ? null : result.message,
               platform_publications: publicationMap,
               ...(result.metrics
                 ? {
@@ -2194,38 +2196,20 @@ async function processDuePosts() {
         const updated = await Post.findById(post._id).lean();
         const log = {
           id: randomUUID(),
-          type: "published",
+          type: result.success ? "published" : "failed",
           postId: post.id,
           caption: post.caption,
           timestamp: new Date().toISOString(),
           message: result.message,
         };
         schedulerLog.unshift(log);
-        broadcastSSE("post_published", { post: updated, log }, scopeQuery);
-        console.log(
-          `[Campaign Scheduled] Successfully published post: ${post.id}`,
-        );
-      } else {
-        console.error(
-          `[Campaign Scheduled] Failed to publish post: ${post.id} - ${result.message}`,
-        );
-        await Post.updateOne(
-          {
-            _id: post._id,
-          },
-          { $set: { status: "Failed", error_message: result.message } },
-        );
-        const updated = await Post.findById(post._id).lean();
-        const log = {
-          id: randomUUID(),
-          type: "failed",
-          postId: post.id,
-          caption: post.caption,
-          timestamp: new Date().toISOString(),
-          message: result.message,
-        };
-        schedulerLog.unshift(log);
-        broadcastSSE("post_failed", { post: updated, log }, scopeQuery);
+        if (result.success) {
+          broadcastSSE("post_published", { post: updated, log }, scopeQuery);
+          console.log(`[Campaign Scheduled] Successfully published post: ${post.id}`);
+        } else {
+          broadcastSSE("post_failed", { post: updated, log }, scopeQuery);
+          console.error(`[Campaign Scheduled] Completely or partially failed post: ${post.id} - ${result.message}`);
+        }
       }
     }
 

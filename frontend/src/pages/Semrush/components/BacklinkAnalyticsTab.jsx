@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Input, Button, Table, Spin, Typography, Alert } from 'antd';
+import { Input, Button, Table, Spin, Typography, Alert, Tag } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { Link2, Globe, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react';
+import { Link2, Globe, ArrowUpRight, ArrowDownRight, AlertCircle, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { semrushApi } from '../../../api/semrushApi';
 import './DashboardTab.css'; 
@@ -148,39 +148,65 @@ const BacklinkAnalyticsTab = () => {
               />
             </div>
 
-            <div className="semrush-table-wrapper" style={{ background: 'var(--bg-secondary)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-              <Table 
-                dataSource={data.anchors || []}
-                columns={[
-                  { title: 'Anchor Text', dataIndex: 'anchor', key: 'anchor', render: (val) => <Text strong>{val}</Text> },
-                  { title: 'Backlinks', dataIndex: 'links', key: 'links', render: val => Number(val).toLocaleString(), align: 'right' },
-                  { title: 'Domains', dataIndex: 'domains', key: 'domains', render: val => Number(val).toLocaleString(), align: 'right' },
-                ]}
-                pagination={false}
-                size="small"
-              />
-            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <motion.div 
+                className="semrush-chart-card" style={{ marginTop: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <div className="semrush-chart-header">
+                  <h3 className="semrush-chart-title">Top Anchor Text</h3>
+                  <Text type="secondary">Most common words linking to this domain</Text>
+                </div>
+                <div className="semrush-table-wrapper" style={{ background: 'var(--bg-secondary)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <Table 
+                    dataSource={data.anchors || []}
+                    rowKey="anchor"
+                    columns={[
+                      { title: 'Anchor Text', dataIndex: 'anchor', key: 'anchor', render: (val) => <Text strong>{val}</Text> },
+                      { title: 'Backlinks', dataIndex: 'links', key: 'links', render: val => Number(val).toLocaleString(), align: 'right' },
+                      { title: 'Domains', dataIndex: 'domains', key: 'domains', render: val => Number(val).toLocaleString(), align: 'right' },
+                    ]}
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
+              </motion.div>
 
-            <div className="semrush-table-wrapper" style={{ background: 'var(--bg-secondary)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: 24 }}>
-              <Table 
-                dataSource={data.refDomains || []}
-                columns={[
-                  { title: 'Domain', dataIndex: 'domain', key: 'domain', render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val}</Text> },
-                  { 
-                    title: 'Authority', 
-                    dataIndex: 'authority', 
-                    key: 'authority',
-                    render: (val) => (
-                      <Tag color={val > 90 ? 'gold' : 'blue'} icon={<Shield size={12} style={{ marginRight: 4 }} />}>
-                        {val}
-                      </Tag>
-                    )
-                  },
-                  { title: 'Backlinks', dataIndex: 'links', key: 'links', render: val => Number(val).toLocaleString(), align: 'right' },
-                ]}
-                pagination={false}
-                size="small"
-              />
+              <motion.div 
+                className="semrush-chart-card" style={{ marginTop: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                <div className="semrush-chart-header">
+                  <h3 className="semrush-chart-title">Referring Domains</h3>
+                  <Text type="secondary">Top authoritative domains linking here</Text>
+                </div>
+                <div className="semrush-table-wrapper" style={{ background: 'var(--bg-secondary)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <Table 
+                    dataSource={data.refDomains || []}
+                    rowKey="domain"
+                    columns={[
+                      { title: 'Domain', dataIndex: 'domain', key: 'domain', render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val}</Text> },
+                      { 
+                        title: 'Authority', 
+                        dataIndex: 'authority', 
+                        key: 'authority',
+                        render: (val) => (
+                          <Tag color={val > 50 ? 'gold' : val > 20 ? 'blue' : 'default'} icon={<Shield size={12} style={{ marginRight: 4 }} />}>
+                            {val}
+                          </Tag>
+                        )
+                      },
+                      { title: 'Backlinks', dataIndex: 'links', key: 'links', render: val => Number(val).toLocaleString(), align: 'right' },
+                    ]}
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         ) : !error ? (

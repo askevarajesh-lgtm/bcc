@@ -26,7 +26,12 @@ const KeywordResearchTab = () => {
       if (result && result.length > 0) {
         setData(result.map((item, i) => ({ ...item, key: i })));
       } else {
-        setError('No keyword data found.');
+        const isDomainLike = keyword.includes('.') && !keyword.includes(' ');
+        if (isDomainLike) {
+            setError(`No data found for "${keyword}". Keyword Research is for seed topics (e.g. "seo software"). To analyze a website's keywords, please use the Domain Overview tab.`);
+        } else {
+            setError('No keyword data found. Try a broader search term.');
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to fetch keyword data');
@@ -71,18 +76,25 @@ const KeywordResearchTab = () => {
   const columns = [
     {
       title: 'Keyword',
-      dataIndex: 'Ph',
-      key: 'Ph',
+      dataIndex: 'Keyword',
+      key: 'Keyword',
       render: (text) => (
         <Text strong style={{ fontSize: '14px', color: '#141414' }}>{text}</Text>
       ),
-      sorter: (a, b) => a.Ph?.localeCompare(b.Ph),
+      sorter: (a, b) => a.Keyword?.localeCompare(b.Keyword),
       width: '30%',
     },
-    {
+    data.length > 0 && data[0].isDomainResult ? {
+      title: 'Position',
+      dataIndex: 'Position',
+      key: 'Position',
+      sorter: (a, b) => Number(a.Position) - Number(b.Position),
+      render: (val) => <Tag color={val <= 3 ? 'green' : val <= 10 ? 'blue' : 'default'}>{val}</Tag>,
+      width: '15%',
+    } : {
       title: 'Intent',
-      dataIndex: 'In',
-      key: 'In',
+      dataIndex: 'Intent',
+      key: 'Intent',
       render: (val) => getIntentTag(val),
       filters: [
         { text: 'Commercial', value: '0' },
@@ -90,14 +102,14 @@ const KeywordResearchTab = () => {
         { text: 'Navigational', value: '2' },
         { text: 'Transactional', value: '3' },
       ],
-      onFilter: (value, record) => record.In === value,
+      onFilter: (value, record) => record.Intent === value,
       width: '15%',
     },
     {
       title: 'Volume',
-      dataIndex: 'Nq',
-      key: 'Nq',
-      sorter: (a, b) => Number(a.Nq) - Number(b.Nq),
+      dataIndex: 'Search Volume',
+      key: 'Search Volume',
+      sorter: (a, b) => Number(a['Search Volume']) - Number(b['Search Volume']),
       render: (val) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <BarChart2 size={16} color="#8c8c8c" />
@@ -108,9 +120,9 @@ const KeywordResearchTab = () => {
     },
     {
       title: 'Keyword Difficulty (KD %)',
-      dataIndex: 'Kd',
-      key: 'Kd',
-      sorter: (a, b) => Number(a.Kd) - Number(b.Kd),
+      dataIndex: 'Keyword Difficulty Index',
+      key: 'Keyword Difficulty Index',
+      sorter: (a, b) => Number(a['Keyword Difficulty Index']) - Number(b['Keyword Difficulty Index']),
       render: (val) => {
         const kd = Number(val || 0);
         const color = getDifficultyColor(kd);
@@ -134,9 +146,9 @@ const KeywordResearchTab = () => {
     },
     {
       title: 'CPC',
-      dataIndex: 'Cp',
-      key: 'Cp',
-      sorter: (a, b) => Number(a.Cp) - Number(b.Cp),
+      dataIndex: 'CPC',
+      key: 'CPC',
+      sorter: (a, b) => Number(a.CPC) - Number(b.CPC),
       render: (val) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <DollarSign size={14} color="#52c41a" />
@@ -210,13 +222,13 @@ const KeywordResearchTab = () => {
               <div style={{ display: 'flex', gap: 16 }}>
                  <div style={{ textAlign: 'right' }}>
                     <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Total Volume</Text>
-                    <Text strong style={{ fontSize: 16 }}>{data.reduce((acc, curr) => acc + Number(curr.Nq || 0), 0).toLocaleString()}</Text>
+                    <Text strong style={{ fontSize: 16 }}>{data.reduce((acc, curr) => acc + Number(curr['Search Volume'] || 0), 0).toLocaleString()}</Text>
                  </div>
                  <div style={{ width: 1, background: '#f0f0f0' }}></div>
                  <div style={{ textAlign: 'right' }}>
                     <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Avg. KD</Text>
-                    <Text strong style={{ fontSize: 16, color: getDifficultyColor(data.reduce((acc, curr) => acc + Number(curr.Kd || 0), 0) / data.length) }}>
-                      {Math.round(data.reduce((acc, curr) => acc + Number(curr.Kd || 0), 0) / data.length)}%
+                    <Text strong style={{ fontSize: 16, color: getDifficultyColor(data.reduce((acc, curr) => acc + Number(curr['Keyword Difficulty Index'] || 0), 0) / data.length) }}>
+                      {Math.round(data.reduce((acc, curr) => acc + Number(curr['Keyword Difficulty Index'] || 0), 0) / data.length)}%
                     </Text>
                  </div>
               </div>

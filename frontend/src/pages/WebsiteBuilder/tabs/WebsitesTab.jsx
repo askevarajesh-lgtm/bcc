@@ -13,7 +13,7 @@ const { TextArea } = Input;
 // Removed basic WebsiteBuilderView in favor of GrapesJSBuilder
 
 const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
-  const [selectedType, setSelectedType] = useState("ai");
+  const [selectedType, setSelectedType] = useState("blank");
   const [websiteName, setWebsiteName] = useState("");
   const [industry, setIndustry] = useState("");
   const [description, setDescription] = useState("");
@@ -24,7 +24,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
     setWebsiteName("");
     setIndustry("");
     setDescription("");
-    setSelectedType("ai");
+    setSelectedType("blank");
   };
 
   const isFormValid = websiteName.trim().length > 0 && (selectedType !== "ai" || description.trim().length > 0);
@@ -71,7 +71,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
         </div>
 
         {/* Create with AI */}
-        <div 
+        {/* <div 
           onClick={() => setSelectedType("ai")}
           style={{
             flex: 1,
@@ -100,7 +100,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           <div style={{ background: "var(--accent-secondary)", color: "#fff", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 13, marginTop: 'auto' }}>
             Home + Contact + About pages
           </div>
-        </div>
+        </div> */}
 
         {/* From templates */}
         <div 
@@ -1252,15 +1252,15 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         <Space>
           {role !== 'agency_client' && (
             <>
-              <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button>
-              <Button 
+              {/* <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button> */}
+              {/* <Button 
                 size="large"
                 icon={<Sparkles size={18} />} 
                 onClick={() => setIsModalOpen(true)}
                 style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
               >
                 Build with AI <Tag style={{ margin: '0 0 0 8px', background: 'var(--accent-secondary)', color: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', fontSize: 10 }}>BETA</Tag>
-              </Button>
+              </Button> */}
               <Button 
                 size="large"
                 type="primary" 

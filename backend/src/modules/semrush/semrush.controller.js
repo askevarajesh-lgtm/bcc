@@ -59,3 +59,18 @@ exports.getSiteHealth = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.getDomainKeywordsDrilldown = async (req, res) => {
+  try {
+    const { domain, limit } = req.query;
+    if (!domain) {
+      return res.status(400).json({ success: false, message: 'Domain is required' });
+    }
+    
+    const data = await semrushService.getDomainKeywordsDrilldown(domain, 'us', limit ? parseInt(limit) : 100);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('[Semrush Controller - getDomainKeywordsDrilldown]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

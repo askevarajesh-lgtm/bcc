@@ -186,20 +186,21 @@ exports.createWebsite = async (req, res, next) => {
           const isCloudinary = templateRecord.zipUrl.startsWith('http');
 
           if (isCloudinary) {
-            // Extract public ID from Cloudinary URL reliably using regex
+            // Extract public ID and type from Cloudinary URL reliably using regex
             let publicId = templateRecord.zipUrl;
-            const regex = /\/(?:upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
+            let uploadType = 'upload'; // default
+            
+            const regex = /\/(upload|authenticated)(?:\/s--[a-zA-Z0-9_-]+--)?(?:\/v\d+)?\/(.+)$/;
             const match = templateRecord.zipUrl.match(regex);
-            if (match && match[1]) {
-              publicId = match[1];
+            if (match) {
+              uploadType = match[1];
+              publicId = match[2];
             }
 
             // Generate an authenticated download URL using the Admin API
-            // Note: The template is uploaded as 'upload' type, not 'authenticated',
-            // but the account requires API-signed URLs for downloading raw files.
             const downloadUrl = cloudinary.utils.private_download_url(publicId, '', {
               resource_type: 'raw',
-              type: 'upload'
+              type: uploadType
             });
 
             const response = await axios({
