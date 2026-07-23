@@ -36,6 +36,10 @@ const masterItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isSystem: {
+    type: Boolean,
+    default: false
+  },
   isCustom: {
     type: Boolean,
     default: false

@@ -4,6 +4,7 @@ const MasterItem = require('./masterItem.model');
 exports.createMasterItem = async (req, res, next) => {
   try {
     const data = { ...req.body };
+    delete data.isSystem; // Prevent users from creating system items manually
     data.createdBy = req.user._id;
 
     // Tenant logic similar to department
@@ -54,13 +55,20 @@ exports.getMasterItems = async (req, res, next) => {
     }
 
     // Tenant filtering
+    let tenantFilter = {};
     if (req.user.role === 'commander_admin') {
-      queryFilter.adminId = req.user._id;
+      tenantFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      queryFilter.brandId = req.user.brandId || req.user._id;
+      tenantFilter.brandId = req.user.brandId || req.user._id;
     } else {
-      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      tenantFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
     }
+
+    // Apply tenant or system filter
+    queryFilter.$or = [
+      { isSystem: true },
+      tenantFilter
+    ];
 
     const total = await MasterItem.countDocuments(queryFilter);
     const masterItems = await MasterItem.find(queryFilter)
@@ -103,6 +111,10 @@ exports.updateMasterItem = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Master Item not found' });
     }
 
+    if (masterItem.isSystem) {
+      return res.status(403).json({ success: false, message: 'System Master Items cannot be modified' });
+    }
+
     req.body.updatedBy = req.user._id;
     
     // Duplicate name check if name is changed
@@ -131,6 +143,10 @@ exports.deleteMasterItem = async (req, res, next) => {
     const masterItem = await MasterItem.findOne({ _id: req.params.id, isDeleted: false });
     if (!masterItem) {
       return res.status(404).json({ success: false, message: 'Master Item not found' });
+    }
+
+    if (masterItem.isSystem) {
+      return res.status(403).json({ success: false, message: 'System Master Items cannot be deleted' });
     }
 
     masterItem.isDeleted = true;

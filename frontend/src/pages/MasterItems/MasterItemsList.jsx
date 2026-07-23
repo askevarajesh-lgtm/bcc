@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button, Table, Tag, Space, Popconfirm, message, Segmented, Row, Col, theme } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, AppstoreOutlined, UnorderedListOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -101,12 +101,17 @@ const MasterItemsList = () => {
                 </Space>
               ) },
               { title: 'Price', dataIndex: 'price', key: 'price', render: (val) => `₹${val}` },
-              { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={status === 'active' ? 'green' : 'red'}>{status}</Tag> },
+              { title: 'Status', dataIndex: 'status', key: 'status', render: (status, record) => (
+                <Space>
+                  {record.isSystem && <Tag color="blue" icon={<LockOutlined />}>System</Tag>}
+                  <Tag color={status === 'active' ? 'green' : 'red'}>{status}</Tag>
+                </Space>
+              ) },
               { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
               { title: 'Actions', key: 'actions', render: (_, record) => (
                 <Space>
-                  {canEdit && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${record._id}`)} />}
-                  {canDelete && (
+                  {canEdit && !record.isSystem && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${record._id}`)} />}
+                  {canDelete && !record.isSystem && (
                     <Popconfirm title="Delete this item?" onConfirm={() => handleDelete(record._id)}>
                       <Button type="text" danger icon={<DeleteOutlined />} />
                     </Popconfirm>
@@ -139,10 +144,15 @@ const MasterItemsList = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{item.name}</Title>
                   <Space>
+                    {item.isSystem && (
+                      <Tag color="blue" icon={<LockOutlined />} style={{ borderRadius: 12, margin: 0 }}>
+                        System
+                      </Tag>
+                    )}
                     <Tag color={item.status === 'active' ? 'purple-inverse' : 'default'} style={{ borderRadius: 12, margin: 0, border: 'none' }}>
                       {item.status === 'active' ? 'Active' : 'Inactive'}
                     </Tag>
-                    {canDelete && (
+                    {canDelete && !item.isSystem && (
                       <Popconfirm title="Delete this item?" onConfirm={() => handleDelete(item._id)}>
                         <Button type="text" danger icon={<DeleteOutlined />} size="small" />
                       </Popconfirm>
@@ -203,7 +213,7 @@ const MasterItemsList = () => {
                 </div>
 
                 <div style={{ marginTop: 'auto' }}>
-                  {canEdit && (
+                  {canEdit && !item.isSystem && (
                     <Button 
                       type="primary" 
                       size="large"
