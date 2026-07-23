@@ -1,5 +1,6 @@
 const Website = require('./website.model');
 const Page = require('./page.model');
+const { extractStylesheetUrls } = require('./website.chrome');
 const Template = require('../templates/template.model');
 const Blog = require('../blogs/blog.model');
 const unzipper = require('unzipper');
@@ -72,9 +73,6 @@ function detectThemeFromTemplateFiles(htmlFiles, cssFiles) {
   return detectThemeFromContent(htmlContents, cssContents);
 }
 
-// Wrapper used to re-detect theme for an already-published website: its pages'
-// `html` field is stored directly in Mongo, but the CSS it links to (uploaded
-// during template import) lives on Cloudinary, so it has to be fetched.
 async function detectThemeFromPublishedPages(pages) {
   const htmlContents = pages.map(p => p.html || '');
 
@@ -97,21 +95,6 @@ async function detectThemeFromPublishedPages(pages) {
   return detectThemeFromContent(htmlContents, cssContents);
 }
 
-// Downloads a template's zip to `zipPath`, trying a few strategies in order
-// since Cloudinary accounts vary in how raw/zip delivery is configured:
-//   1) The `type: 'authenticated'` signed download URL, built from the exact
-//      public_id captured at upload time — this is the primary path now
-//      that zipUpload.js uploads templates as authenticated resources. This
-//      account has Cloudinary's "restricted media types" security setting
-//      enabled, which blocks *public* delivery of zip/raw files with a 401
-//      even when the URL is signed, so `type: 'upload'` (signed or not)
-//      never works here — only a genuinely authenticated resource does.
-//   2) A signed delivery URL against `type: 'upload'`, and
-//   3) the plain stored zipUrl —
-//      both kept only as fallbacks for any template record whose zip was
-//      actually uploaded as a public resource (e.g. before this fix).
-// Throws a single Error summarizing every attempt if all three fail, so the
-// caller can surface something more useful than a bare "404"/"401".
 async function downloadTemplateZip(templateRecord, zipPath) {
   const attempts = [];
 
@@ -247,9 +230,6 @@ exports.createWebsite = async (req, res, next) => {
             }
           }
 
-          // Auto-detect the template's font/brand color and save it as the website's
-          // theme, so anything reading website.theme (e.g. the blog embed) matches the
-          // imported design instead of the schema's generic Inter/blue defaults.
           const cssFiles = assetFiles.filter(f => f.toLowerCase().endsWith('.css'));
           const detectedTheme = detectThemeFromTemplateFiles(htmlFiles, cssFiles);
           if (detectedTheme.fontFamily || detectedTheme.primaryColor) {
@@ -322,6 +302,8 @@ exports.createWebsite = async (req, res, next) => {
             const pagePath = isHome ? '/home' : `/${pageName.toLowerCase()}`;
             const pageTitle = pageName.charAt(0).toUpperCase() + pageName.slice(1);
 
+            const stylesheetUrls = extractStylesheetUrls(htmlContent);
+
             const newPage = new Page({
               websiteId: savedWebsite._id,
               title: isHome ? 'Home' : pageTitle,
@@ -330,6 +312,7 @@ exports.createWebsite = async (req, res, next) => {
               isHome,
               html: htmlContent,
               css: '', // CSS is linked via <link> tags from Cloudinary now
+              stylesheetUrls,
               layoutJson: { sections: [] }
             });
             await newPage.save();
@@ -554,6 +537,7 @@ exports.updateWebsite = async (req, res, next) => {
             layoutJson: p.layoutJson || { sections: [] },
             html: p.html || '',
             css: p.css || '',
+            stylesheetUrls: p.stylesheetUrls || [],
             customHeadCode: p.customHeadCode || '',
             customBodyCode: p.customBodyCode || ''
           });
@@ -651,7 +635,8 @@ exports.cloneWebsite = async (req, res, next) => {
       isHome: p.isHome,
       layoutJson: p.layoutJson,
       html: p.html,
-      css: p.css
+      css: p.css,
+      stylesheetUrls: p.stylesheetUrls
     }));
 
     if (clonedPages.length > 0) {
@@ -769,6 +754,7 @@ exports.duplicatePage = async (req, res, next) => {
       layoutJson: page.layoutJson,
       html: page.html,
       css: page.css,
+      stylesheetUrls: page.stylesheetUrls,
       customHeadCode: page.customHeadCode,
       customBodyCode: page.customBodyCode
     });
@@ -784,7 +770,7 @@ exports.duplicatePage = async (req, res, next) => {
 exports.updatePage = async (req, res, next) => {
   try {
     const { websiteId, pageId } = req.params;
-    const { title, path, layoutJson, html, css, status, customHeadCode, customBodyCode } = req.body;
+    const { title, path, layoutJson, html, css, status, customHeadCode, customBodyCode, stylesheetUrls } = req.body;
 
     const page = await Page.findOne({ _id: pageId, websiteId, isDeleted: false });
     if (!page) {
@@ -805,6 +791,7 @@ exports.updatePage = async (req, res, next) => {
     if (layoutJson !== undefined) page.layoutJson = layoutJson;
     if (html !== undefined) page.html = html;
     if (css !== undefined) page.css = css;
+    if (stylesheetUrls !== undefined) page.stylesheetUrls = stylesheetUrls;
     if (status) page.status = status;
     if (customHeadCode !== undefined) page.customHeadCode = customHeadCode;
     if (customBodyCode !== undefined) page.customBodyCode = customBodyCode;

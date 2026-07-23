@@ -255,6 +255,7 @@ const WebsitePreviewView = () => {
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>${pageData.title}</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+          ${(pageData.stylesheetUrls || []).map((url) => `<link rel="stylesheet" href="${url}">`).join("\n          ")}
           <style>
             body { margin: 0; padding: 0; background: #fff; }
             ${pageData.css || ""}

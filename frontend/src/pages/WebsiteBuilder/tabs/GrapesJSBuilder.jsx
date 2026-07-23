@@ -114,7 +114,59 @@ const getWidgetHtmlOnly = (widget) => {
 };
 
 const NON_CONTENT_SELECTOR =
-  "script, style, noscript, #spinner, #preloader, .preloader, .loader-wrapper, .loader, .td-preloader-wrap";
+  "script, style, noscript, #spinner, #preloader, .preloader, .loader-wrapper, .loader, .td-preloader-wrap, " +
+  ".back-to-top, #back-to-top, .backtotop, .back-to-top-btn, .scroll-top, .scrolltop, .scroll-to-top, .scrollup, .go-top, .gotop, .totop";
+
+const GENERIC_CLASS_RE =
+  /^(container|container-fluid|row|col(-\w+)?(-\d+)?|[pm][trblxy]?-\d+|wow|fade\w*|text-(center|left|right|white|dark)|d-\w+|position-\w+|w-100|h-100)$/i;
+
+const significantClassTokens = (el) =>
+  (el.className || "")
+    .toString()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((c) => !GENERIC_CLASS_RE.test(c));
+
+const shareStyleSignal = (elA, elB) => {
+  const a = significantClassTokens(elA);
+  const b = new Set(significantClassTokens(elB));
+  return a.some((c) => b.has(c));
+};
+
+const isNavLike = (el) =>
+  el.matches("nav") ||
+  !!el.querySelector("nav") ||
+  el.matches('[class*="navbar"]') ||
+  !!el.querySelector('[class*="navbar"]');
+
+const isFooterSignal = (el) =>
+  el.matches('[class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+
+const buildHeaderGroup = (children) => {
+  if (children.length === 0) return [];
+  const lookahead = Math.min(children.length, 3);
+  for (let i = 0; i < lookahead; i++) {
+    if (isNavLike(children[i])) return children.slice(0, i + 1);
+  }
+  return [children[0]]; 
+};
+
+const buildFooterGroup = (children) => {
+  const n = children.length;
+  if (n === 0) return [];
+  const lookback = Math.min(n, 3);
+  const group = [children[n - 1]];
+  for (let i = n - 2; i >= n - lookback; i--) {
+    const el = children[i];
+    if (isFooterSignal(el) || shareStyleSignal(el, group[0])) {
+      group.unshift(el);
+    } else {
+      break;
+    }
+  }
+  return group;
+};
 
 const parseHeaderFooterFromHtml = (html) => {
   if (!html) return { header: "", footer: "" };
@@ -123,31 +175,35 @@ const parseHeaderFooterFromHtml = (html) => {
     const body = doc.body;
     if (!body) return { header: "", footer: "" };
 
-    let headerEl = doc.querySelector(
+    const headerEl = doc.querySelector(
       "header, [data-gjs-type='header'], .site-header, .main-header, #header",
     );
-    let footerEl = doc.querySelector(
+    const footerEl = doc.querySelector(
       "footer, [data-gjs-type='footer'], .site-footer, .main-footer, #footer",
     );
 
     const topLevelChildren = Array.from(body.children).filter(
       (el) => !el.matches(NON_CONTENT_SELECTOR),
     );
-    if (!headerEl && topLevelChildren.length > 1) {
-      headerEl = topLevelChildren[0];
+
+    let headerGroup = headerEl ? [headerEl] : [];
+    let footerGroup = footerEl ? [footerEl] : [];
+
+    if (headerGroup.length === 0 && topLevelChildren.length > 1) {
+      headerGroup = buildHeaderGroup(topLevelChildren);
     }
-    if (!footerEl && topLevelChildren.length > 1) {
-      footerEl = topLevelChildren[topLevelChildren.length - 1];
+    if (footerGroup.length === 0 && topLevelChildren.length > 1) {
+      footerGroup = buildFooterGroup(topLevelChildren);
     }
 
-    // Guard against a single-section page grabbing the same element twice.
-    if (headerEl && footerEl && headerEl === footerEl) {
-      footerEl = null;
+    // Guard against a single-section page grabbing the same element(s) twice.
+    if (headerGroup.length && footerGroup.length && headerGroup.some((h) => footerGroup.includes(h))) {
+      footerGroup = [];
     }
 
     return {
-      header: headerEl ? headerEl.outerHTML : "",
-      footer: footerEl ? footerEl.outerHTML : "",
+      header: headerGroup.map((el) => el.outerHTML).join("\n"),
+      footer: footerGroup.map((el) => el.outerHTML).join("\n"),
     };
   } catch (err) {
     console.error("Failed to parse header/footer from home page", err);
@@ -173,21 +229,10 @@ const normalizeFeaturedImageHeight = (html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const img = doc.querySelector('[data-post-field="image"]');
     if (img) {
-      // A fixed pixel height (e.g. the old 280px default, tuned for the
-      // builder's own canvas width) looks squashed or overly tall once the
-      // same image renders in a narrower/wider container. Only swap it for a
-      // proportional aspect-ratio when the height is missing or still the
-      // untouched legacy default — a real resize (any other height value)
-      // reflects a deliberate choice in the builder, so leave that alone and
-      // just strip the stale max-height below.
       if (!img.style.aspectRatio && (!img.style.height || img.style.height === LEGACY_DEFAULT_FEATURED_IMAGE_HEIGHT)) {
         img.style.removeProperty("height");
         img.style.aspectRatio = DEFAULT_FEATURED_IMAGE_ASPECT_RATIO;
       }
-      // max-height is a stale leftover from the original insert default: once the
-      // image is resized in the builder its height style gets updated but this
-      // never gets cleared, so it silently clamps the resized image back down.
-      // aspect-ratio/height + object-fit:cover already handle sizing without it.
       img.style.removeProperty("max-height");
       if (!img.style.objectFit) img.style.objectFit = "cover";
     }
@@ -221,6 +266,7 @@ const GrapesJSBuilder = ({
 }) => {
   const isPostMode = mode === "post";
   const editorRef = useRef(null);
+  const stylesheetUrlsRef = useRef([]);
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveToast, setSaveToast] = useState(null); 
@@ -251,14 +297,14 @@ const GrapesJSBuilder = ({
         activeWebsite.pages.find((p) => p.html) ||
         null
       : null;
-    // Post mode has no page of its own to pull stylesheet <link> tags from
-    // (activePost is just post content), but the header/footer it borrows
-    // below (getSiteHeaderFooter) come from the website's home page, so its
-    // stylesheet is what makes that header/footer actually look like the
-    // template instead of unstyled markup.
+    const resolveCssUrls = (page) =>
+      page?.stylesheetUrls?.length ? page.stylesheetUrls : extractStylesheetUrls(page?.html || "");
+
     const templateCssUrls = isPostMode
-      ? extractStylesheetUrls(homePageForAssets?.html || "")
-      : extractStylesheetUrls(sourceContent?.html || homePageForAssets?.html || "");
+      ? resolveCssUrls(homePageForAssets)
+      : (resolveCssUrls(sourceContent).length ? resolveCssUrls(sourceContent) : resolveCssUrls(homePageForAssets));
+
+    stylesheetUrlsRef.current = templateCssUrls;
 
     const e = grapesjs.init({
       container: editorRef.current,
@@ -286,9 +332,6 @@ const GrapesJSBuilder = ({
         styles: [
           // Basic reset or custom styles
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
-          // The imported template's own stylesheet(s) — the site's home page
-          // in page mode, or the same home page borrowed for its header/footer
-          // styling in post mode (see homePageForAssets/templateCssUrls above).
           ...templateCssUrls,
         ],
       },
@@ -822,10 +865,6 @@ const GrapesJSBuilder = ({
           ? imageEl.getAttribute("src") || ""
           : initialPostFeaturedImageUrl;
 
-        // Clean up a stale max-height:280px left over from the old insert
-        // default (see normalizeFeaturedImageHeight above) so a resized
-        // featured image no longer gets silently clamped back down, on this
-        // post and any future re-save of an older one.
         let postCss = css;
         if (imageEl) {
           imageEl.style.removeProperty("max-height");
@@ -900,7 +939,7 @@ const GrapesJSBuilder = ({
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
           },
-          body: JSON.stringify({ html, css }),
+          body: JSON.stringify({ html, css, stylesheetUrls: stylesheetUrlsRef.current }),
         },
       );
       const data = await res.json();
