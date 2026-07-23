@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input, message, Typography } from 'antd';
 import { motion } from 'framer-motion';
 import { BadgeCheck, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import './SignIn.css';
 
 const { Title, Text } = Typography;
@@ -71,6 +72,7 @@ const renderPasswordIcon = (visible) => (
 
 const SignIn = () => {
   const { login } = useAuth();
+  const { isDark } = useTheme();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   useEffect(() => {
@@ -229,10 +231,12 @@ const SignIn = () => {
             <Card bordered={false} className="bcc-signin-card" styles={{ body: { padding: 0 } }}>
               <div className="bcc-signin-card__inner">
                 <motion.div variants={itemVariants} className="bcc-signin-brand">
-                  <div className="bcc-signin-brand__mark">BCC</div>
-                  <div className="bcc-signin-brand__copy">
-                    <strong>BCC Martech</strong>
-                    <span>Agency Growth OS</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                    <img 
+                      src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
+                      alt="BCC Martech Logo" 
+                      style={{ maxHeight: 64, objectFit: 'contain' }} 
+                    />
                   </div>
                 </motion.div>
 

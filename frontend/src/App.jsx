@@ -351,6 +351,7 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="time" element={<TimeTracking />} />
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="deliverables" element={<DeliverablesPage />} />

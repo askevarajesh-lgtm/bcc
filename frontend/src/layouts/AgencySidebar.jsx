@@ -156,6 +156,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const opsChildren = [];
+  opsChildren.push({ key: '/agency/time', icon: getIcon(Calendar), label: 'Time Tracking' });
   opsChildren.push({ key: '/agency/businessintel', icon: getIcon(PieChart), label: 'Business Intel' });
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });

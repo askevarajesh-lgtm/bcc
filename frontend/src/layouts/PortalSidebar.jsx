@@ -47,29 +47,17 @@ const PortalSidebar = ({
       }}
     >
       <div className="app-sidebar__brand">
-        {brandLogo ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', width: '100%' }}>
-            <img 
-              src={brandLogo} 
-              alt="Logo" 
-              style={{ 
-                maxWidth: '100%', 
-                maxHeight: 44, 
-                objectFit: 'contain' 
-              }} 
-            />
-          </div>
-        ) : (
-          <>
-            <div className="app-sidebar__logo">{brandInitials}</div>
-            {!collapsed && (
-              <div className="app-sidebar__brand-copy">
-                <strong>{brandTitle}</strong>
-                <span>{brandSubtitle}</span>
-              </div>
-            )}
-          </>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px 0' }}>
+          <img 
+            src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
+            alt="BCC Martech Logo" 
+            style={{ 
+              maxWidth: '85%', 
+              maxHeight: 72, 
+              objectFit: 'contain' 
+            }} 
+          />
+        </div>
       </div>
 
       <div className="app-sidebar__content">

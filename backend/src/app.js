@@ -11,7 +11,9 @@ const app = express();
 
 // Middlewares
 const allowedOrigins = [
+  'https://m1.workforce.themilabs.com',
   'https://bcc.askeva.io',
+  'http://m1.workforce.themilabs.com',
   'https://bcc.askeva.io/',
   'http://localhost:5173',
   'http://localhost:5173/'

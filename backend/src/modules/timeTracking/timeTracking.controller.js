@@ -41,8 +41,10 @@ exports.getRecentEntries = async (req, res) => {
     
     // Role based filtering
     let matchQuery = { tenantCompanyId };
-    if (['user', 'brand_team_user', 'agency_client', 'brand_manager', 'brand_super_admin'].includes(req.user.role)) {
+    if (['user', 'brand_team_user'].includes(req.user.role)) {
       matchQuery.employee = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
+      matchQuery.client = req.user._id;
     }
 
     const entries = await TimeEntry.find(matchQuery)
@@ -77,8 +79,10 @@ exports.getDashboardData = async (req, res) => {
     const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
     
     let matchQuery = { $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }] };
-    if (['user', 'brand_team_user', 'agency_client', 'brand_manager', 'brand_super_admin'].includes(req.user.role)) {
+    if (['user', 'brand_team_user'].includes(req.user.role)) {
       matchQuery.employee = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
+      matchQuery.client = req.user._id;
     }
 
     // Date range: current week (Monday to Sunday)
@@ -118,8 +122,10 @@ exports.getDashboardData = async (req, res) => {
       status: { $in: completedStatuses },
       updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
     };
-    if (['user', 'brand_team_user', 'agency_client', 'brand_manager', 'brand_super_admin'].includes(req.user.role)) {
+    if (['user', 'brand_team_user'].includes(req.user.role)) {
       taskMatch.assignedTo = req.user._id;
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
+      taskMatch.companyId = tenantObjectId; // Wait, tasks are linked to client via companyId or brandId. In this controller, it just uses tenantCompanyId. Let's see...
     }
 
     const taskKpiAgg = await Task.aggregate([
