@@ -123,7 +123,7 @@ const TeamOverviewTab = () => {
           <Text type="secondary" style={{ fontWeight: 500 }}>Your people, roles, capacity and performance — all in one place.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Tag style={{ borderRadius: 16, padding: '8px 16px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600 }}>BCC Martech - 5 team members</Tag>
+          <Tag style={{ borderRadius: 16, padding: '8px 16px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600 }}>M1 Labs - 5 team members</Tag>
           <Button icon={<UserPlus size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Invite Member</Button>
           <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export</Button>
         </div>
@@ -194,7 +194,7 @@ const TeamOverviewTab = () => {
                     }}>
                       <Avatar size={96} style={{ backgroundColor: member.color, fontSize: 32, fontWeight: 800, border: '4px solid var(--bg-primary)', boxShadow: 'var(--shadow-md)', marginBottom: 16 }}>{member.initials}</Avatar>
                       <strong style={{ fontSize: 20, display: 'block', color: 'var(--text-primary)', marginBottom: 4 }}>{member.name}</strong>
-                      <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{member.role} · BCC Martech</Text>
+                      <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{member.role} · M1 Labs</Text>
 
                       <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
                         <Tag style={{ margin: 0, borderRadius: 12, border: `1px solid ${member.color}`, color: member.color, background: 'transparent', fontWeight: 700, padding: '2px 10px' }}>{member.role}</Tag>

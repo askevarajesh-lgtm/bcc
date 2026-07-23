@@ -50,7 +50,7 @@ const PortalSidebar = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px 0' }}>
           <img 
             src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
-            alt="BCC Martech Logo" 
+            alt="M1 Labs Logo" 
             style={{ 
               maxWidth: '85%', 
               maxHeight: 72, 

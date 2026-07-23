@@ -65,7 +65,7 @@ const AgencyPortal = () => {
             BCC
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>BCC Martech</span>
+            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>M1 Labs</span>
             <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>Agency Portal</span>
           </div>
         </div>
@@ -121,7 +121,7 @@ const AgencyPortal = () => {
       </Content>
 
       <Footer style={{ textAlign: 'center', padding: '24px 40px', display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500 }}>
-        <span>© 2026 BCC Martech - Agency Portal</span>
+        <span>© 2026 M1 Labs - Agency Portal</span>
         <span>Powered by M1</span>
       </Footer>
     </Layout>

@@ -1225,7 +1225,7 @@ const fetchWhatsAppLeads = async (integrationId, companyId, role) => {
     };
 
     // If token is provided, and not already in URL, try both header and query param
-    // BCC Martech specifically uses ?token= in the URL
+    // M1 Labs specifically uses ?token= in the URL
     if (whatsappLeads.token) {
       if (!fetchUrl.includes("token=")) {
         const separator = fetchUrl.includes("?") ? "&" : "?";

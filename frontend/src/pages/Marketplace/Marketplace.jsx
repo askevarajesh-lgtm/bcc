@@ -218,7 +218,7 @@ const Marketplace = () => {
           }
         },
         prefill: {
-          name: "Bcc Martech User",
+          name: "M1 Labs User",
           email: "user@example.com",
         },
         theme: {

@@ -101,7 +101,7 @@ const BillingTab = () => {
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 4 }}>BILLING & INVOICES</Text>
         <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Billing</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Your retainer history with BCC Martech.</Text>
+        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Your retainer history with M1 Labs.</Text>
       </motion.div>
 
       {/* Top Cards */}
@@ -200,7 +200,7 @@ const BillingTab = () => {
       <motion.div variants={itemVariants} style={{ marginBottom: 40 }}>
         <BubbleCard bodyStyle={{ padding: 32 }}>
           <Title level={5} style={{ margin: '0 0 4px 0', fontWeight: 800, fontSize: 16 }}>Retainer History</Title>
-          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500, display: 'block', marginBottom: 32 }}>Your investment with BCC Martech over time</Text>
+          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500, display: 'block', marginBottom: 32 }}>Your investment with M1 Labs over time</Text>
           
           <div style={{ height: 200, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">

@@ -8,7 +8,7 @@ const timeEntrySchema = new mongoose.Schema({
   },
   client: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // In BCC Martech, clients are often Users (Brand) or Companies
+    ref: 'User', // In M1 Labs, clients are often Users (Brand) or Companies
     required: false,
   },
   task: {

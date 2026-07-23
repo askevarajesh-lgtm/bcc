@@ -67,7 +67,7 @@ const StoreTab = () => {
       
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Services & Upgrades</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Powered by BCC Martech — add more to your marketing</Text>
+        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Powered by M1 Labs — add more to your marketing</Text>
       </motion.div>
 
       {/* Recommended Section */}

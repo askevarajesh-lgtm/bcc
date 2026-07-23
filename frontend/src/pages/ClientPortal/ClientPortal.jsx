@@ -76,7 +76,7 @@ const ClientPortal = () => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
             <Text style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>Prestige Estates</Text>
-            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Powered by BCC Martech</Text>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Powered by M1 Labs</Text>
           </div>
         </div>
 

@@ -75,10 +75,10 @@ const HRMSTab = () => {
         <div>
 
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>HRMS</Title>
-          <Text type="secondary" style={{ fontWeight: 500 }}>People operations for BCC Martech — hire, manage, develop, retain.</Text>
+          <Text type="secondary" style={{ fontWeight: 500 }}>People operations for M1 Labs — hire, manage, develop, retain.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Tag style={{ borderRadius: 16, padding: '8px 16px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600 }}>BCC Martech</Tag>
+          <Tag style={{ borderRadius: 16, padding: '8px 16px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600 }}>M1 Labs</Tag>
           <Button icon={<UserPlus size={16} />} onClick={() => setIsAddEmployeeModalVisible(true)} style={{ borderRadius: 8, fontWeight: 600, border: 'none', color: '#fff', background: 'var(--accent-warning)', height: 40, boxShadow: 'var(--shadow-sm)' }}>Add Employee</Button>
           <Button icon={<IndianRupee size={16} />} style={{ borderRadius: 8, fontWeight: 600, border: 'none', color: '#fff', background: 'var(--accent-primary)', height: 40, boxShadow: 'var(--shadow-sm)' }}>Run Payroll</Button>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Export</Button>

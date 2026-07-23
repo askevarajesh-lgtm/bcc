@@ -147,7 +147,7 @@ const SignIn = () => {
           <motion.aside variants={panelVariants} className="bcc-signin-visual">
             <div className="bcc-signin-visual__content">
               <motion.div variants={itemVariants} className="bcc-signin-visual__header">
-                <span className="bcc-signin-visual__brand-tag">BCC Martech</span>
+                <span className="bcc-signin-visual__brand-tag">M1 Labs</span>
                 <span className="bcc-signin-visual__subtag">Agency Growth OS</span>
               </motion.div>
 
@@ -234,7 +234,7 @@ const SignIn = () => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                     <img 
                       src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
-                      alt="BCC Martech Logo" 
+                      alt="M1 Labs Logo" 
                       style={{ maxHeight: 64, objectFit: 'contain' }} 
                     />
                   </div>

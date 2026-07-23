@@ -243,7 +243,7 @@ const DashboardTab = () => {
             <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>Invoices</Title>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Your billing history from BCC Martech</Text>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Your billing history from M1 Labs</Text>
               </div>
               <Button type="link" style={{ fontWeight: 700, color: 'var(--accent-secondary)' }} onClick={() => navigate('/client/billing')}>View Billing →</Button>
             </div>

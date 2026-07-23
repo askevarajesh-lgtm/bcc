@@ -100,7 +100,7 @@ const SettingsPage = () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Settings</Title>
-        <Text type="secondary" style={{ fontWeight: 500 }}>Configure how the M1 platform works for BCC Martech.</Text>
+        <Text type="secondary" style={{ fontWeight: 500 }}>Configure how the M1 platform works for M1 Labs.</Text>
       </motion.div>
 
       <motion.div variants={itemVariants}>

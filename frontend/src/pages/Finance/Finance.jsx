@@ -130,7 +130,7 @@ const Finance = () => {
                   <a style={{ fontSize: 13, color: 'var(--accent-secondary)', fontWeight: 600 }}>Manage Razorpay Account ↗</a>
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                  <Text type="secondary" style={{ fontWeight: 500 }}>Account:</Text> <strong style={{ color: 'var(--text-primary)' }}>BCC Martech</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontWeight: 500 }}>Merchant ID:</Text> rzp_live_8n2EqA29Mz<br />
+                  <Text type="secondary" style={{ fontWeight: 500 }}>Account:</Text> <strong style={{ color: 'var(--text-primary)' }}>M1 Labs</strong> <span style={{ color: 'var(--text-tertiary)' }}>·</span> <Text type="secondary" style={{ fontWeight: 500 }}>Merchant ID:</Text> rzp_live_8n2EqA29Mz<br />
                   <Text type="secondary" style={{ fontWeight: 500 }}>Settlement: T+2 business days to</Text> <strong style={{ color: 'var(--text-primary)' }}>HDFC ····4821</strong>
                 </div>
               </Card>

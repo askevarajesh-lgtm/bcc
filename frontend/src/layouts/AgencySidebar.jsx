@@ -61,7 +61,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       .toUpperCase();
   };
 
-  const dynamicAgencyName = user?.agencyName || user?.companyName || 'BCC Martech';
+  const dynamicAgencyName = user?.agencyName || user?.companyName || 'M1 Labs';
   const dynamicAgencyInitials = dynamicAgencyName.substring(0, 2).toUpperCase();
 
   const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
