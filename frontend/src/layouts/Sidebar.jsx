@@ -191,6 +191,18 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
         { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
+        // { 
+        //   key: 'semrush_menu', 
+        //   icon: getIcon(Search), 
+        //   label: 'Semrush',
+        //   children: [
+        //     { key: '/intelligence/semrush/dashboard', label: 'Dashboard' },
+        //     { key: '/intelligence/semrush/keyword-research', label: 'Keyword Research' },
+        //     { key: '/intelligence/semrush/domain-overview', label: 'Domain Overview' },
+        //     { key: '/intelligence/semrush/backlink-analytics', label: 'Backlink Analytics' },
+        //     { key: '/intelligence/semrush/site-health', label: 'Site Health' },
+        //   ]
+        // },
       ],
     },
 
@@ -198,7 +210,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
       children: [
-        { key: '/ops/team', icon: getIcon(Users), label: getLabel('People') },
+        // { key: '/ops/team', icon: getIcon(Users), label: getLabel('People') },
         { key: '/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
         ...(role === 'commander_admin' ? [] : [

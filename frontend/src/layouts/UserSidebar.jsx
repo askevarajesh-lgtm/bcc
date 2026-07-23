@@ -48,7 +48,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Intelligence-AI Agent')) menuItems.push({ key: '/user/intelligence/agents', icon: getIcon(Target), label: 'AI Agent' });
   if (hasPerm('Intelligence-Benchmarks')) menuItems.push({ key: '/user/intelligence/benchmarks', icon: getIcon(TrendingUp), label: 'Benchmarks' });
   if (hasPerm('Intelligence-Reports')) menuItems.push({ key: '/user/intelligence/reports', icon: getIcon(FileText), label: 'Reports' });
-  if (hasPerm('Intelligence-SEO Intelligence')) menuItems.push({ key: '/user/intelligence/seointelligence', icon: getIcon(Search), label: 'SEO Intelligence' });
+  // if (hasPerm('Intelligence-SEO Intelligence')) menuItems.push({ key: '/user/intelligence/seointelligence', icon: getIcon(Search), label: 'SEO Intelligence' });
 
   menuItems.push({ key: '/user/settings', icon: getIcon(Settings), label: 'Settings' });
 

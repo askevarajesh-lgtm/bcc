@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Button, Table, Avatar, Select, Spin, message } from 'antd';
+import { Typography, Row, Col, Card, Button, Table, Avatar, Select, Spin, message, Tag } from 'antd';
 import { motion } from 'framer-motion';
 import { Calendar, Plus, Users, Clock, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { resourcesService } from '../../services/resources.service';
@@ -48,7 +48,7 @@ const Resources = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    // fetchData(); // Temporarily disabled while in "Coming Soon" state
   }, [selectedMonth]);
 
   const containerVariants = {
@@ -64,6 +64,22 @@ const Resources = () => {
   const monthName = new Date(selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
   const firstDayIndex = new Date(new Date(selectedMonth).getFullYear(), new Date(selectedMonth).getMonth(), 1).getDay();
   const emptyDays = Array(firstDayIndex).fill(null);
+
+  // --- COMING SOON PLACEHOLDER ---
+  // Temporarily returning this screen to block access to the unfinished module.
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh', textAlign: 'center' }}>
+      <div style={{ background: 'var(--bg-secondary)', padding: '32px', borderRadius: '50%', marginBottom: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <Users size={48} style={{ color: 'var(--accent-secondary)' }} />
+      </div>
+      <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Resource Management</Title>
+      <Tag color="processing" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Coming Soon</Tag>
+      <Text type="secondary" style={{ maxWidth: 450, fontSize: 16, lineHeight: 1.6 }}>
+        We are building a powerful new hub for your team. Capacity planning, workload balancing, and availability tracking will be available here shortly.
+      </Text>
+    </motion.div>
+  );
+  // -------------------------------
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}><Spin size="large" /></div>;

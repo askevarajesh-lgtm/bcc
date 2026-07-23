@@ -245,14 +245,6 @@ const WebsiteBuilder = () => {
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Websites</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with funnels, forms, and domain management built in.</Text>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {role !== 'agency_client' && (
-            <>
-              <Button icon={<LayoutGrid size={16} />} style={{ borderRadius: 8, height: 44, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700, padding: '0 24px' }}>Open Site Builder</Button>
-              <Button icon={<ExternalLink size={16} />} style={{ borderRadius: 8, height: 44, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 700, padding: '0 24px' }}>View Live Site</Button>
-            </>
-          )}
-        </div>
       </motion.div>
 
       {/* Tabs Navigation */}

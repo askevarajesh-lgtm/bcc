@@ -2278,12 +2278,6 @@ const ClientCanvaPage = () => {
             marginBottom: 8,
           }}
         >
-          <Button
-            type="ghost"
-            shape="circle"
-            icon={<ArrowLeftOutlined />}
-            // onClick={() => navigate("/settings/integrations")}
-          />
           <Title level={2} style={{ margin: 0 }}>
             Canva Workspace
           </Title>

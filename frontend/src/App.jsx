@@ -31,6 +31,12 @@ import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import Strategy from './pages/Strategy/Strategy';
 import SEO from './pages/SEO/SEO';
 import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
+import Semrush from './pages/Semrush/Semrush';
+import DashboardTab from './pages/Semrush/components/DashboardTab';
+import KeywordResearchTab from './pages/Semrush/components/KeywordResearchTab';
+import DomainOverviewTab from './pages/Semrush/components/DomainOverviewTab';
+import BacklinkAnalyticsTab from './pages/Semrush/components/BacklinkAnalyticsTab';
+import SiteHealthTab from './pages/Semrush/components/SiteHealthTab';
 import Content from './pages/Content/Content';
 import AIStudio from './pages/AIStudio/AIStudio';
 import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
@@ -255,6 +261,14 @@ const AppRoutes = () => {
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
+          <Route path="intelligence/semrush" element={<Semrush />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardTab />} />
+            <Route path="keyword-research" element={<KeywordResearchTab />} />
+            <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="backlink-analytics" element={<BacklinkAnalyticsTab />} />
+            <Route path="site-health" element={<SiteHealthTab />} />
+          </Route>
 
           <Route path="ops/team" element={<Teams />} />
           <Route path="ops/time" element={<TimeTracking />} />
