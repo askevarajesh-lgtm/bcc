@@ -1,6 +1,7 @@
 const User = require('../auth/user.model');
 const SlaRecord = require('../sla/sla.model');
 const Task = require('../tasks/task.model');
+const Department = require('../departments/department.model');
 
 exports.getCommandCenterData = async (req, res, next) => {
   try {
@@ -124,9 +125,37 @@ exports.getCommandCenterData = async (req, res, next) => {
       { name: 'Week 4', completed: countCompleted(week4Tasks), total: week4Tasks.length },
     ];
 
-    // Team Utilisation (Tasks by department)
+    const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
+    const deptIdsToResolve = [
+      ...new Set(
+        recentTasks
+          .map((t) => t.department)
+          .filter((dept) => dept && OBJECT_ID_RE.test(dept)),
+      ),
+    ];
+
+    let departmentNameById = {};
+    if (deptIdsToResolve.length > 0) {
+      const departmentDocs = await Department.find(
+        { _id: { $in: deptIdsToResolve } },
+        'name slug',
+      );
+      departmentNameById = departmentDocs.reduce((acc, d) => {
+        acc[d._id.toString()] = d.name || d.slug;
+        return acc;
+      }, {});
+    }
+
+    const resolveDeptName = (dept) => {
+      if (!dept) return 'Other';
+      if (OBJECT_ID_RE.test(dept)) {
+        return departmentNameById[dept] || 'Unassigned Department';
+      }
+      return dept;
+    };
+
     const deptCounts = recentTasks.reduce((acc, t) => {
-      const dept = t.department || 'Other';
+      const dept = resolveDeptName(t.department);
       acc[dept] = (acc[dept] || 0) + 1;
       return acc;
     }, {});
