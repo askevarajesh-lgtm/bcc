@@ -556,7 +556,13 @@ const TaskForm = () => {
     }
   }, [projectsData, projects, isLoadingProjects]);
 
-  const priorityLevels = priorityLevelsData?.data?.priorityLevels || [];
+  const defaultPriorityLevels = [
+    { label: "Low", value: "low" },
+    { label: "Medium", value: "medium" },
+    { label: "High", value: "high" },
+  ];
+  const fetchedPriorities = priorityLevelsData?.data?.priorityLevels || [];
+  const priorityLevels = fetchedPriorities.length > 0 ? fetchedPriorities : defaultPriorityLevels;
 
   // Debug logging
   React.useEffect(() => {

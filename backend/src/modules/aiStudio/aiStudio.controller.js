@@ -25,7 +25,7 @@ const getAiWorkspaceId = (req) => {
 
 const saveSettings = async (req, res) => {
   try {
-    const { openaiApiKey, isEnabled, model } = req.body;
+    const { openaiApiKey, anthropicApiKey, aiProvider, isEnabled, model } = req.body;
     const workspaceId = getAiWorkspaceId(req);
 
     if (!workspaceId) {
@@ -41,6 +41,11 @@ const saveSettings = async (req, res) => {
         updateFields.openaiApiKey = null;
       }
     }
+
+    if (aiProvider !== undefined) {
+      updateFields.aiProvider = aiProvider;
+    }
+
 
     if (isEnabled !== undefined) {
       updateFields.isEnabled = isEnabled;
@@ -74,10 +79,12 @@ const getSettingsStatus = async (req, res) => {
     let maskedKey = '';
     let isEnabled = true;
     let model = 'gpt-4o-mini';
+    let aiProvider = 'openai';
 
     if (settings) {
       if (settings.isEnabled !== undefined) isEnabled = settings.isEnabled;
       if (settings.model) model = settings.model;
+      if (settings.aiProvider) aiProvider = settings.aiProvider;
       
       if (settings.openaiApiKey) {
         isConfigured = true;
@@ -90,7 +97,16 @@ const getSettingsStatus = async (req, res) => {
       }
     }
 
-    return res.status(200).json({ success: true, data: { isConfigured, maskedKey, isEnabled, model } });
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        isConfigured, 
+        maskedKey, 
+        aiProvider,
+        isEnabled, 
+        model 
+      } 
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Tabs, Button, Modal, Input } from 'antd';
+import { Typography, Tabs, Button, Modal, Input, Select } from 'antd';
 import { motion } from 'framer-motion';
 import { Sparkles, Image as ImageIcon, Video, Library, Send, Key } from 'lucide-react';
 
@@ -19,7 +19,7 @@ const AIStudioContent = () => {
     isApiKeyConfigured,
     saveApiKey, 
     isApiKeyModalVisible, 
-    setIsApiKeyModalVisible 
+    setIsApiKeyModalVisible
   } = useAIStudio();
   const [tempKey, setTempKey] = React.useState('');
 
@@ -101,26 +101,29 @@ const AIStudioContent = () => {
         open={isApiKeyModalVisible}
         onCancel={() => setIsApiKeyModalVisible(false)}
         onOk={() => {
+          const payload = { aiProvider: 'openai' };
           if (tempKey.trim() !== '') {
-            saveApiKey(tempKey);
+            payload.openaiApiKey = tempKey;
           }
+          saveApiKey(payload);
           setIsApiKeyModalVisible(false);
         }}
-        okText="Save API Key"
+        okText="Save API Settings"
       >
         <div style={{ marginBottom: 16 }}>
           <Text>Enter your OpenAI API Key to enable AI Generation features.</Text>
           {isApiKeyConfigured && (
             <div style={{ marginTop: 8, padding: '8px 12px', background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 4 }}>
-              <Text type="success">✓ API Key is currently configured ({apiKey})</Text>
+              <Text type="success">✓ OpenAI Key is currently configured ({apiKey})</Text>
             </div>
           )}
+          <Input.Password 
+            placeholder="sk-..." 
+            value={tempKey} 
+            onChange={e => setTempKey(e.target.value)} 
+            style={{ marginTop: 8 }}
+          />
         </div>
-        <Input.Password 
-          placeholder="sk-..." 
-          value={tempKey} 
-          onChange={e => setTempKey(e.target.value)} 
-        />
         <div style={{ marginTop: 8 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>Your key is encrypted securely in your workspace database. It is never stored in your browser.</Text>
         </div>

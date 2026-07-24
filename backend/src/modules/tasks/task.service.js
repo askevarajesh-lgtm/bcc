@@ -893,6 +893,14 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
         "Client company not found or does not belong to your organization",
       );
     }
+    
+    // Override tenantCompanyId so tasks created for a sub-company by an admin are scoped to the sub-company
+    if (
+      isGlobalAdmin ||
+      ['commander_admin', 'agency_super_admin', 'agency_manager'].includes(creator?.role)
+    ) {
+      tenantCompanyId = taskData.companyId;
+    }
   }
 
   // If task is linked to a project, verify project is approved before allowing assignment

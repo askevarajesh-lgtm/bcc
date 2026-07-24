@@ -122,7 +122,7 @@ const MasterItemsList = () => {
       ) : (
         <Row gutter={[24, 24]}>
           {items.map(item => (
-            <Col xs={24} sm={24} md={12} lg={8} xl={6} key={item._id}>
+            <Col xs={24} sm={24} md={12} lg={8} xl={8} key={item._id}>
               <Card
                 hoverable
                 style={{ 

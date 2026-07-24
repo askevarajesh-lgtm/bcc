@@ -12,6 +12,10 @@ const { Option } = Select;
 
 const SEOWorkspace = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
+  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(true);
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keyStatusLoading, setKeyStatusLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [audits, setAudits] = useState([]);
   const [keywords, setKeywords] = useState([]);
@@ -74,7 +78,43 @@ const SEOWorkspace = () => {
     }
   };
 
+  const checkApiKeyStatus = async () => {
+    try {
+      setKeyStatusLoading(true);
+      const response = await axios.get('/seo-workspace/settings/api-key');
+      if (response.data.success) {
+        setIsApiKeyConfigured(response.data.data.isAnthropicConfigured);
+      }
+    } catch (error) {
+      console.error('Failed to fetch API key status', error);
+    } finally {
+      setKeyStatusLoading(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!tempApiKey.trim()) {
+      message.error("Please enter a valid API Key.");
+      return;
+    }
+    try {
+      setIsSavingKey(true);
+      const payload = { anthropicApiKey: tempApiKey };
+      const response = await axios.post('/seo-workspace/settings/api-key', payload);
+      if (response.data.success) {
+        message.success('API Key saved securely!');
+        setIsApiKeyConfigured(true);
+      }
+    } catch (error) {
+      console.error('Failed to save API key', error);
+      message.error('Failed to save API Key');
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
   useEffect(() => {
+    checkApiKeyStatus();
     fetchWorkspaceData();
   }, []);
 
@@ -297,6 +337,41 @@ const SEOWorkspace = () => {
       }}>Review Strategy</Button>
     ) },
   ];
+
+  if (keyStatusLoading) {
+    return <div style={{ padding: 40, textAlign: 'center' }}><Spin size="large" /></div>;
+  }
+
+  if (!isApiKeyConfigured) {
+    return (
+      <div style={{ padding: 60, maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+        <Card className="seo-glass-card" style={{ borderRadius: 16 }}>
+          <SettingsIcon size={48} style={{ color: 'var(--accent-primary)', marginBottom: 16 }} />
+          <Title level={2} style={{ margin: '0 0 16px 0', fontWeight: 800 }}>Action Required</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 16 }}>
+            Please configure your Claude API Key before using the SEO Workspace. Your key is encrypted and stored securely.
+          </Text>
+          <Input.Password 
+            placeholder="sk-ant-..." 
+            value={tempApiKey} 
+            onChange={e => setTempApiKey(e.target.value)} 
+            size="large"
+            style={{ marginBottom: 24, borderRadius: 8 }}
+          />
+          <Button 
+            type="primary" 
+            size="large" 
+            loading={isSavingKey} 
+            onClick={handleSaveApiKey}
+            className="seo-glow-btn"
+            style={{ width: '100%', borderRadius: 8, height: 48, fontWeight: 600 }}
+          >
+            Save API Key & Enable Features
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="seo-workspace-container">

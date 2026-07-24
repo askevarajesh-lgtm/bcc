@@ -1,47 +1,54 @@
-const axios = require('axios');
+const AiClientWrapper = require('../../../utils/aiClientWrapper');
 const cryptoUtils = require('../../../utils/crypto');
 const AiSettings = require('../../aiStudio/models/aiSettings.model');
 
 class AIService {
-  async getApiKey(workspaceId) {
+  async getAiConfig(workspaceId) {
     if (!workspaceId) return null;
     let apiKey = null;
+    let provider = 'anthropic';
     const settings = await AiSettings.findOne({ workspaceId });
-    if (settings && settings.openaiApiKey) {
-      apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
+    if (settings) {
+      if (settings.contentAnthropicApiKey) {
+        apiKey = cryptoUtils.decrypt(settings.contentAnthropicApiKey);
+      }
     }
-    return apiKey;
+    return { apiKey, provider };
   }
 
-  async generateJSON(prompt, systemPrompt, workspaceId, model = 'gpt-4o-mini') {
-    const apiKey = await this.getApiKey(workspaceId);
-    if (!apiKey) throw new Error('OpenAI API Key is missing. Please configure it in settings.');
+  async generateJSON(prompt, systemPrompt, workspaceId, model = 'claude-3-5-sonnet-20241022') {
+    const config = await this.getAiConfig(workspaceId);
+    if (!config || !config.apiKey) throw new Error('API Key is missing. Please configure it in AI settings.');
+
+    const aiClient = new AiClientWrapper(config.apiKey, 'anthropic');
 
     const messages = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
     ];
 
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model,
-          messages,
-          response_format: { type: "json_object" }
-        },
-        { headers: { Authorization: `Bearer ${apiKey}` } }
-      );
+      const response = await aiClient.chat.completions.create({
+        model: 'claude-3-5-sonnet-20241022',
+        messages,
+        response_format: { type: "json_object" }
+      });
       
-      const content = response.data.choices[0].message.content;
-      return JSON.parse(content);
+      const content = response.choices[0].message.content;
+      try {
+        return JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse JSON. Raw content was:', content);
+        throw parseError;
+      }
     } catch (error) {
-      console.error('AIService generateJSON error:', error.response?.data || error.message);
-      return null;
+      const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      console.error('AIService generateJSON error:', errorMsg);
+      throw new Error(`AI Provider Error: ${errorMsg}`);
     }
   }
 
-  async humanizeText(text, brandVoice, workspaceId, model = 'gpt-4o-mini') {
+  async humanizeText(text, brandVoice, workspaceId, model = 'claude-3-5-sonnet-20241022') {
     const systemPrompt = require('../prompts/contentHumanizer.prompt');
     const prompt = `Brand Voice: ${brandVoice || 'Professional, engaging'}\n\nDraft:\n${text}`;
     return await this.generateJSON(prompt, systemPrompt, workspaceId, model);

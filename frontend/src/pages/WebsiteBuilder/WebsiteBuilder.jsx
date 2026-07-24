@@ -91,7 +91,7 @@ const WebsiteBuilder = () => {
 
   const handleTabClick = (tabId) => {
     if (role === 'agency_client') return; // Prevent tab switching for client
-    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/${tabId}`);
   };

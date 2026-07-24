@@ -13,6 +13,74 @@ const WordPressService = require('../seoIntelligence/services/wordPress.service'
 const GoogleService = require('../seoIntelligence/services/google.service');
 const dataForSeoService = require('../seoIntelligence/dataForSeo.service');
 const auditLogService = require('./services/auditLog.service');
+const AiSettings = require('../aiStudio/models/aiSettings.model');
+const cryptoUtils = require('../../utils/crypto');
+
+const getWorkspaceId = (req) => {
+  const user = req.user;
+  if (!user) return req.companyId || req.workspaceId;
+  const clientRoles = ['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'];
+  if (clientRoles.includes(user.role)) {
+    return user.brandId || user._id;
+  }
+  return user.agencyId || user._id;
+};
+
+exports.getSettingsStatus = async (req, res) => {
+  try {
+    const workspaceId = getWorkspaceId(req);
+    if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const settings = await AiSettings.findOne({ workspaceId });
+    let isAnthropicConfigured = false;
+    let maskedAnthropicKey = '';
+
+    if (settings && settings.anthropicApiKey) {
+      isAnthropicConfigured = true;
+      const decrypted = cryptoUtils.decrypt(settings.anthropicApiKey);
+      if (decrypted && decrypted.length > 8) {
+        maskedAnthropicKey = decrypted.substring(0, 7) + '...' + decrypted.substring(decrypted.length - 4);
+      } else {
+        maskedAnthropicKey = 'sk-ant-...';
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { isAnthropicConfigured, maskedAnthropicKey }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.saveSettings = async (req, res) => {
+  try {
+    const { anthropicApiKey } = req.body;
+    const workspaceId = getWorkspaceId(req);
+
+    if (!workspaceId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const updateFields = {};
+    if (anthropicApiKey !== undefined) {
+      if (anthropicApiKey.trim() !== '') {
+        updateFields.anthropicApiKey = cryptoUtils.encrypt(anthropicApiKey.trim());
+      } else {
+        updateFields.anthropicApiKey = null;
+      }
+    }
+
+    await AiSettings.findOneAndUpdate(
+      { workspaceId },
+      { $set: updateFields },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({ success: true, message: 'Settings saved successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 exports.getProjects = async (req, res) => {
   try {
@@ -221,10 +289,25 @@ exports.getStrategies = async (req, res) => {
 exports.generateStrategy = async (req, res) => {
   try {
     const { projectId } = req.params;
+    const user = req.user;
+    
+    let workspaceId;
+    if (!user) {
+      workspaceId = req.companyId || req.workspaceId;
+    } else {
+      const clientRoles = ['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'];
+      if (clientRoles.includes(user.role)) {
+        workspaceId = user.brandId || user._id;
+      } else {
+        workspaceId = user.agencyId || user._id;
+      }
+    }
+
     const orchestrator = new WorkspaceAgentOrchestrator();
-    const result = await orchestrator.runOrchestration(projectId);
+    const result = await orchestrator.runOrchestration(projectId, workspaceId);
     res.json({ success: true, data: result });
   } catch (error) {
+    console.error('[generateStrategy] Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -445,6 +528,7 @@ exports.generateReport = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { isScheduled, scheduleFrequency, emailRecipients } = req.body || {};
+    const workspaceId = getWorkspaceId(req);
 
     if (isScheduled && !['daily', 'weekly', 'monthly'].includes(scheduleFrequency)) {
       return res.status(400).json({ success: false, error: "scheduleFrequency must be one of 'daily', 'weekly', 'monthly' when isScheduled is true." });
@@ -472,7 +556,7 @@ exports.generateReport = async (req, res) => {
       isScheduled: !!isScheduled,
       scheduleFrequency: isScheduled ? scheduleFrequency : null,
       emailRecipients: Array.isArray(emailRecipients) ? emailRecipients : []
-    });
+    }, workspaceId);
 
     if (isScheduled) {
       auditLogService.record({

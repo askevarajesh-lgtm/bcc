@@ -8,8 +8,13 @@ const calendarController = require('./calendar.controller');
 const trendController = require('./trend.controller');
 const syncController = require('./sync.controller');
 const exportController = require('./export.controller');
+const settingsController = require('./settings.controller');
 
 router.use(authMiddleware);
+
+// Settings routes
+router.get('/settings/api-key', settingsController.getSettingsStatus);
+router.post('/settings/api-key', settingsController.saveSettings);
 
 // Studio routes
 router.post('/studio/generate', studioController.generate);

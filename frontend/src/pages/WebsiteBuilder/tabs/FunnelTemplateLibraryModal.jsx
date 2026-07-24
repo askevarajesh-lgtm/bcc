@@ -30,7 +30,10 @@ const FunnelTemplateLibraryModal = ({ open, onCancel, onCreate, initialFunnelNam
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/templates?type=funnel");
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/templates?type=funnel", {
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
       const data = await res.json();
       if (data.success) {
         setTemplates(data.data.templates);

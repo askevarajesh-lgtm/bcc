@@ -11,6 +11,19 @@ const AiSettingsSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  anthropicApiKey: {
+    type: String,
+    default: null
+  },
+  contentAnthropicApiKey: {
+    type: String,
+    default: null
+  },
+  aiProvider: {
+    type: String,
+    enum: ["openai", "anthropic"],
+    default: "openai"
+  },
   isEnabled: {
     type: Boolean,
     default: true

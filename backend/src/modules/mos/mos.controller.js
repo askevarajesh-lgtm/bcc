@@ -171,26 +171,26 @@ exports.generateActionPlan = async (req, res, next) => {
     
     const AiSettings = require('../aiStudio/models/aiSettings.model');
     const cryptoUtils = require('../../utils/crypto');
-    const OpenAI = require('openai');
+    const AiClientWrapper = require('../../utils/aiClientWrapper');
     const User = require('../auth/user.model');
     
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const workspaceId = isAgency ? (req.user.agencyId || req.user._id) : req.user._id;
     
     const settings = await AiSettings.findOne({ workspaceId });
-    let apiKey = null;
-    if (settings && settings.openaiApiKey) {
-      apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
+    let openai = null;
+    if (settings) {
+      if (settings.openaiApiKey) {
+        openai = new AiClientWrapper(cryptoUtils.decrypt(settings.openaiApiKey), 'openai');
+      }
     }
     
-    if (!apiKey) {
-      return res.status(400).json({ success: false, message: 'OpenAI API Key is missing. Please configure it in AI Studio settings.' });
+    if (!openai) {
+      return res.status(400).json({ success: false, message: 'AI Provider API Key is missing. Please configure it in AI Studio settings.' });
     }
     
     const client = await User.findById(clientId);
     const clientName = client ? (client.companyName || client.name) : 'The Client';
-    
-    const openai = new OpenAI({ apiKey });
     
     const prompt = `You are a top-tier digital marketing strategist. 
 A client named "${clientName}" has poor performance in their Marketing Operating Score (MOS).

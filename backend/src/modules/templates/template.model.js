@@ -10,7 +10,11 @@ const TemplateSchema = new mongoose.Schema({
   zipUrl: { type: String, default: '' },
   zipPublicId: { type: String, default: '' },
   isRealData: { type: Boolean, default: true },
-  isDeleted: { type: Boolean, default: false }
+  isDeleted: { type: Boolean, default: false },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
+  brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
+  isGlobal: { type: Boolean, default: true }
 }, { timestamps: true });
 
 TemplateSchema.index({ type: 1, category: 1 });

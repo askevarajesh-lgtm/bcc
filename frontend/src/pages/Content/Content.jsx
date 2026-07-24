@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Button, Select, Spin, message } from 'antd';
+import { Typography, Row, Col, Card, Button, Select, Spin, message, Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Plus, AlertCircle, FileText, PenTool, CheckCircle2 } from 'lucide-react';
+import { Download, Plus, AlertCircle, FileText, PenTool, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
 import AIStudioTab from './tabs/AIStudioTab';
 import IntakeTab from './tabs/IntakeTab';
 import QATab from './tabs/QATab';
@@ -19,6 +19,48 @@ const Content = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(true);
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keyStatusLoading, setKeyStatusLoading] = useState(true);
+
+  useEffect(() => {
+    const checkApiKeyStatus = async () => {
+      try {
+        setKeyStatusLoading(true);
+        const response = await contentApi.getSettings();
+        if (response.success) {
+          setIsApiKeyConfigured(response.data.isAnthropicConfigured);
+        }
+      } catch (error) {
+        console.error('Failed to fetch API key status', error);
+      } finally {
+        setKeyStatusLoading(false);
+      }
+    };
+    checkApiKeyStatus();
+  }, []);
+
+  const handleSaveApiKey = async () => {
+    if (!tempApiKey.trim()) {
+      message.error("Please enter a valid API Key.");
+      return;
+    }
+    try {
+      setIsSavingKey(true);
+      const payload = { anthropicApiKey: tempApiKey };
+      const response = await contentApi.saveSettings(payload);
+      if (response.success) {
+        message.success('API Key saved securely!');
+        setIsApiKeyConfigured(true);
+      }
+    } catch (error) {
+      console.error('Failed to save API key', error);
+      message.error('Failed to save API Key');
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -87,6 +129,40 @@ const Content = () => {
   const reviewCount = items.filter(i => i.status === 'Draft' || i.status === 'In Review').length;
   const scheduledCount = items.filter(i => i.status === 'Scheduled').length;
   const totalCount = items.length;
+
+  if (keyStatusLoading) {
+    return <div style={{ padding: 40, textAlign: 'center' }}><Spin size="large" /></div>;
+  }
+
+  if (!isApiKeyConfigured) {
+    return (
+      <div style={{ padding: 60, maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+        <Card className="glassmorphism" style={{ borderRadius: 16 }}>
+          <SettingsIcon size={48} style={{ color: 'var(--accent-primary)', marginBottom: 16 }} />
+          <Title level={2} style={{ margin: '0 0 16px 0', fontWeight: 800 }}>Action Required</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 16 }}>
+            Please configure your Claude API Key before using the Content Workspace. Your key is encrypted and stored securely.
+          </Text>
+          <Input.Password 
+            placeholder="sk-ant-..." 
+            value={tempApiKey} 
+            onChange={e => setTempApiKey(e.target.value)} 
+            size="large"
+            style={{ marginBottom: 24, borderRadius: 8 }}
+          />
+          <Button 
+            type="primary" 
+            size="large" 
+            loading={isSavingKey} 
+            onClick={handleSaveApiKey}
+            style={{ width: '100%', borderRadius: 8, height: 48, fontWeight: 600 }}
+          >
+            Save API Key & Enable Features
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">

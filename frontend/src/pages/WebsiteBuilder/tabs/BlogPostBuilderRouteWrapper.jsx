@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import GrapesJSBuilder from './GrapesJSBuilder';
 import { Spin, message } from 'antd';
 
 const BlogPostBuilderRouteWrapper = () => {
   const { websiteId, postId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeWebsite, setActiveWebsite] = useState(null);
   const [activePost, setActivePost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,9 @@ const BlogPostBuilderRouteWrapper = () => {
           setActivePost(postData.data);
         } else {
           message.error("Failed to load blog post data.");
-          navigate(`/workspace/website/websites/${websiteId}`);
+          const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+          const basePath = match ? match[0] : '/workspace/website';
+          navigate(`${basePath}/websites/${websiteId}`);
         }
       } catch (err) {
         console.error("Error fetching builder data:", err);
@@ -60,8 +63,13 @@ const BlogPostBuilderRouteWrapper = () => {
       <GrapesJSBuilder
         activeWebsite={activeWebsite}
         activePost={activePost}
+        activePage={activePost}
         mode="post"
-        setEditingPage={() => navigate(`/workspace/website/websites/${websiteId}`)}
+        setEditingPage={() => {
+          const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+          const basePath = match ? match[0] : '/workspace/website';
+          navigate(`${basePath}/websites/${websiteId}`);
+        }}
         onSave={() => {}} // Save is handled inside GrapesJSBuilder
       />
     </div>

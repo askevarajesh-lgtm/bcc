@@ -14,7 +14,11 @@ const FormTemplateSchema = new mongoose.Schema({
     options: [{ type: String }]
   }],
   isDefault: { type: Boolean, default: true },
-  status: { type: String, enum: ['Draft', 'Published'], default: 'Published' }
+  status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
+  brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
+  isGlobal: { type: Boolean, default: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('FormTemplate', FormTemplateSchema);

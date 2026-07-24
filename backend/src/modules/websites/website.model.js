@@ -20,7 +20,9 @@ const WebsiteSchema = new mongoose.Schema({
   domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'Domain' },
   isDeleted: { type: Boolean, default: false, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId },
-  updatedBy: { type: mongoose.Schema.Types.ObjectId }
+  updatedBy: { type: mongoose.Schema.Types.ObjectId },
+  agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
+  brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' }
 }, { timestamps: true });
 
 WebsiteSchema.index({ workspaceId: 1, name: 1 });

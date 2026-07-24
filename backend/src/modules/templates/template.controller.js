@@ -9,6 +9,16 @@ exports.getTemplates = async (req, res, next) => {
       query.type = type;
     }
 
+    if (req.user) {
+      if (req.user.role !== 'commander_admin') {
+        query.$or = [
+          { isGlobal: true },
+          { agencyId: req.user.agencyId },
+          { brandId: req.user.brandId }
+        ];
+      }
+    }
+
     const templates = await Template.find(query).sort({ createdAt: -1 });
 
     // Group by category to help frontend UI easily
@@ -58,7 +68,11 @@ exports.uploadTemplate = async (req, res, next) => {
       featuresCount: featuresCount ? parseInt(featuresCount) : 1,
       zipUrl: req.file.path && req.file.path.startsWith('http') ? req.file.path : `uploads/templates/${req.file.filename}`, // Local or Cloudinary URL
       zipPublicId: req.file.path && req.file.path.startsWith('http') ? (req.file.filename || '') : '', // Cloudinary public_id (raw resource), used to rebuild a reliable download URL later
-      isRealData: true
+      isRealData: true,
+      createdBy: req.user ? req.user.userId : null,
+      agencyId: req.user ? req.user.agencyId : null,
+      brandId: req.user ? req.user.brandId : null,
+      isGlobal: req.user && req.user.role === 'commander_admin'
     });
 
     const savedTemplate = await template.save();

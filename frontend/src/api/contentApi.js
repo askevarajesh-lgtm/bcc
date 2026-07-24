@@ -25,6 +25,14 @@ export const contentApi = {
     const res = await axios.get(`${API_URL}/content/integrations/status`, getAuthHeaders());
     return res.data;
   },
+  getSettings: async () => {
+    const res = await axios.get(`${API_URL}/content/settings/api-key`, getAuthHeaders());
+    return res.data;
+  },
+  saveSettings: async (payload) => {
+    const res = await axios.post(`${API_URL}/content/settings/api-key`, payload, getAuthHeaders());
+    return res.data;
+  },
 
   // Items
   getItems: async (filters = {}) => {

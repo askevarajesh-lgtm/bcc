@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   // If in development and no auth header, mock a workspace and user scope
   const authHeader = req.headers.authorization;
   const devWorkspaceHeader = req.headers['x-workspace-id'];
@@ -16,7 +16,20 @@ const authMiddleware = (req, res, next) => {
       user = decoded;
       req.user = decoded;
       workspaceId = workspaceId || decoded.workspaceId;
-      req.companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId;
+      req.companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId || decoded.adminId;
+
+      if (!req.companyId && decoded._id) {
+        try {
+          const User = mongoose.model('User');
+          const dbUser = await User.findById(decoded._id).lean();
+          if (dbUser) {
+            req.companyId = dbUser.agencyId || dbUser.brandId || dbUser.workspaceId || dbUser.adminId;
+            req.user.adminId = dbUser.adminId;
+          }
+        } catch (dbErr) {
+          console.error("AuthMiddleware DB lookup error:", dbErr);
+        }
+      }
     } catch (error) {
       return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
     }
@@ -46,7 +59,7 @@ const authMiddleware = (req, res, next) => {
   }
 
   if (!req.companyId && req.user) {
-    req.companyId = req.user.agencyId || req.user.brandId || req.user.workspaceId;
+    req.companyId = req.user.agencyId || req.user.brandId || req.user.workspaceId || req.user.adminId;
   }
 
   next();

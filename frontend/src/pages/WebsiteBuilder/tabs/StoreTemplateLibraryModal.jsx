@@ -25,7 +25,10 @@ const StoreTemplateLibraryModal = ({ open, onCancel, onCreate, initialStoreName 
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/templates?type=store");
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/templates?type=store", {
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
       const data = await res.json();
       if (data.success) {
         setTemplates(data.data.templates);

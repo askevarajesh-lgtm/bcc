@@ -64,7 +64,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
   };
 
   const handleCreateNewChatWidgetClick = () => {
-    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/chat-widgets`);
   };

@@ -2,7 +2,15 @@ const FormTemplate = require('./form-template.model');
 
 exports.getTemplates = async (req, res, next) => {
   try {
-    const templates = await FormTemplate.find({ status: 'Published' }).sort({ templateName: 1 });
+    let query = { status: 'Published' };
+    if (req.user && req.user.role !== 'commander_admin') {
+      query.$or = [
+        { isGlobal: true },
+        { agencyId: req.user.agencyId },
+        { brandId: req.user.brandId }
+      ];
+    }
+    const templates = await FormTemplate.find(query).sort({ templateName: 1 });
 
     const categories = {};
     templates.forEach(t => {

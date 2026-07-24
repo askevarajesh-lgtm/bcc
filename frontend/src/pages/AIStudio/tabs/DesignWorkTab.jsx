@@ -9,16 +9,16 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const DesignWorkTab = () => {
-  const { saveAsset, apiKey, setIsApiKeyModalVisible } = useAIStudio();
+  const { saveAsset, isApiKeyConfigured, setIsApiKeyModalVisible } = useAIStudio();
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState('GPT-5.5');
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
 
   const handleGenerate = async () => {
-    if (!apiKey) {
+    if (!isApiKeyConfigured) {
       setIsApiKeyModalVisible(true);
-      return message.warning('Please connect an API key first');
+      return message.warning('Image Generation requires an OpenAI API Key. Please connect one.');
     }
     if (!prompt.trim()) return message.error('Please enter a prompt');
     

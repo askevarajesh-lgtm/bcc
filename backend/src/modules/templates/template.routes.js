@@ -5,7 +5,7 @@ const zipUpload = require('../../middlewares/zipUpload');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 // Get templates based on type query
-router.get('/', templateController.getTemplates);
+router.get('/', authMiddleware, templateController.getTemplates);
 
 // Upload a new template zip
 router.post('/upload', authMiddleware, zipUpload.single('file'), templateController.uploadTemplate);

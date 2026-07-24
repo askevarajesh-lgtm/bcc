@@ -14,15 +14,17 @@ export const AIStudioProvider = ({ children }) => {
   // apiKey will store the masked key (e.g. sk-...8TVX) from the server
   const [apiKey, setApiKey] = useState('');
   const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(false);
+  
   const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
 
   const checkApiKeyStatus = async () => {
     try {
       const response = await api.get('/ai-studio/settings');
       if (response.data.success) {
-        setIsApiKeyConfigured(response.data.data.isConfigured);
-        if (response.data.data.isConfigured) {
-          setApiKey(response.data.data.maskedKey);
+        const data = response.data.data;
+        setIsApiKeyConfigured(data.isConfigured);
+        if (data.isConfigured) {
+          setApiKey(data.maskedKey);
         }
       }
     } catch (error) {
@@ -30,16 +32,16 @@ export const AIStudioProvider = ({ children }) => {
     }
   };
 
-  const saveApiKey = async (key) => {
+  const saveApiKey = async (payload) => {
     try {
-      const response = await api.post('/ai-studio/settings', { openaiApiKey: key });
+      const response = await api.post('/ai-studio/settings', payload);
       if (response.data.success) {
-        message.success('API Key saved securely');
+        message.success('API Settings saved securely');
         await checkApiKeyStatus();
       }
     } catch (error) {
       console.error('Failed to save API key', error);
-      message.error('Failed to save API Key');
+      message.error('Failed to save API Settings');
     }
   };
 

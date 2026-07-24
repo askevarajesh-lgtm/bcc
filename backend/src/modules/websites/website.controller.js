@@ -142,6 +142,33 @@ async function downloadTemplateZip(templateRecord, zipPath) {
   throw new Error(`All download attempts failed — ${attempts.join('; ')}`);
 }
 
+function buildWebsiteAuthQuery(req, baseQuery = {}) {
+  const query = { ...baseQuery, isDeleted: false };
+  const workspaceId = req.workspaceId;
+
+  if (req.user && req.user.role !== 'commander_admin') {
+    if (req.user.agencyId) {
+      // Strictly enforce agencyId. If older websites need to be visible, they must be assigned an agencyId.
+      // Alternatively, we can allow websites where createdBy matches the current user.
+      query.$or = [
+        { agencyId: req.user.agencyId },
+        { createdBy: req.user._id }
+      ];
+    } else if (req.user.brandId) {
+      query.$or = [
+        { brandId: req.user.brandId },
+        { createdBy: req.user._id }
+      ];
+    } else {
+      query.workspaceId = workspaceId;
+    }
+  } else if (!req.user || req.user.role !== 'commander_admin') {
+    query.workspaceId = workspaceId;
+  }
+  
+  return query;
+}
+
 // Create Website
 exports.createWebsite = async (req, res, next) => {
   try {
@@ -158,7 +185,9 @@ exports.createWebsite = async (req, res, next) => {
       description: description || "",
       status: 'Draft',
       createdBy: req.user?._id,
-      updatedBy: req.user?._id
+      updatedBy: req.user?._id,
+      agencyId: req.user?.agencyId || null,
+      brandId: req.user?.brandId || null
     });
 
     const savedWebsite = await website.save();
@@ -425,12 +454,21 @@ exports.getWebsites = async (req, res, next) => {
     const workspaceId = req.workspaceId;
     const { search, page = 1, limit = 10, sortBy = 'updatedAt:desc' } = req.query;
 
-    const query = { workspaceId, isDeleted: false };
+    const query = buildWebsiteAuthQuery(req);
+    
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: [{ name: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }] }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
     }
 
     const sortObj = {};
@@ -472,7 +510,8 @@ exports.getWebsites = async (req, res, next) => {
 exports.getWebsiteDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const website = await Website.findOne(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }
@@ -496,8 +535,9 @@ exports.getPage = async (req, res, next) => {
   try {
     const { websiteId, pageId } = req.params;
     
-    // Optional: Check if website belongs to workspace
-    const website = await Website.findOne({ _id: websiteId, workspaceId: req.workspaceId, isDeleted: false });
+    // Optional: Check if website belongs to workspace (using auth query)
+    const query = buildWebsiteAuthQuery(req, { _id: websiteId });
+    const website = await Website.findOne(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }
@@ -519,7 +559,8 @@ exports.updateWebsite = async (req, res, next) => {
     const { id } = req.params;
     const { name, description, status, faviconUrl, trackingPixels, chatWidgetId, pages, theme } = req.body;
 
-    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const website = await Website.findOne(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }
@@ -615,7 +656,8 @@ exports.deleteWebsite = async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    const website = await Website.findOneAndDelete({ _id: id, workspaceId: req.workspaceId });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const website = await Website.findOneAndDelete(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }
@@ -633,7 +675,8 @@ exports.deleteWebsite = async (req, res, next) => {
 exports.cloneWebsite = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const originalWebsite = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const originalWebsite = await Website.findOne(query);
     
     if (!originalWebsite) {
       return res.status(404).json({ success: false, error: 'Website not found' });
@@ -649,7 +692,9 @@ exports.cloneWebsite = async (req, res, next) => {
       updatedBy: req.user?._id || originalWebsite.createdBy,
       faviconUrl: originalWebsite.faviconUrl,
       trackingPixels: originalWebsite.trackingPixels,
-      chatWidgetId: originalWebsite.chatWidgetId
+      chatWidgetId: originalWebsite.chatWidgetId,
+      agencyId: req.user?.agencyId || originalWebsite.agencyId || null,
+      brandId: req.user?.brandId || originalWebsite.brandId || null
     });
 
     const savedWebsite = await clonedWebsite.save();
@@ -684,7 +729,8 @@ exports.cloneWebsite = async (req, res, next) => {
 exports.syncWebsiteTheme = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const website = await Website.findOne(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }
@@ -722,7 +768,8 @@ exports.addPage = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Page title and path are required' });
     }
 
-    const website = await Website.findOne({ _id: id, workspaceId: req.workspaceId, isDeleted: false });
+    const query = buildWebsiteAuthQuery(req, { _id: id });
+    const website = await Website.findOne(query);
     if (!website) {
       return res.status(404).json({ success: false, error: 'Website not found' });
     }

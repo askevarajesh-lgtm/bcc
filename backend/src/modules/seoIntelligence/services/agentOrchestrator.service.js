@@ -1,4 +1,4 @@
-const OpenAI = require('openai');
+
 const SeoProject = require('../models/seoProject.model');
 const SeoAudit = require('../models/seoAudit.model');
 const SeoAgentKeyword = require('../models/seoKeyword.model');
@@ -12,16 +12,18 @@ class AgentOrchestrator {
     this.dfsService = new DataForSeoService();
   }
 
-  async _getOpenAIClient(workspaceId) {
+  async _getAiClient(workspaceId) {
     if (!workspaceId) throw new Error("Workspace ID is required for AI features.");
     const AiSettings = require('../../aiStudio/models/aiSettings.model');
     const cryptoUtils = require('../../../utils/crypto');
+    const AiClientWrapper = require('../../../utils/aiClientWrapper');
     const settings = await AiSettings.findOne({ workspaceId });
-    if (!settings || !settings.openaiApiKey) {
-       throw new Error("OpenAI API key is missing. Please configure it in settings.");
+    if (settings) {
+      if (settings.anthropicApiKey) {
+        return new AiClientWrapper(cryptoUtils.decrypt(settings.anthropicApiKey), 'anthropic');
+      }
     }
-    const apiKey = cryptoUtils.decrypt(settings.openaiApiKey);
-    return new OpenAI({ apiKey });
+    throw new Error("AI Provider API key is missing. Please configure it in settings.");
   }
 
   async runOrchestration(projectId) {
@@ -110,11 +112,17 @@ class AgentOrchestrator {
   }
 
   async _generateKeywordSeeds(siteUrl, name, workspaceId) {
-    const openai = await this._getOpenAIClient(workspaceId);
-    const prompt = `You are an expert SEO Strategist. Generate 20 highly relevant SEO keyword targets for the website: ${siteUrl} (Company: ${name}).
-Return ONLY a comma-separated list of 20 keywords, nothing else.`;
+    const aiClient = await this._getAiClient(workspaceId);
+    const skillLoader = require('../../../utils/skillLoader');
+    const skills = skillLoader.loadSkillsForAgent(['keyword-research']);
+    const prompt = `You are the Keyword Researcher Agent. Based on the following SEO Strategy for the URL ${siteUrl}:
+
+${skills}
+
+Suggest exactly 5 high-potential, long-tail keywords that the site should target immediately to gain quick traffic. 
+Format as a clean, comma-separated list of keywords ONLY.`;
     
-    const response = await openai.chat.completions.create({
+    const response = await aiClient.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
@@ -127,7 +135,7 @@ Return ONLY a comma-separated list of 20 keywords, nothing else.`;
 
   async _generateContentStrategy(project, audit, keywords) {
     const workspaceId = project.createdBy || project.companyId;
-    const openai = await this._getOpenAIClient(workspaceId);
+    const aiClient = await this._getAiClient(workspaceId);
     const kList = keywords.map(k => k.keyword).join(', ');
     const auditData = audit ? `Crawled ${audit.urlsCrawledCount || 0} pages. On-Page Score: ${audit.scores?.onPage || 0}` : 'No audit data available';
     
@@ -142,7 +150,7 @@ Format the output in clean Markdown with:
 3. Month 2: Content Creation (Propose 3 Blog Titles)
 4. Month 3: Off-Page & Authority Building`;
 
-    const response = await openai.chat.completions.create({
+    const response = await aiClient.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
@@ -154,21 +162,27 @@ Format the output in clean Markdown with:
 
   async _generateImplementationTasks(project, strategyPlan, keywords) {
     const workspaceId = project.createdBy || project.companyId;
-    const openai = await this._getOpenAIClient(workspaceId);
-    const kList = keywords.slice(0, 5).map(k => k.keyword).join(', ');
-    const promptObj = `You are an expert SEO Technical Assistant. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
-      
-Respond with a JSON object containing a "tasks" array. Each task object must have:
-- "taskType": "Update Meta Tags" | "Content Edit" | "Schema Injection" | "Internal Linking"
-- "pageUrl": "/path-to-optimize"
-- "description": "Short description of the proposed action"
-- "proposedChanges": { "key": "value" }
-`;
+    const aiClient = await this._getAiClient(workspaceId);
+    const skillLoader = require('../../../utils/skillLoader');
+    const skills = skillLoader.loadSkillsForAgent(['content-gap-analysis']);
+    const kList = keywords.map(k => k.keyword).join(', ');
+    const prompt = `You are the Content Gap Analyst Agent. Based on the SEO Strategy for ${project.siteUrl} and the target keywords (${kList}), identify exactly 3 specific, actionable content gaps.
+${skills}
+
+Return a JSON array of objects. Each object MUST have this exact structure:
+{
+  "title": "Proposed Blog Post or Page Title",
+  "type": "Blog Post" | "Landing Page" | "Glossary Term",
+  "priority": "High" | "Medium" | "Low",
+  "description": "Short 1-sentence description of what the content should cover."
+}
+
+Respond ONLY with the raw JSON array. Do not wrap in markdown tags like \`\`\`json.`;
 
     try {
-      const responseObj = await openai.chat.completions.create({
+      const responseObj = await aiClient.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: promptObj }],
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.5,
         response_format: { type: "json_object" }
       });
@@ -186,7 +200,7 @@ Respond with a JSON object containing a "tasks" array. Each task object must hav
     const project = await SeoProject.findById(projectId);
     if (!project) throw new Error('Project not found');
     const workspaceId = project.createdBy || project.companyId;
-    const openai = await this._getOpenAIClient(workspaceId);
+    const aiClient = await this._getAiClient(workspaceId);
 
     const prompt = `You are a Master SEO Reporter.
 Create an Executive Summary Final Report for ${project.name} (${project.siteUrl}).
@@ -198,7 +212,7 @@ Overall Score Change: ${auditDiff.diff.overall}
 
 Write a professional, client-facing Markdown report summarizing the ROI, what was improved, and next steps. Make it persuasive and clear.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await aiClient.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,

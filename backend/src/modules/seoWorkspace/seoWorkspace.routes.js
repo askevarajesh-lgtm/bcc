@@ -27,6 +27,10 @@ const blockViewOnly = (req, res, next) => {
   next();
 };
 
+// API Key Settings
+router.get('/settings/api-key', workspaceController.getSettingsStatus);
+router.post('/settings/api-key', workspaceController.saveSettings);
+
 // Projects
 router.route('/projects')
   .get(workspaceController.getProjects)

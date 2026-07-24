@@ -231,6 +231,8 @@ const TasksPage = () => {
   const handleAddTask = (statusId) => {
     if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
       navigate(`${getBaseRoute()}/tasks/new`, { state: { initialStatus: statusId } });
+    } else if (userRole === 'commander_admin') {
+      navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand", initialStatus: statusId } });
     } else {
       setPendingInitialStatus(statusId);
       setIsTaskTypeModalOpen(true);
@@ -240,6 +242,8 @@ const TasksPage = () => {
   const handleOpenCreateTask = () => {
     if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
       navigate(`${getBaseRoute()}/tasks/new`);
+    } else if (userRole === 'commander_admin') {
+      navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand" } });
     } else {
       setPendingInitialStatus(null);
       setIsTaskTypeModalOpen(true);

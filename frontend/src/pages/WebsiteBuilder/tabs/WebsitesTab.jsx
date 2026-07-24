@@ -272,7 +272,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   }, [activeWebsite.key]);
 
   const handleManageBlogs = () => {
-    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/blogs`);
   };
@@ -305,7 +305,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   };
 
   const handleCreateNewChatWidgetClick = () => {
-    const match = location.pathname.match(/(.*\/client\/website|.*\/workspace\/website)/);
+    const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/chat-widgets`);
   };
@@ -797,7 +797,11 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                               </Select>
                             </div>
                             <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                              {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => navigate(`/workspace/website/${activeWebsite.key}/pages/${page._id}/edit`)}>Edit in Builder</Button>}
+                              {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => {
+                                const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                const basePath = match ? match[0] : '/workspace/website';
+                                navigate(`${basePath}/${activeWebsite.key}/pages/${page._id}/edit`);
+                              }}>Edit in Builder</Button>}
                               <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
@@ -874,7 +878,11 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                           type="primary"
                                           icon={<PenTool size={12} />}
                                           style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
-                                          onClick={() => navigate(`/workspace/website/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`)}
+                                          onClick={() => {
+                                            const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                            const basePath = match ? match[0] : '/workspace/website';
+                                            navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
+                                          }}
                                         >
                                           Edit in Builder
                                         </Button>

@@ -139,7 +139,10 @@ const FormsTab = ({ itemVariants }) => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch("/api/form-templates");
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/form-templates", {
+        headers: { "Authorization": token ? `Bearer ${token}` : "" }
+      });
       const data = await res.json();
       if (data.success) {
         setTemplates(data.data.templates);
