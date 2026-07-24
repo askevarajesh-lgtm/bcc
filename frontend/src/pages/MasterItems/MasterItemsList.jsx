@@ -74,13 +74,13 @@ const MasterItemsList = () => {
           <Text type="secondary">Manage your service packages and items</Text>
         </div>
         <Space>
-          <Segmented 
-            value={viewMode} 
-            onChange={setViewMode} 
+          <Segmented
+            value={viewMode}
+            onChange={setViewMode}
             options={[
               { label: 'List', value: 'list', icon: <UnorderedListOutlined /> },
               { label: 'Cards', value: 'card', icon: <AppstoreOutlined /> },
-            ]} 
+            ]}
           />
           {canCreate && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('new')}>
@@ -89,32 +89,36 @@ const MasterItemsList = () => {
           )}
         </Space>
       </div>
-      
+
       {viewMode === 'list' ? (
         <Card>
-          <Table 
+          <Table
             columns={[
               { title: 'Item Name', dataIndex: 'name', key: 'name' },
-              { title: 'Categories', dataIndex: 'categories', key: 'categories', render: (cats) => (
-                <Space size={[0, 4]} wrap>
-                  {cats?.map(c => <Tag key={c.name}>{c.name} ({c.count})</Tag>)}
-                </Space>
-              ) },
+              {
+                title: 'Categories', dataIndex: 'categories', key: 'categories', render: (cats) => (
+                  <Space size={[0, 4]} wrap>
+                    {cats?.map(c => <Tag key={c.name}>{c.name} ({c.count})</Tag>)}
+                  </Space>
+                )
+              },
               { title: 'Price', dataIndex: 'price', key: 'price', render: (val) => `₹${val}` },
               { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={status === 'active' ? 'green' : 'red'}>{status}</Tag> },
               { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
-              { title: 'Actions', key: 'actions', render: (_, record) => (
-                <Space>
-                  {canEdit && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${record._id}`)} />}
-                  {canDelete && (
-                    <Popconfirm title="Delete this item?" onConfirm={() => handleDelete(record._id)}>
-                      <Button type="text" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  )}
-                </Space>
-              )}
-            ]} 
-            dataSource={items} 
+              {
+                title: 'Actions', key: 'actions', render: (_, record) => (
+                  <Space>
+                    {canEdit && <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`${record._id}`)} />}
+                    {canDelete && (
+                      <Popconfirm title="Delete this item?" onConfirm={() => handleDelete(record._id)}>
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    )}
+                  </Space>
+                )
+              }
+            ]}
+            dataSource={items}
             rowKey="_id"
             loading={loading}
           />
@@ -125,10 +129,10 @@ const MasterItemsList = () => {
             <Col xs={24} sm={24} md={12} lg={8} xl={8} key={item._id}>
               <Card
                 hoverable
-                style={{ 
-                  borderRadius: 16, 
-                  overflow: 'hidden', 
-                  display: 'flex', 
+                style={{
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  display: 'flex',
                   flexDirection: 'column',
                   height: '100%',
                   borderColor: token.colorBorderSecondary,
@@ -149,15 +153,15 @@ const MasterItemsList = () => {
                     )}
                   </Space>
                 </div>
-                
+
                 <Text type="secondary" style={{ marginBottom: 20, minHeight: 44, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: 15 }}>
                   {item.description || 'No description provided.'}
                 </Text>
 
-                <div style={{ 
-                  background: 'linear-gradient(90deg, #f3ebff 0%, #d8c2ff 100%)', 
-                  borderRadius: 12, 
-                  padding: '20px', 
+                <div style={{
+                  background: 'linear-gradient(90deg, #f3ebff 0%, #d8c2ff 100%)',
+                  borderRadius: 12,
+                  padding: '20px',
                   marginBottom: 28,
                   display: 'flex',
                   alignItems: 'center',
@@ -166,14 +170,14 @@ const MasterItemsList = () => {
                   <span style={{ fontSize: 36, fontWeight: 800, color: '#c45484', lineHeight: 1 }}>₹{item.price?.toLocaleString()}</span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: 14, color: '#333', fontWeight: 500, lineHeight: 1.3 }}>
-                      Charged {item.handlingDuration?.toLowerCase() || 'per project'},<br/>for the package.
+                      Charged {item.handlingDuration?.toLowerCase() || 'per project'},<br />for the package.
                     </span>
                   </div>
                 </div>
 
                 <div style={{ flex: 1, marginBottom: 28 }}>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    
+
                     {item.categories && item.categories.length > 0 && item.categories.map((cat, idx) => (
                       <li key={`cat-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                         <CheckCircleOutlined style={{ color: '#6554c0', marginTop: 3, fontSize: 16 }} />
@@ -204,18 +208,18 @@ const MasterItemsList = () => {
 
                 <div style={{ marginTop: 'auto' }}>
                   {canEdit && (
-                    <Button 
-                      type="primary" 
+                    <Button
+                      type="primary"
                       size="large"
-                      style={{ 
-                        width: '100%', 
-                        background: '#6554c0', 
-                        borderColor: '#6554c0', 
+                      style={{
+                        width: '100%',
+                        background: '#6554c0',
+                        borderColor: '#6554c0',
                         borderRadius: 10,
                         fontWeight: 600,
                         fontSize: 16,
                         height: 48
-                      }} 
+                      }}
                       onClick={() => navigate(`${item._id}`)}
                     >
                       Edit Package

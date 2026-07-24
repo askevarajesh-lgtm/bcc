@@ -23,6 +23,7 @@ import {
   EditOutlined,
   FileImageOutlined,
   GlobalOutlined,
+  MenuOutlined,
   PaperClipOutlined,
   PictureOutlined,
   PlusOutlined,
@@ -259,6 +260,7 @@ const pageStyles = `
     display: grid;
     grid-template-columns: 280px minmax(0, 1fr);
     height: calc(100vh - 118px);
+    height: calc(100dvh - 118px);
     background:
       radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 18%),
       linear-gradient(180deg, #202020 0%, #171717 100%);
@@ -292,8 +294,21 @@ const pageStyles = `
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
     background: linear-gradient(180deg, #111111 0%, #151515 100%);
     border-right: 1px solid var(--cgpt-line);
+  }
+
+  .cgpt-menu-toggle.ant-btn {
+    display: none;
+    flex-shrink: 0;
+    color: #f5f5f5;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .cgpt-sidebar-backdrop {
+    display: none;
   }
 
   .cgpt-sidebar-head {
@@ -382,7 +397,7 @@ const pageStyles = `
   }
 
   .cgpt-sidebar-scroll {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
     padding: 10px 10px 16px;
@@ -1369,10 +1384,43 @@ const pageStyles = `
   @media (max-width: 960px) {
     .cgpt-page-shell {
       grid-template-columns: 1fr;
+      height: calc(100vh - 90px);
+      height: calc(100dvh - 90px);
+      min-height: 420px;
+      border-radius: 20px;
     }
 
+    /* Sidebar becomes an off-canvas drawer instead of stacking inline,
+       so it no longer squeezes/overlaps the chat panel on small screens. */
     .cgpt-sidebar {
-      max-height: 360px;
+      position: absolute;
+      z-index: 20;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: min(320px, 84vw);
+      max-height: none;
+      transform: translateX(-100%);
+      transition: transform 0.22s ease;
+      box-shadow: 24px 0 48px rgba(0, 0, 0, 0.28);
+    }
+
+    .cgpt-sidebar.is-open {
+      transform: translateX(0);
+    }
+
+    .cgpt-sidebar-backdrop {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .cgpt-menu-toggle.ant-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .cgpt-bubble-wrap,
@@ -1382,6 +1430,12 @@ const pageStyles = `
   }
 
   @media (max-width: 640px) {
+    .cgpt-page-shell {
+      border-radius: 14px;
+      height: calc(100vh - 64px);
+      height: calc(100dvh - 64px);
+    }
+
     .cgpt-topbar,
     .cgpt-banner-stack,
     .cgpt-empty-stage,
@@ -1391,13 +1445,30 @@ const pageStyles = `
     }
 
     .cgpt-topbar {
-      flex-direction: column;
-      align-items: stretch;
+      gap: 10px;
+    }
+
+    .cgpt-topbar-left {
+      flex: 1;
+    }
+
+    .cgpt-topbar-title {
+      font-size: 19px;
     }
 
     .cgpt-topbar-right {
-      justify-content: space-between;
-      width: 100%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cgpt-settings-button.ant-btn {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .cgpt-empty-copy h1 {
+      font-size: clamp(24px, 8vw, 32px);
     }
 
     .cgpt-message-shell {
@@ -1412,18 +1483,78 @@ const pageStyles = `
     }
 
     .cgpt-composer-toolbar {
+      gap: 8px;
+    }
+
+    .cgpt-composer-tools {
+      gap: 6px;
+    }
+
+    .cgpt-tool-button.ant-btn {
+      padding-left: 10px;
+      padding-right: 12px;
+    }
+
+    .cgpt-tool-button.ant-btn .anticon + span,
+    .cgpt-send-button.ant-btn .anticon + span {
+      display: inline;
+    }
+
+    .cgpt-tool-pills {
+      gap: 8px;
+    }
+
+    .cgpt-tool-pill {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 460px) {
+    .cgpt-topbar-title {
+      font-size: 17px;
+    }
+
+    .cgpt-brand-mark {
+      width: 30px;
+      height: 30px;
+    }
+
+    /* Collapse Attach/New-chat buttons to icon-only pills so the toolbar
+       fits on one row instead of wrapping into a stacked, full-width mess. */
+    .cgpt-tool-button.ant-btn {
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+    }
+
+    .cgpt-tool-button.ant-btn .cgpt-btn-label {
+      display: none;
+    }
+
+    .cgpt-send-button.ant-btn {
+      padding: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+    }
+
+    .cgpt-send-button.ant-btn .cgpt-btn-label {
+      display: none;
+    }
+
+    .cgpt-composer-toolbar {
+      flex-wrap: nowrap;
+    }
+
+    .cgpt-tool-pills {
       flex-direction: column;
       align-items: stretch;
     }
 
-    .cgpt-composer-tools {
-      width: 100%;
-    }
-
-    .cgpt-tool-button.ant-btn,
-    .cgpt-send-button.ant-btn {
-      width: 100%;
-      justify-content: center;
+    .cgpt-tool-pill {
+      justify-content: flex-start;
     }
   }
 `;
@@ -1706,6 +1837,7 @@ const ClientChatGPTPage = () => {
   const [historySearch, setHistorySearch] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [shouldClearCustomKey, setShouldClearCustomKey] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const history = useMemo(
     () => extractConversations(historyPayload),
@@ -1747,6 +1879,7 @@ const ClientChatGPTPage = () => {
     setConversationTitle("New conversation");
     setConversationMessages([]);
     setDraftAttachment(null);
+    setIsMobileSidebarOpen(false);
   };
 
   const handlePresetClick = (prompt) => {
@@ -1766,6 +1899,7 @@ const ClientChatGPTPage = () => {
       setActiveSessionId(conversation._id);
       setConversationTitle(conversation.title || "Conversation");
       setConversationMessages(conversation.messages || []);
+      setIsMobileSidebarOpen(false);
     } catch (error) {
       message.error(
         error?.data?.message || error?.message || "Failed to load conversation",
@@ -1938,38 +2072,45 @@ const ClientChatGPTPage = () => {
               hidden
               onChange={handleFilePick}
             />
-            <Button
-              className="cgpt-tool-button"
-              icon={<PaperClipOutlined />}
-              onClick={() => fileInputRef.current?.click()}
-              loading={isUploadingFile}
-              disabled={isAiDisabled}
-            >
-              Attach
-            </Button>
-            <Button
-              className="cgpt-tool-button"
-              icon={<PlusOutlined />}
-              onClick={handleStartNewChat}
-              style={{ display: canAdd ? 'inline-block' : 'none' }}
-            >
-              New chat
-            </Button>
+            <Tooltip title="Attach a file">
+              <Button
+                className="cgpt-tool-button"
+                icon={<PaperClipOutlined />}
+                onClick={() => fileInputRef.current?.click()}
+                loading={isUploadingFile}
+                disabled={isAiDisabled}
+              >
+                <span className="cgpt-btn-label">Attach</span>
+              </Button>
+            </Tooltip>
+            {canAdd && (
+              <Tooltip title="New chat">
+                <Button
+                  className="cgpt-tool-button"
+                  icon={<PlusOutlined />}
+                  onClick={handleStartNewChat}
+                >
+                  <span className="cgpt-btn-label">New chat</span>
+                </Button>
+              </Tooltip>
+            )}
           </div>
 
-          <Button
-            className="cgpt-send-button"
-            icon={<SendOutlined />}
-            onClick={handleSendMessage}
-            loading={isSending}
-            disabled={
-              isAiDisabled ||
-              (!draftMessage.trim() && !draftAttachment) ||
-              isUploadingFile
-            }
-          >
-            Send
-          </Button>
+          <Tooltip title="Send message">
+            <Button
+              className="cgpt-send-button"
+              icon={<SendOutlined />}
+              onClick={handleSendMessage}
+              loading={isSending}
+              disabled={
+                isAiDisabled ||
+                (!draftMessage.trim() && !draftAttachment) ||
+                isUploadingFile
+              }
+            >
+              <span className="cgpt-btn-label">Send</span>
+            </Button>
+          </Tooltip>
         </div>
       </div>
 
@@ -1996,7 +2137,14 @@ const ClientChatGPTPage = () => {
       <style>{pageStyles}</style>
 
       <div className={`cgpt-page-shell ${isDark ? "theme-dark" : "theme-light"}`}>
-        <aside className="cgpt-sidebar">
+        {isMobileSidebarOpen && (
+          <div
+            className="cgpt-sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
+
+        <aside className={`cgpt-sidebar ${isMobileSidebarOpen ? "is-open" : ""}`}>
           <div className="cgpt-sidebar-head">
             <div className="cgpt-sidebar-brand">
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2029,7 +2177,7 @@ const ClientChatGPTPage = () => {
                 className="cgpt-ghost-button"
                 shape="circle"
                 icon={<ArrowLeftOutlined />}
-                // onClick={() => navigate("/settings/integrations")}
+                onClick={() => setIsMobileSidebarOpen(false)}
               />
             </div>
 
@@ -2177,6 +2325,12 @@ const ClientChatGPTPage = () => {
         <section className="cgpt-main">
           <div className="cgpt-topbar">
             <div className="cgpt-topbar-left">
+              <Button
+                className="cgpt-menu-toggle"
+                shape="circle"
+                icon={<MenuOutlined />}
+                onClick={() => setIsMobileSidebarOpen(true)}
+              />
               <div className="cgpt-topbar-copy">
                 <span className="cgpt-eyebrow">Model</span>
                 <span className="cgpt-topbar-title">ChatGPT</span>

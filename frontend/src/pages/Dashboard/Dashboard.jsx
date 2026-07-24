@@ -245,9 +245,9 @@ const Dashboard = () => {
               <Title level={4} style={{ margin: 0, fontWeight: 800 }}>Team Utilisation</Title>
               <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Billable distribution</Text>
               
-              <div style={{ height: 200, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
+              <div style={{ height: 220, minHeight: 220, flexShrink: 0, flexGrow: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-lg)', color: 'var(--text-primary)', fontWeight: 700 }} 
                       itemStyle={{ color: 'var(--text-primary)' }}
@@ -259,10 +259,11 @@ const Dashboard = () => {
                 </ResponsiveContainer>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', marginTop: 16 }}>
                 {data.teamUtilisationData.map(t => (
-                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.fill, flexShrink: 0 }}></span> {t.name}
+                  <div key={t.name} title={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 0 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.fill, flexShrink: 0 }}></span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{t.name}</span>
                   </div>
                 ))}
               </div>
@@ -279,11 +280,11 @@ const Dashboard = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 32 }}>
                 {data.teamCapacityData.map(t => (
                   <div key={t.initials} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <Avatar size="large" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 800, boxShadow: 'var(--shadow-sm)' }}>{t.initials}</Avatar>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</Text>
-                        <Text style={{ fontSize: 13, color: t.color, fontWeight: 800 }}>{Math.round((t.logged/t.capacity)*100)}%</Text>
+                    <Avatar size="large" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 800, boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>{t.initials}</Avatar>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={t.name}>{t.name}</Text>
+                        <Text style={{ fontSize: 13, color: t.color, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{Math.round((t.logged/t.capacity)*100)}%</Text>
                       </div>
                       <Progress percent={(t.logged/t.capacity)*100} showInfo={false} strokeColor={t.color} trailColor="var(--bg-tertiary)" size="small" strokeWidth={6} />
                     </div>

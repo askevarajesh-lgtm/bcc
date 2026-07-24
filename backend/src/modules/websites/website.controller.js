@@ -73,6 +73,57 @@ function detectThemeFromTemplateFiles(htmlFiles, cssFiles) {
   return detectThemeFromContent(htmlContents, cssContents);
 }
 
+function resolveAssetKey(fromDir, extractedDir, pathStr) {
+  const absoluteAssetPath = pathStr.startsWith('/')
+    ? path.join(extractedDir, pathStr)
+    : path.resolve(fromDir, pathStr);
+  return path.relative(extractedDir, absoluteAssetPath).replace(/\\/g, '/');
+}
+
+function lookupAssetUrl(assetUrlMap, assetUrlMapLower, key) {
+  return assetUrlMap[key] || assetUrlMapLower[key.toLowerCase()];
+}
+
+const RAW_ASSET_EXTENSIONS = new Set(['.css', '.js', '.html', '.woff', '.woff2', '.ttf', '.otf', '.eot']);
+
+function resolveBrokenCdnMirror(pathStr) {
+  const match = pathStr.match(/^(?:\.\.\/)+([a-z0-9.-]+\.[a-z]{2,})\/(.+)$/i);
+  if (!match) return null;
+  const [, domain, rest] = match;
+  try {
+    return `https://${domain}/${decodeURIComponent(rest)}`;
+  } catch (e) {
+    return `https://${domain}/${rest}`;
+  }
+}
+
+function stripQueryAndFragment(pathStr) {
+  return pathStr.split(/[?#]/)[0];
+}
+
+function resolveReference(pathStr, fromDir, extractedDir, assetUrlMap, assetUrlMapLower) {
+  const cleanPath = stripQueryAndFragment(pathStr);
+  const cdnUrl = resolveBrokenCdnMirror(cleanPath);
+  if (cdnUrl) return { url: cdnUrl, recoveredCdn: true };
+  const key = resolveAssetKey(fromDir, extractedDir, cleanPath);
+  const uploadedUrl = lookupAssetUrl(assetUrlMap, assetUrlMapLower, key);
+  return uploadedUrl ? { url: uploadedUrl, recoveredCdn: false } : null;
+}
+
+const ASSET_DIR_NAMES = new Set(['img', 'images', 'image', 'css', 'js', 'lib', 'libs', 'assets', 'fonts', 'font', 'media', 'vendor', 'vendors']);
+function isInsideAssetDir(relPath) {
+  const segments = relPath.split('/').slice(0, -1);
+  return segments.some(seg => ASSET_DIR_NAMES.has(seg.toLowerCase()));
+}
+
+const IGNORED_ASSET_FILENAMES = new Set([
+  'readme.txt', 'readme.md', 'license', 'license.txt', 'license.md',
+  'changelog.txt', 'changelog.md', '.gitignore', '.gitkeep', '.ds_store', 'thumbs.db'
+]);
+function isIgnorableTemplateFile(filePath) {
+  return IGNORED_ASSET_FILENAMES.has(path.basename(filePath).toLowerCase());
+}
+
 async function detectThemeFromPublishedPages(pages) {
   const htmlContents = pages.map(p => p.html || '');
 
@@ -194,9 +245,6 @@ exports.createWebsite = async (req, res, next) => {
 
     // Initialize default pages
     let newPages = [];
-    // Surfaced to the response (instead of only console.error) so a failed
-    // template import is visible to the caller rather than silently
-    // producing a website with just the generic blank Home page.
     let templateImportWarning = null;
 
     // If template is provided, extract zip and read all html
@@ -280,7 +328,9 @@ exports.createWebsite = async (req, res, next) => {
           const assetFiles = [];
           
           for (const file of allFiles) {
-            if (file.toLowerCase().endsWith('.html')) {
+            if (isIgnorableTemplateFile(file)) continue;
+            const relPath = path.relative(extractedDir, file).replace(/\\/g, '/');
+            if (file.toLowerCase().endsWith('.html') && !isInsideAssetDir(relPath)) {
               htmlFiles.push(file);
             } else {
               assetFiles.push(file);
@@ -297,15 +347,19 @@ exports.createWebsite = async (req, res, next) => {
             await savedWebsite.save();
           }
 
-          const assetUrlMap = {}; // Maps relative path to Cloudinary URL
+          const assetUrlMap = {}; 
+          const assetUrlMapLower = {}; 
+          const failedAssets = [];
+          const recoveredCdnLinks = new Set();
+          const invalidHtmlHrefs = new Set(); 
 
-          // Upload assets sequentially to avoid overwhelming Cloudinary API
-          for (const filePath of assetFiles) {
-            let relDir = path.relative(extractedDir, filePath).replace(/\\/g, '/');
-            
-            let resourceType = 'auto';
-            if (filePath.endsWith('.css') || filePath.endsWith('.js')) resourceType = 'raw';
-            
+          const nonCssAssetFiles = assetFiles.filter(f => !f.toLowerCase().endsWith('.css'));
+
+          for (const filePath of nonCssAssetFiles) {
+            const relDir = path.relative(extractedDir, filePath).replace(/\\/g, '/');
+            const ext = path.extname(filePath).toLowerCase();
+            const resourceType = RAW_ASSET_EXTENSIONS.has(ext) ? 'raw' : 'auto';
+
             try {
               const result = await cloudinary.uploader.upload(filePath, {
                 folder: `websites/${savedWebsite._id}`,
@@ -314,10 +368,43 @@ exports.createWebsite = async (req, res, next) => {
                 resource_type: resourceType
               });
               assetUrlMap[relDir] = result.secure_url;
+              assetUrlMapLower[relDir.toLowerCase()] = result.secure_url;
             } catch (uploadErr) {
               console.error(`Failed to upload ${relDir}:`, uploadErr);
+              failedAssets.push(relDir);
             }
           }
+
+          for (const cssFilePath of cssFiles) {
+            const cssDir = path.dirname(cssFilePath);
+            const relDir = path.relative(extractedDir, cssFilePath).replace(/\\/g, '/');
+            let cssContent = fs.readFileSync(cssFilePath, 'utf8');
+
+            cssContent = cssContent.replace(/url\(\s*['"]?(?!http|\/\/|data:)([^'")]+)['"]?\s*\)/gi, (match, pathStr) => {
+              const resolved = resolveReference(pathStr, cssDir, extractedDir, assetUrlMap, assetUrlMapLower);
+              if (resolved && resolved.recoveredCdn) recoveredCdnLinks.add(pathStr);
+              return resolved ? `url('${resolved.url}')` : match;
+            });
+
+            try {
+              const tempCssPath = path.join(os.tmpdir(), `${extractSessionId}-${relDir.replace(/[\\/]/g, '_')}`);
+              fs.writeFileSync(tempCssPath, cssContent, 'utf8');
+              const result = await cloudinary.uploader.upload(tempCssPath, {
+                folder: `websites/${savedWebsite._id}`,
+                use_filename: true,
+                unique_filename: true,
+                resource_type: 'raw'
+              });
+              assetUrlMap[relDir] = result.secure_url;
+              assetUrlMapLower[relDir.toLowerCase()] = result.secure_url;
+              fs.unlinkSync(tempCssPath);
+            } catch (uploadErr) {
+              console.error(`Failed to upload ${relDir}:`, uploadErr);
+              failedAssets.push(relDir);
+            }
+          }
+
+          const pageBaseNames = new Set(htmlFiles.map(f => path.basename(f).toLowerCase()));
 
           for (const filePath of htmlFiles) {
             let htmlContent = fs.readFileSync(filePath, 'utf8');
@@ -325,30 +412,48 @@ exports.createWebsite = async (req, res, next) => {
             
             // Rewrite src and href to Cloudinary URLs
             htmlContent = htmlContent.replace(/(src|href)=["'](?!http|\/\/|data:|#|mailto:|tel:)([^"']+)["']/gi, (match, attr, pathStr) => {
-              // If it's a link to another html file, rewrite it to a clean path
+              // If it's a link to another real page, rewrite it to a clean path
               if (attr.toLowerCase() === 'href' && pathStr.toLowerCase().endsWith('.html')) {
-                const cleanName = pathStr.split('/').pop().replace(/\.html$/i, '').toLowerCase();
-                return `href="/${cleanName === 'index' ? 'home' : cleanName}"`;
+                const rawBaseName = pathStr.split('/').pop().toLowerCase();
+                if (pageBaseNames.has(rawBaseName)) {
+                  const cleanName = rawBaseName.replace(/\.html$/i, '');
+                  return `href="/${cleanName === 'index' ? 'home' : cleanName}"`;
+                }
+                invalidHtmlHrefs.add(pathStr);
               }
               
-              // Resolve asset relative to extraction dir
-              const absoluteAssetPath = path.resolve(fileDir, pathStr);
-              const relToExtracted = path.relative(extractedDir, absoluteAssetPath).replace(/\\/g, '/');
+              const resolved = resolveReference(pathStr, fileDir, extractedDir, assetUrlMap, assetUrlMapLower);
               
-              if (assetUrlMap[relToExtracted]) {
-                return `${attr}="${assetUrlMap[relToExtracted]}"`;
+              if (resolved) {
+                if (resolved.recoveredCdn) recoveredCdnLinks.add(pathStr);
+                return `${attr}="${resolved.url}"`;
               }
               
               return match; // Keep original if not uploaded
             });
 
+            // Rewrite srcset (responsive images, icon variants) to Cloudinary URLs
+            htmlContent = htmlContent.replace(/srcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
+              const rewritten = srcsetVal.split(',').map(entry => {
+                const trimmed = entry.trim();
+                const spaceIdx = trimmed.search(/\s/);
+                const urlPart = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx);
+                const descriptor = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx);
+                if (/^(http|\/\/|data:)/i.test(urlPart)) return trimmed;
+                const resolved = resolveReference(urlPart, fileDir, extractedDir, assetUrlMap, assetUrlMapLower);
+                if (resolved && resolved.recoveredCdn) recoveredCdnLinks.add(urlPart);
+                return resolved ? `${resolved.url}${descriptor}` : trimmed;
+              }).join(', ');
+              return `srcset="${rewritten}"`;
+            });
+
             // Rewrite url('...') in inline styles
-            htmlContent = htmlContent.replace(/url\(['"]?(?!http|\/\/|data:)([^'"\)]+)['"]?\)/gi, (match, pathStr) => {
-              const absoluteAssetPath = path.resolve(fileDir, pathStr);
-              const relToExtracted = path.relative(extractedDir, absoluteAssetPath).replace(/\\/g, '/');
+            htmlContent = htmlContent.replace(/url\(\s*['"]?(?!http|\/\/|data:)([^'")]+)['"]?\s*\)/gi, (match, pathStr) => {
+              const resolved = resolveReference(pathStr, fileDir, extractedDir, assetUrlMap, assetUrlMapLower);
               
-              if (assetUrlMap[relToExtracted]) {
-                return `url('${assetUrlMap[relToExtracted]}')`;
+              if (resolved) {
+                if (resolved.recoveredCdn) recoveredCdnLinks.add(pathStr);
+                return `url('${resolved.url}')`;
               }
               return match;
             });
@@ -382,6 +487,29 @@ exports.createWebsite = async (req, res, next) => {
             newPages[0].path = '/home';
             newPages[0].title = 'Home';
             await newPages[0].save();
+          }
+
+          const warningParts = [];
+
+          if (failedAssets.length > 0) {
+            const shown = failedAssets.slice(0, 5).join(', ');
+            const more = failedAssets.length > 5 ? ` and ${failedAssets.length - 5} more` : '';
+            warningParts.push(`${failedAssets.length} asset(s) failed to upload and may be missing (e.g. ${shown}${more})`);
+          }
+
+          if (recoveredCdnLinks.size > 0) {
+            const shown = [...recoveredCdnLinks].slice(0, 3).join(', ');
+            const more = recoveredCdnLinks.size > 3 ? ` and ${recoveredCdnLinks.size - 3} more` : '';
+            warningParts.push(`${recoveredCdnLinks.size} broken local reference(s) to CDN libraries (e.g. ${shown}${more}) were pointed back at their real CDN URLs — this template's zip was likely a browser "Save Page As" copy that never included those library files`);
+          }
+
+          if (invalidHtmlHrefs.size > 0) {
+            const shown = [...invalidHtmlHrefs].join(', ');
+            warningParts.push(`${invalidHtmlHrefs.size} link(s) pointed at an .html target that wasn't part of this import (e.g. ${shown}) — this is either a page missing from the template zip itself, or a non-page file mislabeled with an .html extension (e.g. a favicon); worth checking manually`);
+          }
+
+          if (warningParts.length > 0) {
+            templateImportWarning = `Imported "${templateName}" with some issues: ${warningParts.join('; ')}.`;
           }
 
           // Clean up temp files
@@ -722,10 +850,6 @@ exports.cloneWebsite = async (req, res, next) => {
   }
 };
 
-// Re-detect and save a website's theme from its already-saved pages. Mainly for
-// websites created before automatic theme detection existed on template import,
-// so their blog embeds (and anything else reading website.theme) can be brought
-// in line with the site's real design without having to recreate the website.
 exports.syncWebsiteTheme = async (req, res, next) => {
   try {
     const { id } = req.params;
