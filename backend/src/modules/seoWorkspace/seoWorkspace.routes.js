@@ -68,6 +68,18 @@ router.put('/projects/:projectId/competitor-agent/approve', blockViewOnly, works
 router.put('/projects/:projectId/competitor-agent/reject', blockViewOnly, workspaceController.rejectCompetitorSuggestions);
 router.get('/projects/:projectId/competitor-agent/history', workspaceController.getCompetitorExecutionHistory);
 
+// Technical SEO Agent — own prompt/service/execution history/logs/retry/
+// approval/shared memory. No UI route consumes this; exposed for manual/
+// cron/agent-to-agent triggering, same rationale as the other three agents'
+// routes above. Approve/reject take :auditId in the path (not a bulk-ids
+// body) because findings live on one WorkspaceTechnicalAudit document per
+// run — same shape as the SEO Auditor's routes, not the Competitor/Keyword
+// agents' bulk-suggestion shape.
+router.post('/projects/:projectId/technical-seo-agent/run', blockViewOnly, workspaceController.runTechnicalSeoAgent);
+router.put('/projects/:projectId/technical-seo-agent/:auditId/approve', blockViewOnly, workspaceController.approveTechnicalFindings);
+router.put('/projects/:projectId/technical-seo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectTechnicalFindings);
+router.get('/projects/:projectId/technical-seo-agent/history', workspaceController.getTechnicalSeoExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 

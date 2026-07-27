@@ -56,6 +56,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'technical-seo-agent': {
+    key: 'technical-seo-agent',
+    displayName: 'Technical SEO Agent',
+    skills: ['technical-infrastructure-audit', 'audit-severity-prioritization'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

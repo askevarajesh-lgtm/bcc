@@ -14,6 +14,7 @@ const GoogleService = require('../seoIntelligence/services/google.service');
 const seoAuditorAgent = require('./services/seoAuditorAgent.service');
 const keywordResearchAgent = require('./services/keywordResearchAgent.service');
 const competitorAgent = require('./services/competitorAgent.service');
+const technicalSeoAgent = require('./services/technicalSeoAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -365,6 +366,65 @@ exports.getCompetitorExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await competitorAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Technical SEO Agent (own prompt/service/execution history/logs/retry/
+// approval/shared memory — see technicalSeoAgent.service.js). No UI consumes
+// these; exposed for manual/cron/agent-to-agent triggering, same rationale
+// as the SEO Auditor, Keyword Research, and Competitor agents' routes. ---
+
+exports.runTechnicalSeoAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await technicalSeoAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runTechnicalSeoAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveTechnicalFindings = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { audit, createdTasks } = await technicalSeoAgent.approveFindings(auditId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: audit, createdTasks });
+  } catch (error) {
+    console.error('Error approving technical findings:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving technical findings' });
+  }
+};
+
+exports.rejectTechnicalFindings = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { reason } = req.body;
+    const result = await technicalSeoAgent.rejectFindings(auditId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting technical findings:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting technical findings' });
+  }
+};
+
+exports.getTechnicalSeoExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await technicalSeoAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
