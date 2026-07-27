@@ -64,6 +64,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'content-agent': {
+    key: 'content-agent',
+    displayName: 'Content Agent',
+    skills: ['content-brief-generation', 'topic-clustering'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

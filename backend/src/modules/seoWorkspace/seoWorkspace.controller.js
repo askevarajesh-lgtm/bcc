@@ -15,6 +15,7 @@ const seoAuditorAgent = require('./services/seoAuditorAgent.service');
 const keywordResearchAgent = require('./services/keywordResearchAgent.service');
 const competitorAgent = require('./services/competitorAgent.service');
 const technicalSeoAgent = require('./services/technicalSeoAgent.service');
+const contentAgent = require('./services/contentAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -425,6 +426,66 @@ exports.getTechnicalSeoExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await technicalSeoAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Content Agent (own prompt/service/execution history/logs/retry/
+// approval/shared memory — see contentAgent.service.js). No UI consumes
+// these; exposed for manual/cron/agent-to-agent triggering, same rationale
+// as the SEO Auditor, Keyword Research, Competitor, and Technical SEO
+// agents' routes above. ---
+
+exports.runContentAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await contentAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runContentAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveContentBriefs = async (req, res) => {
+  try {
+    const { projectId, contentBriefId } = req.params;
+    const { contentBrief, createdTasks } = await contentAgent.approveBriefs(contentBriefId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: contentBrief, createdTasks });
+  } catch (error) {
+    console.error('Error approving content briefs:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving content briefs' });
+  }
+};
+
+exports.rejectContentBriefs = async (req, res) => {
+  try {
+    const { projectId, contentBriefId } = req.params;
+    const { reason } = req.body;
+    const result = await contentAgent.rejectBriefs(contentBriefId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting content briefs:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting content briefs' });
+  }
+};
+
+exports.getContentAgentExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await contentAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
