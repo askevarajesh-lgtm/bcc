@@ -15,7 +15,10 @@
  * `seoWorkspace/services/auditLog.service.js` pattern exactly — a logging
  * failure must never block the actual workflow it's describing.
  */
-const ExecutionLog = require('../models/executionLog.model');
+// BUGFIX (SEO Auditor Agent pass): was '../models/executionLog.model', which
+// resolves outside this module entirely (the model file lives flat in this
+// same directory, not under a models/ subfolder). See index.js's header note.
+const ExecutionLog = require('./executionLog.model');
 
 const LEVELS = ['debug', 'info', 'warn', 'error'];
 

@@ -38,6 +38,24 @@ const WorkspaceAuditSchema = new mongoose.Schema({
   rawResponseUrl: { type: String, default: null }, // S3 link or similar if we cache the full JSON payload
   
   completedAt: { type: Date, default: null },
+
+  agent: {
+    agentKey: { type: String, default: null }, // e.g. 'seo-auditor'; data reference only
+    summary: { type: String, default: null },
+    findings: [{
+      category: { type: String, required: true }, // e.g. 'broken_links', 'missing_meta', 'slow_pages', 'canonical_issues', 'ssl_issues', 'thin_content'
+      severity: { type: String, enum: ['critical', 'high', 'medium', 'low'], default: 'medium' },
+      issue: { type: String, required: true },
+      recommendation: { type: String, default: '' },
+      taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'], default: 'Content Edit' },
+      pageUrl: { type: String, default: null }
+    }],
+    approvalStatus: { type: String, enum: ['Not Requested', 'Pending Approval', 'Approved', 'Rejected'], default: 'Not Requested' },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    approvedAt: { type: Date, default: null },
+    rejectionReason: { type: String, default: null },
+    generatedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceTask' }]
+  }
 }, { timestamps: true });
 
 WorkspaceAuditSchema.index({ projectId: 1, createdAt: -1 });

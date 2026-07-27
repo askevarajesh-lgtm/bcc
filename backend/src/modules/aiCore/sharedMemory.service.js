@@ -13,7 +13,9 @@
  * `remember`/`recall` naming is deliberate: it gives AI Engine callers a
  * memory-shaped API without introducing a second memory schema.
  */
-const WorkspaceMemory = require('../../seoWorkspace/models/workspaceMemory.model');
+// BUGFIX (SEO Auditor Agent pass): same one-level-too-many issue as
+// agentLoader.service.js's skillLoader require — see that file's note.
+const WorkspaceMemory = require('../seoWorkspace/models/workspaceMemory.model');
 const logger = require('./logger.service');
 
 /**

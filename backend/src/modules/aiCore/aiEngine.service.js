@@ -19,9 +19,15 @@
  * telemetry (Logger) — all optional/additive, none of them change what a
  * call returns.
  */
-const AiSettings = require('../../aiStudio/models/aiSettings.model');
-const cryptoUtils = require('../../../utils/crypto');
-const AiClientWrapper = require('../../../utils/aiClientWrapper');
+// BUGFIX (SEO Auditor Agent pass): all three paths below had one extra
+// '../' and resolved outside backend/src entirely. This file lives at
+// backend/src/modules/aiCore/ — the same depth as
+// backend/src/modules/seoWorkspace/seoWorkspace.controller.js, which
+// requires these exact three modules with the paths used here; matched
+// against that working reference instead of guessing.
+const AiSettings = require('../aiStudio/models/aiSettings.model');
+const cryptoUtils = require('../../utils/crypto');
+const AiClientWrapper = require('../../utils/aiClientWrapper');
 const retry = require('./retry.service');
 const executionStatus = require('./executionStatus.service');
 const logger = require('./logger.service');

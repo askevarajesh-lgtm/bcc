@@ -42,6 +42,23 @@ router.put('/projects/:projectId/settings', blockViewOnly, workspaceController.u
 router.get('/audits', workspaceController.getAudits);
 router.post('/projects/:projectId/audit', blockViewOnly, workspaceController.runAudit);
 
+// SEO Auditor Agent — full AI-analyzed run (own prompt/service/execution
+// history/logs/retry/approval/shared memory). No UI route consumes this;
+// exposed for manual/cron/agent-to-agent triggering. Distinct from the
+// plain /audit route above, which only does the raw, non-AI data collection.
+router.post('/projects/:projectId/seo-auditor/run', blockViewOnly, workspaceController.runAuditorAgent);
+router.put('/projects/:projectId/seo-auditor/:auditId/approve', blockViewOnly, workspaceController.approveAuditFindings);
+router.put('/projects/:projectId/seo-auditor/:auditId/reject', blockViewOnly, workspaceController.rejectAuditFindings);
+router.get('/projects/:projectId/seo-auditor/history', workspaceController.getAuditorExecutionHistory);
+
+// Keyword Research Agent — own prompt/service/execution history/logs/retry/
+// approval/shared memory. No UI route consumes this; exposed for manual/
+// cron/agent-to-agent triggering, same rationale as the SEO Auditor routes.
+router.post('/projects/:projectId/keyword-research/run', blockViewOnly, workspaceController.runKeywordResearchAgent);
+router.put('/projects/:projectId/keyword-research/approve', blockViewOnly, workspaceController.approveKeywordSuggestions);
+router.put('/projects/:projectId/keyword-research/reject', blockViewOnly, workspaceController.rejectKeywordSuggestions);
+router.get('/projects/:projectId/keyword-research/history', workspaceController.getKeywordResearchExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 

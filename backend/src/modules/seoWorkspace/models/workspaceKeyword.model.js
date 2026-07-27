@@ -33,6 +33,23 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
   tags: [{ type: String }],
   
   isDeleted: { type: Boolean, default: false },
+
+  // --- Keyword Research Agent extension (additive; existing keywords are unaffected) ---
+  // Every pre-existing/other-path keyword (manual add, the orchestrator's ranked-keyword
+  // import) defaults to source 'manual' and status 'Approved', so nothing that already
+  // reads WorkspaceKeyword needs to change or start filtering by status. Only keywords
+  // this agent proposes start life as 'Suggested', gated behind human approval.
+  source: { type: String, enum: ['manual', 'ranked-import', 'keyword-research-agent'], default: 'manual' },
+  status: { type: String, enum: ['Suggested', 'Approved', 'Rejected'], default: 'Approved' },
+  agent: {
+    agentKey: { type: String, default: null }, // e.g. 'keyword-research'; data reference only
+    opportunityScore: { type: Number, default: null }, // 0-100
+    rationale: { type: String, default: null },
+    theme: { type: String, default: null } // short grouping label, used to detect repeated rejections
+  },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  approvedAt: { type: Date, default: null },
+  rejectionReason: { type: String, default: null },
 }, { timestamps: true });
 
 // Ensure unique keywords per project

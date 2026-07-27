@@ -11,7 +11,8 @@ const WorkspaceAuditLog = require('./models/workspaceAuditLog.model');
 const WorkspaceAgentOrchestrator = require('./services/workspaceAgentOrchestrator.service');
 const WordPressService = require('../seoIntelligence/services/wordPress.service');
 const GoogleService = require('../seoIntelligence/services/google.service');
-const dataForSeoService = require('../seoIntelligence/dataForSeo.service');
+const seoAuditorAgent = require('./services/seoAuditorAgent.service');
+const keywordResearchAgent = require('./services/keywordResearchAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -178,51 +179,139 @@ exports.runAudit = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    const domain = project.domain.replace(/^https?:\/\/(www\.)?/, '');
-    
-    const auditResponse = await dataForSeoService.runOnPageAudit(domain, 1);
-    const result = auditResponse?.result;
-    
-    if (result) {
-      const score = Math.round(result.page_metrics?.onpage_score || 0);
-      
-      const metrics = result.page_metrics || {};
-      const checks = metrics.checks || {};
-      
-      const newAudit = await WorkspaceAudit.create({
-        projectId: project._id,
-        agencyId: companyId,
-        taskId: auditResponse.id || 'manual',
-        status: 'completed',
-        metrics: {
-          onpageScore: score,
-          technicalScore: score,
-          pagesCrawled: 1,
-          performance: score,
-          crawlability: score,
-          security: score,
-          onPage: score,
-          overall: score
-        },
-        issues: {
-          brokenLinks: metrics.broken_links || 0,
-          missingMeta: (checks.no_title || 0) + (checks.no_description || 0),
-          slowPages: checks.high_loading_time || 0
-        },
-        completedAt: new Date()
-      });
+    // Delegates to the SEO Auditor Agent's raw-collection step (same
+    // DataForSEO call + field mapping this endpoint used to do inline,
+    // moved to seoAuditorAgent.service.js so it isn't duplicated between
+    // this manual/no-AI trigger and the full agent run below). maxCrawlPages
+    // stays at 1, matching this endpoint's exact prior behavior; the full
+    // agent run (runAuditorAgent) requests a deeper 5-page crawl instead.
+    // Response shape is unchanged: { success, data, score }.
+    const newAudit = await seoAuditorAgent.collectRawAudit(project, companyId, 1);
 
-      await WorkspaceProject.findByIdAndUpdate(projectId, {
-        $set: { 'stats.lastAuditScore': score, lastAuditSync: new Date(), phase: 'audit' }
-      });
-
-      res.status(200).json({ success: true, data: newAudit, score });
-    } else {
-      res.status(400).json({ success: false, message: 'Failed to retrieve audit data' });
-    }
+    res.status(200).json({ success: true, data: newAudit, score: newAudit.metrics.overall || newAudit.metrics.onpageScore });
   } catch (error) {
     console.error('Error running audit:', error);
     res.status(500).json({ success: false, message: error.message || 'Server error running audit' });
+  }
+};
+
+// --- SEO Auditor Agent (own prompt/service/execution history/logs/retry/
+// approval/shared memory — see seoAuditorAgent.service.js). No UI consumes
+// these yet; exposed here so the agent can be triggered/reviewed
+// programmatically (manual call, cron, another agent, etc). ---
+
+exports.runAuditorAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const audit = await seoAuditorAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: audit });
+  } catch (error) {
+    console.error('[runAuditorAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveAuditFindings = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { audit, createdTasks } = await seoAuditorAgent.approveFindings(auditId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: audit, createdTasks });
+  } catch (error) {
+    console.error('Error approving audit findings:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving audit findings' });
+  }
+};
+
+exports.rejectAuditFindings = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { reason } = req.body;
+    const audit = await seoAuditorAgent.rejectFindings(auditId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: audit });
+  } catch (error) {
+    console.error('Error rejecting audit findings:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting audit findings' });
+  }
+};
+
+exports.getAuditorExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await seoAuditorAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Keyword Research Agent (own prompt/service/execution history/logs/
+// retry/approval/shared memory — see keywordResearchAgent.service.js).
+// No UI consumes these yet; exposed for manual/cron/agent-to-agent
+// triggering, same rationale as the SEO Auditor Agent's routes above. ---
+
+exports.runKeywordResearchAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+    const { seedKeyword } = req.body || {};
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await keywordResearchAgent.run(projectId, workspaceId, { seedKeyword });
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runKeywordResearchAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveKeywordSuggestions = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { keywordIds } = req.body;
+    const result = await keywordResearchAgent.approveKeywords(projectId, keywordIds, req.user._id);
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error('Error approving keyword suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving keyword suggestions' });
+  }
+};
+
+exports.rejectKeywordSuggestions = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { keywordIds, reason } = req.body;
+    const result = await keywordResearchAgent.rejectKeywords(projectId, keywordIds, req.user._id, reason);
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error('Error rejecting keyword suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting keyword suggestions' });
+  }
+};
+
+exports.getKeywordResearchExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await keywordResearchAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

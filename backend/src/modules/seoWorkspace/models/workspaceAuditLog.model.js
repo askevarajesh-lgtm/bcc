@@ -6,7 +6,10 @@ const mongoose = require('mongoose');
 const WorkspaceAuditLogSchema = new mongoose.Schema({
   targetType: {
     type: String,
-    enum: ['Project', 'Strategy', 'Task', 'Report'],
+    // Extended additively for the SEO Auditor and Keyword Research agents'
+    // approval-gate logging (audit findings, keyword suggestions). Existing
+    // rows using the original four values are unaffected.
+    enum: ['Project', 'Strategy', 'Task', 'Report', 'Audit', 'Keyword'],
     required: true
   },
   targetId: {
