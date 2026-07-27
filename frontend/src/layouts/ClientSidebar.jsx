@@ -4,18 +4,25 @@ import {
   Activity,
   Award,
   BarChart2,
+  BookOpen,
   Bot,
   Briefcase,
   Calendar,
   CheckCircle2,
   CheckSquare,
+  ClipboardCheck,
+  Cpu,
   CreditCard,
   DollarSign,
   FileText,
   GitMerge,
   Globe,
+  Globe2,
+  Hash,
   HelpCircle,
   LayoutDashboard,
+  LayoutGrid,
+  LayoutTemplate,
   Library,
   LineChart,
   MessageCircle,
@@ -24,9 +31,11 @@ import {
   Search,
   Settings as SettingsIcon,
   Shield,
+  ShoppingBag,
   ShoppingCart,
   Sparkles,
   Store,
+  Swords,
   Target,
   TrendingUp,
   Users,
@@ -146,6 +155,38 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const workspaceChildren = [];
+
+  const buildMarketplaceMenuItem = () => ({
+    key: 'client-marketplace',
+    icon: getIcon(ShoppingCart),
+    label: 'Marketplace',
+    children: [
+      { key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Overview' },
+      {
+        key: 'client-marketplace-seo',
+        icon: getIcon(Search),
+        label: 'SEO',
+        children: [
+          { key: '/client/marketplace/seo/dashboard', icon: getIcon(LayoutGrid), label: 'Dashboard' },
+          { key: '/client/marketplace/seo/audit', icon: getIcon(ClipboardCheck), label: 'Audit' },
+          { key: '/client/marketplace/seo/keywords', icon: getIcon(Hash), label: 'Keywords' },
+          { key: '/client/marketplace/seo/competitors', icon: getIcon(Swords), label: 'Competitors' },
+          { key: '/client/marketplace/seo/content-ai', icon: getIcon(Sparkles), label: 'Content AI' },
+          { key: '/client/marketplace/seo/technical-seo', icon: getIcon(Cpu), label: 'Technical SEO' },
+          { key: '/client/marketplace/seo/website-builder', icon: getIcon(LayoutTemplate), label: 'Website Builder' },
+          { key: '/client/marketplace/seo/store-seo', icon: getIcon(ShoppingBag), label: 'Store SEO' },
+          { key: '/client/marketplace/seo/blog-seo', icon: getIcon(BookOpen), label: 'Blog SEO' },
+          { key: '/client/marketplace/seo/aeo', icon: getIcon(MessageCircle), label: 'AEO' },
+          { key: '/client/marketplace/seo/geo', icon: getIcon(Globe2), label: 'GEO' },
+          { key: '/client/marketplace/seo/reports', icon: getIcon(FileText), label: 'Reports' },
+          { key: '/client/marketplace/seo/automation', icon: getIcon(Zap), label: 'Automation' },
+          { key: '/client/marketplace/seo/monitoring', icon: getIcon(Activity), label: 'Monitoring' },
+          { key: '/client/marketplace/seo/settings', icon: getIcon(SettingsIcon), label: 'Settings' },
+        ],
+      },
+    ],
+  });
+
   if (role === 'brand_super_admin') {
     // No workspace modules for brand_super_admin
   } else if (role === 'brand_manager') {
@@ -156,7 +197,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/client/workspace/crm', icon: getIcon(LineChart), label: getLabel('CRM & Leads', leadsCount), featureId: 'crm' });
     workspaceChildren.push({ key: '/client/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
     workspaceChildren.push({ key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
+    workspaceChildren.push(buildMarketplaceMenuItem());
   } else if (role === 'agency_client') {
     workspaceChildren.push({ key: '/client/workspace/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
     workspaceChildren.push({ key: '/client/workspace/aistudio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
@@ -164,11 +205,11 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/client/workspace/ads', icon: getIcon(Target), label: 'Performance Ads', featureId: 'ads' });
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
+    workspaceChildren.push(buildMarketplaceMenuItem());
   } else {
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push({ key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Marketplace' });
+    workspaceChildren.push(buildMarketplaceMenuItem());
   }
 
   if (workspaceChildren.length > 0) {
@@ -279,17 +320,15 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
 
   const menuItems = filterMenuItems(allMenuItems);
 
+  const flattenMenuItems = (items) => items.flatMap((item) => (item.children ? flattenMenuItems(item.children) : item));
+
   const getSelectedKeys = () => {
-    let match = menuItems.find((item) => !item.children && location.pathname.startsWith(item.key));
-    if (!match) {
-      for (const group of menuItems) {
-        if (group.children) {
-          match = group.children.find((child) => location.pathname.startsWith(child.key));
-          if (match) break;
-        }
-      }
-    }
-    return match ? [match.key] : [role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard'];
+    const flatItems = flattenMenuItems(menuItems);
+    const match = flatItems
+      .filter((item) => item.key.startsWith('/'))
+      .sort((a, b) => b.key.length - a.key.length)
+      .find((item) => location.pathname.startsWith(item.key));
+    return [match?.key || (role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard')];
   };
 
   return (

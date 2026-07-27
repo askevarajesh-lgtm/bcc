@@ -79,6 +79,22 @@ import AIAgents from './pages/AIAgents/AIAgents';
 import AICopilot from './pages/AICopilot/AICopilot';
 import Benchmarks from './pages/Benchmarks/Benchmarks';
 import Marketplace from './pages/Marketplace/Marketplace';
+import MarketplaceSEO from './pages/Marketplace/SEO/MarketplaceSEO';
+import SeoDashboardTab from './pages/Marketplace/SEO/tabs/DashboardTab';
+import SeoAuditTab from './pages/Marketplace/SEO/tabs/AuditTab';
+import SeoKeywordsTab from './pages/Marketplace/SEO/tabs/KeywordsTab';
+import SeoCompetitorsTab from './pages/Marketplace/SEO/tabs/CompetitorsTab';
+import SeoContentAITab from './pages/Marketplace/SEO/tabs/ContentAITab';
+import SeoTechnicalSEOTab from './pages/Marketplace/SEO/tabs/TechnicalSEOTab';
+import SeoWebsiteBuilderTab from './pages/Marketplace/SEO/tabs/WebsiteBuilderTab';
+import SeoStoreSEOTab from './pages/Marketplace/SEO/tabs/StoreSEOTab';
+import SeoBlogSEOTab from './pages/Marketplace/SEO/tabs/BlogSEOTab';
+import SeoAEOTab from './pages/Marketplace/SEO/tabs/AEOTab';
+import SeoGEOTab from './pages/Marketplace/SEO/tabs/GEOTab';
+import SeoReportsTab from './pages/Marketplace/SEO/tabs/ReportsTab';
+import SeoAutomationTab from './pages/Marketplace/SEO/tabs/AutomationTab';
+import SeoMonitoringTab from './pages/Marketplace/SEO/tabs/MonitoringTab';
+import SeoSettingsTab from './pages/Marketplace/SEO/tabs/SettingsTab';
 import ClientChatGPTPage from './pages/ClientChatGPTPage/ClientChatGPTPage';
 import ClientCanvaPage from './pages/ClientCanvaPage/ClientCanvaPage';
 
@@ -319,6 +335,24 @@ const AppRoutes = () => {
           {/* Agency Manager Dynamic Modules */}
           <Route path="businessintel" element={<BusinessIntel />} />
           <Route path="marketplace" element={<Marketplace />} />
+          <Route path="marketplace/seo" element={<MarketplaceSEO />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<SeoDashboardTab />} />
+            <Route path="audit" element={<SeoAuditTab />} />
+            <Route path="keywords" element={<SeoKeywordsTab />} />
+            <Route path="competitors" element={<SeoCompetitorsTab />} />
+            <Route path="content-ai" element={<SeoContentAITab />} />
+            <Route path="technical-seo" element={<SeoTechnicalSEOTab />} />
+            <Route path="website-builder" element={<SeoWebsiteBuilderTab />} />
+            <Route path="store-seo" element={<SeoStoreSEOTab />} />
+            <Route path="blog-seo" element={<SeoBlogSEOTab />} />
+            <Route path="aeo" element={<SeoAEOTab />} />
+            <Route path="geo" element={<SeoGEOTab />} />
+            <Route path="reports" element={<SeoReportsTab />} />
+            <Route path="automation" element={<SeoAutomationTab />} />
+            <Route path="monitoring" element={<SeoMonitoringTab />} />
+            <Route path="settings" element={<SeoSettingsTab />} />
+          </Route>
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
           <Route path="seo" element={<SEO />} />
@@ -434,6 +468,24 @@ const AppRoutes = () => {
             <SettingsPage />
           } />
           <Route path="marketplace" element={<Marketplace />} />
+          <Route path="marketplace/seo" element={<MarketplaceSEO />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<SeoDashboardTab />} />
+            <Route path="audit" element={<SeoAuditTab />} />
+            <Route path="keywords" element={<SeoKeywordsTab />} />
+            <Route path="competitors" element={<SeoCompetitorsTab />} />
+            <Route path="content-ai" element={<SeoContentAITab />} />
+            <Route path="technical-seo" element={<SeoTechnicalSEOTab />} />
+            <Route path="website-builder" element={<SeoWebsiteBuilderTab />} />
+            <Route path="store-seo" element={<SeoStoreSEOTab />} />
+            <Route path="blog-seo" element={<SeoBlogSEOTab />} />
+            <Route path="aeo" element={<SeoAEOTab />} />
+            <Route path="geo" element={<SeoGEOTab />} />
+            <Route path="reports" element={<SeoReportsTab />} />
+            <Route path="automation" element={<SeoAutomationTab />} />
+            <Route path="monitoring" element={<SeoMonitoringTab />} />
+            <Route path="settings" element={<SeoSettingsTab />} />
+          </Route>
           <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
           <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
           <Route path="settings/integrations" element={<PlaceholderPage title="Integrations" description="Connect third-party apps and APIs." icon={Zap} />} />

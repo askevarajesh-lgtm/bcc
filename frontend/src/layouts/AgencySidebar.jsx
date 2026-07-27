@@ -2,23 +2,34 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
+  BookOpen,
   Briefcase,
   Calendar,
   CheckSquare,
+  ClipboardCheck,
+  Cpu,
   CreditCard,
   FileText,
+  Globe2,
+  Hash,
   HelpCircle,
   Inbox,
   LayoutDashboard,
+  LayoutGrid,
+  LayoutTemplate,
   Library,
   Megaphone,
+  MessageCircle,
   PenTool,
   PieChart,
   Search,
   Settings,
   Share2,
   Shield,
+  ShoppingBag,
+  Sparkles,
   Store,
+  Swords,
   Target,
   TrendingUp,
   Users,
@@ -122,7 +133,36 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
     workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
     if (feats.includes('website')) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
-    workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
+    workspaceChildren.push({
+      key: 'agency-marketplace',
+      icon: getIcon(Store),
+      label: 'Marketplace',
+      children: [
+        { key: '/agency/marketplace', icon: getIcon(Store), label: 'Overview' },
+        {
+          key: 'agency-marketplace-seo',
+          icon: getIcon(Search),
+          label: 'SEO',
+          children: [
+            { key: '/agency/marketplace/seo/dashboard', icon: getIcon(LayoutGrid), label: 'Dashboard' },
+            { key: '/agency/marketplace/seo/audit', icon: getIcon(ClipboardCheck), label: 'Audit' },
+            { key: '/agency/marketplace/seo/keywords', icon: getIcon(Hash), label: 'Keywords' },
+            { key: '/agency/marketplace/seo/competitors', icon: getIcon(Swords), label: 'Competitors' },
+            { key: '/agency/marketplace/seo/content-ai', icon: getIcon(Sparkles), label: 'Content AI' },
+            { key: '/agency/marketplace/seo/technical-seo', icon: getIcon(Cpu), label: 'Technical SEO' },
+            { key: '/agency/marketplace/seo/website-builder', icon: getIcon(LayoutTemplate), label: 'Website Builder' },
+            { key: '/agency/marketplace/seo/store-seo', icon: getIcon(ShoppingBag), label: 'Store SEO' },
+            { key: '/agency/marketplace/seo/blog-seo', icon: getIcon(BookOpen), label: 'Blog SEO' },
+            { key: '/agency/marketplace/seo/aeo', icon: getIcon(MessageCircle), label: 'AEO' },
+            { key: '/agency/marketplace/seo/geo', icon: getIcon(Globe2), label: 'GEO' },
+            { key: '/agency/marketplace/seo/reports', icon: getIcon(FileText), label: 'Reports' },
+            { key: '/agency/marketplace/seo/automation', icon: getIcon(Zap), label: 'Automation' },
+            { key: '/agency/marketplace/seo/monitoring', icon: getIcon(Activity), label: 'Monitoring' },
+            { key: '/agency/marketplace/seo/settings', icon: getIcon(Settings), label: 'Settings' },
+          ],
+        },
+      ],
+    });
     if (feats.includes('seo')) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
   }
 
