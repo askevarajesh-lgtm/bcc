@@ -140,11 +140,11 @@
   border-bottom: 1px solid #f0f0f0 !important;
   color: #8c8c8c;
   font-weight: 500;
-  padding: 8px 0 !important;
+  padding: 8px 24px !important;
 }
 .bl-table-minimal .ant-table-tbody > tr > td {
   border-bottom: 1px solid #f0f0f0;
-  padding: 12px 0 !important;
+  padding: 12px 24px !important;
 }
 .bl-table-minimal .ant-table-tbody > tr:last-child > td {
   border-bottom: none;
