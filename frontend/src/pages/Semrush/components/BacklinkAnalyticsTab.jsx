@@ -1,40 +1,16 @@
-import React, { useState } from 'react';
-import { Input, Button, Table, Spin, Typography, Alert, Tag } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { Link2, Globe, ArrowUpRight, ArrowDownRight, AlertCircle, Shield } from 'lucide-react';
+import React from 'react';
+import { Table, Typography, Tag } from 'antd';
+import { Link2, Globe, ArrowUpRight, ArrowDownRight, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { semrushApi } from '../../../api/semrushApi';
+import { useOutletContext } from 'react-router-dom';
 import './DashboardTab.css'; 
 
 const { Title, Text } = Typography;
 
 const BacklinkAnalyticsTab = () => {
-  const [domain, setDomain] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-
-  const handleSearch = async () => {
-    if (!domain) return;
-    
-    setLoading(true);
-    setData(null);
-    setError(null);
-
-    try {
-      const result = await semrushApi.getBacklinksOverview(domain);
-      
-      if (result && result.length > 0) {
-          setData(result[0]);
-      } else {
-         setError('No backlink data found for this domain.');
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to fetch backlink analytics.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { project, projectData } = useOutletContext();
+  const domain = project?.domain;
+  const data = projectData?.backlinksOverview;
 
   const formatNumber = (num) => {
     if (!num) return '0';
@@ -69,52 +45,8 @@ const BacklinkAnalyticsTab = () => {
 
   return (
     <div className="semrush-dashboard-container">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="semrush-search-glass"
-      >
-        <div style={{ display: 'flex', gap: '16px', maxWidth: 800, margin: '0 auto' }}>
-          <Input 
-            size="large"
-            placeholder="Enter domain (e.g., askeva.io)" 
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            onPressEnter={handleSearch}
-            style={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-          />
-          <Button 
-            type="primary" 
-            size="large" 
-            onClick={handleSearch} 
-            loading={loading}
-            style={{ borderRadius: '8px', padding: '0 32px', fontWeight: 600, height: '46px' }}
-          >
-            Audit Backlinks
-          </Button>
-        </div>
-      </motion.div>
-
-      {error && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
-          <Alert message="Analysis Failed" description={error} type="error" showIcon />
-        </motion.div>
-      )}
-
       <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div 
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{ textAlign: 'center', padding: '80px 0' }}
-          >
-            <Spin size="large" />
-            <div style={{ marginTop: 16, color: '#8c8c8c', fontWeight: 500 }}>Scanning backlink profile...</div>
-          </motion.div>
-        ) : data ? (
+        {data ? (
           <motion.div 
             key="content"
             initial={{ opacity: 0 }}
@@ -209,18 +141,17 @@ const BacklinkAnalyticsTab = () => {
               </motion.div>
             </div>
           </motion.div>
-        ) : !error ? (
+        ) : (
           <motion.div 
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="semrush-empty-state"
           >
-            <Link2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>Backlink Analytics</Title>
-            <Text type="secondary">Enter a domain above to audit its backlink profile.</Text>
+            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
+            <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from Semrush.</Text>
           </motion.div>
-        ) : null}
+        )}
       </AnimatePresence>
     </div>
   );

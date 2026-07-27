@@ -34,5 +34,27 @@ export const semrushApi = {
       params: { domain, limit }
     });
     return response.data.data;
+  },
+
+  getProjects: async () => {
+    const response = await api.get('/semrush/projects');
+    return response;
+  },
+
+  createProject: async (data) => {
+    const response = await api.post('/semrush/projects', data);
+    return response;
+  },
+
+  getProject: async (id) => {
+    const response = await api.get(`/semrush/projects/${id}`);
+    return response;
+  },
+
+  refreshProject: async (id, database = 'us') => {
+    const response = await api.post(`/semrush/projects/${id}/refresh`, {}, {
+      params: { database }
+    });
+    return response;
   }
 };

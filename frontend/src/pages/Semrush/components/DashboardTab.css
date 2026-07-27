@@ -157,3 +157,188 @@
 .semrush-table-wrapper .ant-table-tbody > tr:hover > td {
   background: var(--bg-tertiary) !important;
 }
+
+/* Premium Header UI */
+.semrush-workspace-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.semrush-header-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 245, 255, 0.8) 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  margin: -24px -24px 24px -24px; /* Assuming 24px padding on the parent layout */
+  padding: 32px 32px 0 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .semrush-header-container {
+  background: linear-gradient(135deg, rgba(17, 28, 49, 0.9) 0%, rgba(20, 30, 60, 0.8) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.semrush-header-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(114, 46, 209, 0.05) 0%, rgba(24, 144, 255, 0.05) 50%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(30%, -30%);
+  pointer-events: none;
+}
+
+.semrush-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.semrush-domain-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.semrush-domain-icon-box {
+  width: 64px;
+  height: 64px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(24, 144, 255, 0.12);
+  border: 1px solid rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+}
+
+[data-theme='dark'] .semrush-domain-icon-box {
+  background: #111c31;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.semrush-domain-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.semrush-domain-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.semrush-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
+  backdrop-filter: blur(10px);
+}
+
+[data-theme='dark'] .semrush-header-actions {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Premium Navigation Tabs */
+.semrush-premium-tabs .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.semrush-premium-tabs .ant-tabs-nav::before {
+  display: none !important;
+}
+
+.semrush-premium-tabs .ant-tabs-tab {
+  padding: 12px 0 16px 0 !important;
+  margin: 0 32px 0 0 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.3s ease !important;
+}
+
+.semrush-premium-tabs .ant-tabs-tab:hover {
+  color: var(--text-primary) !important;
+}
+
+.semrush-premium-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #1890ff !important;
+  font-weight: 600 !important;
+}
+
+.semrush-premium-tabs .ant-tabs-ink-bar {
+  background: #1890ff !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0 !important;
+}
+
+/* Masonry Grid Dashboard Layout */
+.semrush-masonry-grid { 
+  display: grid; 
+  grid-template-columns: repeat(12, 1fr); 
+  gap: 20px; 
+  align-items: start; 
+  margin-top: 24px; 
+} 
+.semrush-widget-card { 
+  background: var(--bg-secondary); 
+  border-radius: var(--radius-lg, 12px); 
+  padding: 20px; 
+  border: 1px solid var(--border-color); 
+  box-shadow: var(--shadow-sm); 
+  overflow: hidden; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+} 
+.semrush-widget-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 16px; 
+  border-bottom: 1px solid rgba(0,0,0,0.04); 
+  padding-bottom: 12px; 
+} 
+[data-theme='dark'] .semrush-widget-header { 
+  border-bottom: 1px solid rgba(255,255,255,0.05); 
+}
+.semrush-widget-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.col-span-12 { grid-column: span 12 / span 12; } 
+.col-span-8 { grid-column: span 8 / span 8; } 
+.col-span-4 { grid-column: span 4 / span 4; } 
+.col-span-6 { grid-column: span 6 / span 6; } 
+
+@media (max-width: 1024px) { 
+  .col-span-8, .col-span-4, .col-span-6 { 
+    grid-column: span 12 / span 12; 
+  } 
+}
+

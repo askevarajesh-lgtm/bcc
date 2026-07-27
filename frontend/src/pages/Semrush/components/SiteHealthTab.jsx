@@ -1,266 +1,309 @@
 import React, { useState } from 'react';
-import { Input, Button, Spin, Typography, Tag, Table, Progress, Alert } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { AlertTriangle, XCircle, Info, HeartPulse } from 'lucide-react';
+import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover } from 'antd';
+import { Download, Share2, Settings, AlertCircle, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { semrushApi } from '../../../api/semrushApi';
-import './DashboardTab.css'; // Reusing premium structural CSS
+import { useOutletContext } from 'react-router-dom';
+import './SiteHealthTab.css';
 
 const { Title, Text } = Typography;
 
+// Common Semrush Check ID Dictionary
+const checkMap = {
+  2: "sitemap.xml file has format errors",
+  6: "multiple canonical URLs",
+  8: "pages don't have meta descriptions",
+  13: "duplicate title tags",
+  15: "duplicate meta descriptions",
+  39: "pages returned 4XX status code",
+  101: "broken internal images",
+  103: "unminified JavaScript and CSS files",
+  106: "pages have low text-HTML ratio",
+  110: "HTTP URLs in sitemap.xml for HTTPS site",
+  112: "images don't have alt attributes",
+  125: "pages don't have an h1 heading",
+  132: "pages don't have enough text within the title tags",
+  135: "links have no anchor text",
+  137: "links have non-descriptive anchor text",
+  205: "pages have only one incoming internal link",
+  213: "URLs with a permanent redirect",
+  216: "subdomains don't support HSTS",
+  217: "issue with blocked external resource in robots.txt"
+};
+
+const getIssueName = (id) => checkMap[id] || `Site Audit Issue #${id}`;
+
+const issueDetails = {
+  2: { about: "A sitemap.xml file helps search engines understand your website's architecture. Format errors prevent search engines from parsing it correctly.", fix: "Check your sitemap for XML validation errors, such as missing tags, incorrect encoding, or invalid URLs, and generate a new valid sitemap." },
+  6: { about: "Canonical URLs tell search engines which version of a page is the primary one. Having multiple canonical tags can confuse search engines.", fix: "Review the page's source code and HTTP headers, and remove any duplicate rel=\"canonical\" tags so only one remains." },
+  8: { about: "Meta descriptions provide a brief summary of a web page and often appear in search results. Pages without them may have lower click-through rates.", fix: "Add a unique and descriptive meta description (typically around 150-160 characters) to the <head> section of each affected page." },
+  13: { about: "Title tags are a major ranking factor and tell users what the page is about. Duplicate title tags can cause keyword cannibalization.", fix: "Rewrite the title tags for the affected pages so that each page has a unique, descriptive title relevant to its content." },
+  15: { about: "Duplicate meta descriptions reduce their effectiveness and can result in generic snippets in search results.", fix: "Provide a unique, relevant meta description for each affected page that accurately summarizes its specific content." },
+  39: { about: "4XX status codes (like 404 Not Found) indicate that a page is broken or inaccessible.", fix: "Check if the URL was changed or deleted. If deleted, remove internal links pointing to it. If changed, set up a 301 redirect to the new URL." },
+  101: { about: "An internal broken image is an image that can't be displayed because it no longer exists, its URL is misspelled, or because the file path is not valid.\nBroken images may jeopardize your search rankings because they provide a poor user experience and signal to search engines that your page is low quality.", fix: "To fix a broken internal image, perform one of the following:\n- If an image is no longer located in the same location, change its URL\n- If an image was deleted or damaged, replace it with a new one\n- If an image is no longer needed, simply remove it from your page's code" },
+  103: { about: "Unminified JavaScript and CSS files contain unnecessary characters (like whitespace and comments) that increase file size and slow down page load.", fix: "Minify your JS and CSS files using a minification tool or build process (like Webpack or Terser) to remove unnecessary characters." },
+  106: { about: "A low text-to-HTML ratio indicates that a page has too much code and not enough actual text content, which can be seen as low quality by search engines.", fix: "Add more high-quality, relevant text content to the page, or optimize and reduce the amount of HTML code by moving inline styles/scripts to external files." },
+  110: { about: "Having HTTP URLs in a sitemap for an HTTPS site can cause search engines to crawl insecure versions of your pages.", fix: "Update your sitemap.xml to ensure all URLs use the secure 'https://' protocol." },
+  112: { about: "Alt attributes describe images to search engines and visually impaired users. Missing alt text represents a missed SEO and accessibility opportunity.", fix: "Add descriptive 'alt' attributes to all images. Make sure they accurately describe the image content." },
+  125: { about: "The <h1> heading is typically the most important heading on a page. Pages without an <h1> may lack clear structure for search engines.", fix: "Ensure every page has exactly one <h1> tag that describes the main topic of the page." },
+  132: { about: "Title tags that are too short may not provide enough context to search engines or users.", fix: "Expand the title tag to make it more descriptive and relevant to the page content (aim for 50-60 characters)." },
+  135: { about: "Anchor text is the clickable text in a hyperlink. Links without anchor text provide no context about the destination page.", fix: "Add descriptive text within the <a> and </a> tags for all links." },
+  137: { about: "Non-descriptive anchor text (like 'click here' or 'read more') doesn't tell users or search engines what the linked page is about.", fix: "Change the anchor text to something descriptive that indicates the topic of the target page." },
+  205: { about: "Pages with only one incoming internal link (orphan or near-orphan pages) are hard for users and search engines to find.", fix: "Add more relevant internal links from other pages on your site to the affected pages." },
+  213: { about: "Internal links pointing to URLs that permanently redirect (301) waste crawl budget and increase page load time.", fix: "Update the internal links to point directly to the final destination URL rather than the redirecting URL." },
+  216: { about: "HSTS (HTTP Strict Transport Security) protects websites against protocol downgrade attacks.", fix: "Configure your server to include the Strict-Transport-Security header for all subdomains." },
+  217: { about: "Resources blocked in robots.txt prevent search engines from fully rendering and understanding your pages.", fix: "Review your robots.txt file and unblock any important CSS, JS, or image files needed for rendering the page." }
+};
+
+const getIssueDetails = (id) => issueDetails[id] || {
+  about: "This issue affects your site's SEO performance or user experience.",
+  fix: "Review standard SEO best practices to resolve this issue or consult an SEO professional."
+};
+
+const IssuePopover = ({ id }) => {
+  const details = getIssueDetails(id);
+  return (
+    <div style={{ display: 'flex', width: 600, margin: '-12px', minHeight: 250 }}>
+      <div style={{ flex: 1, padding: 16 }}>
+        <Title level={5} style={{ marginTop: 0 }}>About the issue</Title>
+        <Text style={{ display: 'block', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{details.about}</Text>
+      </div>
+      <div style={{ flex: 1, padding: 16, background: '#e6fffb' }}>
+        <Title level={5} style={{ marginTop: 0 }}>How to fix</Title>
+        <Text style={{ whiteSpace: 'pre-wrap' }}>{details.fix}</Text>
+      </div>
+    </div>
+  );
+};
+
 const SiteHealthTab = () => {
-  const [domain, setDomain] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const { project, projectData } = useOutletContext();
+  const domain = project?.domain;
+  const auditData = projectData?.siteHealth?.rawData;
+  const overallScore = projectData?.siteHealth?.overallScore || 0;
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const handleSearch = async () => {
-    if (!domain) return;
-    
-    setLoading(true);
-    setData(null);
-    setError(null);
+  if (!auditData) {
+    return (
+      <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
+        <Title level={4} style={{ color: '#8c8c8c' }}>No Site Audit Data</Title>
+        <Text>Please refresh project data to run a site audit.</Text>
+      </div>
+    );
+  }
 
-    try {
-      const result = await semrushApi.getSiteHealth(domain);
-      if (result) {
-          setData(result);
-      } else {
-         setError('No site health data found for this domain.');
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to fetch site health data.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { errors = 0, warnings = 0, notices = 0, pages_crawled = 0, healthy = 0, broken = 0, haveIssues = 0, redirected = 0, blocked = 0, defects = {} } = auditData;
 
-  const issuesData = data ? [
-    { key: '1', issue: 'Broken Pages (4xx)', type: 'Error', count: data.brokenPages || 0, icon: <XCircle size={18} color="#ff4d4f"/> },
-    { key: '2', issue: 'HTTP Status Errors (5xx)', type: 'Error', count: data.httpErrors || 0, icon: <XCircle size={18} color="#ff4d4f"/> },
-    { key: '3', issue: 'Missing Meta Titles', type: 'Warning', count: data.missingTitles || 0, icon: <AlertTriangle size={18} color="#faad14"/> },
-    { key: '4', issue: 'Missing Meta Descriptions', type: 'Warning', count: data.missingDescriptions || 0, icon: <AlertTriangle size={18} color="#faad14"/> },
-    { key: '5', issue: 'Duplicate Titles', type: 'Warning', count: data.duplicateTitles || Math.floor((data.missingTitles || 0) * 0.5) || 0, icon: <AlertTriangle size={18} color="#faad14"/> },
-    { key: '6', issue: 'Duplicate Descriptions', type: 'Warning', count: data.duplicateDescriptions || Math.floor((data.missingDescriptions || 0) * 0.5) || 0, icon: <AlertTriangle size={18} color="#faad14"/> },
-    { key: '7', issue: 'Missing Alt Tags', type: 'Notice', count: data.missingAltTags || Math.floor(((data.brokenPages || 0) + 10) * 2.5), icon: <Info size={18} color="#1890ff"/> },
-  ] : [];
+  const defectList = Object.entries(defects).map(([id, count]) => ({
+    id: parseInt(id),
+    name: getIssueName(id),
+    count
+  })).sort((a, b) => b.count - a.count);
 
-  const columns = [
-      {
-          title: 'Issue Identified',
-          dataIndex: 'issue',
-          key: 'issue',
-          render: (text, record) => (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 32, height: 32, borderRadius: 8,
-                  background: record.type === 'Error' ? '#fff1f0' : record.type === 'Warning' ? '#fffbe6' : '#e6f7ff'
-                }}>
-                  {record.icon}
-                </div>
-                <Text strong style={{ fontSize: 14 }}>{text}</Text>
-              </div>
-          )
-      },
-      {
-          title: 'Severity',
-          dataIndex: 'type',
-          key: 'type',
-          render: (type) => {
-              const colorMap = { 'Error': 'error', 'Warning': 'warning', 'Notice': 'processing' };
-              return (
-                <Tag color={colorMap[type]} style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 600 }}>
-                  {type.toUpperCase()}
-                </Tag>
-              );
-          },
-          width: '20%'
-      },
-      {
-          title: 'Occurrences',
-          dataIndex: 'count',
-          key: 'count',
-          render: (val, record) => (
-            <Text strong style={{ 
-              fontSize: 16, 
-              color: val === 0 ? '#d9d9d9' : record.type === 'Error' ? '#cf1322' : record.type === 'Warning' ? '#d48806' : '#096dd9' 
-            }}>
-              {val.toLocaleString()}
-            </Text>
-          ),
-          width: '20%',
-          align: 'right'
-      }
+  // Group defects into severity (Mock grouping for demo based on standard SEO issues)
+  const errorIssues = defectList.filter(d => [2, 8, 39, 101, 125].includes(d.id));
+  const warningIssues = defectList.filter(d => [6, 13, 15, 103, 106, 110, 112].includes(d.id));
+  const noticeIssues = defectList.filter(d => !errorIssues.find(e=>e.id===d.id) && !warningIssues.find(w=>w.id===d.id));
+
+  const items = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'issues', label: 'Issues' },
+    { key: 'crawled', label: 'Crawled Pages' }
   ];
 
-  const getHealthColor = (score) => {
-    if (score >= 80) return '#52c41a';
-    if (score >= 50) return '#faad14';
-    return '#ff4d4f';
-  };
-
-  const healthColor = data ? getHealthColor(data.overallScore) : '#d9d9d9';
-
   return (
-    <div className="semrush-dashboard-container">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="semrush-search-glass"
-      >
-        <div style={{ display: 'flex', gap: '16px', maxWidth: 800, margin: '0 auto' }}>
-          <Input 
-            size="large"
-            placeholder="Enter domain (e.g., example.com)" 
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            onPressEnter={handleSearch}
-            style={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-          />
-          <Button 
-            type="primary" 
-            size="large" 
-            onClick={handleSearch} 
-            loading={loading}
-            style={{ borderRadius: '8px', padding: '0 32px', fontWeight: 600, height: '46px' }}
-          >
-            Audit Health
-          </Button>
+    <div className="site-audit-container">
+      {/* Top Header Toolbar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Site Audit: <span style={{ color: '#1890ff' }}>{domain}</span></Title>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 16 }}>
+            <span>Desktop</span>
+            <span>JS rendering: Disabled</span>
+            <span>Pages crawled: <span style={{ color: '#faad14', fontWeight: 600 }}>{pages_crawled}/100</span></span>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {error && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
-          <Alert message="Audit Failed" description={error} type="error" showIcon />
-        </motion.div>
-      )}
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} />
 
-      <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div 
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{ textAlign: 'center', padding: '80px 0' }}
-          >
-            <Spin size="large" />
-            <div style={{ marginTop: 16, color: '#8c8c8c', fontWeight: 500 }}>Running deep technical audit...</div>
-          </motion.div>
-        ) : data ? (
-          <motion.div 
-            key="content"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 24 }}>
-              <Title level={3} style={{ margin: 0 }}>Basic SEO Health for <span style={{ color: '#13c2c2' }}>{domain}</span></Title>
-              <Tag color="cyan">Computed from Analytics Data</Tag>
-            </div>
+      {activeTab === 'overview' && (
+        <AnimatePresence mode="wait">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="site-audit-grid">
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-              <motion.div 
-                className="semrush-chart-card" style={{ marginTop: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px 20px' }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Title level={4} style={{ color: '#8c8c8c', marginBottom: 24, fontWeight: 500 }}>Overall Health Score</Title>
+            {/* Top Row - Only real metrics */}
+            <div className="sa-col-6 sa-card">
+              <Title level={5}>Site Health</Title>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
                 <Progress 
-                  type="dashboard" 
-                  percent={data.overallScore} 
-                  strokeColor={healthColor}
-                  format={percent => (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: -10 }}>
-                      <span style={{ fontSize: 48, fontWeight: 700, color: '#141414', lineHeight: 1 }}>{percent}</span>
-                      <span style={{ fontSize: 14, color: '#8c8c8c' }}>/ 100</span>
-                    </div>
-                  )}
-                  size={200}
+                  type="circle" 
+                  percent={overallScore} 
+                  strokeColor={overallScore > 75 ? '#52c41a' : overallScore > 50 ? '#faad14' : '#f5222d'} 
+                  width={140}
                   strokeWidth={8}
                 />
-                <Text type="secondary" style={{ marginTop: 24, maxWidth: 200 }}>
-                  A composite score based on Authority, Organic Traffic, Keywords, and Backlink quality.
-                </Text>
-              </motion.div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <motion.div 
-                  className="semrush-chart-card" style={{ marginTop: 0, background: 'linear-gradient(to bottom right, #f6ffed, #ffffff)', border: '1px solid #b7eb8f' }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                     <div style={{ background: '#52c41a', padding: 8, borderRadius: 8, color: 'white', display: 'flex' }}>
-                       <HeartPulse size={20} />
-                     </div>
-                     <Title level={4} style={{ margin: 0, color: '#389e0d' }}>SEO Strengths</Title>
-                  </div>
-                  {data.insights?.strengths?.length > 0 ? (
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      {data.insights.strengths.map((s, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 12, padding: '12px', background: 'rgba(255,255,255,0.8)', borderRadius: 8 }}>
-                          <AlertTriangle size={18} color="#52c41a" style={{ marginTop: 2, flexShrink: 0 }} />
-                          <div>
-                            <Text strong style={{ display: 'block', marginBottom: 4 }}>{s.title}</Text>
-                            <Text type="secondary">{s.desc}</Text>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Text type="secondary">No major SEO strengths detected.</Text>
-                  )}
-                </motion.div>
-
-                <motion.div 
-                  className="semrush-chart-card" style={{ marginTop: 0, background: 'linear-gradient(to bottom right, #fff1f0, #ffffff)', border: '1px solid #ffa39e' }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                     <div style={{ background: '#ff4d4f', padding: 8, borderRadius: 8, color: 'white', display: 'flex' }}>
-                       <XCircle size={20} />
-                     </div>
-                     <Title level={4} style={{ margin: 0, color: '#cf1322' }}>SEO Weaknesses</Title>
-                  </div>
-                  {data.insights?.weaknesses?.length > 0 ? (
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      {data.insights.weaknesses.map((w, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 12, padding: '12px', background: 'rgba(255,255,255,0.8)', borderRadius: 8 }}>
-                          <XCircle size={18} color="#ff4d4f" style={{ marginTop: 2, flexShrink: 0 }} />
-                          <div>
-                            <Text strong style={{ display: 'block', marginBottom: 4 }}>{w.title}</Text>
-                            <Text type="secondary">{w.desc}</Text>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Text type="secondary">No major SEO weaknesses detected.</Text>
-                  )}
-                </motion.div>
+              </div>
+              <div className="sa-stats-row">
+                <Text>Your site</Text>
+                <Text strong>{overallScore}%</Text>
               </div>
             </div>
 
+            <div className="sa-col-6 sa-card">
+              <Title level={5}>Crawled Pages</Title>
+              <Title level={2} style={{ margin: '8px 0', color: '#1890ff' }}>{pages_crawled}</Title>
+              
+              <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 24, background: '#f0f0f0' }}>
+                {healthy > 0 && <div style={{ width: `${(healthy/pages_crawled)*100}%`, background: '#52c41a' }} />}
+                {broken > 0 && <div style={{ width: `${(broken/pages_crawled)*100}%`, background: '#f5222d' }} />}
+                {haveIssues > 0 && <div style={{ width: `${(haveIssues/pages_crawled)*100}%`, background: '#faad14' }} />}
+                {redirected > 0 && <div style={{ width: `${(redirected/pages_crawled)*100}%`, background: '#1890ff' }} />}
+              </div>
+
+              <div className="sa-stats-row"><span style={{color: '#52c41a'}}>●</span> Healthy <Text strong>{healthy}</Text></div>
+              <div className="sa-stats-row"><span style={{color: '#f5222d'}}>●</span> Broken <Text strong>{broken}</Text></div>
+              <div className="sa-stats-row"><span style={{color: '#faad14'}}>●</span> Have issues <Text strong>{haveIssues}</Text></div>
+              <div className="sa-stats-row"><span style={{color: '#1890ff'}}>●</span> Redirects <Text strong>{redirected}</Text></div>
+              <div className="sa-stats-row"><span style={{color: '#8c8c8c'}}>●</span> Blocked <Text strong>{blocked}</Text></div>
+            </div>
+
+            {/* Bottom Row */}
+            <div className="sa-col-4 sa-card" style={{ padding: 0 }}>
+              <div style={{ padding: '24px 24px 0 24px' }}>
+                <Title level={5} style={{ margin: 0 }}>Errors</Title>
+                <Title level={2} style={{ color: '#f5222d', margin: 0 }}>{errors}</Title>
+              </div>
+              <Divider style={{ margin: '16px 0' }} />
+              <div style={{ padding: '0 24px' }}>
+                <Title level={5} style={{ margin: 0 }}>Warnings</Title>
+                <Title level={2} style={{ color: '#faad14', margin: 0 }}>{warnings}</Title>
+              </div>
+              <Divider style={{ margin: '16px 0' }} />
+              <div style={{ padding: '0 24px 24px 24px' }}>
+                <Title level={5} style={{ margin: 0 }}>Notices</Title>
+                <Title level={2} style={{ color: '#1890ff', margin: 0 }}>{notices}</Title>
+              </div>
+            </div>
+
+            <div className="sa-col-8 sa-card">
+              <Title level={5} style={{ marginBottom: 16 }}>Top Issues</Title>
+              {defectList.slice(0, 5).map((d, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? '1px solid #f0f0f0' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertCircle size={16} color={errorIssues.find(e=>e.id===d.id) ? '#f5222d' : warningIssues.find(w=>w.id===d.id) ? '#faad14' : '#1890ff'} />
+                    <Text>{d.name}</Text>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <Text strong style={{ color: '#1890ff' }}>{d.count} pages</Text>
+                    <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
+                      <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
+                    </Popover>
+                  </div>
+                </div>
+              ))}
+              <div style={{ textAlign: 'center', marginTop: 12 }}>
+                <Button type="link" onClick={() => setActiveTab('issues')}>View all issues <ChevronRight size={14} /></Button>
+              </div>
+            </div>
           </motion.div>
-        ) : !error ? (
-          <motion.div 
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="semrush-empty-state"
-          >
-            <HeartPulse style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>Basic SEO Health</Title>
-            <Text type="secondary">Enter a domain above to calculate its overall SEO health score.</Text>
+        </AnimatePresence>
+      )}
+
+      {activeTab === 'issues' && (
+        <AnimatePresence mode="wait">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="sa-card">
+            
+            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+              <Tag color="red" style={{ fontSize: 14, padding: '4px 12px' }}>Errors {errors}</Tag>
+              <Tag color="orange" style={{ fontSize: 14, padding: '4px 12px' }}>Warnings {warnings}</Tag>
+              <Tag color="blue" style={{ fontSize: 14, padding: '4px 12px' }}>Notices {notices}</Tag>
+            </div>
+
+            <Title level={5} style={{ color: '#f5222d', borderBottom: '2px solid #f5222d', paddingBottom: 8 }}>Errors</Title>
+            {errorIssues.map((d, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
+                  <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
+                </Popover>
+              </div>
+            ))}
+            {errorIssues.length === 0 && <Text type="secondary" style={{ display: 'block', padding: 16 }}>No errors found.</Text>}
+
+            <Title level={5} style={{ color: '#faad14', borderBottom: '2px solid #faad14', paddingBottom: 8, marginTop: 32 }}>Warnings</Title>
+            {warningIssues.map((d, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
+                  <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
+                </Popover>
+              </div>
+            ))}
+            {warningIssues.length === 0 && <Text type="secondary" style={{ display: 'block', padding: 16 }}>No warnings found.</Text>}
+
+            <Title level={5} style={{ color: '#1890ff', borderBottom: '2px solid #1890ff', paddingBottom: 8, marginTop: 32 }}>Notices</Title>
+            {noticeIssues.map((d, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
+                  <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
+                </Popover>
+              </div>
+            ))}
+            {noticeIssues.length === 0 && <Text type="secondary" style={{ display: 'block', padding: 16 }}>No notices found.</Text>}
+
           </motion.div>
-        ) : null}
-      </AnimatePresence>
+        </AnimatePresence>
+      )}
+
+      {activeTab === 'crawled' && (
+        <AnimatePresence mode="wait">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="sa-card" style={{ padding: 24 }}>
+            <Title level={5} style={{ marginBottom: 16 }}>Crawled Pages</Title>
+            <Table 
+              dataSource={auditData.crawledPagesList || []}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              columns={[
+                {
+                  title: 'Page URL',
+                  dataIndex: 'url',
+                  key: 'url',
+                  render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+                },
+                {
+                  title: 'Title',
+                  dataIndex: 'title',
+                  key: 'title',
+                  render: (text) => <Text style={{ maxWidth: 300 }} ellipsis={{ tooltip: text }}>{text || '-'}</Text>
+                },
+                {
+                  title: 'Status Code',
+                  dataIndex: 'statusCode',
+                  key: 'statusCode',
+                  render: (code) => <Tag color={code === 200 ? 'success' : 'error'}>{code}</Tag>
+                },
+                {
+                  title: 'Issues',
+                  key: 'issues',
+                  render: (_, record) => {
+                    const total = (record.errors || 0) + (record.warnings || 0) + (record.notices || 0);
+                    return <Text style={{ color: total > 0 ? '#1890ff' : 'inherit' }}>{total} issues</Text>;
+                  }
+                },
+                {
+                  title: 'Crawl Depth',
+                  dataIndex: 'depth',
+                  key: 'depth',
+                  render: (depth) => <Text>{depth} clicks</Text>
+                }
+              ]}
+            />
+          </motion.div>
+        </AnimatePresence>
+      )}
+
+
+
     </div>
   );
 };

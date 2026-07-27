@@ -193,18 +193,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
         // { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
-        { 
-          key: 'semrush_menu', 
-          icon: getIcon(Search), 
-          label: 'SEO/AEO/GEO',
-          children: [
-            { key: '/intelligence/semrush/dashboard', label: 'Dashboard' },
-            { key: '/intelligence/semrush/keyword-research', label: 'Keyword Research' },
-            { key: '/intelligence/semrush/domain-overview', label: 'Domain Overview' },
-            { key: '/intelligence/semrush/organic-keywords', label: 'Organic Keywords' },
-            { key: '/intelligence/semrush/backlink-analytics', label: 'Backlink Analytics' },
-          ]
-        },
+        { key: '/intelligence/semrush', icon: getIcon(Search), label: 'SEO/AEO/GEO' },
       ],
     },
 

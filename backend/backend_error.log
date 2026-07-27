@@ -714,3 +714,59 @@ Require stack:
     at async maybeTracedQueryExec (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:4801:65)
     at async exports.getWebsiteDetails (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:538:21)\n\n2026-07-24T12:23:59.710Z\nundefined\n\n2026-07-24T12:25:48.012Z\nundefined\n\n2026-07-24T12:27:02.142Z\nundefined\n\n2026-07-24T12:29:01.041Z\nundefined\n\n2026-07-24T12:30:35.261Z\nundefined\n\n2026-07-24T12:32:16.719Z\nundefined\n\n2026-07-24T13:08:41.018Z\nundefined\n\n
 >>>>>>> origin/louis-v2
+2026-07-27T10:01:36.454Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:42.058Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:43.341Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:51.882Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:53.640Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
