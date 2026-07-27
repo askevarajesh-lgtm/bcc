@@ -13,6 +13,7 @@ const WordPressService = require('../seoIntelligence/services/wordPress.service'
 const GoogleService = require('../seoIntelligence/services/google.service');
 const seoAuditorAgent = require('./services/seoAuditorAgent.service');
 const keywordResearchAgent = require('./services/keywordResearchAgent.service');
+const competitorAgent = require('./services/competitorAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -309,6 +310,61 @@ exports.getKeywordResearchExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await keywordResearchAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.runCompetitorAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await competitorAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runCompetitorAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveCompetitorSuggestions = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { competitorIds } = req.body;
+    const result = await competitorAgent.approveCompetitors(projectId, competitorIds, req.user._id);
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error('Error approving competitor suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving competitor suggestions' });
+  }
+};
+
+exports.rejectCompetitorSuggestions = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { competitorIds, reason } = req.body;
+    const result = await competitorAgent.rejectCompetitors(projectId, competitorIds, req.user._id, reason);
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error('Error rejecting competitor suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting competitor suggestions' });
+  }
+};
+
+exports.getCompetitorExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await competitorAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

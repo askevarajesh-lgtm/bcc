@@ -59,6 +59,15 @@ router.put('/projects/:projectId/keyword-research/approve', blockViewOnly, works
 router.put('/projects/:projectId/keyword-research/reject', blockViewOnly, workspaceController.rejectKeywordSuggestions);
 router.get('/projects/:projectId/keyword-research/history', workspaceController.getKeywordResearchExecutionHistory);
 
+// Competitor Agent — own prompt/service/execution history/logs/retry/
+// approval/shared memory. No UI route consumes this; exposed for manual/
+// cron/agent-to-agent triggering, same rationale as the SEO Auditor and
+// Keyword Research agents' routes above.
+router.post('/projects/:projectId/competitor-agent/run', blockViewOnly, workspaceController.runCompetitorAgent);
+router.put('/projects/:projectId/competitor-agent/approve', blockViewOnly, workspaceController.approveCompetitorSuggestions);
+router.put('/projects/:projectId/competitor-agent/reject', blockViewOnly, workspaceController.rejectCompetitorSuggestions);
+router.get('/projects/:projectId/competitor-agent/history', workspaceController.getCompetitorExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 

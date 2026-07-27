@@ -1,4 +1,3 @@
-
 const skillLoader = require('../seoWorkspace/services/skillLoader.service');
 
 const DEFAULT_AGENTS = {
@@ -46,6 +45,14 @@ const DEFAULT_AGENTS = {
     key: 'keyword-research',
     displayName: 'Keyword Research',
     skills: ['keyword-opportunity-scoring', 'keyword-intent-classification'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'competitor-agent': {
+    key: 'competitor-agent',
+    displayName: 'Competitor Agent',
+    skills: ['competitor-threat-assessment', 'competitive-gap-analysis'],
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
