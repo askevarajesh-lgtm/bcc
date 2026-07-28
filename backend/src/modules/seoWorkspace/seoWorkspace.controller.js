@@ -18,6 +18,7 @@ const technicalSeoAgent = require('./services/technicalSeoAgent.service');
 const contentAgent = require('./services/contentAgent.service');
 const schemaAgent = require('./services/schemaAgent.service');
 const internalLinkingAgent = require('./services/internalLinkingAgent.service');
+const imageSeoAgent = require('./services/imageSeoAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -614,6 +615,69 @@ exports.getInternalLinkingExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await internalLinkingAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Image SEO Agent (own prompt/service/execution history/logs/retry/
+// approval/shared memory — see imageSeoAgent.service.js). No UI consumes
+// these; exposed for manual/cron/agent-to-agent triggering, same rationale
+// as the other seven agents' routes above. Approve/reject take
+// :imageSeoRunId in the path (not a bulk-ids body) because recommendations
+// live on one WorkspaceImageSeo document per run — same shape as the
+// Technical SEO/Content/Schema/Internal Linking agents' routes, not the
+// Competitor/Keyword agents' bulk-suggestion shape. ---
+
+exports.runImageSeoAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await imageSeoAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runImageSeoAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveImageSeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, imageSeoRunId } = req.params;
+    const { imageSeoRun, createdTasks } = await imageSeoAgent.approveImageSeoRecommendations(imageSeoRunId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: imageSeoRun, createdTasks });
+  } catch (error) {
+    console.error('Error approving image SEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving image SEO recommendations' });
+  }
+};
+
+exports.rejectImageSeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, imageSeoRunId } = req.params;
+    const { reason } = req.body;
+    const result = await imageSeoAgent.rejectImageSeoRecommendations(imageSeoRunId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting image SEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting image SEO recommendations' });
+  }
+};
+
+exports.getImageSeoExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await imageSeoAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

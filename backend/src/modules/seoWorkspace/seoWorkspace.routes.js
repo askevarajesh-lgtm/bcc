@@ -107,6 +107,19 @@ router.put('/projects/:projectId/internal-linking-agent/:linkRunId/approve', blo
 router.put('/projects/:projectId/internal-linking-agent/:linkRunId/reject', blockViewOnly, workspaceController.rejectInternalLinkSuggestions);
 router.get('/projects/:projectId/internal-linking-agent/history', workspaceController.getInternalLinkingExecutionHistory);
 
+// Image SEO Agent — own prompt/service/execution history/logs/retry/
+// approval/shared memory. No UI route consumes this; exposed for manual/
+// cron/agent-to-agent triggering, same rationale as the other seven
+// agents' routes above. Approve/reject take :imageSeoRunId in the path
+// (not a bulk-ids body) because recommendations live on one
+// WorkspaceImageSeo document per run — same shape as the Technical SEO/
+// Content/Schema/Internal Linking agents' routes, not the Competitor/
+// Keyword agents' bulk-suggestion shape.
+router.post('/projects/:projectId/image-seo-agent/run', blockViewOnly, workspaceController.runImageSeoAgent);
+router.put('/projects/:projectId/image-seo-agent/:imageSeoRunId/approve', blockViewOnly, workspaceController.approveImageSeoRecommendations);
+router.put('/projects/:projectId/image-seo-agent/:imageSeoRunId/reject', blockViewOnly, workspaceController.rejectImageSeoRecommendations);
+router.get('/projects/:projectId/image-seo-agent/history', workspaceController.getImageSeoExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 

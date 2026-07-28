@@ -1,12 +1,9 @@
 const mongoose = require('mongoose');
 
-// History/versioning: observes state transitions on Project/Strategy/Task/Report.
-// Deliberately does not replace or duplicate those models — this collection only
-// records what changed, when, and by whom.
 const WorkspaceAuditLogSchema = new mongoose.Schema({
   targetType: {
     type: String,
-    enum: ['Project', 'Strategy', 'Task', 'Report', 'Audit', 'Keyword', 'Competitor', 'TechnicalAudit', 'ContentBrief', 'SchemaMarkup', 'InternalLink'],
+    enum: ['Project', 'Strategy', 'Task', 'Report', 'Audit', 'Keyword', 'Competitor', 'TechnicalAudit', 'ContentBrief', 'SchemaMarkup', 'InternalLink', 'ImageSeo'],
     required: true
   },
   targetId: {

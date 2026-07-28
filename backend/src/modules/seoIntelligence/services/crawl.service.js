@@ -62,7 +62,12 @@ class CrawlService {
       word_count: 0,
       indexable: null,
       error: "",
-      links: []
+      links: [],
+      // Additive (Image SEO Agent pass): every other existing consumer of
+      // this record only destructures the fields it already used above,
+      // so adding `images` here is non-breaking — same precedent the
+      // `links` field itself set for internalLinkingAgent.
+      images: []
     };
 
     try {
@@ -114,7 +119,31 @@ class CrawlService {
           } catch(e) {}
         }
       });
-      
+
+      // Extract images for the Image SEO Agent. No filtering by host (an
+      // image can legitimately be served from a CDN on a different
+      // hostname) — filtering is imageSeoAgent's concern, not the
+      // crawler's. Absolute-resolve src so downstream consumers never
+      // have to re-resolve a relative path themselves.
+      $('img').each((i, el) => {
+        const rawSrc = $(el).attr('src') || $(el).attr('data-src') || '';
+        if (!rawSrc || rawSrc.startsWith('data:')) return;
+        let absoluteSrc;
+        try {
+          absoluteSrc = new URL(rawSrc, record.final_url).href;
+        } catch (e) {
+          return;
+        }
+        record.images.push({
+          src: absoluteSrc,
+          alt: $(el).attr('alt') || '',
+          title: $(el).attr('title') || '',
+          width: $(el).attr('width') || '',
+          height: $(el).attr('height') || '',
+          loading: $(el).attr('loading') || ''
+        });
+      });
+
     } catch (err) {
       record.error = err.message;
       record.indexable = false;

@@ -17,12 +17,7 @@ const WorkspaceTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    // Kept in sync with the taskType options the orchestrator's LLM prompts
-    // (seoTechImplementerAgent, seoMonitorAgent) are allowed to return.
-    // 'Internal Linking' was previously missing here, which crashed
-    // WorkspaceTask.save()/insertMany() with a validation error any time
-    // the model actually returned that (prompt-legal) value.
-    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'],
+    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization'],
     required: true
   },
   description: {

@@ -88,6 +88,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'image-seo-agent': {
+    key: 'image-seo-agent',
+    displayName: 'Image SEO Agent',
+    skills: ['image-alt-text-optimization', 'image-file-seo'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 
