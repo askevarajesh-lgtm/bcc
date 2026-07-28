@@ -17,6 +17,7 @@ const competitorAgent = require('./services/competitorAgent.service');
 const technicalSeoAgent = require('./services/technicalSeoAgent.service');
 const contentAgent = require('./services/contentAgent.service');
 const schemaAgent = require('./services/schemaAgent.service');
+const internalLinkingAgent = require('./services/internalLinkingAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -550,6 +551,69 @@ exports.getSchemaAgentExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await schemaAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Internal Linking Agent (own prompt/service/execution history/logs/
+// retry/approval/shared memory — see internalLinkingAgent.service.js). No
+// UI consumes these; exposed for manual/cron/agent-to-agent triggering,
+// same rationale as the other six agents' routes above. Approve/reject
+// take :linkRunId in the path (not a bulk-ids body) because suggestions
+// live on one WorkspaceInternalLink document per run — same shape as the
+// Technical SEO/Content/Schema agents' routes, not the Competitor/Keyword
+// agents' bulk-suggestion shape. ---
+
+exports.runInternalLinkingAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await internalLinkingAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runInternalLinkingAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveInternalLinkSuggestions = async (req, res) => {
+  try {
+    const { projectId, linkRunId } = req.params;
+    const { linkRun, createdTasks } = await internalLinkingAgent.approveLinkSuggestions(linkRunId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: linkRun, createdTasks });
+  } catch (error) {
+    console.error('Error approving internal link suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving internal link suggestions' });
+  }
+};
+
+exports.rejectInternalLinkSuggestions = async (req, res) => {
+  try {
+    const { projectId, linkRunId } = req.params;
+    const { reason } = req.body;
+    const result = await internalLinkingAgent.rejectLinkSuggestions(linkRunId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting internal link suggestions:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting internal link suggestions' });
+  }
+};
+
+exports.getInternalLinkingExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await internalLinkingAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

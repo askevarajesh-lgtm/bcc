@@ -140,12 +140,10 @@ class CrawlService {
     while (queue.length > 0 && this.pages.length < this.limit) {
       const url = queue.shift();
       const pageData = await this.fetchAndParse(url);
-      
-      const { links, ...record } = pageData;
-      this.pages.push(record);
-      
+      this.pages.push(pageData);
+
       if (pageData.status === 200) {
-        for (const link of links) {
+        for (const link of pageData.links) {
           if (!this.seen.has(link) && this.pages.length + queue.length < this.limit) {
             this.seen.add(link);
             queue.push(link);

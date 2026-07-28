@@ -80,6 +80,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'internal-linking-agent': {
+    key: 'internal-linking-agent',
+    displayName: 'Internal Linking Agent',
+    skills: ['internal-linking-strategy', 'orphan-page-detection'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

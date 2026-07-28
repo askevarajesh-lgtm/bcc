@@ -4,16 +4,6 @@ const workspaceController = require('./seoWorkspace.controller');
 const { verifyToken } = require('../../middlewares/rbac.middleware');
 const uploadAttachment = require('./middlewares/uploadAttachment');
 
-// Phase 1 critical fix: seoWorkspace previously used `authMiddleware`, which
-// silently mints a sandbox identity for any request with no/invalid token —
-// i.e. every route here was reachable unauthenticated. `rbac.middleware.verifyToken`
-// is the same pattern already used by other modules (projects, mos, strategy,
-// integrations) and correctly rejects missing/invalid tokens with 401/400.
-//
-// Local/dev workflow: log in via POST /api/auth/signin to get a real JWT and
-// send it as `Authorization: Bearer <token>`. The frontend already does this
-// automatically (see frontend/src/services/api.js) for any authenticated
-// session, so this only removes the *unauthenticated* fallback, not normal use.
 router.use(verifyToken);
 
 // Client/brand-side roles get read-only access to this module (mirrors the
@@ -103,6 +93,19 @@ router.post('/projects/:projectId/schema-agent/run', blockViewOnly, workspaceCon
 router.put('/projects/:projectId/schema-agent/:markupId/approve', blockViewOnly, workspaceController.approveSchemaMarkup);
 router.put('/projects/:projectId/schema-agent/:markupId/reject', blockViewOnly, workspaceController.rejectSchemaMarkup);
 router.get('/projects/:projectId/schema-agent/history', workspaceController.getSchemaAgentExecutionHistory);
+
+// Internal Linking Agent — own prompt/service/execution history/logs/
+// retry/approval/shared memory. No UI route consumes this; exposed for
+// manual/cron/agent-to-agent triggering, same rationale as the other six
+// agents' routes above. Approve/reject take :linkRunId in the path (not a
+// bulk-ids body) because suggestions live on one WorkspaceInternalLink
+// document per run — same shape as the Technical SEO/Content/Schema
+// agents' routes, not the Competitor/Keyword agents' bulk-suggestion
+// shape.
+router.post('/projects/:projectId/internal-linking-agent/run', blockViewOnly, workspaceController.runInternalLinkingAgent);
+router.put('/projects/:projectId/internal-linking-agent/:linkRunId/approve', blockViewOnly, workspaceController.approveInternalLinkSuggestions);
+router.put('/projects/:projectId/internal-linking-agent/:linkRunId/reject', blockViewOnly, workspaceController.rejectInternalLinkSuggestions);
+router.get('/projects/:projectId/internal-linking-agent/history', workspaceController.getInternalLinkingExecutionHistory);
 
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
