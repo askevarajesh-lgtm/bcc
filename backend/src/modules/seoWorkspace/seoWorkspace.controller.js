@@ -16,6 +16,7 @@ const keywordResearchAgent = require('./services/keywordResearchAgent.service');
 const competitorAgent = require('./services/competitorAgent.service');
 const technicalSeoAgent = require('./services/technicalSeoAgent.service');
 const contentAgent = require('./services/contentAgent.service');
+const schemaAgent = require('./services/schemaAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -486,6 +487,69 @@ exports.getContentAgentExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await contentAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// --- Schema Agent (own prompt/service/execution history/logs/retry/
+// approval/shared memory — see schemaAgent.service.js). No UI consumes
+// these; exposed for manual/cron/agent-to-agent triggering, same rationale
+// as the other five agents' routes above. Approve/reject take :markupId in
+// the path (not a bulk-ids body) because generated pages live on one
+// WorkspaceSchemaMarkup document per run — same shape as the Technical SEO/
+// Content agents' routes, not the Competitor/Keyword agents' bulk-
+// suggestion shape. ---
+
+exports.runSchemaAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await schemaAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runSchemaAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveSchemaMarkup = async (req, res) => {
+  try {
+    const { projectId, markupId } = req.params;
+    const { markup, createdTasks } = await schemaAgent.approveSchemaMarkup(markupId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: markup, createdTasks });
+  } catch (error) {
+    console.error('Error approving schema markup:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving schema markup' });
+  }
+};
+
+exports.rejectSchemaMarkup = async (req, res) => {
+  try {
+    const { projectId, markupId } = req.params;
+    const { reason } = req.body;
+    const result = await schemaAgent.rejectSchemaMarkup(markupId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting schema markup:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting schema markup' });
+  }
+};
+
+exports.getSchemaAgentExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await schemaAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

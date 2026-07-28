@@ -72,6 +72,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'schema-agent': {
+    key: 'schema-agent',
+    displayName: 'Schema Agent',
+    skills: ['schema-markup-generation', 'schema-validation'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

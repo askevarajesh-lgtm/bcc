@@ -92,6 +92,18 @@ router.put('/projects/:projectId/content-agent/:contentBriefId/approve', blockVi
 router.put('/projects/:projectId/content-agent/:contentBriefId/reject', blockViewOnly, workspaceController.rejectContentBriefs);
 router.get('/projects/:projectId/content-agent/history', workspaceController.getContentAgentExecutionHistory);
 
+// Schema Agent — own prompt/service/execution history/logs/retry/approval/
+// shared memory. No UI route consumes this; exposed for manual/cron/
+// agent-to-agent triggering, same rationale as the other five agents'
+// routes above. Approve/reject take :markupId in the path (not a bulk-ids
+// body) because generated pages live on one WorkspaceSchemaMarkup
+// document per run — same shape as the Technical SEO/Content agents'
+// routes, not the Competitor/Keyword agents' bulk-suggestion shape.
+router.post('/projects/:projectId/schema-agent/run', blockViewOnly, workspaceController.runSchemaAgent);
+router.put('/projects/:projectId/schema-agent/:markupId/approve', blockViewOnly, workspaceController.approveSchemaMarkup);
+router.put('/projects/:projectId/schema-agent/:markupId/reject', blockViewOnly, workspaceController.rejectSchemaMarkup);
+router.get('/projects/:projectId/schema-agent/history', workspaceController.getSchemaAgentExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 
