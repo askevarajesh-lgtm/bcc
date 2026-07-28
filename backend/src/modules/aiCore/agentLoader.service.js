@@ -96,6 +96,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'website-builder-seo-agent': {
+    key: 'website-builder-seo-agent',
+    displayName: 'Website Builder SEO Agent',
+    skills: ['builder-onpage-metadata-optimization', 'builder-heading-structure-audit'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 
