@@ -52,6 +52,8 @@ import Analytics from './pages/Analytics/Analytics';
 import Automation from './pages/Automation/Automation';
 import TasksPage from './pages/Tasks/TasksPage';
 import TaskForm from './pages/Tasks/TaskForm';
+import TaskAnalyticsPage from './pages/Tasks/TaskAnalyticsPage';
+import CoordinatorTasks from './pages/Tasks/CoordinatorTasks';
 import ProjectList from './pages/projects/ProjectList';
 import ProjectForm from './pages/projects/ProjectForm';
 import ProjectDetail from './pages/projects/ProjectDetail';
@@ -128,6 +130,10 @@ import SuperAdminAdmins from './pages/SuperAdmin/Admins';
 // Ekta HR / HRMS Pages (Commander Admin)
 import EktaHrStaffPage from './pages/integrations/EktaHrStaffPage';
 import EktaHrAttendanceModulePage from './pages/integrations/EktaHrAttendanceModulePage';
+import DailyReports from './pages/dailyreport/DailyReports';
+
+import PerformancePage from './pages/performance/PerformancePage';
+import SelfAssessmentForm from './pages/performance/SelfAssessmentForm';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -240,6 +246,8 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="workspace/tasks/analytics" element={<TaskAnalyticsPage />} />
+          <Route path="workspace/tasks/coordinator" element={<CoordinatorTasks />} />
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
@@ -300,8 +308,10 @@ const AppRoutes = () => {
           {/* HRMS Routes (Commander Admin) */}
           <Route path="hrms/staff" element={<EktaHrStaffPage />} />
           <Route path="hrms/attendance" element={<EktaHrAttendanceModulePage />} />
-          <Route path="hrms/performance" element={<PlaceholderPage title="Performance" description="Employee performance tracking." icon={Activity} />} />
-          <Route path="hrms/daily-reports" element={<PlaceholderPage title="Daily Reports" description="Daily attendance and activity reports." icon={Bell} />} />
+          <Route path="hrms/performance" element={<PerformancePage />} />
+          <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
+          <Route path="hrms/daily-reports" element={<DailyReports />} />
         </Route>
       </Route>
 
@@ -355,11 +365,19 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="workspace/tasks/analytics" element={<TaskAnalyticsPage />} />
+          <Route path="workspace/tasks/coordinator" element={<CoordinatorTasks />} />
           <Route path="time" element={<TimeTracking />} />
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="deliverables" element={<DeliverablesPage />} />
           <Route path="salespipeline" element={<SalesPipeline />} />
+          
+          {/* HRMS Routes (Agency Manager) */}
+          <Route path="hrms/performance" element={<PerformancePage />} />
+          <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
+          <Route path="hrms/daily-reports" element={<DailyReports />} />
         </Route>
       </Route>
 
@@ -395,6 +413,8 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="workspace/tasks/analytics" element={<TaskAnalyticsPage />} />
+          <Route path="workspace/tasks/coordinator" element={<CoordinatorTasks />} />
           <Route path="workspace/projects" element={<ProjectList />} />
           <Route path="workspace/projects/new" element={<ProjectForm />} />
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
@@ -456,6 +476,12 @@ const AppRoutes = () => {
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="deliverables" element={<DeliverablesPage />} />
+          
+          {/* HRMS Routes (Brand Manager) */}
+          <Route path="hrms/performance" element={<PerformancePage />} />
+          <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
+          <Route path="hrms/daily-reports" element={<DailyReports />} />
         </Route>
       </Route>
 
@@ -472,6 +498,8 @@ const AppRoutes = () => {
           <Route path="workspace/tasks" element={<TasksPage />} />
           <Route path="workspace/tasks/new" element={<TaskForm />} />
           <Route path="workspace/tasks/:id/edit" element={<TaskForm />} />
+          <Route path="workspace/tasks/analytics" element={<TaskAnalyticsPage />} />
+          <Route path="workspace/tasks/coordinator" element={<CoordinatorTasks />} />
           
           {/* Dynamically Granted Modules */}
           <Route path="workspace/strategy" element={<Strategy />} />
@@ -500,6 +528,11 @@ const AppRoutes = () => {
           <Route path="workspace/calendar" element={<CalendarPage />} />
           <Route path="workspace/deliverables" element={<DeliverablesPage />} />
           <Route path="workspace/salespipeline" element={<SalesPipeline />} />
+          
+          {/* Performance Module for All Employees */}
+          <Route path="performance" element={<PerformancePage />} />
+          <Route path="performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="performance/self-assessment" element={<SelfAssessmentForm />} />
           
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />

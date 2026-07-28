@@ -172,9 +172,20 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         ...(role === 'commander_admin' ? [] : [
           { key: '/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' },
           { key: '/workspace/invoices', icon: getIcon(DollarSign), label: 'Invoices' },
-          { key: '/workspace/projects', icon: getIcon(Library), label: 'Projects' },
         ]),
-        { key: '/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' },
+        {
+          key: 'task_management',
+          label: 'Task Management',
+          icon: getIcon(CheckSquare),
+          children: [
+            ...(role === 'commander_admin' ? [] : [
+              { key: '/workspace/projects', label: 'Projects' },
+            ]),
+            { key: '/workspace/tasks', label: 'Tasks' },
+            { key: '/workspace/tasks/analytics', label: 'Task Analytics' },
+            { key: '/workspace/tasks/coordinator', label: 'Coordinator Tasks' },
+          ]
+        },
         { key: '/workspace/website', icon: getIcon(Globe), label: 'Websites' },
       ],
     },
@@ -214,13 +225,17 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/ops/deliverables', icon: getIcon(FileText), label: role === 'commander_admin' ? 'Global Deliverables' : 'Deliverables' },
       ],
     },
-    ...(role === 'commander_admin' ? [
+    ...(['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager', 'agency', 'client', 'agency_client'].includes(role) ? [
       {
         key: 'hrms',
         label: collapsed ? 'HRM' : 'HRMS',
         children: [
-          { key: '/hrms/staff', icon: getIcon(Users), label: 'Staff' },
-          { key: '/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' },
+          ...(role === 'commander_admin' ? [
+            { key: '/hrms/staff', icon: getIcon(Users), label: 'Staff' },
+            { key: '/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' },
+          ] : []),
+          { key: '/hrms/performance', icon: getIcon(Activity), label: 'Performance' },
+          { key: '/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' },
         ],
       }
     ] : []),

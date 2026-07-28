@@ -1,9 +1,11 @@
 const express = require("express");
 const performanceController = require("./performance.controller");
 const performanceScorecardController = require("./performanceScorecard.controller");
-const authMiddleware = require("../../middlewares/authMiddleware");
-const tenantMiddleware = (req, res, next) => next();
-const permissionMiddleware = () => (req, res, next) => next();
+const authMiddleware = require("../../middleware/auth.middleware");
+const tenantMiddleware = require("../../middleware/tenant.middleware");
+const {
+  permissionMiddleware,
+} = require("../../middleware/permission.middleware");
 
 const router = express.Router();
 

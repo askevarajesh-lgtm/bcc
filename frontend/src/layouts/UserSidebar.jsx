@@ -16,12 +16,31 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
 
   const getIcon = (IconCmp) => <IconCmp size={18} strokeWidth={2} />;
 
-  let menuItems = [
-    { key: '/user/dashboard', icon: getIcon(LayoutDashboard), label: 'Dashboard' },
-    { key: '/user/tasks', icon: getIcon(CheckSquare), label: 'Tasks' },
+  const hasPerm = (key) => permissions[key]?.Read;
+
+  const taskManagementChildren = [
+    { key: '/user/tasks', label: 'Tasks' },
   ];
 
-  const hasPerm = (key) => permissions[key]?.Read;
+  if (hasPerm('Workspace-Task Analytics')) {
+    taskManagementChildren.push({ key: '/user/workspace/tasks/analytics', label: 'Task Analytics' });
+  }
+  if (hasPerm('Workspace-Coordinator Tasks')) {
+    taskManagementChildren.push({ key: '/user/workspace/tasks/coordinator', label: 'Coordinator Tasks' });
+  }
+
+  let menuItems = [
+    { key: '/user/dashboard', icon: getIcon(LayoutDashboard), label: 'Dashboard' },
+  ];
+
+  if (hasPerm('Workspace-Task Management') || taskManagementChildren.length > 0) {
+    menuItems.push({
+      key: 'task_management',
+      label: 'Task Management',
+      icon: getIcon(CheckSquare),
+      children: taskManagementChildren
+    });
+  }
 
   if (hasPerm('Workspace-Strategy')) menuItems.push({ key: '/user/workspace/strategy', icon: getIcon(Target), label: 'Strategy' });
   if (hasPerm('Workspace-SEO / AEO / GEO')) menuItems.push({ key: '/user/workspace/seo', icon: getIcon(Search), label: 'SEO' });
@@ -40,6 +59,9 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Workspace-Calendar')) menuItems.push({ key: '/user/workspace/calendar', icon: getIcon(CheckSquare), label: 'Calendar' });
   if (hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
   if (hasPerm('Agency Ops-Sales Pipeline')) menuItems.push({ key: '/user/workspace/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
+
+  // Performance module for all employees
+  menuItems.push({ key: '/user/performance', icon: getIcon(Target), label: 'Performance' });
 
   if (hasPerm('Intelligence-Analytics & Attribution')) menuItems.push({ key: '/user/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics' });
   if (hasPerm('Intelligence-MOS Score')) menuItems.push({ key: '/user/intelligence/mos', icon: getIcon(BarChart2), label: 'MOS Score' });

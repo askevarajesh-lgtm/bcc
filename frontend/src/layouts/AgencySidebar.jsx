@@ -119,8 +119,17 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     // Default modules always available
     workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
     workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
-    workspaceChildren.push({ key: '/agency/projects', icon: getIcon(Library), label: 'Projects' });
-    workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
+    workspaceChildren.push({
+      key: 'task_management',
+      label: 'Task Management',
+      icon: getIcon(CheckSquare),
+      children: [
+        { key: '/agency/projects', label: 'Projects' },
+        { key: '/agency/workspace/tasks', label: 'Tasks' },
+        { key: '/agency/workspace/tasks/analytics', label: 'Task Analytics' },
+        { key: '/agency/workspace/tasks/coordinator', label: 'Coordinator Tasks' },
+      ]
+    });
     if (feats.includes('website')) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
     workspaceChildren.push({ key: '/agency/marketplace', icon: getIcon(Store), label: 'Marketplace' });
     if (feats.includes('seo')) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
@@ -167,6 +176,20 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
       children: opsChildren,
+    });
+  }
+
+  const hrmsChildren = [];
+  if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
+    hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
+    hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
+  }
+
+  if (hrmsChildren.length > 0) {
+    menuItems.push({
+      key: 'hrms',
+      label: collapsed ? 'HRM' : 'HRMS',
+      children: hrmsChildren,
     });
   }
 

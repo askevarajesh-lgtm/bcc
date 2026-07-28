@@ -34,6 +34,7 @@ const slaRoutes = require('../modules/sla/sla.routes');
 const mosRoutes = require('../modules/mos/mos.routes');
 const benchmarkRoutes = require('../modules/benchmarking/benchmark.routes');
 const hrmsRoutes = require('../modules/hrms/hrms.routes');
+const notepadRoutes = require('../modules/notepad/notepad.routes');
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
@@ -115,6 +116,7 @@ router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
 router.use('/sla-success', slaRoutes);
 router.use('/hrms', hrmsRoutes);
+router.use('/notepad', notepadRoutes);
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);

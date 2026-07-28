@@ -71,7 +71,7 @@ const UserManagementTab = () => {
         'Workspace': [
           'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
           'Social Media', 'Performance Ads', 'CRM & Leads', 
-          'Task Management', 'Websites'
+          'Task Management', 'Websites', 'Task Analytics', 'Coordinator Tasks'
         ],
         'Intelligence': [
           'Analytics & Attribution', 'MOS Score', 'ChatGPT', 'Canva', 
@@ -98,7 +98,7 @@ const UserManagementTab = () => {
       if (hasF('crm')) groups.Workspace.push('CRM & Leads');
       
       // Default Workspace Modules
-      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management');
+      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Task Analytics', 'Coordinator Tasks');
 
       if (hasF('website')) groups.Workspace.push('Websites');
       if (hasF('marketplace')) groups.Workspace.push('Marketplace');
@@ -136,7 +136,7 @@ const UserManagementTab = () => {
       if (hasF('website')) groups.Workspace.push('Websites');
       
       // Workspace default modules
-      groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables');
+      groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables', 'Task Analytics', 'Coordinator Tasks');
 
       // Intelligence conditional modules
       if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');

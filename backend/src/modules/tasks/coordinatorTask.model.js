@@ -4,7 +4,7 @@ const coordinatorTaskSchema = new mongoose.Schema(
   {
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ClientCompany",
+      ref: "User",
       required: false,
     },
     isManual: {
@@ -13,7 +13,7 @@ const coordinatorTaskSchema = new mongoose.Schema(
     },
     tenantCompanyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "User",
       required: true,
     },
     instruction: {

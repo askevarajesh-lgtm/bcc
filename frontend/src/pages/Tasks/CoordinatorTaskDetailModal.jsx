@@ -63,7 +63,7 @@ const CoordinatorTaskDetailModal = ({
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || readOnly;
 
-  const { data: taskResponse, isLoading } = useGetCoordinatorTaskByIdQuery(
+  const { data: taskResponse, isLoading, refetch } = useGetCoordinatorTaskByIdQuery(
     taskId,
     { skip: !taskId || !visible },
   );
@@ -110,11 +110,12 @@ const CoordinatorTaskDetailModal = ({
         ...task.checklist,
         { label: newItemText.trim(), completed: false },
       ];
-      await updateTask({ id: task._id, checklist: newChecklist }).unwrap();
+      await updateTask({ id: task._id, checklist: newChecklist });
+      refetch();
       setNewItemText("");
       notifySuccess('item', task._id, 'Item added');
-    } catch {
-      notifyError('item', task._id, 'Failed to add item');
+    } catch (err) {
+      notifyError('item', task._id, err.data?.message || err.message || 'Failed to add item');
     }
   };
 
@@ -136,13 +137,14 @@ const CoordinatorTaskDetailModal = ({
         id: task._id,
         checklist: newChecklist,
         status: newStatus,
-      }).unwrap();
+      });
+      refetch();
       if (newStatus === "completed" && onTaskCompleted) {
         onTaskCompleted();
       }
       notifySuccess('item', task._id, 'Item removed');
-    } catch {
-      notifyError('item', task._id, 'Failed to remove item');
+    } catch (err) {
+      notifyError('item', task._id, err.data?.message || err.message || 'Failed to remove item');
     }
   };
 
@@ -164,12 +166,13 @@ const CoordinatorTaskDetailModal = ({
         id: task._id,
         checklist: newChecklist,
         status: newStatus,
-      }).unwrap();
+      });
+      refetch();
       if (newStatus === "completed" && onTaskCompleted) {
         onTaskCompleted();
       }
-    } catch {
-      notifyError('checklist', task._id, 'Failed to update checklist item');
+    } catch (err) {
+      notifyError('checklist', task._id, err.data?.message || err.message || 'Failed to update checklist item');
     }
   };
 

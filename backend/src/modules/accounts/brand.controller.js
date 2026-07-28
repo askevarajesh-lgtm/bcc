@@ -4,16 +4,18 @@ const User = require('../auth/user.model');
 exports.getBrands = async (req, res, next) => {
   try {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
-    const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isAgencyAdmin = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgencyAdmin && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
 
-    if (!isAdmin && !isAgency) {
+    if (!isAdmin && !isAgencyAdmin && !isEmployee) {
       return res.status(403).json({ success: false, message: 'Not authorized to access brands' });
     }
 
     let filter = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
 
-    if (isAgency) {
-      const agencyId = req.user.agencyId;
+    if (isAgencyAdmin || isEmployee) {
+      // For agency admins and their employees, companyId represents the agency.
+      const agencyId = req.user.agencyId || req.user.adminId || req.companyId;
       if (!agencyId) {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }

@@ -40,6 +40,7 @@ const notificationSchema = new mongoose.Schema(
         "performance_review_completed",
         "performance_self_assessment_pending",
         "daily_note_reminder",
+        "daily_report_submitted",
         "client_onboarded",
         "campaign_recharge_added",
         "user_created",
