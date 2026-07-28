@@ -33,11 +33,16 @@ const WorkspaceTaskSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected', 'Implemented', 'Failed'],
     default: 'Pending'
   },
-  // Additive: populated when a WordPress publish attempt fails, so the UI can
-  // show *why* instead of just a bare 'Failed' tag.
   failureReason: {
     type: String,
     default: null
+  },
+  source: { type: String, enum: ['manual', 'monitoring-agent'], default: 'manual' },
+  agent: {
+    agentKey: { type: String, default: null }, 
+    sourceKeywordId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceKeyword', default: null },
+    dropAmount: { type: Number, default: null },
+    rationale: { type: String, default: null }
   }
 }, { timestamps: true });
 
