@@ -1,43 +1,10 @@
 const mongoose = require('mongoose');
-
-/**
- * Store SEO Agent's own persisted run output.
- *
- * Deliberately its OWN collection, scoped by `storeId` — NOT a
- * `WorkspaceProject`-scoped collection like `WorkspaceTechnicalAudit`/
- * `WorkspaceImageSeo`/`WorkspaceContentBrief`/etc. Same reasoning as
- * `websiteBuilderSeo.model.js` and `blogSeo.model.js`: this agent analyzes a
- * `Store` document directly (`modules/stores/store.model.js`) — a
- * storefront that is frequently still `Draft` status and has no
- * required/guaranteed corresponding `WorkspaceProject`. Forcing a
- * `projectId` ref to `WorkspaceProject` here would mean fabricating an SEO
- * Workspace project for every store just to satisfy an unrelated schema —
- * that's a hack, not reuse, so this model intentionally does not depend on
- * that collection at all. Same reason `storeSeoAgent.service.js` logs via
- * `aiCore/logger.service.js#info` rather than
- * `seoWorkspace/services/auditLog.service.js` (whose target model,
- * `WorkspaceAuditLog`, has `projectId: { ref: 'WorkspaceProject', required:
- * true }`).
- *
- * Shape otherwise deliberately mirrors `WebsiteBuilderSeo`/
- * `WorkspaceBlogSeo`'s `agent` sub-schema (summary/items-array/
- * approvalStatus/approvedBy/approvedAt/rejectionReason/embedded
- * generatedTasks) so this agent's approval-gate code reads the same as
- * every other agent in this module.
- */
 const WorkspaceStoreSeoSchema = new mongoose.Schema({
   storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
   status: { type: String, enum: ['pending', 'in_progress', 'completed', 'failed'], default: 'pending' },
 
-  // Objective inputs collected in Phase 1 (collectStoreSeoSignals) — kept
-  // alongside the generated findings so a human reviewer can see exactly
-  // what this run's suggestions were grounded in. No AI involved in this
-  // phase; every field is either directly read off `store.seoTitle`/
-  // `store.seoDescription`/`store.ogImageUrl`/`store.faviconUrl`, or a
-  // plain deterministic count against this store's own `Product` documents
-  // (`modules/stores/product.model.js`) — never AI-guessed.
   inputs: {
     storeName: { type: String, default: '' },
     currentSeoTitle: { type: String, default: '' },
@@ -46,10 +13,6 @@ const WorkspaceStoreSeoSchema = new mongoose.Schema({
     hasFavicon: { type: Boolean, default: false },
     productCount: { type: Number, default: 0 },
     productsMissingImagesCount: { type: Number, default: 0 },
-    // 'stored-content' — this agent only ever reads the stored Store/Product
-    // documents (never fetches the live/published storefront URL) — kept
-    // for parity with the other agents' inputs.dataSource honesty
-    // convention.
     dataSource: { type: String, enum: ['stored-content'], default: 'stored-content' }
   },
 
@@ -78,9 +41,6 @@ const WorkspaceStoreSeoSchema = new mongoose.Schema({
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     approvedAt: { type: Date, default: null },
     rejectionReason: { type: String, default: null },
-    // Embedded, self-contained tasks — same reasoning as
-    // WebsiteBuilderSeo.agent.generatedTasks / WorkspaceBlogSeo.agent.generatedTasks:
-    // no WorkspaceTask dependency.
     generatedTasks: [{
       taskType: {
         type: String,

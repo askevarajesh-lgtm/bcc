@@ -1,53 +1,3 @@
-/**
- * Content Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Same two-phase shape as the other four agents in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent, technicalSeoAgent):
- *   1. collectContentInputs() – gathers OBJECTIVE inputs: which of this
- *      project's already-Approved keywords (WorkspaceKeyword, human-gated
- *      by the Keyword Research Agent or added manually) don't yet have a
- *      live (non-Rejected) content brief, plus a small existing-pages list
- *      from a light CrawlService pass so the analysis phase can tell "new
- *      page needed" apart from "update this existing page". No AI
- *      involved — a keyword either is Approved-and-unbriefed or it isn't.
- *   2. analyzeAndGenerateBriefs() – the actual "agent" step: an AI call
- *      with this agent's own prompt (content-brief-generation +
- *      topic-clustering skills) clusters the candidate keywords and turns
- *      each cluster into one content brief. Briefs sit behind the same
- *      human-approval gate pattern as the other agents
- *      (WorkspaceContentBrief.agent.approvalStatus) before any
- *      WorkspaceTask is generated from them.
- *
- * Reuse decisions:
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - The existing-pages pass reuses `CrawlService` (same one
- *     seoAuditorAgent/technicalSeoAgent already use) rather than writing a
- *     second crawler — just a small page limit, since this agent only
- *     needs URL+title to decide new-vs-update, not a full content crawl.
- *   - Its Phase 1 keyword input is `WorkspaceKeyword` with `status:
- *     'Approved'` — i.e. keywords a human already approved, whether via
- *     the Keyword Research Agent's gate or added manually (manual keywords
- *     default to 'Approved' — see workspaceKeyword.model.js). No schema
- *     change to that model needed.
- *   - Approved briefs generate `WorkspaceTask` entries using the existing
- *     taskType enum's 'Content Edit' value — no schema change to
- *     WorkspaceTask.
- *   - Persists its own run output to a new `WorkspaceContentBrief` model —
- *     see that file's header for why this isn't folded into an existing
- *     collection.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue under a distinct key so a content-agent run never
- *     blocks (or is blocked by) the other four agents for the same project.
- *   - Shared memory: recalled before analysis (brand voice, do-not-do
- *     rules, approved terminology, and any previously excluded content
- *     themes steer the brief away from repeating a rejected angle);
- *     written to when a brief's theme is rejected repeatedly, same pattern
- *     as keywordResearchAgent's recordExcludedThemesIfRepeated.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 const WorkspaceContentBrief = require('../models/workspaceContentBrief.model');
@@ -72,11 +22,6 @@ const MAX_BRIEFS = 10;
 const EXISTING_PAGES_CRAWL_LIMIT = 15; // small, targeted pass for new-vs-update context — not a full content crawl
 
 /**
- * Phase 1: objective input collection. No AI involved — candidate keywords
- * are exactly this project's Approved-and-unbriefed WorkspaceKeyword docs,
- * and existing pages are whatever the light crawl pass actually found (left
- * empty on failure, never fabricated).
- *
  * @param {Object} project - a WorkspaceProject document
  * @param {string} agencyId
  * @returns {Promise<{ candidateKeywords: Array, existingPages: Array, dataSource: string }>}
@@ -87,11 +32,6 @@ async function collectContentInputs(project, agencyId) {
       .sort({ 'metrics.searchVolume': -1 })
       .limit(MAX_CANDIDATE_KEYWORDS * 2) // headroom before filtering out already-briefed keywords
       .lean(),
-    // A keyword already covered by a live (non-Rejected) brief shouldn't be
-    // re-briefed on every run.
-    // A keyword already covered by a live (non-Rejected) brief — whether as
-    // that brief's targetKeyword or as one of its secondaryKeywords —
-    // shouldn't be re-briefed as its own new topic on a later run.
     WorkspaceContentBrief.find({ projectId: project._id, 'agent.approvalStatus': { $ne: 'Rejected' } })
       .select('agent.briefs.targetKeyword agent.briefs.secondaryKeywords')
       .lean()
@@ -138,11 +78,6 @@ async function collectContentInputs(project, agencyId) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; clusters candidate keywords
- * and turns each cluster into a content brief. Guards against a
- * hallucinated targetKeyword that wasn't in the candidate list, and against
- * a targetUrl that wasn't in the provided existing-pages list.
- *
  * @param {Object} project
  * @param {Array} candidateKeywords - from collectContentInputs
  * @param {Array} existingPages - from collectContentInputs
@@ -247,11 +182,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect + analyze + persist as a WorkspaceContentBrief
- * doc, serialized per-project through Execution Queue. Logs a run-level
- * execution entry (source: 'contentAgent') alongside aiEngine's own
- * per-AI-call entries.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the created WorkspaceContentBrief document
@@ -304,11 +234,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' briefs for
- * this project can be approved. Generates one WorkspaceTask per brief
- * (taskType 'Content Edit'), same pattern as
- * technicalSeoAgent.approveFindings.
- *
  * @param {string} contentBriefId
  * @param {string} projectId
  * @param {string} userId
@@ -385,13 +310,6 @@ async function rejectBriefs(contentBriefId, projectId, userId, reason) {
   return contentBrief;
 }
 
-/**
- * Shared Memory write-side: if a rejected brief's theme has now been
- * rejected 2+ times total for this project, record it as an
- * excluded_content_theme so future runs' recall() steers away from it.
- * Best-effort — a memory-write failure must never break rejection. Same
- * pattern as keywordResearchAgent.service.js#recordExcludedThemesIfRepeated.
- */
 async function recordExcludedThemesIfRepeated(contentBrief, projectId, userId) {
   try {
     const themes = [...new Set((contentBrief.agent?.briefs || []).map((b) => b.theme).filter(Boolean))];
@@ -412,14 +330,6 @@ async function recordExcludedThemesIfRepeated(contentBrief, projectId, userId) {
           title: `Excluded content theme: ${theme}`,
           description: `Content briefs themed "${theme}" have been rejected ${priorRejectionCount} times for this project.`,
           content: `Avoid suggesting further content briefs in the "${theme}" theme unless explicitly requested.`,
-          // NOTE: keywordResearchAgent.service.js's equivalent call uses
-          // type: 'excluded_keyword_theme', which is NOT in
-          // WorkspaceMemory's `type` enum (best_practice, brand_voice,
-          // do_not_do, approved_terminology, recurring_issue) — that call
-          // would throw a Mongoose validation error at save() time. Not
-          // fixed here (out of scope for this pass, per instructions not
-          // to touch other agents' files); this agent uses the closest
-          // actually-valid enum value instead of repeating that bug.
           type: 'do_not_do'
         });
       }
@@ -430,10 +340,6 @@ async function recordExcludedThemesIfRepeated(contentBrief, projectId, userId) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other four agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

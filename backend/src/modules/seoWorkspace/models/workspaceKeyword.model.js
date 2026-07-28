@@ -34,11 +34,6 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
   
   isDeleted: { type: Boolean, default: false },
 
-  // --- Keyword Research Agent extension (additive; existing keywords are unaffected) ---
-  // Every pre-existing/other-path keyword (manual add, the orchestrator's ranked-keyword
-  // import) defaults to source 'manual' and status 'Approved', so nothing that already
-  // reads WorkspaceKeyword needs to change or start filtering by status. Only keywords
-  // this agent proposes start life as 'Suggested', gated behind human approval.
   source: { type: String, enum: ['manual', 'ranked-import', 'keyword-research-agent'], default: 'manual' },
   status: { type: String, enum: ['Suggested', 'Approved', 'Rejected'], default: 'Approved' },
   agent: {

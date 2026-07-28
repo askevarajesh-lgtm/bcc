@@ -1,69 +1,3 @@
-/**
- * Reporting Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Mirrors the same two-phase shape as seoAuditorAgent.service.js /
- * keywordResearchAgent.service.js / competitorAgent.service.js:
- *   1. collectReportData()  – gathers objective data already produced by
- *      the other agents/modules for this project (latest WorkspaceAudit,
- *      Approved WorkspaceKeywords, Approved WorkspaceCompetitors,
- *      WorkspaceTask status counts). No AI, no new data collection —
- *      every source here is an existing model, queried read-only.
- *   2. generateReport()      – the actual "agent" step: an AI call with
- *      this agent's own prompt (seo-report-writing + executive-summary
- *      skills) turns that data into a client-facing Markdown report plus
- *      a short executive summary. The resulting WorkspaceReport starts
- *      life at agent.approvalStatus 'Pending Approval' — same Gate
- *      pattern as the other three agents — before it counts as
- *      client-ready.
- *
- * Relationship to the existing orchestrator:
- *   workspaceAgentOrchestrator.service.js already has its own
- *   `seoReporterAgent(projectId, auditDiff, scheduleOptions)` that builds a
- *   WorkspaceReport directly from an audit diff, with its own private AI
- *   client, no retry/logging/gate, and `status: 'completed'` set
- *   immediately (no human review). That method is NOT modified or removed
- *   here (out of scope for this pass, same "known open item" treatment
- *   already given to the orchestrator's inline keyword-fetch step — see
- *   this module's aiCore/README.md and the seo-agents memory notes).
- *   This agent is additive: it reuses the same WorkspaceReport
- *   model/collection but is a distinct, gated code path a caller opts into
- *   by calling reportingAgent.run() instead of the orchestrator method.
- *
- * Reuse decisions (same as the other three agents — nothing here is new
- * infra, all wiring onto what already exists):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue, under a distinct key so a reporting-agent run never
- *     blocks (or is blocked by) an auditor/keyword/competitor run for the
- *     same project.
- *   - Shared memory: recalled before generation (so prior report-writing
- *     feedback — tone corrections, "don't lead with declining traffic",
- *     etc. — steers the AI's writing); written to when a report is
- *     rejected with a reason, so future runs' prompts carry that context.
- *   - Reuses the existing 'seo-reporter' agentLoader key (already defined
- *     with skills ['seo-report-writing', 'executive-summary']) instead of
- *     registering a new agent key — those two skill files did not exist
- *     yet on disk (agentLoader referenced them but skillLoader silently
- *     returns '' for a missing skill folder), so they were added under
- *     seoWorkspace/skills/, not invented as new agent config.
- *   - No new collection: WorkspaceReport already exists for exactly this
- *     purpose. Its approval-gate fields (source, agent.*) are additive —
- *     see workspaceReport.model.js's header comment — every pre-existing
- *     report defaults to source 'manual' / agent.approvalStatus
- *     'Not Requested' and is completely unaffected.
- *
- * Retry, distinct from aiCore's automatic transient-error retry inside
- * aiEngine.complete: if a run's data-collection or generation step throws
- * after aiEngine's own retries are exhausted, run() persists a 'failed'
- * WorkspaceReport doc (not just a thrown error) so there is something a
- * human/operator can see and act on. retryReport() re-attempts generation
- * for that exact doc in place (same _id — not a duplicate), still gated
- * behind executionQueue and still logged.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceReport = require('../models/workspaceReport.model');
 const WorkspaceAudit = require('../models/workspaceAudit.model');
@@ -86,9 +20,6 @@ const TOP_KEYWORDS_LIMIT = 10;
 const TOP_COMPETITORS_LIMIT = 5;
 
 /**
- * Phase 1: objective data collection. No AI involved — every source here
- * is an existing, already-populated model, queried read-only.
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<Object>} { audit, keywords, competitors, taskCounts }
  */
@@ -144,12 +75,6 @@ async function collectReportData(project) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; turns the collected data into
- * a client-facing Markdown report plus a short executive summary. Explicit
- * about which sections have no data rather than fabricating figures — the
- * seo-report-writing skill enforces this, but the prompt restates it since
- * report content is what a client actually sees.
- *
  * @param {Object} project
  * @param {Object} data - from collectReportData
  * @param {string} workspaceId
@@ -214,14 +139,6 @@ Respond ONLY with valid JSON, no markdown code fences around the JSON itself.`;
 }
 
 /**
- * Full agent run: collect + generate + persist a new WorkspaceReport at
- * agent.approvalStatus 'Pending Approval', serialized per-project through
- * Execution Queue (own key, distinct from the other three agents' keys).
- * Logs a run-level execution entry (source: 'reportingAgent') alongside
- * aiEngine's own per-AI-call entries. On failure, persists a 'failed'
- * WorkspaceReport doc instead of only throwing, so retryReport() has
- * something concrete to retry.
- *
  * @param {string} projectId
  * @param {Object} [options]
  * @param {string} [options.reportType='comprehensive'] - one of VALID_REPORT_TYPES
@@ -278,9 +195,6 @@ async function run(projectId, options = {}, workspaceId) {
         status: 'failed', durationMs: Date.now() - startedAt, error: error.message
       });
 
-      // Persist a failed report record (best-effort) so retryReport() has
-      // something to act on — a thrown error alone leaves no trace a human
-      // can find and retry from later.
       try {
         reportDoc = await WorkspaceReport.create({
           projectId,
@@ -304,12 +218,6 @@ async function run(projectId, options = {}, workspaceId) {
 }
 
 /**
- * Retry — distinct from aiCore's automatic transient-error retry inside
- * aiEngine.complete (which already handles transient failures within a
- * single run). This re-attempts generation for an existing 'failed'
- * WorkspaceReport in place (same _id, no duplicate), still serialized
- * through Execution Queue under the same per-project key as run().
- *
  * @param {string} reportId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the updated WorkspaceReport doc (lean)
@@ -357,17 +265,12 @@ async function retryReport(reportId, workspaceId) {
         executionId, source: 'reportingAgent', agentKey: AGENT_KEY, projectId: report.projectId,
         status: 'failed', durationMs: Date.now() - startedAt, error: error.message, meta: { retry: true, reportId }
       });
-      // Leave the doc at status 'failed' (it already was) so it remains
-      // discoverable/retryable rather than being deleted or hidden.
       throw error;
     }
   });
 }
 
 /**
- * Human Approval Gate — approve path. Only a report at 'Pending Approval'
- * for this project can move to 'Approved'.
- *
  * @param {string} reportId
  * @param {string} projectId
  * @param {string} userId
@@ -394,12 +297,6 @@ async function approveReport(reportId, projectId, userId) {
 }
 
 /**
- * Human Approval Gate — reject path. Rejected reports stay in the
- * collection (not deleted). A given reason is recorded to shared memory so
- * future report-generation prompts for this project/agency carry that
- * feedback — one rejection is already a clear, specific signal (same
- * reasoning as competitorAgent's per-rejection memory write).
- *
  * @param {string} reportId
  * @param {string} projectId
  * @param {string} userId
@@ -428,9 +325,6 @@ async function rejectReport(reportId, projectId, userId, reason) {
   return result;
 }
 
-/**
- * Shared Memory write-side: best-effort, never breaks rejection if it fails.
- */
 async function recordReportFeedbackIfAny(projectId, reason, userId) {
   try {
     const project = await WorkspaceProject.findById(projectId);
@@ -450,10 +344,6 @@ async function recordReportFeedbackIfAny(projectId, reason, userId) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other three agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

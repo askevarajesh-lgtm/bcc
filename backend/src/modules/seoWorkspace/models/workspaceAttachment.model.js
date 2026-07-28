@@ -1,8 +1,4 @@
 const mongoose = require('mongoose');
-
-// Polymorphic attachment collection, same pattern as WorkspaceComment.
-// Files are stored via Cloudinary (existing config/cloudinary.js) — this
-// model just tracks the resulting URL/metadata, no new storage handling.
 const WorkspaceAttachmentSchema = new mongoose.Schema({
   targetType: {
     type: String,

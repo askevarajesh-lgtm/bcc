@@ -63,11 +63,11 @@ class CrawlService {
       indexable: null,
       error: "",
       links: [],
-      // Additive (Image SEO Agent pass): every other existing consumer of
-      // this record only destructures the fields it already used above,
-      // so adding `images` here is non-breaking — same precedent the
-      // `links` field itself set for internalLinkingAgent.
-      images: []
+      images: [],
+      headings: [], 
+      listCount: 0, 
+      tableCount: 0, 
+      hasExistingFaqSchema: false 
     };
 
     try {
@@ -120,11 +120,6 @@ class CrawlService {
         }
       });
 
-      // Extract images for the Image SEO Agent. No filtering by host (an
-      // image can legitimately be served from a CDN on a different
-      // hostname) — filtering is imageSeoAgent's concern, not the
-      // crawler's. Absolute-resolve src so downstream consumers never
-      // have to re-resolve a relative path themselves.
       $('img').each((i, el) => {
         const rawSrc = $(el).attr('src') || $(el).attr('data-src') || '';
         if (!rawSrc || rawSrc.startsWith('data:')) return;
@@ -142,6 +137,26 @@ class CrawlService {
           height: $(el).attr('height') || '',
           loading: $(el).attr('loading') || ''
         });
+      });
+
+      // AEO Agent signals — objective, code-measured, no judgment made here.
+      $('h2, h3').each((i, el) => {
+        const text = $(el).text().replace(/\s+/g, ' ').trim();
+        if (text) record.headings.push({ level: el.tagName.toLowerCase() === 'h2' ? 2 : 3, text });
+      });
+      record.listCount = $('ul, ol').length;
+      record.tableCount = $('table').length;
+      $('script[type="application/ld+json"]').each((i, el) => {
+        try {
+          const parsed = JSON.parse($(el).html());
+          const nodes = Array.isArray(parsed) ? parsed : (Array.isArray(parsed['@graph']) ? parsed['@graph'] : [parsed]);
+          if (nodes.some((n) => {
+            const t = n && n['@type'];
+            return t === 'FAQPage' || (Array.isArray(t) && t.includes('FAQPage'));
+          })) {
+            record.hasExistingFaqSchema = true;
+          }
+        } catch (e) { /* malformed JSON-LD on the page — not this crawler's concern */ }
       });
 
     } catch (err) {

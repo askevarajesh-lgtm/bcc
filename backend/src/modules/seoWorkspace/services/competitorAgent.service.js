@@ -1,53 +1,3 @@
-/**
- * Competitor Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Mirrors the same two-phase shape as seoAuditorAgent.service.js and
- * keywordResearchAgent.service.js:
- *   1. collectCompetitorCandidates() – gathers objective competitor data
- *      (DataForSEO's existing getCompetitors/getDomainOverview/
- *      getBacklinkSummary methods), falling back to Semrush's
- *      getDomainOverview (also pre-existing) if DataForSEO is unavailable,
- *      and to an AI-only estimate (metrics left at 0, no fabricated numbers
- *      — see generateAiCompetitorSeeds) only if neither is configured.
- *   2. analyzeCompetitors()          – the actual "agent" step: an AI call
- *      with this agent's own prompt scores threat level and produces
- *      strengths/weaknesses/content gaps per competitor, relative to the
- *      tracked project's own metrics. Suggestions sit behind a human-
- *      approval gate (WorkspaceCompetitor.status) before they count as
- *      actively tracked — same Gate pattern as the other two agents.
- *
- * Reuse decisions (same as the other two agents — nothing here is new
- * infra, all wiring onto what already exists):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - Raw DataForSEO/Semrush calls are wrapped with aiCore's retry.service
- *     directly (Semrush's own service has no retry of its own).
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue, under a distinct key so a competitor-agent run never
- *     blocks (or is blocked by) an auditor/keyword-research run for the
- *     same project.
- *   - Shared memory: recalled before analysis (so a prior "not a real
- *     competitor" note steers the AI's rationale); written to when a
- *     competitor suggestion is rejected, so future runs' prompts carry that
- *     context. (The suggestion itself won't resurface as "Suggested" either
- *     way — see run()'s $setOnInsert note — this is about analysis quality,
- *     not re-suppression, which the unique index already guarantees.)
- *   - Suggestions are a new collection (WorkspaceCompetitor) because no
- *     existing model represents tracked competitors — confirmed via
- *     repo-wide search before adding it (see that model's file header).
- *
- * Relationship to existing competitor code:
- *   `seoIntelligence.controller.js#getCompetitors` already exposes raw
- *   DataForSEO competitor data for the older, non-workspace SeoWebsite
- *   model — a different tenant model entirely (SeoWebsite, not
- *   WorkspaceProject). This agent calls the same underlying
- *   `dataForSeoService.getCompetitors` method (reused, not duplicated) but
- *   is scoped to WorkspaceProject and persists/analyzes/gates the result,
- *   which that endpoint does not do. Nothing in that endpoint is touched.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceCompetitor = require('../models/workspaceCompetitor.model');
 const dataForSeoService = require('../../seoIntelligence/dataForSeo.service');
@@ -67,13 +17,9 @@ const TAG = 'CompetitorAgent';
 const VALID_THREAT_LEVELS = ['low', 'medium', 'high'];
 const MAX_CANDIDATES = 10;
 const MAX_SUGGESTIONS = 10;
-const BACKLINK_ENRICHMENT_LIMIT = 5; // cap enrichment calls to avoid an N+1 burst against DataForSEO credits
+const BACKLINK_ENRICHMENT_LIMIT = 5; 
 
 /**
- * Phase 1: objective competitor data collection. No AI involved unless both
- * DataForSEO and Semrush are unavailable, in which case it falls back to an
- * AI-only estimate (see generateAiCompetitorSeeds).
- *
  * @param {Object} project - a WorkspaceProject document
  * @param {string} agencyId
  * @returns {Promise<Array>} candidate objects: { domain, commonKeywords, organicKeywords, organicTraffic, organicCost, referringDomains, backlinks, domainRank, dataSource }
@@ -108,9 +54,6 @@ async function collectCompetitorCandidates(project, agencyId) {
       })).filter((c) => c.domain);
 
       if (candidates.length > 0) {
-        // Backlink enrichment is a nice-to-have (authority signal for the
-        // threat-assessment skill) — capped and best-effort, never fails
-        // the whole collection step over a secondary call.
         const toEnrich = candidates.slice(0, BACKLINK_ENRICHMENT_LIMIT);
         await Promise.all(toEnrich.map(async (candidate) => {
           try {
@@ -144,12 +87,6 @@ async function collectCompetitorCandidates(project, agencyId) {
   return candidates;
 }
 
-/**
- * Secondary data source — reuses the existing semrush.service.js singleton
- * (already used elsewhere for domain overviews) instead of adding a second
- * competitor-data integration. Only reached when DataForSEO isn't
- * configured or its competitor lookup failed.
- */
 async function collectFromSemrush(project, domain) {
   if (!process.env.SEMRUSH_API_KEY) return [];
 
@@ -174,14 +111,6 @@ async function collectFromSemrush(project, domain) {
   }
 }
 
-/**
- * Last-resort AI fallback for when neither DataForSEO nor Semrush is
- * available. Deliberately does not fabricate overlap/traffic/authority
- * numbers (same principle as keywordResearchAgent's generateAiKeywordSeeds)
- * — an AI guess at likely competitor domains is not measured data, so
- * metrics are left at 0 and dataSource is marked 'ai-estimate' so nothing
- * downstream mistakes these for real numbers.
- */
 async function generateAiCompetitorSeeds(project, workspaceId, domain) {
   const agentConfig = await agentLoader.resolve(AGENT_KEY);
   const skillsBlock = agentLoader.loadSkillsForAgent(agentConfig);
@@ -228,11 +157,6 @@ Respond ONLY with a JSON array of lowercase domain strings (no protocol, no path
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; scores threat level and
- * produces strengths/weaknesses/contentGaps per competitor, relative to the
- * tracked project. Guards against a hallucinated competitor domain that
- * wasn't in the candidate list.
- *
  * @param {Object} project
  * @param {Array} candidates - from collectCompetitorCandidates
  * @param {string} workspaceId
@@ -314,18 +238,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect + analyze + persist as 'Suggested'
- * WorkspaceCompetitor docs, serialized per-project through Execution Queue
- * (own key, distinct from the auditor/keyword-research agents' keys, so
- * they never block each other for the same project). Logs a run-level
- * execution entry (source: 'competitorAgent') alongside aiEngine's own
- * per-AI-call entries.
- *
- * Persists via bulk upsert that only sets `status: 'Suggested'` on INSERT
- * ($setOnInsert) — an existing competitor a human already Approved (or
- * Rejected) keeps that status even if the agent re-collects the same
- * domain on a later run; only its metrics/analysis refresh.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<{ candidateCount: number, suggestedCompetitors: Array, summary: string }>}
@@ -401,11 +313,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Suggested' competitors for this
- * project can move to 'Approved'; a bulk request may legitimately include a
- * mixed batch, so already-Approved/Rejected entries are silently left alone
- * by the query filter rather than erroring.
- *
  * @param {string} projectId
  * @param {string[]} competitorIds
  * @param {string} userId
@@ -428,12 +335,6 @@ async function approveCompetitors(projectId, competitorIds, userId) {
   return result;
 }
 
-/**
- * Human Approval Gate — reject path. Rejected competitors stay in the
- * collection (not deleted) — the unique projectId+domain index means a
- * future run's upsert only refreshes metrics/analysis on the same doc, it
- * never resets status back to 'Suggested'.
- */
 async function rejectCompetitors(projectId, competitorIds, userId, reason) {
   if (!Array.isArray(competitorIds) || competitorIds.length === 0) {
     throw new Error('At least one competitorId is required');
@@ -454,15 +355,6 @@ async function rejectCompetitors(projectId, competitorIds, userId, reason) {
   return result;
 }
 
-/**
- * Shared Memory write-side: when a competitor suggestion is rejected,
- * record why (if a reason was given) so future analysis prompts carry that
- * context — e.g. "not a genuine competitor, it's an industry directory".
- * Written on every rejection (not a repeat-count threshold like the keyword
- * agent's theme exclusion) because a rejected domain is an exact, unambiguous
- * identity, not a fuzzy grouping — one rejection is already a clear signal.
- * Best-effort — a memory-write failure must never break rejection.
- */
 async function recordExcludedCompetitorsIfAny(projectId, competitorIds, userId, reason) {
   try {
     const rejected = await WorkspaceCompetitor.find({ _id: { $in: competitorIds }, projectId }).lean();
@@ -489,10 +381,6 @@ async function recordExcludedCompetitorsIfAny(projectId, competitorIds, userId, 
 }
 
 /**
- * Own execution history, read-side. Same shape as the other two agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

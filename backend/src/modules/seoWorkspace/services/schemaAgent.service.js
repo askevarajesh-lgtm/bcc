@@ -1,52 +1,3 @@
-/**
- * Schema Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Same two-phase shape as the other five agents in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent,
- * technicalSeoAgent, contentAgent):
- *   1. collectPageSignals() – gathers OBJECTIVE per-page data via a light
- *      CrawlService pass (URL, title, meta description, H1, word count,
- *      indexability). No AI involved, no schema-type judgment made here —
- *      that classification requires semantic judgment and belongs in
- *      Phase 2, same reasoning competitorAgent/technicalSeoAgent use for
- *      keeping "judgment" out of their objective-collection phase.
- *   2. generateSchemaMarkup() – the actual "agent" step: an AI call with
- *      this agent's own prompt (schema-markup-generation +
- *      schema-validation skills) picks a page type per crawled page and
- *      produces JSON-LD structured data for it. The AI's own output is
- *      then run through validateSchemaMarkup() — a deterministic,
- *      code-level required/recommended-property check per @type — so a
- *      human reviewer isn't relying on the model's self-grading of its own
- *      markup. Results sit behind the same human-approval gate pattern as
- *      the other agents (WorkspaceSchemaMarkup.agent.approvalStatus)
- *      before any WorkspaceTask is generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - The page-signal pass reuses `CrawlService` (same one seoAuditorAgent/
- *     technicalSeoAgent/contentAgent already use) rather than writing a
- *     second crawler — a small page limit, since this agent only needs
- *     title/meta/H1/word-count per page, not a full content crawl.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue under a distinct key so a schema-agent run never
- *     blocks (or is blocked by) the other five agents for the same
- *     project.
- *   - Shared memory: recalled before generation (so a prior "this site has
- *     no physical location, never propose LocalBusiness" note steers the
- *     AI away from repeating a rejected type); written to when a page's
- *     schema is rejected, same pattern as competitorAgent's
- *     recordExcludedCompetitorsIfAny.
- *   - Approved pages generate WorkspaceTask entries using the existing
- *     taskType enum's 'Schema Injection' value — no schema change to
- *     WorkspaceTask.
- *   - Persists its own run output to a new `WorkspaceSchemaMarkup` model —
- *     see that file's header for why this isn't folded into an existing
- *     collection.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceSchemaMarkup = require('../models/workspaceSchemaMarkup.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
@@ -70,12 +21,6 @@ const VALID_PAGE_TYPES = [
 ];
 const SCHEMA_CRAWL_PAGE_LIMIT = 15; // small, targeted pass — not a full content crawl
 const MAX_PAGES_PER_RUN = 10; // cap how many pages get an AI-generated schema per run
-
-// --- Validation (deterministic, code-level — NOT AI self-grading) -------
-//
-// Mirrors the schema-validation skill's required/recommended property
-// tables. Kept as plain data + a small walker so it's easy to extend if a
-// new @type is added later without touching the traversal logic.
 
 const REQUIRED_PROPS = {
   Article: ['headline', 'image'],
@@ -195,12 +140,6 @@ function validateNode(node) {
 }
 
 /**
- * Deterministic validation entry point — walks every node in the JSON-LD
- * (a single object, or an `@graph` array of nodes) and aggregates errors/
- * warnings/rich-result eligibility across all of them. This is what the
- * Human Approval Gate's reviewer sees; it is never derived from the AI's
- * own claims about its output.
- *
  * @param {Object} jsonLd
  * @returns {{ isValid: boolean, errors: string[], warnings: string[], richResultEligibility: string[] }}
  */
@@ -231,10 +170,6 @@ function validateSchemaMarkup(jsonLd) {
 }
 
 /**
- * Phase 1: objective page-signal collection. No AI involved, no schema
- * type judgment made — every field is either directly measured by the
- * crawl or left at a neutral default (never fabricated).
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<{ pages: Array, dataSource: string }>}
  */
@@ -262,11 +197,6 @@ async function collectPageSignals(project) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; picks a page type per
- * crawled page and produces JSON-LD for it, then runs every returned
- * payload through validateSchemaMarkup(). Guards against a hallucinated
- * pageUrl or pageType outside what was actually provided/allowed.
- *
  * @param {Object} project
  * @param {Array} pages - from collectPageSignals
  * @param {string} workspaceId
@@ -344,12 +274,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WorkspaceSchemaMarkup document with approvalStatus 'Pending Approval'
- * (or 'Not Requested' if no pages were generated). Serialized per-project
- * through Execution Queue under its own key, distinct from the other five
- * agents' keys.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the saved WorkspaceSchemaMarkup document
@@ -402,14 +326,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for
- * this project can be approved. Generates one WorkspaceTask per generated
- * page (taskType 'Schema Injection'), same threshold-free approach as
- * contentAgent (every generated page needs the schema injected — there is
- * no severity axis to filter on the way technicalSeoAgent does).
- * Validation errors/warnings are carried into the task description so the
- * implementer knows whether the JSON-LD needs a fix before it ships.
- *
  * @param {string} markupId
  * @param {string} projectId
  * @param {string} userId
@@ -477,14 +393,6 @@ async function rejectSchemaMarkup(markupId, projectId, userId, reason) {
   return markup;
 }
 
-/**
- * Shared Memory write-side: when a run's schema is rejected, record why
- * (if a reason was given) per page, so future generation prompts carry
- * that context — e.g. "don't propose LocalBusiness for this site, it has
- * no physical location". Best-effort — a memory-write failure must never
- * break rejection. Same pattern as competitorAgent's
- * recordExcludedCompetitorsIfAny.
- */
 async function recordExcludedPagesIfAny(markup, projectId, userId, reason) {
   try {
     const pages = markup.agent?.pages || [];
@@ -511,10 +419,6 @@ async function recordExcludedPagesIfAny(markup, projectId, userId, reason) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other five agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

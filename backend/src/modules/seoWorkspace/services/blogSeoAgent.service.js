@@ -1,94 +1,3 @@
-/**
- * Blog SEO Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * A tenth agent alongside the nine already in this module (seoAuditorAgent,
- * keywordResearchAgent, competitorAgent, technicalSeoAgent, contentAgent,
- * schemaAgent, internalLinkingAgent, imageSeoAgent, websiteBuilderSeoAgent)
- * — closest in shape to `websiteBuilderSeoAgent.service.js`, but a
- * deliberately different target: this agent analyzes a `BlogPost` document
- * directly (`modules/blogs/blog-post.model.js`), not a crawlable
- * `WorkspaceProject` domain and not a Website Builder `Page`. Blog posts are
- * frequently still `draft` and have their own dedicated SEO fields
- * (`metaTitle`, `metaDescription`, `excerpt`) that neither
- * `technicalSeoAgent`/`seoAuditorAgent` (crawl-based) nor
- * `websiteBuilderSeoAgent` (Page-based) ever look at.
- *
- * Same two-phase shape as the other nine agents:
- *   1. collectBlogPostSeoSignals() – gathers OBJECTIVE metadata/structure
- *      signals for one BlogPost: its metaTitle/metaDescription/excerpt,
- *      its heading sequence and H1 count (parsed out of `post.html`), its
- *      visible word count, and — via a plain deterministic comparison
- *      against this post's sibling posts in the same blog — whether its
- *      metaTitle/metaDescription duplicates another post's. Every flag is a
- *      deterministic, code-level check; no AI involved, same "objective
- *      phase" discipline the other agents' Phase 1 already follows.
- *   2. generateBlogSeoFindings() – the actual "agent" step: an AI call with
- *      this agent's own prompt (reusing the builder-onpage-metadata-
- *      optimization + builder-heading-structure-audit skills — see reuse
- *      note below) proposes a new metaTitle/metaDescription/excerpt for
- *      metadata findings and a short rationale for structural findings,
- *      restricted to only the finding types Phase 1 actually flagged for
- *      this post. Every returned finding is then run through deterministic,
- *      code-level validation (findingType must be one Phase 1 actually
- *      flagged, proposed value length + no duplication of the current bad
- *      value, no metadata value proposed for a structural-only finding
- *      type) so a human reviewer isn't relying on the model's self-grading
- *      of its own output. Results sit behind the same human-approval gate
- *      pattern as the other agents (WorkspaceBlogSeo.agent.approvalStatus)
- *      before any task is generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution) —
- *     the exact same generic infra the other nine agents use.
- *   - Heading/word-count parsing reuses `cheerio` (already a dependency,
- *     the same library `websiteBuilderSeoAgent.service.js`'s
- *     parseBodySignals already uses on `page.html`) against `post.html` —
- *     not a second HTML parser.
- *   - Prompt skills: reuses `builder-onpage-metadata-optimization` and
- *     `builder-heading-structure-audit` (see `skillLoader.service.js`)
- *     rather than writing near-duplicate skill files — the underlying
- *     methodology (title/meta-description length rules, heading-structure
- *     fixes) is the same regardless of whether the on-page metadata being
- *     optimized lives on a Website Builder page or a blog post; only the
- *     objective input shape differs, which is exactly what Phase 1/Phase 2
- *     of this file (not the skill content) is responsible for.
- *   - Runs for the same post are serialized through aiCore's executionQueue
- *     under a distinct key so a run never blocks (or is blocked by) the
- *     other nine agents, or another run for a different post.
- *   - Shared memory: recalled before generation (so a prior "don't touch
- *     this post's title again, legal signed off on it" note steers the AI
- *     away from repeating a rejected suggestion); written to when a run's
- *     findings are rejected — same pattern as
- *     websiteBuilderSeoAgent.recordRejectedFindingsIfAny /
- *     imageSeoAgent.recordExcludedImagesIfAny. Scoped by `agencyId`
- *     (required by `WorkspaceMemory`) with this post's *blog* id passed as
- *     the memory's `projectId` field — that field is a loose, unenforced
- *     ref used purely for filtering (see sharedMemory.service.js — recall()
- *     never populates it), same safe reuse websiteBuilderSeoAgent already
- *     relies on for its websiteId.
- *   - Persists its own run output to a new `WorkspaceBlogSeo` model — see
- *     that file's header for why this isn't folded into an existing
- *     collection, and why it does NOT depend on `WorkspaceProject`/
- *     `WorkspaceTask`/`WorkspaceAuditLog` the way the crawl-based agents'
- *     persistence does.
- *   - Approved findings generate embedded, self-contained task entries on
- *     the same run document (`agent.generatedTasks`) rather than
- *     `WorkspaceTask` rows — see the model header. Nothing is
- *     auto-applied to the live BlogPost document; a human still has to take
- *     the approved recommendation and apply it via the existing
- *     `updatePost` endpoint (`modules/blogs/blog.controller.js`), same
- *     "approval creates the work item, a separate step implements it" shape
- *     the other agents already use.
- *   - Logs via `aiCore/logger.service.js#info`/`#warn` rather than
- *     `seoWorkspace/services/auditLog.service.js`, because that service's
- *     target model (`WorkspaceAuditLog`) requires a real `WorkspaceProject`
- *     `projectId` — this agent intentionally has none (see model header).
- *     Same choice `websiteBuilderSeoAgent.service.js` already made.
- */
 const cheerio = require('cheerio');
 const Blog = require('../../blogs/blog.model');
 const BlogPost = require('../../blogs/blog-post.model');
@@ -109,16 +18,12 @@ const VALID_FINDING_TYPES = [
   'missing_h1', 'multiple_h1', 'skipped_heading_level', 'thin_content', 'missing_excerpt'
 ];
 
-// Finding types the AI may fill in an actual proposedValue for — everything
-// else is structural/advisory-only (rationale text, empty proposedValue).
 const METADATA_FINDING_TYPES = new Set([
   'missing_title', 'title_too_short', 'title_too_long', 'duplicate_title',
   'missing_meta_description', 'meta_description_too_short', 'meta_description_too_long', 'duplicate_meta_description',
   'missing_excerpt'
 ]);
 
-// Deterministic severity per finding type — never AI-assigned, same
-// objective-phase discipline as websiteBuilderSeoAgent's severity handling.
 const SEVERITY_BY_FINDING_TYPE = {
   missing_title: 'high',
   missing_meta_description: 'high',
@@ -145,13 +50,6 @@ const MAX_SIBLING_POSTS_SCANNED = 200; // a single blog's post list — not a cr
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
-/**
- * Deterministic length/format validation for an AI-proposed metaTitle or
- * metaDescription value. Same discipline as
- * websiteBuilderSeoAgent.validateTitleValue/validateMetaDescriptionValue —
- * this is what the human reviewer sees, never derived from the AI's own
- * claims about its output.
- */
 function validateTitleValue(value, currentValue) {
   const errors = [];
   const trimmed = (value || '').trim();
@@ -190,8 +88,6 @@ function validateFinding(finding, candidate) {
     return validateExcerptValue(finding.proposedValue, candidate.currentExcerpt);
   }
   if (!METADATA_FINDING_TYPES.has(finding.findingType)) {
-    // Structural finding — advisory rationale only, no value to validate
-    // beyond "did the model actually say something".
     return (finding.rationale || '').trim() ? [] : ['Missing rationale for structural finding'];
   }
   if (finding.findingType.startsWith('title') || finding.findingType === 'duplicate_title') {
@@ -200,13 +96,6 @@ function validateFinding(finding, candidate) {
   return validateMetaDescriptionValue(finding.proposedValue, candidate.currentMetaDescription, finding.findingType.startsWith('meta') ? candidate.currentMetaTitle : null);
 }
 
-/**
- * Parses heading sequence, H1 texts, and visible word count out of
- * `post.html` — the actual GrapesJS-authored post canvas markup. Falls back
- * to `post.content` (plain body copy some posts use instead of/alongside
- * `html`) for word count only, when `html` is empty, so a post that only
- * ever used the plain content field isn't wrongly flagged as zero-length.
- */
 function parseBodySignals(html, plainContent) {
   const result = { h1Texts: [], headingSequence: [], wordCount: 0 };
   if (html) {
@@ -247,12 +136,6 @@ function headingSequenceSkipsLevel(headingSequence) {
 }
 
 /**
- * Phase 1: objective metadata + structure signal collection for one
- * BlogPost. No AI involved — every field is either directly read off
- * `post.metaTitle`/`post.metaDescription`/`post.excerpt`/`post.html`, or a
- * plain string-equality comparison against this post's sibling posts in the
- * same blog, never AI-guessed.
- *
  * @param {Object} post - a BlogPost document
  * @param {Object} blog - the owning Blog document
  * @returns {Promise<Object>} signals matching WorkspaceBlogSeo.inputs
@@ -299,12 +182,6 @@ async function collectBlogPostSeoSignals(post, blog) {
   };
 }
 
-/**
- * Builds the eligible finding-type list purely from Phase 1's deterministic
- * signals — the hallucination guard Phase 2's prompt (and its later
- * validation) is restricted to, same "only propose for what was actually
- * measured" discipline as websiteBuilderSeoAgent's equivalent step.
- */
 function buildEligibleFindingTypes(signals) {
   const eligible = [];
 
@@ -328,12 +205,6 @@ function buildEligibleFindingTypes(signals) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; proposes a new
- * metaTitle/metaDescription/excerpt for metadata findings and a short
- * rationale for structural findings, restricted to only the finding types
- * Phase 1 flagged. Every returned finding is then run through deterministic
- * validation.
- *
  * @param {Object} blog
  * @param {Object} post
  * @param {Object} signals - from collectBlogPostSeoSignals
@@ -431,12 +302,6 @@ One finding object per eligible finding type. Respond ONLY with valid JSON, no m
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WorkspaceBlogSeo document with approvalStatus 'Pending Approval' (or
- * 'Not Requested' if no findings were generated). Serialized per-post
- * through Execution Queue under its own key, distinct from the other nine
- * agents' keys.
- *
  * @param {string} postId
  * @param {string} blogId
  * @param {string} [workspaceId]
@@ -494,12 +359,6 @@ async function run(postId, blogId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for this
- * post can be approved. Generates one embedded task per valid finding (see
- * model header for why these are embedded, not `WorkspaceTask` rows) —
- * invalid findings are surfaced for manual review instead of silently
- * turned into a task.
- *
  * @param {string} runId
  * @param {string} postId
  * @param {string} userId
@@ -563,15 +422,6 @@ async function rejectFindings(runId, postId, userId, reason) {
   return run;
 }
 
-/**
- * Shared Memory write-side: when a run's findings are rejected, record why
- * (if a reason was given) per finding, so future generation prompts carry
- * that context — e.g. "don't touch this post's title again, legal signed
- * off on it". Best-effort — a memory-write failure must never break
- * rejection. Same pattern as
- * websiteBuilderSeoAgent.recordRejectedFindingsIfAny /
- * imageSeoAgent.recordExcludedImagesIfAny.
- */
 async function recordRejectedFindingsIfAny(run, userId, reason) {
   try {
     const findings = run.agent?.findings || [];
@@ -597,13 +447,6 @@ async function recordRejectedFindingsIfAny(run, userId, reason) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other nine agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries. Uses `postId` as
- * the lookup key against ExecutionLog's `projectId` field — that field is a
- * loose, unenforced ObjectId (see logExecution's usage above), same safe
- * reuse websiteBuilderSeoAgent already relies on for its pageId.
- *
  * @param {string} postId
  * @param {number} [limit=20]
  */

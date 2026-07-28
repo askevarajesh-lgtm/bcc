@@ -23,8 +23,6 @@ const WorkspaceStrategySchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // Additive field for Gate 1 (Strategy Approval): optional reason captured
-  // when a reviewer rejects a strategy instead of approving it.
   rejectionReason: {
     type: String,
     default: null

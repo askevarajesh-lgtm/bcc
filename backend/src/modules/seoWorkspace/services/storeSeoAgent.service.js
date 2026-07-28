@@ -1,112 +1,3 @@
-/**
- * Store SEO Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * An eleventh agent alongside the ten already in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent, technicalSeoAgent,
- * contentAgent, schemaAgent, internalLinkingAgent, imageSeoAgent,
- * websiteBuilderSeoAgent, blogSeoAgent) — closest in shape to
- * `websiteBuilderSeoAgent.service.js`/`blogSeoAgent.service.js`, but a
- * deliberately different target and a narrower signal set: this agent
- * analyzes a `Store` document directly (`modules/stores/store.model.js`),
- * not a crawlable `WorkspaceProject` domain, a Website Builder `Page`, or a
- * `BlogPost`.
- *
- * The Store/Product/StoreCollection/StorePage schemas in this codebase
- * today do NOT carry a per-product or per-page `metaTitle`/`metaDescription`
- * (see `product.model.js` — just `name`/`price`/`stock`/`images`; and
- * `store-page.model.js` — just `pageName`/`slug`/`type`/`layoutJson`, no
- * head/meta fields). Only the `Store` document itself has genuinely
- * SEO-relevant fields today: `seoTitle`, `seoDescription`, `ogImageUrl`,
- * `faviconUrl`. Rather than inventing new schema fields on Product/StorePage
- * to give this agent something page-level to analyze (which would be
- * fabricating data model surface area to fit the agent, not reusing what's
- * there — the exact anti-pattern this module's other agents' headers warn
- * against), this agent analyzes storefront-wide SEO signals: the Store's own
- * metadata fields, plus deterministic, code-level catalog-completeness
- * counts against the store's existing `Product` documents (missing images,
- * thin catalog) that are already visible in the schema as it stands. If
- * per-product/per-page metadata fields are added to those schemas later,
- * this agent is the natural place to extend with per-entity findings the
- * same way `blogSeoAgent`/`websiteBuilderSeoAgent` do per-post/per-page —
- * out of scope for this pass.
- *
- * Same two-phase shape as the other ten agents:
- *   1. collectStoreSeoSignals() – gathers OBJECTIVE metadata/catalog signals
- *      for one Store: its seoTitle/seoDescription/ogImageUrl/faviconUrl, and
- *      — via plain deterministic `Product.countDocuments` queries against
- *      this store's own products — its total active product count and how
- *      many of those products have an empty `images` array. No AI involved;
- *      every flag is a deterministic, code-level check, same "objective
- *      phase" discipline the other agents' Phase 1 already follows.
- *   2. generateStoreSeoFindings() – the actual "agent" step: an AI call with
- *      this agent's own prompt (reusing the
- *      builder-onpage-metadata-optimization + technical-infrastructure-audit
- *      skills — see reuse note below) proposes a new seoTitle/seoDescription
- *      for metadata findings and a short rationale for the storefront-
- *      completeness findings (missing OG image, missing favicon, thin
- *      catalog, products missing images), restricted to only the finding
- *      types Phase 1 actually flagged. Every returned finding is then run
- *      through deterministic, code-level validation (findingType must be
- *      one Phase 1 actually flagged, proposed value length + no duplication
- *      of the current bad value, no metadata value proposed for a
- *      structural-only finding type) so a human reviewer isn't relying on
- *      the model's self-grading of its own output. Results sit behind the
- *      same human-approval gate pattern as the other agents
- *      (WorkspaceStoreSeo.agent.approvalStatus) before any task is generated
- *      from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution) —
- *     the exact same generic infra the other ten agents use.
- *   - Product catalog counts reuse the existing `Product` model
- *     (`modules/stores/product.model.js`) via plain `countDocuments`
- *     queries — no second product-aggregation service.
- *   - Prompt skills: reuses `builder-onpage-metadata-optimization` (same
- *     title/meta-description length-and-groundedness methodology
- *     `blogSeoAgent`/`websiteBuilderSeoAgent` already reuse — a storefront's
- *     SEO title/description follows the exact same rules as a page's) and
- *     `technical-infrastructure-audit` (its "only report on a category if
- *     the input actually contains a signal for it; never invent a finding"
- *     discipline is exactly the guardrail needed for the storefront-
- *     completeness findings — og:image/favicon are literally `<head>`-level
- *     technical signals, and this skill already covers that territory)
- *     rather than writing near-duplicate skill files.
- *   - Runs for the same store are serialized through aiCore's
- *     executionQueue under a distinct key so a run never blocks (or is
- *     blocked by) the other ten agents, or another run for a different
- *     store.
- *   - Shared memory: recalled before generation (so a prior "don't touch
- *     this store's SEO title again, marketing signed off on it" note steers
- *     the AI away from repeating a rejected suggestion); written to when a
- *     run's findings are rejected — same pattern as
- *     blogSeoAgent.recordRejectedFindingsIfAny /
- *     websiteBuilderSeoAgent.recordRejectedFindingsIfAny. Scoped by
- *     `agencyId` (required by `WorkspaceMemory`) with this store's own id
- *     passed as the memory's `projectId` field — that field is a loose,
- *     unenforced ref used purely for filtering (see
- *     sharedMemory.service.js — recall() never populates it), same safe
- *     reuse the other two content-target agents already rely on.
- *   - Persists its own run output to a new `WorkspaceStoreSeo` model — see
- *     that file's header for why this isn't folded into an existing
- *     collection, and why it does NOT depend on `WorkspaceProject`/
- *     `WorkspaceTask`/`WorkspaceAuditLog` the way the crawl-based agents'
- *     persistence does.
- *   - Approved findings generate embedded, self-contained task entries on
- *     the same run document (`agent.generatedTasks`) rather than
- *     `WorkspaceTask` rows — see the model header. Nothing is
- *     auto-applied to the live Store document; a human still has to take
- *     the approved recommendation and apply it via the existing
- *     `updateStore` endpoint (`modules/stores/store.controller.js`), same
- *     "approval creates the work item, a separate step implements it" shape
- *     the other agents already use.
- *   - Logs via `aiCore/logger.service.js#info`/`#warn` rather than
- *     `seoWorkspace/services/auditLog.service.js`, for the same reason
- *     `websiteBuilderSeoAgent`/`blogSeoAgent` already do — see model header.
- */
 const Store = require('../../stores/store.model');
 const Product = require('../../stores/product.model');
 const WorkspaceStoreSeo = require('../models/storeSeo.model');
@@ -126,15 +17,11 @@ const VALID_FINDING_TYPES = [
   'missing_og_image', 'missing_favicon', 'thin_catalog', 'products_missing_images'
 ];
 
-// Finding types the AI may fill in an actual proposedValue for — everything
-// else is structural/advisory-only (rationale text, empty proposedValue).
 const METADATA_FINDING_TYPES = new Set([
   'missing_seo_title', 'seo_title_too_short', 'seo_title_too_long',
   'missing_seo_description', 'seo_description_too_short', 'seo_description_too_long'
 ]);
 
-// Deterministic severity per finding type — never AI-assigned, same
-// objective-phase discipline as the other agents' severity handling.
 const SEVERITY_BY_FINDING_TYPE = {
   missing_seo_title: 'high',
   missing_seo_description: 'high',
@@ -154,13 +41,6 @@ const META_DESCRIPTION_MIN_LENGTH = 70;
 const META_DESCRIPTION_MAX_LENGTH = 160;
 const THIN_CATALOG_PRODUCT_THRESHOLD = 4; // fewer than this many live products is a thin, low-signal catalog
 
-/**
- * Deterministic length/format validation for an AI-proposed seoTitle or
- * seoDescription value. Same discipline as
- * blogSeoAgent.validateTitleValue/validateMetaDescriptionValue — this is
- * what the human reviewer sees, never derived from the AI's own claims
- * about its output.
- */
 function validateTitleValue(value, currentValue) {
   const errors = [];
   const trimmed = (value || '').trim();
@@ -187,8 +67,6 @@ function validateDescriptionValue(value, currentValue, titleValue) {
 
 function validateFinding(finding, candidate) {
   if (!METADATA_FINDING_TYPES.has(finding.findingType)) {
-    // Structural/storefront-completeness finding — advisory rationale only,
-    // no value to validate beyond "did the model actually say something".
     return (finding.rationale || '').trim() ? [] : ['Missing rationale for structural finding'];
   }
   if (finding.findingType.startsWith('missing_seo_title') || finding.findingType.startsWith('seo_title')) {
@@ -198,12 +76,6 @@ function validateFinding(finding, candidate) {
 }
 
 /**
- * Phase 1: objective metadata + catalog-completeness signal collection for
- * one Store. No AI involved — every field is either directly read off
- * `store.seoTitle`/`store.seoDescription`/`store.ogImageUrl`/
- * `store.faviconUrl`, or a plain `Product.countDocuments` query against this
- * store's own products, never AI-guessed.
- *
  * @param {Object} store - a Store document
  * @returns {Promise<Object>} signals matching WorkspaceStoreSeo.inputs
  */
@@ -229,12 +101,6 @@ async function collectStoreSeoSignals(store) {
   };
 }
 
-/**
- * Builds the eligible finding-type list purely from Phase 1's deterministic
- * signals — the hallucination guard Phase 2's prompt (and its later
- * validation) is restricted to, same "only propose for what was actually
- * measured" discipline as the other agents' equivalent step.
- */
 function buildEligibleFindingTypes(signals) {
   const eligible = [];
 
@@ -255,12 +121,6 @@ function buildEligibleFindingTypes(signals) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; proposes a new
- * seoTitle/seoDescription for metadata findings and a short rationale for
- * storefront-completeness findings, restricted to only the finding types
- * Phase 1 flagged. Every returned finding is then run through deterministic
- * validation.
- *
  * @param {Object} store
  * @param {Object} signals - from collectStoreSeoSignals
  * @param {string} workspaceId
@@ -353,12 +213,6 @@ One finding object per eligible finding type. Respond ONLY with valid JSON, no m
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WorkspaceStoreSeo document with approvalStatus 'Pending Approval' (or
- * 'Not Requested' if no findings were generated). Serialized per-store
- * through Execution Queue under its own key, distinct from the other ten
- * agents' keys.
- *
  * @param {string} storeId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the saved WorkspaceStoreSeo document
@@ -411,12 +265,6 @@ async function run(storeId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for this
- * store can be approved. Generates one embedded task per valid finding (see
- * model header for why these are embedded, not `WorkspaceTask` rows) —
- * invalid findings are surfaced for manual review instead of silently
- * turned into a task.
- *
  * @param {string} runId
  * @param {string} storeId
  * @param {string} userId
@@ -481,14 +329,6 @@ async function rejectFindings(runId, storeId, userId, reason) {
   return run;
 }
 
-/**
- * Shared Memory write-side: when a run's findings are rejected, record why
- * (if a reason was given) per finding, so future generation prompts carry
- * that context — e.g. "don't touch this store's SEO title again, marketing
- * signed off on it". Best-effort — a memory-write failure must never break
- * rejection. Same pattern as blogSeoAgent.recordRejectedFindingsIfAny /
- * websiteBuilderSeoAgent.recordRejectedFindingsIfAny.
- */
 async function recordRejectedFindingsIfAny(run, userId, reason) {
   try {
     const findings = run.agent?.findings || [];
@@ -514,14 +354,6 @@ async function recordRejectedFindingsIfAny(run, userId, reason) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other ten agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries. Uses `storeId` as
- * the lookup key against ExecutionLog's `projectId` field — that field is a
- * loose, unenforced ObjectId (see logExecution's usage above), same safe
- * reuse blogSeoAgent/websiteBuilderSeoAgent already rely on for their
- * postId/pageId.
- *
  * @param {string} storeId
  * @param {number} [limit=20]
  */

@@ -1,45 +1,3 @@
-/**
- * Keyword Research Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Mirrors the same two-phase shape as seoAuditorAgent.service.js:
- *   1. collectKeywordCandidates() – gathers objective keyword data
- *      (DataForSEO keyword suggestions/ideas + difficulty), falling back to
- *      AI-generated seed keywords only when DataForSEO isn't configured or
- *      fails.
- *   2. analyzeAndSuggest()        – the actual "agent" step: an AI call
- *      with this agent's own prompt selects and scores the best subset,
- *      with a rationale and theme per keyword. Suggestions sit behind a
- *      human-approval gate (WorkspaceKeyword.status) before they count as
- *      actively tracked — mirroring the SEO Auditor's Gate pattern, applied
- *      here to keyword suggestions instead of audit findings.
- *
- * Relationship to the existing orchestrator:
- *   workspaceAgentOrchestrator.service.js already has its own inline
- *   keyword-fetching step (getRankedKeywords, with an AI-seed fallback).
- *   That step answers "what is this domain already ranking for" — it's
- *   rank tracking, not research. It's also the only place in the codebase
- *   currently generating keyword search-volume data via AI, and it presents
- *   a fabricated random number (`Math.random() * 5000 + 100`) as if it
- *   were a real search-volume metric. This agent does not touch or replace
- *   that code (out of scope for this pass — the instructions call for
- *   waiting for approval before further phases), but its own AI fallback
- *   deliberately does NOT invent numbers; see generateAiKeywordSeeds below.
- *
- * Reuse decisions (same as seoAuditorAgent.service.js):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - Raw DataForSEO calls are wrapped with aiCore's retry.service directly.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue.
- *   - Shared memory: recalled before analysis (prior approved keyword
- *     themes, do-not-target rules); written to when a keyword theme is
- *     rejected repeatedly, so future runs stop re-suggesting it.
- *   - Suggestions reuse the existing WorkspaceKeyword model/collection —
- *     no new schema — via the additive `source`/`status`/`agent` fields.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 const dataForSeoService = require('../../seoIntelligence/dataForSeo.service');
@@ -62,10 +20,6 @@ const DEFAULT_LOCATION_CODE = 2840; // US, matches WorkspaceKeyword's own defaul
 const DEFAULT_LANGUAGE_CODE = 'en';
 
 /**
- * Phase 1: objective keyword data collection. No AI involved unless
- * DataForSEO is unavailable, in which case it falls back to AI-generated
- * seed keywords (see generateAiKeywordSeeds).
- *
  * @param {Object} project - a WorkspaceProject document
  * @param {string} agencyId
  * @param {string} [seedKeyword] - explicit seed; defaults to the project's name
@@ -122,9 +76,6 @@ async function collectKeywordCandidates(project, agencyId, seedKeyword) {
             keywordDifficulty: difficultyMap.get(c.keyword.toLowerCase()) || 0
           }));
         } catch (difficultyError) {
-          // Difficulty enrichment is a nice-to-have, not essential — keep
-          // the candidates with keywordDifficulty: 0 rather than failing
-          // the whole run over a secondary call.
           logger.warn(TAG, `getKeywordDifficulty failed, continuing without it: ${difficultyError.message}`, { projectId: project._id });
         }
       }
@@ -148,13 +99,6 @@ async function collectKeywordCandidates(project, agencyId, seedKeyword) {
   return candidates;
 }
 
-/**
- * AI fallback for when DataForSEO is unavailable. Deliberately does not
- * fabricate search-volume/difficulty numbers (unlike the existing
- * orchestrator's equivalent fallback) — an AI guess at good keyword terms
- * is not the same as measured search data, and metrics are left at 0/
- * 'unknown' so nothing downstream mistakes them for real numbers.
- */
 async function generateAiKeywordSeeds(project, workspaceId, seed) {
   const agentConfig = await agentLoader.resolve(AGENT_KEY);
   const skillsBlock = agentLoader.loadSkillsForAgent(agentConfig);
@@ -189,10 +133,6 @@ Respond ONLY with a JSON array of 20 lowercase keyword strings, nothing else. No
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; selects and scores the best
- * subset of candidates, with a rationale and theme per keyword. Guards
- * against a hallucinated keyword that wasn't in the candidate list.
- *
  * @param {Object} project
  * @param {Array} candidates - from collectKeywordCandidates
  * @param {string} workspaceId
@@ -266,16 +206,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect + analyze + persist as 'Suggested' WorkspaceKeyword
- * docs, serialized per-project through Execution Queue. Logs a run-level
- * execution entry (source: 'keywordResearchAgent') alongside aiEngine's own
- * per-AI-call entries.
- *
- * Persists via bulk upsert that only sets `status: 'Suggested'` on INSERT
- * ($setOnInsert) — an existing keyword that a human already Approved (or
- * Rejected) keeps that status even if the agent re-suggests the same term
- * on a later run; only its metrics/rationale refresh.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @param {Object} [options]
@@ -355,11 +285,6 @@ async function run(projectId, workspaceId, options = {}) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Suggested' keywords for this
- * project can move to 'Approved'; already-Approved/Rejected keywords in the
- * same request are silently left alone by the query filter, not errored on,
- * since a bulk approval request may legitimately include a mixed batch.
- *
  * @param {string} projectId
  * @param {string[]} keywordIds
  * @param {string} userId
@@ -382,11 +307,6 @@ async function approveKeywords(projectId, keywordIds, userId) {
   return result;
 }
 
-/**
- * Human Approval Gate — reject path. Rejected keywords stay in the
- * collection (not deleted) so recordExcludedThemesIfRepeated can detect a
- * theme being rejected across multiple runs and stop re-suggesting it.
- */
 async function rejectKeywords(projectId, keywordIds, userId, reason) {
   if (!Array.isArray(keywordIds) || keywordIds.length === 0) {
     throw new Error('At least one keywordId is required');
@@ -407,12 +327,6 @@ async function rejectKeywords(projectId, keywordIds, userId, reason) {
   return result;
 }
 
-/**
- * Shared Memory write-side: if a rejected keyword's theme has now been
- * rejected 2+ times total for this project, record it as an
- * excluded_keyword_theme so future runs' recall() steers away from it.
- * Best-effort — a memory-write failure must never break rejection.
- */
 async function recordExcludedThemesIfRepeated(projectId, keywordIds, userId) {
   try {
     const rejected = await WorkspaceKeyword.find({ _id: { $in: keywordIds }, projectId }).lean();
@@ -444,10 +358,6 @@ async function recordExcludedThemesIfRepeated(projectId, keywordIds, userId) {
 }
 
 /**
- * Own execution history, read-side. Same shape as seoAuditorAgent's
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

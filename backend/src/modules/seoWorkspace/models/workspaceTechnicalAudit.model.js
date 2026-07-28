@@ -1,51 +1,10 @@
 const mongoose = require('mongoose');
-
-/**
- * Technical SEO Agent's own persisted run output.
- *
- * Why a new collection instead of reusing `workspaceAudit.model.js`
- * (`WorkspaceAudit`), even though that schema is generic enough (free-text
- * `findings.category`, an `agent.agentKey` reference field) to technically
- * hold this agent's output too:
- *
- *   - `workspaceAgentOrchestrator.service.js` does
- *     `WorkspaceAudit.findOne({ projectId }).sort({ createdAt: -1 })` with no
- *     agentKey filter, and reads `audit.metrics.pagesCrawled` /
- *     `audit.metrics.onPage` straight off whatever it gets back.
- *   - `workspaceCron.service.js`'s scheduled-report diff takes the latest 2
- *     `WorkspaceAudit` docs for a project and diffs `metrics.performance` /
- *     `onPage` / `crawlability` / `overall` between them, assuming both are
- *     seo-auditor runs of the same shape and cadence.
- *   - `seoWorkspace.controller.js#getAudits` lists every `WorkspaceAudit` for
- *     a project for the existing frontend Audits view.
- *
- * Interleaving Technical SEO Agent runs into that same collection wouldn't
- * crash any of the above (the schema would accept it), but it would silently
- * corrupt them: a "latest audit" could be a technical-only run with no
- * `onPage`/content metrics, the scheduled-report diff would compare a
- * technical run against a content run instead of like-for-like, and the
- * existing Audits UI would render a document shape it wasn't built for. That
- * is exactly the kind of break rule 6 (never break existing functionality)
- * rules out — so this agent gets its own collection, the same call made for
- * `WorkspaceCompetitor` when no existing model fit at all. Here the model
- * would technically "fit"; the read-side blast radius is why it's still
- * kept separate.
- *
- * Shape deliberately mirrors `WorkspaceAudit`'s `agent` sub-schema
- * (summary/findings/approvalStatus/approvedBy/approvedAt/rejectionReason/
- * generatedTaskIds) so the approval-gate and task-generation code in
- * `technicalSeoAgent.service.js` reads the same as the other three agents —
- * consistency of pattern, without sharing the collection.
- */
 const WorkspaceTechnicalAuditSchema = new mongoose.Schema({
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceProject', required: true, index: true },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
   status: { type: String, enum: ['pending', 'in_progress', 'completed', 'failed'], default: 'pending' },
 
-  // Objective signals collected in Phase 1 (collectTechnicalSignals) — kept
-  // alongside the analyzed findings so a human/agent can see exactly what
-  // raw data the AI's findings were grounded in.
   signals: {
     robotsTxt: {
       exists: { type: Boolean, default: false },
@@ -70,7 +29,6 @@ const WorkspaceTechnicalAuditSchema = new mongoose.Schema({
       canonicalCrossDomain: { type: Number, default: 0 }
     },
     coreWebVitals: {
-      // null when no page-speed provider is configured — never fabricated
       desktop: { type: mongoose.Schema.Types.Mixed, default: null },
       mobile: { type: mongoose.Schema.Types.Mixed, default: null }
     },
@@ -99,8 +57,6 @@ const WorkspaceTechnicalAuditSchema = new mongoose.Schema({
       severity: { type: String, enum: ['critical', 'high', 'medium', 'low'], default: 'medium' },
       issue: { type: String, required: true },
       recommendation: { type: String, default: '' },
-      // Reuses the exact taskType enum WorkspaceTask already validates
-      // against — no schema change to that model needed.
       taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'], default: 'Content Edit' },
       pageUrl: { type: String, default: null }
     }],

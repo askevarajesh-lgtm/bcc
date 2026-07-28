@@ -17,7 +17,7 @@ const WorkspaceTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization'],
+    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization', 'AEO Optimization'],
     required: true
   },
   description: {

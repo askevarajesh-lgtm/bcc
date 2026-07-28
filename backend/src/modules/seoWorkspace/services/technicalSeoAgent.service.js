@@ -1,60 +1,3 @@
-/**
- * Technical SEO Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Same two-phase shape as the other three agents in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent):
- *   1. collectTechnicalSignals() – gathers OBJECTIVE technical/infra data:
- *      robots.txt + sitemap.xml (direct fetch, no third-party dependency),
- *      HTTPS status, a small reused CrawlService pass for canonical/
- *      redirect/indexability stats, hreflang tag count (only when the
- *      project targets >1 language), and Core Web Vitals via DataForSEO's
- *      existing `getPageSpeed` (Lighthouse) when configured. Every field is
- *      either directly measured or left at a neutral default/null — nothing
- *      here is AI-guessed, so there is no AI-estimate fallback phase like
- *      the keyword/competitor agents have (there is no meaningful "AI
- *      estimate" of a robots.txt file; either it exists and was fetched, or
- *      the finding phase says a check couldn't be performed).
- *   2. analyzeTechnicalFindings() – the actual "agent" step: an AI call
- *      with this agent's own prompt turns the signals above into a
- *      prioritized, human-reviewable findings list. Findings sit behind the
- *      same human-approval gate pattern as the other agents
- *      (WorkspaceTechnicalAudit.agent.approvalStatus) before any
- *      WorkspaceTask is generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - Raw technical checks reuse `axios` (already a dependency, used the
- *     same way in `seoIntelligence/services/crawl.service.js`) — no new
- *     package added.
- *   - The canonical/redirect/indexability/hreflang crawl reuses the
- *     existing `CrawlService` (same one seoAuditorAgent's fallback path
- *     already uses) rather than writing a second crawler — this agent just
- *     reads different fields off the same summary+pages output for a
- *     different (infrastructure) lens.
- *   - Core Web Vitals reuse `dataForSeoService.getPageSpeed`, which exists
- *     today but is only wired into the older, non-workspace
- *     `seoIntelligence.controller.js` — calling it here is reuse, not
- *     duplication; nothing about that controller/route is touched.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue under a distinct key so a technical-agent run never
- *     blocks (or is blocked by) the auditor/keyword/competitor agents for
- *     the same project.
- *   - Shared memory: recalled before analysis (so a prior "ignore this
- *     recurring finding, it's expected for this site" note steers the AI's
- *     rationale); written to when approved findings recur across
- *     consecutive runs, same pattern as seoAuditorAgent's
- *     recordRecurringIssuesIfAny.
- *   - Approved critical/high findings generate WorkspaceTask entries using
- *     the existing taskType enum (Schema Injection, Create Redirect, Update
- *     Meta Tags, Content Edit) — no schema change to WorkspaceTask.
- *   - Persists to a new `WorkspaceTechnicalAudit` model — see that file's
- *     header for why this isn't folded into the existing `WorkspaceAudit`
- *     collection despite the schema being generic enough to hold it.
- */
 const axios = require('axios');
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceTechnicalAudit = require('../models/workspaceTechnicalAudit.model');
@@ -83,14 +26,6 @@ const VALID_TASK_TYPES = ['Update Meta Tags', 'Content Edit', 'Schema Injection'
 const MAX_FINDINGS = 15;
 const TECHNICAL_CRAWL_PAGE_LIMIT = 15; // small, targeted pass for infra stats — not a full content crawl
 
-/**
- * Direct, dependency-free robots.txt + sitemap.xml check. Doesn't reuse
- * CrawlService.discoverSitemapUrls() because that method only returns a
- * flat URL list for BFS seeding — it swallows the distinction between
- * "robots.txt missing" vs "robots.txt exists but blocks everything" vs
- * "sitemap missing" that a technical audit finding needs to be honest
- * about, and does not return the sitemap URL count either.
- */
 async function checkRobotsAndSitemap(rootUrl) {
   const result = {
     robotsTxt: { exists: false, accessible: false, disallowsAll: false, declaresSitemap: false },
@@ -135,12 +70,6 @@ async function checkRobotsAndSitemap(rootUrl) {
   return result;
 }
 
-/**
- * Reads hreflang tag count off the homepage only — a targeted, honest
- * signal (not a full-site count) used only when the project actually
- * targets more than one language, per the skill's guidance not to raise
- * hreflang findings for single-locale sites.
- */
 async function checkHreflang(rootUrl) {
   try {
     const res = await axios.get(rootUrl, { timeout: 8000, validateStatus: () => true });
@@ -155,11 +84,6 @@ async function checkHreflang(rootUrl) {
 }
 
 /**
- * Phase 1: objective technical-signal collection. No AI involved — every
- * field is either directly measured or left at a neutral default (never
- * fabricated) so Phase 2's prompt can honestly say "not checked" instead of
- * guessing.
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<Object>} signals object matching WorkspaceTechnicalAudit.signals
  */
@@ -232,10 +156,6 @@ async function collectTechnicalSignals(project) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; turns the collected signals
- * into a prioritized findings list. Guards against a hallucinated category
- * or task type outside the fixed enums.
- *
  * @param {Object} project
  * @param {Object} signals - from collectTechnicalSignals
  * @param {string} workspaceId
@@ -304,11 +224,6 @@ Return at most ${MAX_FINDINGS} findings, ranked by likely impact. Respond ONLY w
 }
 
 /**
- * Full agent run: collect + analyze + persist as a new WorkspaceTechnicalAudit
- * document with approvalStatus 'Pending Approval' (or 'Not Requested' if no
- * findings). Serialized per-project through Execution Queue under its own
- * key, distinct from the other three agents' keys.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the saved WorkspaceTechnicalAudit document
@@ -361,10 +276,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' findings for
- * this audit can be approved. Generates a WorkspaceTask per critical/high
- * finding, same threshold and pattern as seoAuditorAgent.approveFindings.
- *
  * @param {string} auditId
  * @param {string} projectId
  * @param {string} userId
@@ -434,13 +345,6 @@ async function rejectFindings(auditId, projectId, userId, reason) {
   return audit;
 }
 
-/**
- * Shared Memory write-side: when the same finding category recurs across
- * consecutive approved technical audits, record it so future analysis
- * prompts carry that context — same pattern as
- * seoAuditorAgent.recordRecurringIssuesIfAny. Best-effort — a memory-write
- * failure must never break approval.
- */
 async function recordRecurringIssuesIfAny(audit, projectId, userId) {
   try {
     const previous = await WorkspaceTechnicalAudit.findOne({
@@ -477,10 +381,6 @@ async function recordRecurringIssuesIfAny(audit, projectId, userId) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other three agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

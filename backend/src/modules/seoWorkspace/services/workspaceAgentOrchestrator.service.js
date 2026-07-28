@@ -1,4 +1,3 @@
-
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceAudit = require('../models/workspaceAudit.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
@@ -32,8 +31,6 @@ class WorkspaceAgentOrchestrator {
       const project = await WorkspaceProject.findById(projectId);
       if (!project) throw new Error('Project not found');
 
-      // Use the explicitly passed workspaceId (from the logged-in user) for AI settings lookup
-      // Fall back to project fields if not provided
       const aiWorkspaceId = workspaceId || project.createdBy || project.companyId;
 
       const audit = await WorkspaceAudit.findOne({ projectId }).sort({ createdAt: -1 });
@@ -240,8 +237,6 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting.`;
         response_format: { type: "json_object" }
       });
       
-      // Since response_format is json_object, we need to prompt for an object containing an array.
-      // Wait, let's fix the prompt to ask for an object with a "tasks" array to be safe with json_object.
       const promptObj = `You are the SEO Tech Implementer. Based on the strategy for ${project.siteUrl || project.domain} and top keywords (${kList}), generate exactly 3 specific, actionable implementation tasks.
 ${skills}
       

@@ -8,7 +8,6 @@ const auditLogService = require('./auditLog.service');
 const DataForSeoService = require('../../seoIntelligence/dataForSeo.service');
 const sendpulseService = require('../../../utils/sendpulse.service');
 
-// How long each frequency's "due" window is, in milliseconds.
 const FREQUENCY_MS = {
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000,
@@ -22,8 +21,6 @@ class WorkspaceCronService {
   }
 
   start() {
-    // Run daily at midnight: 0 0 * * *
-    // We will use 0 * * * * for demo purposes (hourly)
     const dailyJob = cron.schedule('0 * * * *', async () => {
       console.log('[WorkspaceCronService] Running Autopilot Checks...');
       try {
@@ -101,11 +98,6 @@ class WorkspaceCronService {
 
     this.jobs.push(dailyJob);
 
-    // Scheduled report delivery: WorkspaceReport.isScheduled/scheduleFrequency/
-    // emailRecipients were modeled from the start but nothing ever read them
-    // (Phase 4 fix). Runs hourly and checks every scheduled report definition
-    // for due-ness so daily/weekly/monthly schedules all get checked promptly
-    // without needing separate cron expressions per frequency.
     const reportSchedulerJob = cron.schedule('15 * * * *', async () => {
       console.log('[WorkspaceCronService] Checking scheduled reports...');
       await this.runDueScheduledReports();

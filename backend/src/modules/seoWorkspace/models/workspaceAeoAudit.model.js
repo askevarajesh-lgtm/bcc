@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const WorkspaceSchemaMarkupSchema = new mongoose.Schema({
+const WorkspaceAeoAuditSchema = new mongoose.Schema({
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceProject', required: true, index: true },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
@@ -11,7 +11,11 @@ const WorkspaceSchemaMarkupSchema = new mongoose.Schema({
       title: { type: String, default: '' },
       metaDescription: { type: String, default: '' },
       h1: { type: String, default: '' },
+      headings: [{ level: { type: Number }, text: { type: String } }],
       wordCount: { type: Number, default: 0 },
+      listCount: { type: Number, default: 0 },
+      tableCount: { type: Number, default: 0 },
+      hasExistingFaqSchema: { type: Boolean, default: false },
       indexable: { type: Boolean, default: null }
     }],
     dataSource: { type: String, enum: ['crawl', 'internal-only'], default: 'internal-only' }
@@ -20,27 +24,14 @@ const WorkspaceSchemaMarkupSchema = new mongoose.Schema({
   completedAt: { type: Date, default: null },
 
   agent: {
-    agentKey: { type: String, default: null }, // 'schema-agent'; data reference only
+    agentKey: { type: String, default: null }, // 'aeo-agent'; data reference only
     summary: { type: String, default: null },
     pages: [{
-      pageUrl: { type: String, required: true },
-      pageType: {
-        type: String,
-        enum: [
-          'Article', 'BlogPosting', 'Product', 'FAQPage', 'HowTo',
-          'BreadcrumbList', 'WebPage', 'CollectionPage', 'Organization',
-          'LocalBusiness', 'WebSite', 'Other'
-        ],
-        default: 'WebPage'
-      },
-      schemaTypes: [{ type: String }],
-      jsonLd: { type: mongoose.Schema.Types.Mixed, required: true },
-      validation: {
-        isValid: { type: Boolean, default: false }, // true only if errors.length === 0
-        errors: [{ type: String }], // missing-required-property / invalid-JSON findings
-        warnings: [{ type: String }], // missing-recommended-property findings
-        richResultEligibility: [{ type: String }] // human-readable, e.g. "BlogPosting: Article rich result"
-      },
+      pageUrl: { type: String, required: true }, 
+      aeoReadinessScore: { type: Number, min: 0, max: 100, default: null },
+      directAnswerSuggestion: { type: String, default: '' }, // 40-60 word grounded direct-answer snippet
+      suggestedFaqBlock: [{ question: { type: String }, answer: { type: String } }],
+      missingElements: [{ type: String }], // e.g. "no question-format subheadings", "no byline/entity statement"
       rationale: { type: String, default: '' }
     }],
     approvalStatus: { type: String, enum: ['Not Requested', 'Pending Approval', 'Approved', 'Rejected'], default: 'Not Requested' },
@@ -51,6 +42,6 @@ const WorkspaceSchemaMarkupSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-WorkspaceSchemaMarkupSchema.index({ projectId: 1, createdAt: -1 });
+WorkspaceAeoAuditSchema.index({ projectId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('WorkspaceSchemaMarkup', WorkspaceSchemaMarkupSchema, 'workspace_schema_markup');
+module.exports = mongoose.model('WorkspaceAeoAudit', WorkspaceAeoAuditSchema, 'workspace_aeo_audits');

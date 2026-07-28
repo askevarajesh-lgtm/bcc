@@ -1,63 +1,3 @@
-/**
- * Image SEO Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Same two-phase shape as the other seven agents in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent,
- * technicalSeoAgent, contentAgent, schemaAgent, internalLinkingAgent):
- *   1. collectImageSignals() – gathers OBJECTIVE per-page, per-image data
- *      via a reused CrawlService pass (page url/title/meta/H1, and each
- *      <img>'s src/alt/title/width+height presence/loading attribute).
- *      Every flag (missingAlt/genericAlt/genericFilename/hasWidthHeight)
- *      is a deterministic, code-level check over that raw data — no AI
- *      involved, no descriptive judgment made — same "objective phase"
- *      discipline the other agents' Phase 1 already follows.
- *   2. generateImageSeoRecommendations() – the actual "agent" step: an AI
- *      call with this agent's own prompt (image-alt-text-optimization +
- *      image-file-seo skills) proposes alt text / filename slugs / layout
- *      fixes, restricted to only the images Phase 1 actually flagged.
- *      Every returned recommendation is then run through deterministic,
- *      code-level validation (pageUrl+src must exactly match a flagged
- *      candidate, recommendationType must be one Phase 1 actually flagged
- *      for that image, alt text length/keyword-stuffing checks, filename
- *      slug format checks) so a human reviewer isn't relying on the
- *      model's self-grading of its own output. Results sit behind the
- *      same human-approval gate pattern as the other agents
- *      (WorkspaceImageSeo.agent.approvalStatus) before any WorkspaceTask
- *      is generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - The page + image-signal pass reuses `CrawlService` (same one
- *     seoAuditorAgent/technicalSeoAgent/contentAgent/schemaAgent/
- *     internalLinkingAgent already use) rather than writing a second
- *     crawler. `CrawlService` previously discarded every <img> tag on a
- *     page — that was extended additively (see crawl.service.js's inline
- *     comment) so this agent can see image data without a second fetch
- *     pass; every other existing consumer of `crawlResult.pages` only
- *     destructures the specific fields it already used, so this is
- *     non-breaking, same precedent internalLinkingAgent's `links`
- *     extension already set.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue under a distinct key so an image-seo run never
- *     blocks (or is blocked by) the other seven agents for the same
- *     project.
- *   - Shared memory: recalled before generation (so a prior "never touch
- *     the placeholder images on the /coming-soon page, they're
- *     intentional" note steers the AI away from repeating a rejected
- *     suggestion); written to when a run's recommendations are rejected,
- *     same pattern as internalLinkingAgent's recordExcludedLinksIfAny /
- *     schemaAgent's recordExcludedPagesIfAny.
- *   - Approved recommendations generate WorkspaceTask entries using the
- *     'Image Optimization' value added to the existing taskType enum
- *     (additive — same precedent 'Internal Linking' set on that model).
- *   - Persists its own run output to a new `WorkspaceImageSeo` model —
- *     see that file's header for why this isn't folded into an existing
- *     collection.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceImageSeo = require('../models/workspaceImageSeo.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
@@ -81,13 +21,8 @@ const MAX_IMAGES_PER_RUN = 20; // cap how many image recommendations get generat
 const ALT_TEXT_MIN_LENGTH = 8;
 const ALT_TEXT_MAX_LENGTH = 125; // hard ceiling per the image-alt-text-optimization skill
 
-// Generic/placeholder alt values that count as "no real alt text" even
-// though the attribute isn't technically empty.
 const GENERIC_ALT_VALUES = new Set(['image', 'photo', 'picture', 'graphic', 'img', 'untitled', 'placeholder']);
 
-// Camera-default / CMS-hash filename patterns — deterministic regexes, not
-// an AI judgment call, mirrors the objective-phase discipline used
-// elsewhere in this module.
 const GENERIC_FILENAME_PATTERNS = [
   /^img[-_]?\d+$/i,
   /^dsc[-_]?\d+$/i,
@@ -131,12 +66,6 @@ function isGenericAlt(alt, filename) {
   return normalizedBase.length > 0 && normalized === normalizedBase;
 }
 
-/**
- * Deterministic validation for a single AI-proposed alt_text recommendation
- * — length + no-keyword-stuffing (same word repeated 3+ times). This is
- * what the Human Approval Gate's reviewer sees; it is never derived from
- * the AI's own claims about its output.
- */
 function validateAltTextValue(value) {
   const errors = [];
   const trimmed = (value || '').trim();
@@ -152,10 +81,6 @@ function validateAltTextValue(value) {
   return errors;
 }
 
-/**
- * Deterministic validation for a single AI-proposed filename_slug
- * recommendation — format rules from the image-file-seo skill.
- */
 function validateFilenameSlugValue(value, currentFilename) {
   const errors = [];
   const trimmed = (value || '').trim();
@@ -182,11 +107,6 @@ function validateRecommendation(rec, candidate) {
 }
 
 /**
- * Phase 1: objective page + image-signal collection. No AI involved, no
- * descriptive judgment made — missingAlt/genericAlt/genericFilename/
- * hasWidthHeight are plain deterministic checks over the crawled markup,
- * never fabricated or AI-guessed.
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<{ pages: Array, dataSource: string }>}
  */
@@ -232,12 +152,6 @@ async function collectImageSignals(project) {
   return { pages, dataSource: pages.length > 0 ? 'crawl' : 'internal-only' };
 }
 
-/**
- * Builds the flat candidate list (one entry per flagged image, tagged with
- * which recommendation type(s) it's eligible for) that Phase 2's prompt is
- * restricted to — mirrors the other agents' "only propose for what was
- * actually given" hallucination guard.
- */
 function buildCandidates(pages) {
   const candidates = [];
   pages.forEach((page) => {
@@ -264,12 +178,6 @@ function buildCandidates(pages) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; proposes alt text /
- * filename slugs / layout fixes for each flagged image, then runs every
- * proposed recommendation through deterministic validation. Guards
- * against a hallucinated pageUrl/src, a recommendationType Phase 1 never
- * flagged for that image, and malformed alt text / filename slugs.
- *
  * @param {Object} project
  * @param {Array} pages - from collectImageSignals
  * @param {string} workspaceId
@@ -358,12 +266,6 @@ One recommendation object per (image, recommendationType) pair — an image with
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WorkspaceImageSeo document with approvalStatus 'Pending Approval' (or
- * 'Not Requested' if no recommendations were generated). Serialized per-
- * project through Execution Queue under its own key, distinct from the
- * other seven agents' keys.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the saved WorkspaceImageSeo document
@@ -419,13 +321,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for
- * this project can be approved. Generates one WorkspaceTask per
- * recommendation (taskType 'Image Optimization'), same threshold-free
- * approach as schemaAgent/internalLinkingAgent (every generated
- * recommendation needs the change applied — there is no severity axis to
- * filter on the way technicalSeoAgent does).
- *
  * @param {string} imageSeoRunId
  * @param {string} projectId
  * @param {string} userId
@@ -493,17 +388,6 @@ async function rejectImageSeoRecommendations(imageSeoRunId, projectId, userId, r
   return imageSeoRun;
 }
 
-/**
- * Shared Memory write-side: when a run's recommendations are rejected,
- * record why (if a reason was given) per image, so future generation
- * prompts carry that context — e.g. "don't touch the placeholder images
- * on /coming-soon, they're intentional". Best-effort — a memory-write
- * failure must never break rejection. Same pattern as
- * internalLinkingAgent's recordExcludedLinksIfAny, and uses the same
- * 'do_not_do' type (the only WorkspaceMemory enum value that actually
- * fits an exclusion note — see internalLinkingAgent's inline note on why
- * schemaAgent's 'excluded_schema' value silently fails validation).
- */
 async function recordExcludedImagesIfAny(imageSeoRun, projectId, userId, reason) {
   try {
     const images = imageSeoRun.agent?.images || [];
@@ -530,10 +414,6 @@ async function recordExcludedImagesIfAny(imageSeoRun, projectId, userId, reason)
 }
 
 /**
- * Own execution history, read-side. Same shape as the other seven agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

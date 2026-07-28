@@ -1,59 +1,3 @@
-/**
- * Internal Linking Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Same two-phase shape as the other six agents in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent,
- * technicalSeoAgent, contentAgent, schemaAgent):
- *   1. collectLinkGraphSignals() – gathers OBJECTIVE per-page data AND the
- *      same-host link graph via a reused CrawlService pass (URL, title,
- *      meta description, H1, word count, indexability, outbound same-host
- *      links). Inbound link counts and orphan-page status are then derived
- *      deterministically (plain counting, no AI) from that graph — never
- *      AI-estimated, same "objective phase" discipline the other agents'
- *      Phase 1 already follows.
- *   2. generateLinkSuggestions() – the actual "agent" step: an AI call
- *      with this agent's own prompt (internal-linking-strategy +
- *      orphan-page-detection skills) proposes new source→target hyperlinks
- *      with anchor text. Every proposed pair is then run through
- *      deterministic, code-level validation (both URLs must be in the
- *      candidate set, no self-links, no duplicate of an already-existing
- *      or already-suggested pair) so a human reviewer isn't relying on the
- *      model's own claim that a link doesn't already exist. Results sit
- *      behind the same human-approval gate pattern as the other agents
- *      (WorkspaceInternalLink.agent.approvalStatus) before any
- *      WorkspaceTask is generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - The page + link-graph pass reuses `CrawlService` (same one
- *     seoAuditorAgent/technicalSeoAgent/contentAgent/schemaAgent already
- *     use) rather than writing a second crawler. `CrawlService` previously
- *     discarded each page's outbound-link list before storing it — that
- *     was extended additively (see crawl.service.js's inline comment) so
- *     this agent can build a link graph without a second fetch pass; every
- *     other existing consumer of `crawlResult.pages` only destructures the
- *     specific fields it already used, so this is non-breaking.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue under a distinct key so an internal-linking run never
- *     blocks (or is blocked by) the other six agents for the same project.
- *   - Shared memory: recalled before generation (so a prior "never link
- *     the archived /old-promo page, it's being retired" note steers the AI
- *     away from repeating a rejected suggestion); written to when a run's
- *     suggestions are rejected, same pattern as schemaAgent's
- *     recordExcludedPagesIfAny / competitorAgent's
- *     recordExcludedCompetitorsIfAny.
- *   - Approved suggestions generate WorkspaceTask entries using the
- *     existing taskType enum's 'Internal Linking' value (already present
- *     on WorkspaceTask, added for exactly this prompt-legal case per that
- *     model's own inline comment) — no schema change to WorkspaceTask.
- *   - Persists its own run output to a new `WorkspaceInternalLink` model —
- *     see that file's header for why this isn't folded into an existing
- *     collection.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceInternalLink = require('../models/workspaceInternalLink.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
@@ -81,9 +25,6 @@ function normalizeUrl(url) {
   try {
     const u = new URL(url);
     u.hash = '';
-    // strip a single trailing slash (except for the bare root) so
-    // 'https://x.com/about' and 'https://x.com/about/' count as the same
-    // page when matching link-graph pairs.
     let pathname = u.pathname;
     if (pathname.length > 1 && pathname.endsWith('/')) pathname = pathname.slice(0, -1);
     return `${u.origin}${pathname}${u.search}`;
@@ -97,11 +38,6 @@ function pairKey(sourceUrl, targetUrl) {
 }
 
 /**
- * Phase 1: objective page + link-graph collection. No AI involved, no
- * relevance judgment made — inboundLinkCount/isOrphan are plain counts
- * over the crawled pages' own outbound links, never fabricated or
- * AI-guessed.
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<{ pages: Array, existingLinks: Array, dataSource: string }>}
  */
@@ -117,10 +53,6 @@ async function collectLinkGraphSignals(project) {
 
   const rawPages = (crawlResult.pages || []).filter((p) => p.status === 200 && p.indexable !== false);
   const crawledUrlSet = new Set(rawPages.map((p) => normalizeUrl(p.final_url || p.url)));
-
-  // Build outbound edges, restricted to pages that were actually crawled
-  // (a page can link to a same-host URL that wasn't itself fetched/kept —
-  // that edge is not meaningful for inbound-count purposes here).
   const outboundByUrl = new Map();
   const existingLinks = [];
   rawPages.forEach((p) => {
@@ -162,11 +94,6 @@ async function collectLinkGraphSignals(project) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; proposes new source→target
- * internal links with anchor text, then runs every proposed pair through
- * deterministic validation. Guards against hallucinated URLs, self-links,
- * and duplicates of pairs that already exist or were already suggested.
- *
  * @param {Object} project
  * @param {Array} pages - from collectLinkGraphSignals
  * @param {Array} existingLinks - from collectLinkGraphSignals
@@ -181,10 +108,6 @@ async function generateLinkSuggestions(project, pages, existingLinks, workspaceI
   const agentConfig = await agentLoader.resolve(AGENT_KEY);
   const skillsBlock = agentLoader.loadSkillsForAgent(agentConfig);
   const memoryBlock = await sharedMemory.recallAsPromptContext({ agencyId: workspaceId, projectId: project._id });
-
-  // Prioritize orphan pages so they aren't crowded out of the prompt by a
-  // large site — the skill requires every orphan in the candidate set to
-  // be considered.
   const orphans = pages.filter((p) => p.isOrphan);
   const nonOrphans = pages.filter((p) => !p.isOrphan);
   const candidatePages = [...orphans, ...nonOrphans].slice(0, MAX_PAGES_IN_PROMPT);
@@ -278,12 +201,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WorkspaceInternalLink document with approvalStatus 'Pending Approval'
- * (or 'Not Requested' if no suggestions were generated). Serialized
- * per-project through Execution Queue under its own key, distinct from
- * the other six agents' keys.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<Object>} the saved WorkspaceInternalLink document
@@ -340,12 +257,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for
- * this project can be approved. Generates one WorkspaceTask per suggested
- * link (taskType 'Internal Linking'), same threshold-free approach as
- * schemaAgent (every generated suggestion needs the link inserted — there
- * is no severity axis to filter on the way technicalSeoAgent does).
- *
  * @param {string} linkRunId
  * @param {string} projectId
  * @param {string} userId
@@ -413,13 +324,6 @@ async function rejectLinkSuggestions(linkRunId, projectId, userId, reason) {
   return linkRun;
 }
 
-/**
- * Shared Memory write-side: when a run's suggestions are rejected, record
- * why (if a reason was given) per pair, so future generation prompts carry
- * that context — e.g. "don't link to the archived /old-promo page, it's
- * being retired". Best-effort — a memory-write failure must never break
- * rejection. Same pattern as schemaAgent's recordExcludedPagesIfAny.
- */
 async function recordExcludedLinksIfAny(linkRun, projectId, userId, reason) {
   try {
     const suggestions = linkRun.agent?.suggestions || [];
@@ -437,15 +341,6 @@ async function recordExcludedLinksIfAny(linkRun, projectId, userId, reason) {
         content: reason
           ? `Do not propose linking ${s.sourceUrl} to ${s.targetUrl} again. Reason given: ${reason}`
           : `Do not propose linking ${s.sourceUrl} to ${s.targetUrl} again.`,
-        // No dedicated 'excluded_link' type exists on WorkspaceMemory's
-        // enum (['best_practice','brand_voice','do_not_do',
-        // 'approved_terminology','recurring_issue']). 'do_not_do' is the
-        // correct existing fit — NOT 'excluded_schema', which schemaAgent's
-        // own equivalent call uses despite that value not being in the
-        // enum at all, so every one of *those* memory writes silently
-        // fails Mongoose validation and is swallowed by this same
-        // try/catch. Using a valid value here so this agent's writes
-        // actually persist instead of repeating that bug.
         type: 'do_not_do'
       });
     }
@@ -455,10 +350,6 @@ async function recordExcludedLinksIfAny(linkRun, projectId, userId, reason) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other six agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */

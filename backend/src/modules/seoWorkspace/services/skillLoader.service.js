@@ -7,7 +7,6 @@ class SkillLoaderService {
   }
 
   /**
-   * Load the SKILL.md file for a specific skill.
    * @param {string} skillName 
    * @returns {string} The markdown content of the skill
    */
@@ -25,7 +24,6 @@ class SkillLoaderService {
   }
 
   /**
-   * Loads multiple skills and concatenates them for context injection
    * @param {string[]} skillNames 
    * @returns {string}
    */

@@ -128,6 +128,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'aeo-agent': {
+    key: 'aeo-agent',
+    displayName: 'AEO Agent',
+    skills: ['answer-extractability-optimization', 'ai-citation-readiness'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

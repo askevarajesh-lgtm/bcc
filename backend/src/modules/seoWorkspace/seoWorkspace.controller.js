@@ -19,6 +19,7 @@ const contentAgent = require('./services/contentAgent.service');
 const schemaAgent = require('./services/schemaAgent.service');
 const internalLinkingAgent = require('./services/internalLinkingAgent.service');
 const imageSeoAgent = require('./services/imageSeoAgent.service');
+const aeoAgent = require('./services/aeoAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -184,14 +185,6 @@ exports.runAudit = async (req, res) => {
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
-
-    // Delegates to the SEO Auditor Agent's raw-collection step (same
-    // DataForSEO call + field mapping this endpoint used to do inline,
-    // moved to seoAuditorAgent.service.js so it isn't duplicated between
-    // this manual/no-AI trigger and the full agent run below). maxCrawlPages
-    // stays at 1, matching this endpoint's exact prior behavior; the full
-    // agent run (runAuditorAgent) requests a deeper 5-page crawl instead.
-    // Response shape is unchanged: { success, data, score }.
     const newAudit = await seoAuditorAgent.collectRawAudit(project, companyId, 1);
 
     res.status(200).json({ success: true, data: newAudit, score: newAudit.metrics.overall || newAudit.metrics.onpageScore });
@@ -200,11 +193,6 @@ exports.runAudit = async (req, res) => {
     res.status(500).json({ success: false, message: error.message || 'Server error running audit' });
   }
 };
-
-// --- SEO Auditor Agent (own prompt/service/execution history/logs/retry/
-// approval/shared memory — see seoAuditorAgent.service.js). No UI consumes
-// these yet; exposed here so the agent can be triggered/reviewed
-// programmatically (manual call, cron, another agent, etc). ---
 
 exports.runAuditorAgent = async (req, res) => {
   try {
@@ -259,11 +247,6 @@ exports.getAuditorExecutionHistory = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
-// --- Keyword Research Agent (own prompt/service/execution history/logs/
-// retry/approval/shared memory — see keywordResearchAgent.service.js).
-// No UI consumes these yet; exposed for manual/cron/agent-to-agent
-// triggering, same rationale as the SEO Auditor Agent's routes above. ---
 
 exports.runKeywordResearchAgent = async (req, res) => {
   try {
@@ -376,11 +359,6 @@ exports.getCompetitorExecutionHistory = async (req, res) => {
   }
 };
 
-// --- Technical SEO Agent (own prompt/service/execution history/logs/retry/
-// approval/shared memory — see technicalSeoAgent.service.js). No UI consumes
-// these; exposed for manual/cron/agent-to-agent triggering, same rationale
-// as the SEO Auditor, Keyword Research, and Competitor agents' routes. ---
-
 exports.runTechnicalSeoAgent = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -435,11 +413,6 @@ exports.getTechnicalSeoExecutionHistory = async (req, res) => {
   }
 };
 
-// --- Content Agent (own prompt/service/execution history/logs/retry/
-// approval/shared memory — see contentAgent.service.js). No UI consumes
-// these; exposed for manual/cron/agent-to-agent triggering, same rationale
-// as the SEO Auditor, Keyword Research, Competitor, and Technical SEO
-// agents' routes above. ---
 
 exports.runContentAgent = async (req, res) => {
   try {
@@ -495,14 +468,6 @@ exports.getContentAgentExecutionHistory = async (req, res) => {
   }
 };
 
-// --- Schema Agent (own prompt/service/execution history/logs/retry/
-// approval/shared memory — see schemaAgent.service.js). No UI consumes
-// these; exposed for manual/cron/agent-to-agent triggering, same rationale
-// as the other five agents' routes above. Approve/reject take :markupId in
-// the path (not a bulk-ids body) because generated pages live on one
-// WorkspaceSchemaMarkup document per run — same shape as the Technical SEO/
-// Content agents' routes, not the Competitor/Keyword agents' bulk-
-// suggestion shape. ---
 
 exports.runSchemaAgent = async (req, res) => {
   try {
@@ -558,14 +523,6 @@ exports.getSchemaAgentExecutionHistory = async (req, res) => {
   }
 };
 
-// --- Internal Linking Agent (own prompt/service/execution history/logs/
-// retry/approval/shared memory — see internalLinkingAgent.service.js). No
-// UI consumes these; exposed for manual/cron/agent-to-agent triggering,
-// same rationale as the other six agents' routes above. Approve/reject
-// take :linkRunId in the path (not a bulk-ids body) because suggestions
-// live on one WorkspaceInternalLink document per run — same shape as the
-// Technical SEO/Content/Schema agents' routes, not the Competitor/Keyword
-// agents' bulk-suggestion shape. ---
 
 exports.runInternalLinkingAgent = async (req, res) => {
   try {
@@ -621,14 +578,6 @@ exports.getInternalLinkingExecutionHistory = async (req, res) => {
   }
 };
 
-// --- Image SEO Agent (own prompt/service/execution history/logs/retry/
-// approval/shared memory — see imageSeoAgent.service.js). No UI consumes
-// these; exposed for manual/cron/agent-to-agent triggering, same rationale
-// as the other seven agents' routes above. Approve/reject take
-// :imageSeoRunId in the path (not a bulk-ids body) because recommendations
-// live on one WorkspaceImageSeo document per run — same shape as the
-// Technical SEO/Content/Schema/Internal Linking agents' routes, not the
-// Competitor/Keyword agents' bulk-suggestion shape. ---
 
 exports.runImageSeoAgent = async (req, res) => {
   try {
@@ -678,6 +627,61 @@ exports.getImageSeoExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await imageSeoAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+exports.runAeoAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await aeoAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runAeoAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveAeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { audit, createdTasks } = await aeoAgent.approveAeoRecommendations(auditId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: audit, createdTasks });
+  } catch (error) {
+    console.error('Error approving AEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving AEO recommendations' });
+  }
+};
+
+exports.rejectAeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { reason } = req.body;
+    const result = await aeoAgent.rejectAeoRecommendations(auditId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting AEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting AEO recommendations' });
+  }
+};
+
+exports.getAeoAgentExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await aeoAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

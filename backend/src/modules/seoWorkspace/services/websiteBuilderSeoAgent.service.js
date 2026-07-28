@@ -1,87 +1,3 @@
-/**
- * Website Builder SEO Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * A ninth agent alongside the eight already in this module
- * (seoAuditorAgent, keywordResearchAgent, competitorAgent,
- * technicalSeoAgent, contentAgent, schemaAgent, internalLinkingAgent,
- * imageSeoAgent) — but a deliberately different target: those eight all
- * analyze a *live, crawlable domain* tracked as a `WorkspaceProject` (SEO
- * Workspace). This agent analyzes a Website Builder `Page` document
- * directly — a GrapesJS-authored page that is frequently still `Draft`
- * status and has never been published/crawled, so on-page metadata
- * problems (missing/duplicate `<title>`, missing meta description, broken
- * heading hierarchy, thin content) would otherwise go undetected until
- * after publish. `technicalSeoAgent`/`seoAuditorAgent` cannot see this —
- * they only ever look at what a live crawl returns.
- *
- * Same two-phase shape as the other eight agents:
- *   1. collectPageSeoSignals() – gathers OBJECTIVE metadata/structure
- *      signals for one Page: its `<title>`/meta description/canonical
- *      (parsed out of `page.customHeadCode` — the field the builder
- *      already uses for exactly this purpose; see `updatePage` in
- *      website.controller.js), its heading sequence and H1 count (parsed
- *      out of `page.html`), its visible word count, and — via a plain
- *      deterministic comparison against this page's sibling pages on the
- *      same website — whether its title/meta description duplicates
- *      another page's. Every flag is a deterministic, code-level check;
- *      no AI involved, same "objective phase" discipline the other
- *      agents' Phase 1 already follows.
- *   2. generateOnPageSeoFindings() – the actual "agent" step: an AI call
- *      with this agent's own prompt (builder-onpage-metadata-optimization
- *      + builder-heading-structure-audit skills) proposes a new title/meta
- *      description for metadata findings and a short rationale for
- *      structural findings, restricted to only the finding types Phase 1
- *      actually flagged for this page. Every returned finding is then run
- *      through deterministic, code-level validation (findingType must be
- *      one Phase 1 actually flagged, title/description length + no
- *      duplication of the current bad value, no metadata value proposed
- *      for a structural-only finding type) so a human reviewer isn't
- *      relying on the model's self-grading of its own output. Results sit
- *      behind the same human-approval gate pattern as the other agents
- *      (WebsiteBuilderSeo.agent.approvalStatus) before any task is
- *      generated from them.
- *
- * Reuse decisions (nothing here is new infra beyond what's noted):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution) —
- *     the exact same generic infra the other eight agents use. AI Core's
- *     own README documents it as reusable "beyond the SEO Workspace
- *     module" — this agent is that first cross-domain consumer.
- *   - Heading/metadata parsing reuses `cheerio` (already a dependency,
- *     the same library `websites/website.chrome.js` already uses to parse
- *     header/footer out of `page.html`) rather than writing a second HTML
- *     parser.
- *   - Runs for the same page are serialized through aiCore's
- *     executionQueue under a distinct key so a run never blocks (or is
- *     blocked by) the other eight agents, or another run for a different
- *     page.
- *   - Shared memory: recalled before generation (so a prior "don't touch
- *     the title on the /pricing page again, legal signed off on it" note
- *     steers the AI away from repeating a rejected suggestion); written to
- *     when a run's findings are rejected — same pattern as
- *     imageSeoAgent.recordExcludedImagesIfAny /
- *     internalLinkingAgent.recordExcludedLinksIfAny. Scoped by `agencyId`
- *     (required by `WorkspaceMemory`) with this page's *website* id passed
- *     as the memory's `projectId` field — that field is a loose,
- *     unenforced ref used purely for filtering (see sharedMemory.service.js
- *     — `recall()`'s `.populate()` path is never invoked on it), so this is
- *     safe reuse, not a real `WorkspaceProject` dependency.
- *   - Persists its own run output to a new `WebsiteBuilderSeo` model — see
- *     that file's header for why this isn't folded into an existing
- *     collection, and why it does NOT depend on `WorkspaceProject`/
- *     `WorkspaceTask` the way the other eight agents' persistence does.
- *   - Approved findings generate embedded, self-contained task entries on
- *     the same run document (`agent.generatedTasks`) rather than
- *     `WorkspaceTask` rows — see the model header. Nothing is
- *     auto-applied to the live Page document; a human still has to take
- *     the approved recommendation and apply it via the existing
- *     `updatePage` endpoint, same "approval creates the work item, a
- *     separate step implements it" shape the other agents already use for
- *     WordPress publish via `publishGate.service.js`.
- */
 const cheerio = require('cheerio');
 const Website = require('../../websites/website.model');
 const Page = require('../../websites/page.model');
@@ -102,15 +18,11 @@ const VALID_FINDING_TYPES = [
   'missing_h1', 'multiple_h1', 'skipped_heading_level', 'thin_content', 'missing_canonical'
 ];
 
-// Finding types the AI may fill in an actual proposedValue for — everything
-// else is structural/advisory-only (rationale text, empty proposedValue).
 const METADATA_FINDING_TYPES = new Set([
   'missing_title', 'title_too_short', 'title_too_long', 'duplicate_title',
   'missing_meta_description', 'meta_description_too_short', 'meta_description_too_long', 'duplicate_meta_description'
 ]);
 
-// Deterministic severity per finding type — never AI-assigned, same
-// objective-phase discipline as the crawl-based agents' severity handling.
 const SEVERITY_BY_FINDING_TYPE = {
   missing_title: 'high',
   missing_meta_description: 'high',
@@ -136,12 +48,6 @@ const MAX_SIBLING_PAGES_SCANNED = 200; // small builder sites — not a full-sit
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
-/**
- * Deterministic length/format validation for an AI-proposed title or meta
- * description value. Same discipline as imageSeoAgent's
- * validateAltTextValue/validateFilenameSlugValue — this is what the human
- * reviewer sees, never derived from the AI's own claims about its output.
- */
 function validateTitleValue(value, currentValue) {
   const errors = [];
   const trimmed = (value || '').trim();
@@ -168,8 +74,6 @@ function validateMetaDescriptionValue(value, currentValue, titleValue) {
 
 function validateFinding(finding, candidate) {
   if (!METADATA_FINDING_TYPES.has(finding.findingType)) {
-    // Structural finding — advisory rationale only, no value to validate
-    // beyond "did the model actually say something".
     return (finding.rationale || '').trim() ? [] : ['Missing rationale for structural finding'];
   }
   if (finding.findingType.startsWith('title') || finding.findingType === 'duplicate_title') {
@@ -178,13 +82,6 @@ function validateFinding(finding, candidate) {
   return validateMetaDescriptionValue(finding.proposedValue, candidate.currentMetaDescription, finding.proposedValue && finding.findingType.startsWith('meta') ? candidate.currentTitleTag : null);
 }
 
-/**
- * Parses `<title>`/`<meta name="description">`/canonical out of
- * `customHeadCode` — the field the builder already uses for exactly this
- * purpose (see `updatePage`). Fragment-safe: `customHeadCode` is a snippet,
- * not a full document, so it's loaded without cheerio's implied
- * html/head/body wrapper affecting tag lookup.
- */
 function parseHeadMeta(customHeadCode) {
   const result = { title: '', metaDescription: '', canonical: '' };
   if (!customHeadCode) return result;
@@ -199,10 +96,6 @@ function parseHeadMeta(customHeadCode) {
   return result;
 }
 
-/**
- * Parses heading sequence, H1 texts, image count, and visible word count
- * out of `page.html` — the actual builder canvas markup.
- */
 function parseBodySignals(html) {
   const result = { h1Texts: [], headingSequence: [], wordCount: 0 };
   if (!html) return result;
@@ -238,11 +131,6 @@ function headingSequenceSkipsLevel(headingSequence) {
 }
 
 /**
- * Phase 1: objective metadata + structure signal collection for one Page.
- * No AI involved — every field is either directly parsed off
- * `page.customHeadCode`/`page.html`, or a plain string-equality comparison
- * against this page's sibling pages, never AI-guessed.
- *
  * @param {Object} page - a Page document
  * @param {Object} website - the owning Website document
  * @returns {Promise<Object>} signals matching WebsiteBuilderSeo.inputs
@@ -290,12 +178,6 @@ async function collectPageSeoSignals(page, website) {
   };
 }
 
-/**
- * Builds the eligible finding-type list purely from Phase 1's deterministic
- * signals — the hallucination guard Phase 2's prompt (and its later
- * validation) is restricted to, same "only propose for what was actually
- * measured" discipline as the other agents' candidate-building step.
- */
 function buildEligibleFindingTypes(signals) {
   const eligible = [];
 
@@ -319,11 +201,6 @@ function buildEligibleFindingTypes(signals) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; proposes a new title/meta
- * description for metadata findings and a short rationale for structural
- * findings, restricted to only the finding types Phase 1 flagged. Every
- * returned finding is then run through deterministic validation.
- *
  * @param {Object} website
  * @param {Object} page
  * @param {Object} signals - from collectPageSeoSignals
@@ -415,12 +292,6 @@ One finding object per eligible finding type. Respond ONLY with valid JSON, no m
 }
 
 /**
- * Full agent run: collect + generate + validate + persist as a new
- * WebsiteBuilderSeo document with approvalStatus 'Pending Approval' (or
- * 'Not Requested' if no findings were generated). Serialized per-page
- * through Execution Queue under its own key, distinct from the other
- * eight agents' project-scoped keys.
- *
  * @param {string} pageId
  * @param {string} websiteId
  * @param {string} [workspaceId]
@@ -478,12 +349,6 @@ async function run(pageId, websiteId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only 'Pending Approval' runs for
- * this page can be approved. Generates one embedded task per valid
- * finding (see model header for why these are embedded, not
- * `WorkspaceTask` rows) — invalid findings are surfaced for manual review
- * instead of silently turned into a task.
- *
  * @param {string} runId
  * @param {string} pageId
  * @param {string} userId
@@ -547,14 +412,6 @@ async function rejectFindings(runId, pageId, userId, reason) {
   return run;
 }
 
-/**
- * Shared Memory write-side: when a run's findings are rejected, record why
- * (if a reason was given) per finding, so future generation prompts carry
- * that context — e.g. "don't touch the title on /pricing again, legal
- * signed off on it". Best-effort — a memory-write failure must never break
- * rejection. Same pattern as imageSeoAgent.recordExcludedImagesIfAny /
- * internalLinkingAgent.recordExcludedLinksIfAny.
- */
 async function recordRejectedFindingsIfAny(run, userId, reason) {
   try {
     const findings = run.agent?.findings || [];
@@ -580,13 +437,6 @@ async function recordRejectedFindingsIfAny(run, userId, reason) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other eight agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries. Uses `pageId` as
- * the lookup key against ExecutionLog's `projectId` field — that field is
- * a loose, unenforced ObjectId (see logExecution's usage above), so this
- * is safe reuse rather than a semantic mismatch that breaks anything.
- *
  * @param {string} pageId
  * @param {number} [limit=20]
  */

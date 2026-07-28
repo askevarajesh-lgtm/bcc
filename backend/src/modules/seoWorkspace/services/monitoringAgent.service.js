@@ -1,80 +1,3 @@
-/**
- * Monitoring Agent
- *
- * Own prompt, own service (this file), own execution history, own logs,
- * retry, human approval, shared memory integration. No UI.
- *
- * Mirrors the same two-phase shape as the other three agents in this
- * module (seoAuditorAgent / keywordResearchAgent / competitorAgent /
- * reportingAgent):
- *   1. collectRankDrops()  – objective data collection: fetches current
- *      SERP position for each Approved, tracked WorkspaceKeyword via
- *      DataForSEO (reuses dataForSeoService.getSerpResults — the exact
- *      same method workspaceCron.service.js's autopilot loop already
- *      calls), updates the keyword's ranking fields, and flags any
- *      keyword whose rank worsened by DROP_THRESHOLD or more.
- *   2. analyzeDrop()       – the actual "agent" step: an AI call with this
- *      agent's own prompt (rank-tracking + alert-configuration skills)
- *      diagnoses the drop and proposes one concrete recovery action.
- *      Persisted as a WorkspaceTask at its existing default status
- *      'Pending' — the human-approval gate here is the WorkspaceTask
- *      model's own pre-existing status field, reused as-is, not
- *      duplicated with a second gate.
- *
- * Relationship to the existing cron autopilot loop:
- *   workspaceCron.service.js's hourly job already does inline rank-drop
- *   detection and calls workspaceAgentOrchestrator.service.js's
- *   `seoMonitorAgent(project, keyword, dropAmount)` directly, with no
- *   retry/logging/execution-history and no gate distinction (task is
- *   created the same way regardless of source). Critically, when
- *   DataForSEO isn't configured, that loop FABRICATES a rank drop via
- *   `Math.random()` and presents it as if it were measured — the same
- *   fabrication issue already flagged for the orchestrator's inline
- *   keyword-fetch step (see keywordResearchAgent.service.js's header) and
- *   its own seoReporterAgent (see reportingAgent.service.js's header).
- *   That loop is NOT modified here — same "known open item" treatment.
- *   This agent's own collectRankDrops() deliberately does NOT fabricate:
- *   if DataForSEO isn't configured, monitoring for that project is
- *   honestly skipped (logged, not guessed) rather than inventing a drop.
- *   This agent is additive — a distinct, gated, honest code path a caller
- *   opts into via monitoringAgent.run() instead of the cron/orchestrator
- *   path. Both currently create rows in the same WorkspaceTask
- *   collection; nothing about the older path is broken or removed.
- *
- * Reuse decisions (same as the other three agents):
- *   - AI calls, retries, execution status, and logging go through aiCore
- *     (aiEngine.complete already wraps retry + status + logExecution).
- *   - The raw DataForSEO SERP call is wrapped with aiCore's retry.service
- *     directly, exactly like competitorAgent.service.js does for its own
- *     DataForSEO calls.
- *   - Runs for the same project are serialized through aiCore's
- *     executionQueue, under a distinct key so a monitoring-agent run never
- *     blocks (or is blocked by) an auditor/keyword/competitor/reporting
- *     run for the same project.
- *   - Shared memory: recalled before analysis (prior monitoring feedback —
- *     e.g. "don't recommend a full rewrite for small drops on this page")
- *     so future diagnoses carry that context; written to when a task this
- *     agent created is rejected with a reason.
- *   - Reuses the existing 'seo-monitor' agentLoader key (already defined
- *     with skills ['rank-tracking', 'alert-configuration']) instead of
- *     registering a new agent key — those two skill files did not exist
- *     yet on disk (same missing-skill situation fixed for 'seo-reporter'
- *     in the Reporting Agent pass), so they were added under
- *     seoWorkspace/skills/, not invented as new agent config.
- *   - No new collection: WorkspaceTask already exists for exactly this
- *     purpose, and its `status` field is already a Pending/Approved/
- *     Rejected/Implemented/Failed human-approval gate consumed by
- *     publishGate.service.js and the controller's updateTaskStatus. This
- *     agent's approveTask/rejectTask only move Pending -> Approved/
- *     Rejected and are scoped to `agent.agentKey` = this agent's key, so
- *     they never touch tasks created by the older orchestrator path or by
- *     a human — and they deliberately do NOT invoke the WordPress-publish
- *     side effect that already lives solely in the controller's
- *     updateTaskStatus, to avoid duplicating that logic a second time.
- *   - source/agent{} fields added to workspaceTask.model.js are additive;
- *     see that file's header comment — every pre-existing task defaults
- *     to source 'manual' and is completely unaffected.
- */
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
@@ -90,26 +13,12 @@ const agentLoader = require('../../aiCore/agentLoader.service');
 
 const AGENT_KEY = 'seo-monitor';
 const TAG = 'MonitoringAgent';
-
-// Same threshold the existing cron autopilot loop uses (drop >= 2
-// positions triggers a recovery task) — reused for consistency, not
-// re-derived arbitrarily.
 const DROP_THRESHOLD = 2;
 const MAX_ALERTS_PER_RUN = 10; // cap AI calls per run, same rationale as competitorAgent's enrichment cap
 const NOT_FOUND_RANK = 100; // same "not found in top 100" convention the cron loop already uses
 const VALID_TASK_TYPES = ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization'];
 
 /**
- * Phase 1: objective rank-drop detection. Fetches current SERP position
- * for each Approved, tracked keyword via DataForSEO (reused method, single
- * batched call — same shape as workspaceCron.service.js's existing call),
- * updates each keyword's ranking fields, and returns only the keywords
- * whose rank worsened by DROP_THRESHOLD or more.
- *
- * Deliberately does NOT fabricate a drop when DataForSEO isn't configured
- * — monitoring for the project is honestly skipped instead (see this
- * file's header note).
- *
  * @param {Object} project - a WorkspaceProject document
  * @returns {Promise<Array<{ keyword: Object, dropAmount: number }>>}
  */
@@ -171,10 +80,6 @@ async function collectRankDrops(project) {
 }
 
 /**
- * Phase 2: the actual agent step. Own prompt; diagnoses one rank drop and
- * proposes a single concrete recovery action, grounded in the
- * rank-tracking/alert-configuration skills.
- *
  * @param {Object} project
  * @param {Object} keyword - a WorkspaceKeyword document
  * @param {number} dropAmount
@@ -234,17 +139,6 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 }
 
 /**
- * Full agent run: collect rank drops + analyze each + persist a
- * WorkspaceTask per drop (default status 'Pending', the existing gate),
- * serialized per-project through Execution Queue (own key, distinct from
- * the other agents' keys). Logs a run-level execution entry (source:
- * 'monitoringAgent') alongside aiEngine's own per-AI-call entries.
- *
- * A single drop's analysis failing does not abort the whole run — it's
- * recorded in the returned `failures` array and logged individually, so
- * one bad AI response doesn't suppress alerts for every other dropped
- * keyword in the same project.
- *
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<{ droppedKeywordCount: number, createdTasks: Array, failures: Array }>}
@@ -315,14 +209,6 @@ async function run(projectId, workspaceId) {
 }
 
 /**
- * Retry — distinct from aiCore's automatic transient-error retry inside
- * aiEngine.complete. Re-attempts analysis + task creation for one specific
- * keyword whose drop is already reflected in its stored ranking fields
- * (does not re-hit DataForSEO) — useful when a run's per-item analysis
- * failed (see `failures` above) and an operator wants to retry just that
- * one item rather than a full re-run. Still serialized through the same
- * per-project Execution Queue key as run().
- *
  * @param {string} projectId
  * @param {string} keywordId
  * @param {string} [workspaceId]
@@ -378,13 +264,6 @@ async function retryDropAnalysis(projectId, keywordId, workspaceId) {
 }
 
 /**
- * Human Approval Gate — approve path. Only moves this agent's own
- * 'Pending' tasks to 'Approved' (scoped by agent.agentKey so it never
- * touches tasks from the older orchestrator path or manual entries).
- * Deliberately does not invoke the WordPress-publish side effect that
- * already lives in the controller's updateTaskStatus — see this file's
- * header note on why that isn't duplicated here.
- *
  * @param {string} taskId
  * @param {string} projectId
  * @param {string} userId
@@ -404,12 +283,6 @@ async function approveTask(taskId, projectId, userId) {
 }
 
 /**
- * Human Approval Gate — reject path. Rejected tasks stay in the collection
- * (not deleted). A given reason is recorded to shared memory so future
- * diagnoses for this project/agency carry that feedback — one rejection is
- * already a clear, specific signal (same reasoning as the other three
- * agents' per-rejection memory write).
- *
  * @param {string} taskId
  * @param {string} projectId
  * @param {string} userId
@@ -433,9 +306,6 @@ async function rejectTask(taskId, projectId, userId, reason) {
   return result;
 }
 
-/**
- * Shared Memory write-side: best-effort, never breaks rejection if it fails.
- */
 async function recordMonitoringFeedbackIfAny(projectId, reason, userId) {
   try {
     const project = await WorkspaceProject.findById(projectId);
@@ -455,10 +325,6 @@ async function recordMonitoringFeedbackIfAny(projectId, reason, userId) {
 }
 
 /**
- * Own execution history, read-side. Same shape as the other agents'
- * equivalent — queries aiCore's ExecutionLog for both this agent's
- * run-level entries and its underlying AI-call entries.
- *
  * @param {string} projectId
  * @param {number} [limit=20]
  */
