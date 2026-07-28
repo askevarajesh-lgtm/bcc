@@ -191,3 +191,5 @@ class WorkspaceCronService {
 }
 
 module.exports = new WorkspaceCronService();
+
+module.exports.FREQUENCY_MS = FREQUENCY_MS;

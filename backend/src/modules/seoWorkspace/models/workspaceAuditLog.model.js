@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const WorkspaceAuditLogSchema = new mongoose.Schema({
   targetType: {
     type: String,
-    enum: ['Project', 'Strategy', 'Task', 'Report', 'Audit', 'Keyword', 'Competitor', 'TechnicalAudit', 'ContentBrief', 'SchemaMarkup', 'InternalLink', 'ImageSeo'],
+    enum: ['Project', 'Strategy', 'Task', 'Report', 'Audit', 'Keyword', 'Competitor', 'TechnicalAudit', 'ContentBrief', 'SchemaMarkup', 'InternalLink', 'ImageSeo', 'Automation'],
     required: true
   },
   targetId: {

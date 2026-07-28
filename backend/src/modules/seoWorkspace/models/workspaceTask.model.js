@@ -37,7 +37,7 @@ const WorkspaceTaskSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  source: { type: String, enum: ['manual', 'monitoring-agent'], default: 'manual' },
+  source: { type: String, enum: ['manual', 'monitoring-agent', 'automation-agent'], default: 'manual' },
   agent: {
     agentKey: { type: String, default: null }, 
     sourceKeywordId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceKeyword', default: null },

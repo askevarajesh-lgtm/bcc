@@ -56,6 +56,7 @@ const notificationSchema = new mongoose.Schema(
         "sla_assigned",
         "sla_escalated",
         "sla_status_changed",
+        "workspace_automation_triggered",
       ],
     },
     title: {

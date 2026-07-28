@@ -120,6 +120,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'automation-agent': {
+    key: 'automation-agent',
+    displayName: 'Automation Agent',
+    skills: ['alert-configuration', 'executive-summary'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 
