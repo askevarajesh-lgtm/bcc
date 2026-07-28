@@ -104,6 +104,22 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'blog-seo-agent': {
+    key: 'blog-seo-agent',
+    displayName: 'Blog SEO Agent',
+    skills: ['builder-onpage-metadata-optimization', 'builder-heading-structure-audit'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'store-seo-agent': {
+    key: 'store-seo-agent',
+    displayName: 'Store SEO Agent',
+    skills: ['builder-onpage-metadata-optimization', 'technical-infrastructure-audit'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

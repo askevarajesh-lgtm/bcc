@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const storeController = require('./store.controller');
+const storeSeoAgentController = require('./storeSeoAgent.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.use(authMiddleware);
@@ -50,5 +51,10 @@ router.put('/:storeId/orders/:orderId/fulfill', storeController.fulfillOrder);
 
 // Customers list
 router.get('/:storeId/customers', storeController.getCustomers);
+
+router.post('/:storeId/seo-agent/run', storeSeoAgentController.runStoreSeoAgent);
+router.put('/:storeId/seo-agent/:runId/approve', storeSeoAgentController.approveStoreSeoFindings);
+router.put('/:storeId/seo-agent/:runId/reject', storeSeoAgentController.rejectStoreSeoFindings);
+router.get('/:storeId/seo-agent/history', storeSeoAgentController.getStoreSeoExecutionHistory);
 
 module.exports = router;

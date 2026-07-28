@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const blogController = require('./blog.controller');
+const blogSeoAgentController = require('./blogSeoAgent.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 // Public Blog Endpoint
@@ -28,5 +29,10 @@ router.get('/:blogId/categories', blogController.getCategories);
 router.post('/:blogId/categories', blogController.addCategory);
 router.put('/categories/:categoryId', blogController.updateCategory);
 router.delete('/categories/:categoryId', blogController.deleteCategory);
+
+router.post('/:blogId/posts/:postId/seo-agent/run', blogSeoAgentController.runBlogSeoAgent);
+router.put('/:blogId/posts/:postId/seo-agent/:runId/approve', blogSeoAgentController.approveBlogSeoFindings);
+router.put('/:blogId/posts/:postId/seo-agent/:runId/reject', blogSeoAgentController.rejectBlogSeoFindings);
+router.get('/:blogId/posts/:postId/seo-agent/history', blogSeoAgentController.getBlogSeoExecutionHistory);
 
 module.exports = router;
