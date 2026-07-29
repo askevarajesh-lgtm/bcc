@@ -41,6 +41,20 @@ const WorkspaceTaskSchema = new mongoose.Schema({
     default: null
   },
   source: { type: String, enum: ['manual', 'monitoring-agent', 'automation-agent', 'competitor-intelligence-agent'], default: 'manual' },
+  generatedFix: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  verification: {
+    status: {
+      type: String,
+      enum: ['Not Verified', 'Pending Verification', 'Verified', 'Failed', 'Inconclusive'],
+      default: 'Not Verified'
+    },
+    method: { type: String, default: null }, // which verifier function ran
+    checkedAt: { type: Date, default: null },
+    details: { type: String, default: '' }
+  },
   agent: {
     agentKey: { type: String, default: null }, 
     sourceKeywordId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceKeyword', default: null },

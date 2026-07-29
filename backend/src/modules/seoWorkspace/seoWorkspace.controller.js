@@ -23,6 +23,7 @@ const imageSeoAgent = require('./services/imageSeoAgent.service');
 const aeoAgent = require('./services/aeoAgent.service');
 const geoAgent = require('./services/geoAgent.service');
 const auditLogService = require('./services/auditLog.service');
+const taskVerification = require('./services/taskVerification.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
 
@@ -420,6 +421,18 @@ exports.runTechnicalSeoAgent = async (req, res) => {
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     console.error('[runTechnicalSeoAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.generateTechnicalFixes = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const workspaceId = getWorkspaceId(req);
+    const audit = await technicalSeoAgent.generateFixesForFindings(auditId, projectId, workspaceId);
+    res.status(200).json({ success: true, data: audit });
+  } catch (error) {
+    console.error('[generateTechnicalFixes] Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1083,6 +1096,17 @@ exports.updateTaskStatus = async (req, res) => {
 
     res.json({ success: true, data: task });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.verifyTask = async (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    const task = await taskVerification.verifyTask(taskId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    console.error('[verifyTask] Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };

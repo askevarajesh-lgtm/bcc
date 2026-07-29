@@ -10,6 +10,7 @@ const retry = require('../../aiCore/retry.service');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 const agentLoader = require('../../aiCore/agentLoader.service');
+const verifierRegistry = require('../../aiCore/fixEngine/verification/verifierRegistry');
 
 const AGENT_KEY = 'schema-agent';
 const TAG = 'SchemaAgent';
@@ -444,3 +445,16 @@ module.exports = {
   rejectSchemaMarkup,
   getExecutionHistory
 };
+
+verifierRegistry.register('structured_data', async (url) => {
+  const record = await new CrawlService(url, 1).fetchAndParse(url);
+  if (record.error) return { valid: false, errors: [record.error] };
+  const blocks = Array.isArray(record.jsonLd) ? record.jsonLd : [];
+  if (blocks.length === 0) return { valid: false, errors: ['no JSON-LD found on the live page'] };
+  // A page can carry more than one JSON-LD block — verified if at least one is valid.
+  const validations = blocks.map((block) => validateSchemaMarkup(block));
+  const anyValid = validations.some((v) => v.isValid);
+  return anyValid
+    ? { valid: true, errors: [] }
+    : { valid: false, errors: validations.flatMap((v) => v.errors) };
+});

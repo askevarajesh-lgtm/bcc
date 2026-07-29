@@ -58,7 +58,8 @@ const WorkspaceTechnicalAuditSchema = new mongoose.Schema({
       issue: { type: String, required: true },
       recommendation: { type: String, default: '' },
       taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'], default: 'Content Edit' },
-      pageUrl: { type: String, default: null }
+      pageUrl: { type: String, default: null },
+      generatedFix: { type: mongoose.Schema.Types.Mixed, default: null }
     }],
     approvalStatus: { type: String, enum: ['Not Requested', 'Pending Approval', 'Approved', 'Rejected'], default: 'Not Requested' },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

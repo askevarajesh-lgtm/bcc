@@ -12,6 +12,8 @@ const retry = require('../../aiCore/retry.service');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 const agentLoader = require('../../aiCore/agentLoader.service');
+const fixEngine = require('../../aiCore/fixEngine/fixEngine.service');
+const verifierRegistry = require('../../aiCore/fixEngine/verification/verifierRegistry');
 
 const AGENT_KEY = 'technical-seo-agent';
 const TAG = 'TechnicalSeoAgent';
@@ -278,6 +280,37 @@ async function run(projectId, workspaceId) {
 /**
  * @param {string} auditId
  * @param {string} projectId
+ * @param {string} [workspaceId]
+ */
+async function generateFixesForFindings(auditId, projectId, workspaceId) {
+  const audit = await WorkspaceTechnicalAudit.findOne({ _id: auditId, projectId });
+  if (!audit) throw new Error('Technical audit not found');
+
+  const project = await WorkspaceProject.findById(projectId);
+  const agencyId = workspaceId || project?.createdBy || project?.companyId;
+
+  const findings = audit.agent?.findings || [];
+  for (const finding of findings) {
+    if (finding.generatedFix) continue; // already generated, don't redo the work
+    try {
+      finding.generatedFix = await fixEngine.generateFix({
+        taskType: finding.taskType,
+        finding: { ...finding.toObject?.() || finding, issue: finding.issue, recommendation: finding.recommendation },
+        context: { workspaceId: agencyId, projectId, project }
+      });
+    } catch (error) {
+      logger.warn(TAG, `Fix generation failed for finding (${finding.category}) on audit ${auditId}: ${error.message}`, { projectId });
+      finding.generatedFix = { payload: {}, autoFixable: false, confidence: 0, risk: 'high', affectedPages: [], verificationStatus: 'Not Verified', errors: [error.message] };
+    }
+  }
+
+  await audit.save();
+  return audit;
+}
+
+/**
+ * @param {string} auditId
+ * @param {string} projectId
  * @param {string} userId
  */
 async function approveFindings(auditId, projectId, userId) {
@@ -301,7 +334,8 @@ async function approveFindings(auditId, projectId, userId) {
       taskType: f.taskType,
       description: `[Technical SEO Agent] ${f.issue}${f.recommendation ? ' — ' + f.recommendation : ''}`,
       proposedChanges: { category: f.category, severity: f.severity, recommendation: f.recommendation },
-      status: 'Pending'
+      status: 'Pending',
+      generatedFix: f.generatedFix || null
     }));
 
   let createdTasks = [];
@@ -401,7 +435,16 @@ module.exports = {
   run,
   collectTechnicalSignals,
   analyzeTechnicalFindings,
+  checkRobotsAndSitemap,
+  generateFixesForFindings,
   approveFindings,
   rejectFindings,
   getExecutionHistory
 };
+
+verifierRegistry.register('robots_txt', (url) => checkRobotsAndSitemap(url));
+verifierRegistry.register('sitemap', (url) => checkRobotsAndSitemap(url));
+verifierRegistry.register('canonical_issues', (url) => new CrawlService(url, 1).fetchAndParse(url));
+verifierRegistry.register('core_web_vitals', (url) => dataForSeoService.getPageSpeed(url));
+verifierRegistry.register('broken_links', (url) => new CrawlService(url, 1).fetchAndParse(url));
+verifierRegistry.register('missing_meta', (url) => new CrawlService(url, 1).fetchAndParse(url));

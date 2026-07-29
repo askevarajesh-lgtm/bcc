@@ -51,6 +51,7 @@ router.get('/projects/:projectId/competitor-agent/history', workspaceController.
 
 
 router.post('/projects/:projectId/technical-seo-agent/run', blockViewOnly, workspaceController.runTechnicalSeoAgent);
+router.post('/projects/:projectId/technical-seo-agent/:auditId/generate-fixes', blockViewOnly, workspaceController.generateTechnicalFixes);
 router.put('/projects/:projectId/technical-seo-agent/:auditId/approve', blockViewOnly, workspaceController.approveTechnicalFindings);
 router.put('/projects/:projectId/technical-seo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectTechnicalFindings);
 router.get('/projects/:projectId/technical-seo-agent/history', workspaceController.getTechnicalSeoExecutionHistory);
@@ -107,6 +108,7 @@ router.get('/projects/:projectId/analytics', workspaceController.getAnalytics);
 // Tasks (Approvals Queue)
 router.get('/projects/:projectId/tasks', workspaceController.getTasks);
 router.put('/projects/:projectId/tasks/:taskId/status', blockViewOnly, workspaceController.updateTaskStatus);
+router.put('/projects/:projectId/tasks/:taskId/verify', blockViewOnly, workspaceController.verifyTask);
 
 // Reports
 router.get('/projects/:projectId/reports', workspaceController.getReports);
