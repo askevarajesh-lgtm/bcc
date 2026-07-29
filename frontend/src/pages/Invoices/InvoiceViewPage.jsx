@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, Tabs, Button, Typography, message, Table, Spin, Tag, Space, Dropdown } from "antd";
 import { ArrowLeftOutlined, PrinterOutlined, SendOutlined, MailOutlined, DashboardOutlined, WhatsAppOutlined } from "@ant-design/icons";
 import ProfessionalInvoice from "./components/ProfessionalInvoice";
+import InvoiceTransactionsTab from "./components/InvoiceTransactionsTab";
 import { useAuth } from "../../contexts/AuthContext";
 
 const { Title } = Typography;
@@ -217,17 +218,7 @@ const InvoiceViewPage = () => {
     {
       key: "2",
       label: "Transactions",
-      children: (
-        <Card>
-          <Table
-            dataSource={transactions}
-            columns={transactionColumns}
-            rowKey="_id"
-            pagination={false}
-            locale={{ emptyText: "No transactions found." }}
-          />
-        </Card>
-      ),
+      children: <InvoiceTransactionsTab invoice={invoice} isClientRole={isClientRole} />,
     },
   ];
 

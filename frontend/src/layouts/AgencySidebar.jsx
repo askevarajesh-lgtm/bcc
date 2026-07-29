@@ -6,6 +6,7 @@ import {
   Calendar,
   CheckSquare,
   CreditCard,
+  DollarSign,
   FileText,
   HelpCircle,
   Inbox,
@@ -176,6 +177,21 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       key: 'ops',
       label: collapsed ? 'OPS' : 'AGENCY OPS',
       children: opsChildren,
+    });
+  }
+
+  const accountsChildren = [];
+  accountsChildren.push({ key: '/agency/accounts/transactions', icon: getIcon(CreditCard), label: 'Transactions' });
+  accountsChildren.push({ key: '/agency/accounts/sales-tracking', icon: getIcon(TrendingUp), label: 'Sales Tracking' });
+  accountsChildren.push({ key: '/agency/accounts/expenses', icon: getIcon(FileText), label: 'Expenses Management' });
+  // accountsChildren.push({ key: '/agency/accounts/campaign-expenses', icon: getIcon(DollarSign), label: 'Campaign Expenses' });
+  // accountsChildren.push({ key: '/agency/accounts/pl-analytics', icon: getIcon(PieChart), label: 'P&L Analytics' });
+
+  if (accountsChildren.length > 0) {
+    menuItems.push({
+      key: 'accounts',
+      label: collapsed ? 'ACC' : 'ACCOUNTS',
+      children: accountsChildren,
     });
   }
 

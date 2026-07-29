@@ -40,8 +40,11 @@ const notepadRoutes = require('../modules/notepad/notepad.routes');
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
 const proposalRoutes = require('../modules/proposals/proposal.routes');
 const invoiceRoutes = require('../modules/invoices/invoice.routes');
+const transactionRoutes = require('../modules/transactions/transaction.routes');
 const leadRoutes = require('../modules/leads/lead.routes');
 const salesPipelineRoutes = require('../modules/salesPipeline/salesPipeline.routes');
+const salesRoutes = require('../modules/sales/sales.routes');
+const expenseRoutes = require('../modules/expenses/expense.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -122,8 +125,12 @@ router.use('/notepad', notepadRoutes);
 router.use('/master-items', masterItemRoutes);
 router.use('/proposals', proposalRoutes);
 router.use('/invoices', invoiceRoutes);
+router.use('/transactions', transactionRoutes);
 router.use('/leads', leadRoutes);
 router.use('/sales-pipeline', salesPipelineRoutes);
+router.use('/sales', salesRoutes);
+router.use('/expenses', expenseRoutes);
+router.use('/', require('../modules/domain-purchases/domainPurchase.routes'));
 
 // Meetings Mount
 router.use('/meetings', require('../modules/meetings/meeting.routes'));

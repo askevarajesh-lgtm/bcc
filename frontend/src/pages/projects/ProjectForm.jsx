@@ -98,8 +98,7 @@ const ProjectForm = () => {
 
   const project = projectData?.data?.project;
   // Handle dropdown response (data?.data?.companies) or paginated response (data?.data?.data)
-  const companies =
-    companiesData?.data?.companies || companiesData?.data?.data || companiesData?.data || [];
+  const companies = companiesData?.data?.companies || companiesData?.data?.data || companiesData?.data || [];
   // Handle paginated response (data?.data?.data) or legacy format (data?.data?.invoices)
   const invoices = Array.isArray(invoicesData) ? invoicesData : 
     (invoicesData?.data?.data || invoicesData?.data?.invoices || invoicesData?.data || []);

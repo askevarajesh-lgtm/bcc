@@ -15,7 +15,7 @@ exports.getBrands = async (req, res, next) => {
 
     if (isAgencyAdmin || isEmployee) {
       // For agency admins and their employees, companyId represents the agency.
-      const agencyId = req.user.agencyId || req.user.adminId || req.companyId;
+      const agencyId = req.user.agencyId || req.user.adminId || req.companyId || (isAgencyAdmin ? req.user._id : null);
       if (!agencyId) {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }
@@ -25,6 +25,15 @@ exports.getBrands = async (req, res, next) => {
       if (req.user && req.user.role === 'commander_admin') {
         filter.createdBy = req.user._id;
       }
+    }
+
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { companyName: searchRegex },
+        { email: searchRegex }
+      ];
     }
 
     const brands = await User.find(filter).sort({ createdAt: -1 }).populate('createdBy', 'name role roleName');
@@ -52,7 +61,7 @@ exports.getBrands = async (req, res, next) => {
 // Create a new brand/company and its agency manager user
 exports.createBrand = async (req, res, next) => {
   try {
-    const { name, email, password, packageName, features, mrr } = req.body;
+    const { name, email, password, packageName, features, mrr, phone, countryCode, address } = req.body;
 
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
@@ -65,7 +74,7 @@ exports.createBrand = async (req, res, next) => {
     let isDirect = false;
 
     if (isAgency) {
-      agencyId = req.user.agencyId;
+      agencyId = req.user.agencyId || req.user.adminId || req.user._id;
       if (!agencyId) {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }
@@ -104,6 +113,9 @@ exports.createBrand = async (req, res, next) => {
     const brand = await User.create({
       name: name + ' Admin',
       email,
+      phone,
+      countryCode,
+      address,
       password: password || undefined,
       role: isAgency ? 'agency_client' : (isAdmin ? 'brand_super_admin' : 'brand_manager'),
       agencyId, // Null for direct brands

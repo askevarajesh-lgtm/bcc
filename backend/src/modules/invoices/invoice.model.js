@@ -36,9 +36,21 @@ const invoiceSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  totalPaid: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  pendingAmount: {
+    type: Number,
+    default: function() {
+      return this.grandTotal;
+    },
+    min: 0
+  },
   paymentStatus: {
     type: String,
-    enum: ['Pending', 'Paid'],
+    enum: ['Pending', 'Partially Paid', 'Paid'],
     default: 'Pending'
   },
   invoiceStatus: {

@@ -769,4 +769,24 @@ Require stack:
     at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
     at IncomingMessage.emit (node:events:524:28)
     at endReadableNT (node:internal/streams/readable:1698:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-29T10:27:50.662Z\nCastError: Cast to ObjectId failed for value "undefined" (type string) at path "_id" for model "Invoice"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n2026-07-29T10:27:50.678Z\nCastError: Cast to ObjectId failed for value "undefined" (type string) at path "_id" for model "Invoice"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n

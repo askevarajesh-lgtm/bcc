@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
-const createQueryHook = (endpointFn) => {
+export const createQueryHook = (endpointFn) => {
   return (params, options = {}) => {
     const { skip } = options;
     const [data, setData] = useState(null);
@@ -34,37 +34,42 @@ const createQueryHook = (endpointFn) => {
   };
 };
 
-const createMutationHook = (endpointFn) => {
+export const createMutationHook = (endpointFn) => {
   return () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const mutate = async (params) => {
-      setIsLoading(true);
-      try {
-        const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
-        const url = typeof config === 'string' ? config : config.url;
-        const method = typeof config === 'object' && config.method ? config.method : 'POST';
-        const body = typeof config === 'object' ? config.body : undefined;
-        const formData = typeof config === 'object' ? config.formData : undefined;
-        
-        const response = await api({ url, method, data: formData || body });
-        setError(null);
-        return { data: response.data };
-      } catch (err) {
-        setError(err);
-        return { error: err };
-      } finally {
-        setIsLoading(false);
-      }
+    const mutate = (params) => {
+      const promise = (async () => {
+        setIsLoading(true);
+        try {
+          const config = typeof endpointFn === 'function' ? endpointFn(params) : { url: endpointFn };
+          const url = typeof config === 'string' ? config : config.url;
+          const method = typeof config === 'object' && config.method ? config.method : 'POST';
+          const body = typeof config === 'object' ? config.body : undefined;
+          const formData = typeof config === 'object' ? config.formData : undefined;
+          
+          const response = await api({ url, method, data: formData || body });
+          setError(null);
+          return { data: response.data };
+        } catch (err) {
+          setError(err);
+          return { error: err };
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+
+      promise.unwrap = async () => {
+        const result = await promise;
+        if (result.error) {
+          throw result.error;
+        }
+        return result.data;
+      };
+
+      return promise;
     };
     return [mutate, { isLoading, error }];
   };
 };
-
-export const useGetUsersQuery = createQueryHook((params) => ({ url: '/users', params }));
-export const useGetUsersDropdownQuery = createQueryHook((params) => ({ url: '/users/dropdown', params }));
-export const useGetUsersByRoleQuery = createQueryHook((role, params = {}) => ({ 
-  url: '/users', 
-  params: { ...params, role } 
-}));

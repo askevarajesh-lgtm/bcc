@@ -59,6 +59,7 @@ import ProjectForm from './pages/projects/ProjectForm';
 import ProjectDetail from './pages/projects/ProjectDetail';
 import MasterItemsList from './pages/MasterItems/MasterItemsList';
 import MasterItemForm from './pages/MasterItems/MasterItemForm';
+import ExpenseManagementPage from './pages/expenses/ExpenseManagementPage';
 import ProposalsList from './pages/Proposals/ProposalsList';
 import ProposalForm from './pages/Proposals/ProposalForm';
 import InvoicesList from './pages/Invoices/InvoicesList';
@@ -134,7 +135,8 @@ import DailyReports from './pages/dailyreport/DailyReports';
 
 import PerformancePage from './pages/performance/PerformancePage';
 import SelfAssessmentForm from './pages/performance/SelfAssessmentForm';
-
+import TransactionsPage from './pages/transactions/TransactionsPage';
+import SalesTrackingPageEnhanced from './pages/sales/SalesTrackingPageEnhanced';
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -372,6 +374,9 @@ const AppRoutes = () => {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="deliverables" element={<DeliverablesPage />} />
           <Route path="salespipeline" element={<SalesPipeline />} />
+          <Route path="accounts/transactions" element={<TransactionsPage />} />
+          <Route path="accounts/expenses" element={<ExpenseManagementPage />} />
+          <Route path="accounts/sales-tracking" element={<SalesTrackingPageEnhanced />} />
           
           {/* HRMS Routes (Agency Manager) */}
           <Route path="hrms/performance" element={<PerformancePage />} />
