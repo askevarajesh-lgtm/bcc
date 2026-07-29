@@ -20,6 +20,7 @@ const schemaAgent = require('./services/schemaAgent.service');
 const internalLinkingAgent = require('./services/internalLinkingAgent.service');
 const imageSeoAgent = require('./services/imageSeoAgent.service');
 const aeoAgent = require('./services/aeoAgent.service');
+const geoAgent = require('./services/geoAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
@@ -682,6 +683,60 @@ exports.getAeoAgentExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await aeoAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.runGeoAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await geoAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runGeoAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveGeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { audit, createdTasks } = await geoAgent.approveGeoRecommendations(auditId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: audit, createdTasks });
+  } catch (error) {
+    console.error('Error approving GEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving GEO recommendations' });
+  }
+};
+
+exports.rejectGeoRecommendations = async (req, res) => {
+  try {
+    const { projectId, auditId } = req.params;
+    const { reason } = req.body;
+    const result = await geoAgent.rejectGeoRecommendations(auditId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting GEO recommendations:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting GEO recommendations' });
+  }
+};
+
+exports.getGeoAgentExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await geoAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

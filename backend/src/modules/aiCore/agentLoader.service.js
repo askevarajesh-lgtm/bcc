@@ -136,6 +136,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'geo-agent': {
+    key: 'geo-agent',
+    displayName: 'GEO Agent',
+    skills: ['entity-schema-consistency', 'ai-citation-readiness'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

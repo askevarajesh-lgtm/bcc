@@ -83,6 +83,12 @@ router.put('/projects/:projectId/aeo-agent/:auditId/approve', blockViewOnly, wor
 router.put('/projects/:projectId/aeo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectAeoRecommendations);
 router.get('/projects/:projectId/aeo-agent/history', workspaceController.getAeoAgentExecutionHistory);
 
+
+router.post('/projects/:projectId/geo-agent/run', blockViewOnly, workspaceController.runGeoAgent);
+router.put('/projects/:projectId/geo-agent/:auditId/approve', blockViewOnly, workspaceController.approveGeoRecommendations);
+router.put('/projects/:projectId/geo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectGeoRecommendations);
+router.get('/projects/:projectId/geo-agent/history', workspaceController.getGeoAgentExecutionHistory);
+
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
 
