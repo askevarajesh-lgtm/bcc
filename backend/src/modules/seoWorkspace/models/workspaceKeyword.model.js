@@ -31,7 +31,9 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
 
   // Tags for organizing keywords
   tags: [{ type: String }],
-  
+
+  isQuestion: { type: Boolean, default: false },
+
   isDeleted: { type: Boolean, default: false },
 
   source: { type: String, enum: ['manual', 'ranked-import', 'keyword-research-agent'], default: 'manual' },
@@ -52,5 +54,6 @@ WorkspaceKeywordSchema.index({ projectId: 1, keyword: 1, locationCode: 1, langua
 
 // Fast queries for dashboard
 WorkspaceKeywordSchema.index({ projectId: 1, 'ranking.currentRank': 1 });
+WorkspaceKeywordSchema.index({ projectId: 1, isQuestion: 1 });
 
 module.exports = mongoose.model('WorkspaceKeyword', WorkspaceKeywordSchema, 'workspace_keywords');

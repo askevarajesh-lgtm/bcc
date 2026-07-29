@@ -13,6 +13,7 @@ const WordPressService = require('../seoIntelligence/services/wordPress.service'
 const GoogleService = require('../seoIntelligence/services/google.service');
 const seoAuditorAgent = require('./services/seoAuditorAgent.service');
 const keywordResearchAgent = require('./services/keywordResearchAgent.service');
+const keywordIntelligence = require('./services/keywordIntelligence.service');
 const competitorAgent = require('./services/competitorAgent.service');
 const technicalSeoAgent = require('./services/technicalSeoAgent.service');
 const contentAgent = require('./services/contentAgent.service');
@@ -301,6 +302,49 @@ exports.getKeywordResearchExecutionHistory = async (req, res) => {
     const history = await keywordResearchAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.detectKeywordIntent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { keywords } = req.body || {};
+    if (!Array.isArray(keywords) || keywords.length === 0) {
+      return res.status(400).json({ success: false, message: 'keywords[] is required' });
+    }
+
+    const results = await keywordIntelligence.getSearchVolumeAndTrend(keywords, { projectId });
+    const byKeyword = new Map(results.map((r) => [r.keyword.toLowerCase(), r]));
+
+    const data = keywords.map((k) => {
+      const match = byKeyword.get(k.toLowerCase());
+      return {
+        keyword: k,
+        intent: match?.intent || 'unknown',
+        confidence: match ? 'measured' : 'unmeasured'
+      };
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('[detectKeywordIntent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getRelatedKeywords = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { keyword } = req.body || {};
+    if (!keyword || !keyword.trim()) {
+      return res.status(400).json({ success: false, message: 'keyword is required' });
+    }
+
+    const candidates = await keywordIntelligence.getCandidatePool(keyword.trim(), { projectId, limit: 30 });
+    res.status(200).json({ success: true, data: candidates });
+  } catch (error) {
+    console.error('[getRelatedKeywords] Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -775,8 +819,23 @@ exports.getKeywords = async (req, res) => {
       }
       query.projectId = req.query.projectId;
     }
+    if (req.query.isQuestion === 'true') {
+      query.isQuestion = true;
+    }
+    if (req.query.intent) {
+      query['metrics.intent'] = req.query.intent;
+    }
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
 
-    const keywords = await WorkspaceKeyword.find(query).populate('projectId', 'name').sort({ 'metrics.searchVolume': -1 });
+    let keywordsQuery = WorkspaceKeyword.find(query).populate('projectId', 'name').sort({ 'metrics.searchVolume': -1 });
+    let keywords = await keywordsQuery;
+
+    if (req.query.longTail === 'true') {
+      keywords = keywords.filter((k) => k.keyword.trim().split(/\s+/).length >= 4);
+    }
+
     res.json(keywords);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

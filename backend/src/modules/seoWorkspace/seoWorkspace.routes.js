@@ -40,6 +40,8 @@ router.post('/projects/:projectId/keyword-research/run', blockViewOnly, workspac
 router.put('/projects/:projectId/keyword-research/approve', blockViewOnly, workspaceController.approveKeywordSuggestions);
 router.put('/projects/:projectId/keyword-research/reject', blockViewOnly, workspaceController.rejectKeywordSuggestions);
 router.get('/projects/:projectId/keyword-research/history', workspaceController.getKeywordResearchExecutionHistory);
+router.post('/projects/:projectId/keywords/detect-intent', blockViewOnly, workspaceController.detectKeywordIntent);
+router.post('/projects/:projectId/keywords/related', blockViewOnly, workspaceController.getRelatedKeywords);
 
 
 router.post('/projects/:projectId/competitor-agent/run', blockViewOnly, workspaceController.runCompetitorAgent);
