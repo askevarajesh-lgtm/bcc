@@ -252,60 +252,7 @@ router.get("/events", async (req, res) => {
 });
 
 router.get("/auth/facebook", (req, res) => {
-  if (process.env.FB_PAGE_ID && process.env.PAGE_ACCESS_TOKEN) {
-    (async () => {
-      try {
-        const scope = await resolveCompanyIdFromQueryToken(req);
-        if (!scope?.companyId) {
-          res.redirect(`${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=unauthorized`);
-          return;
-        }
 
-        const { FB_PAGE_ID: fb_page_id, IG_USER_ID: ig_user_id, PAGE_ACCESS_TOKEN: page_access_token } = process.env;
-        const companyId = scope.companyId;
-        const clientCompanyId = scope.clientCompanyId || null;
-
-        const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${fb_page_id}`, {
-          params: { access_token: page_access_token, fields: "id,name,instagram_business_account" }
-        });
-        const page = pageRes.data;
-        const expiresAt = Math.floor(Date.now() / 1000) + 5184000;
-
-        const facebookAccountId = buildScopedAccountId("fb", companyId, page.id);
-        await upsertAccount(
-          { id: facebookAccountId, platform: "facebook", page_id: page.id, page_name: page.name, ig_user_id: ig_user_id || page.instagram_business_account?.id || null, username: page.name, access_token: page_access_token, token_type: "page", expires_at: expiresAt, connected_at: new Date().toISOString() },
-          companyId, clientCompanyId
-        );
-
-        const linkedIgId = ig_user_id || page.instagram_business_account?.id;
-        if (linkedIgId) {
-          let igUsername = linkedIgId;
-          try {
-            const igRes = await axios.get(`https://graph.facebook.com/v18.0/${linkedIgId}`, {
-              params: { fields: "username,name", access_token: page_access_token }
-            });
-            igUsername = igRes.data.username || igRes.data.name || linkedIgId;
-          } catch (e) {}
-
-          const instagramAccountId = buildScopedAccountId("ig", companyId, linkedIgId);
-          await upsertAccount(
-            { id: instagramAccountId, platform: "instagram", page_id: page.id, page_name: page.name, ig_user_id: linkedIgId, username: igUsername, access_token: page_access_token, token_type: "page", expires_at: expiresAt, connected_at: new Date().toISOString() },
-            companyId, clientCompanyId
-          );
-        }
-
-        const accounts = await getAllAccounts(companyId, clientCompanyId);
-        broadcastSSE("accounts_sync", accounts, scope);
-        broadcastSSE("connection_changed", buildConnectionStatus(accounts), scope);
-
-        res.redirect(`${FRONTEND_URL}/campaigns-scheduled?oauth=success`);
-      } catch (err) {
-        console.error("[Env Sync Meta Connect] Error:", err.response?.data || err.message);
-        res.redirect(`${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=${encodeURIComponent(err.response?.data?.error?.message || err.message)}`);
-      }
-    })();
-    return;
-  }
 
   if (!hasMetaCredentials()) {
     res.redirect(
