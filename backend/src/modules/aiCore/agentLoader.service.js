@@ -144,6 +144,14 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+  'competitor-intelligence-agent': {
+    key: 'competitor-intelligence-agent',
+    displayName: 'Competitor Intelligence Agent',
+    skills: ['competitive-gap-analysis'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

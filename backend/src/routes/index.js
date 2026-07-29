@@ -58,6 +58,7 @@ const reportRoutes = require('../modules/reports/report.routes');
 const seoIntelligenceRoutes = require('../modules/seoIntelligence/seoIntelligence.routes');
 const seoWorkspaceRoutes = require('../modules/seoWorkspace/seoWorkspace.routes');
 const semrushRoutes = require('../modules/semrush/semrush.routes');
+const competitorIntelligenceRoutes = require('../modules/competitorIntelligence/competitorIntelligence.routes');
 
 // Mount routes
 router.use('/health', healthRoutes);
@@ -83,6 +84,7 @@ router.use('/reports', reportRoutes);
 router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/seo-workspace', seoWorkspaceRoutes);
 router.use('/semrush', semrushRoutes);
+router.use('/competitor-intelligence', competitorIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));
 router.use('/resources', require('../modules/resources/resources.routes'));
 router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
@@ -144,4 +146,4 @@ router.use('/sidebar', require('../modules/sidebar/sidebar.routes'));
 // Marketplace Mount
 router.use('/marketplace', require('../modules/marketplace/marketplace.routes'));
 
-module.exports = router;
+module.exports = router;

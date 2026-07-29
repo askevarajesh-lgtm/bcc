@@ -1,24 +1,9 @@
-/**
- * Keyword Cache Service
- *
- * Thin get-or-fetch wrapper around `keywordCache.model.js`. Every
- * `keywordIntelligence.service.js` method that hits the provider chain goes
- * through `getOrFetch()` first, so unnecessary provider requests (and their
- * cost) are avoided within each operation's TTL window.
- *
- * TTLs are configurable per operation (env override, falls back to sane
- * defaults) rather than one global TTL, because these operations have very
- * different volatility: SERP results shift daily, search volume is a
- * monthly Google Ads figure that barely moves week to week.
- */
 const crypto = require('crypto');
 const KeywordCache = require('../models/keywordCache.model');
 const logger = require('../../aiCore/logger.service');
 
 const TAG = 'KeywordCache';
 
-// Defaults in seconds. Override per-operation via env, e.g.
-// KEYWORD_CACHE_TTL_SERP=3600
 const DEFAULT_TTL_SECONDS = {
   keyword_suggestions: 60 * 60 * 24 * 7,  // 7 days — suggestion lists barely change week to week
   search_volume: 60 * 60 * 24 * 14,        // 14 days — Google Ads volume is a monthly figure
@@ -26,7 +11,12 @@ const DEFAULT_TTL_SECONDS = {
   serp: 60 * 60 * 12,                      // 12 hours — SERPs move often, keep this short
   trend: 60 * 60 * 24 * 14,                // 14 days — same monthly_searches series as volume
   related_keywords: 60 * 60 * 24 * 7,      // 7 days
-  question_keywords: 60 * 60 * 24 * 7      // 7 days
+  question_keywords: 60 * 60 * 24 * 7,     // 7 days
+  keyword_gap: 60 * 60 * 24,               // 24h — matches SemrushCache's existing 24h expiry
+  content_gap: 60 * 60 * 24,               // 24h
+  backlink_gap: 60 * 60 * 24 * 2,          // 48h — referring domains churn slower than SERPs
+  page_gap: 60 * 60 * 24,                  // 24h
+  overview: 60 * 60 * 24                   // 24h
 };
 
 function ttlSecondsFor(operation) {
@@ -82,7 +72,6 @@ async function getOrFetch(operation, params, fetchFn, options = {}) {
       { upsert: true }
     );
   } catch (error) {
-    // A caching failure must never break the actual feature.
     logger.warn(TAG, `Cache write failed for ${operation}: ${error.message}`);
   }
 

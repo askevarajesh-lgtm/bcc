@@ -17,7 +17,10 @@ const WorkspaceTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization', 'AEO Optimization'],
+    enum: [
+      'Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization', 'AEO Optimization',
+      'Target New Keyword', 'Close Content Gap', 'Build Backlink', 'Close Page Gap'
+    ],
     required: true
   },
   description: {
@@ -37,12 +40,15 @@ const WorkspaceTaskSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  source: { type: String, enum: ['manual', 'monitoring-agent', 'automation-agent'], default: 'manual' },
+  source: { type: String, enum: ['manual', 'monitoring-agent', 'automation-agent', 'competitor-intelligence-agent'], default: 'manual' },
   agent: {
     agentKey: { type: String, default: null }, 
     sourceKeywordId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceKeyword', default: null },
     dropAmount: { type: Number, default: null },
-    rationale: { type: String, default: null }
+    rationale: { type: String, default: null },
+    recommendationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Recommendation', default: null },
+    estimatedEffort: { type: String, enum: ['low', 'medium', 'high', null], default: null },
+    estimatedImpact: { type: Number, default: null }
   }
 }, { timestamps: true });
 
