@@ -67,7 +67,8 @@ class CrawlService {
       headings: [], 
       listCount: 0, 
       tableCount: 0, 
-      hasExistingFaqSchema: false 
+      hasExistingFaqSchema: false,
+      jsonLd: [] // new field (aiCore/analyzers SchemaAnalyzer) — raw parsed JSON-LD blocks; additive, existing consumers ignore it
     };
 
     try {
@@ -149,6 +150,7 @@ class CrawlService {
       $('script[type="application/ld+json"]').each((i, el) => {
         try {
           const parsed = JSON.parse($(el).html());
+          record.jsonLd.push(parsed); // new field — additive, hasExistingFaqSchema logic below stays exactly as-is
           const nodes = Array.isArray(parsed) ? parsed : (Array.isArray(parsed['@graph']) ? parsed['@graph'] : [parsed]);
           if (nodes.some((n) => {
             const t = n && n['@type'];
