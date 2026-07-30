@@ -122,6 +122,7 @@ router.put('/projects/:projectId/tasks/:taskId/verify', blockViewOnly, workspace
 // Reports
 router.get('/projects/:projectId/reports', workspaceController.getReports);
 router.post('/projects/:projectId/generate-report', blockViewOnly, workspaceController.generateReport);
+router.get('/projects/:projectId/reports/:reportId/download', workspaceController.downloadReport);
 
 // Dashboard & Search
 router.get('/dashboard', workspaceController.getDashboard);

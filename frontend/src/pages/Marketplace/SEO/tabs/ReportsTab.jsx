@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Card, Table, Button, Space, Empty, Alert, Tag, message, Switch, Select, Input, Form } from 'antd';
-import { FileText } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
@@ -15,6 +15,7 @@ const ReportsTab = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduleFrequency, setScheduleFrequency] = useState('weekly');
   const [emailRecipients, setEmailRecipients] = useState('');
@@ -50,6 +51,25 @@ const ReportsTab = () => {
       setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to generate report — this endpoint requires at least 2 completed audits.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const download = async (report) => {
+    setDownloadingId(report._id);
+    try {
+      const { blob, filename } = await seoWorkspaceApi.downloadReport(projectId, report._id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      message.error(err?.response?.data?.error || 'Failed to download report');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -114,7 +134,17 @@ const ReportsTab = () => {
               { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', render: (d) => new Date(d).toLocaleString() },
               {
                 title: '', key: 'download',
-                render: (_, r) => r.downloadUrl ? <a href={r.downloadUrl} target="_blank" rel="noreferrer">Download</a> : <Text type="secondary">—</Text>
+                render: (_, r) => (
+                  <Button
+                    size="small"
+                    icon={<Download size={14} />}
+                    disabled={r.status !== 'completed'}
+                    loading={downloadingId === r._id}
+                    onClick={() => download(r)}
+                  >
+                    Download
+                  </Button>
+                )
               }
             ]}
           />

@@ -1286,6 +1286,44 @@ exports.generateReport = async (req, res) => {
   }
 };
 
+const REPORT_FORMAT_META = {
+  markdown: { ext: 'md', mime: 'text/markdown; charset=utf-8' },
+  csv: { ext: 'csv', mime: 'text/csv; charset=utf-8' },
+  pdf: { ext: 'pdf', mime: 'application/pdf' },
+  excel: { ext: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+};
+
+exports.downloadReport = async (req, res) => {
+  try {
+    const { projectId, reportId } = req.params;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, createdBy: req.user._id });
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found or unauthorized' });
+    }
+
+    const report = await WorkspaceReport.findOne({ _id: reportId, projectId });
+    if (!report) {
+      return res.status(404).json({ success: false, error: 'Report not found' });
+    }
+
+    if (report.status !== 'completed' || !report.content) {
+      return res.status(400).json({ success: false, error: 'This report has no generated content to download yet.' });
+    }
+
+    const meta = REPORT_FORMAT_META[report.format] || REPORT_FORMAT_META.markdown;
+    const safeName = (report.name || 'report').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'report';
+    const filename = `${safeName}.${meta.ext}`;
+
+    res.setHeader('Content-Type', meta.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(report.content);
+  } catch (error) {
+    console.error('[downloadReport] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // --- Comments (polymorphic across Strategy/Task/Report) ---
 
 const VALID_TARGET_TYPES = ['Strategy', 'Task', 'Report'];

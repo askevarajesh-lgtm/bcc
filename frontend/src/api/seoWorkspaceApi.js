@@ -219,6 +219,42 @@ export const seoWorkspaceApi = {
     return res.data;
   },
 
+  // --- AEO agent (Answer Engine Optimization — per-page readiness) ---
+  runAeoAgent: async (projectId) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/run`, {}, getAuthHeaders());
+    return res.data;
+  },
+  approveAeoRecommendations: async (projectId, auditId) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/approve`, {}, getAuthHeaders());
+    return res.data;
+  },
+  rejectAeoRecommendations: async (projectId, auditId, reason) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/reject`, { reason }, getAuthHeaders());
+    return res.data;
+  },
+  getAeoAgentHistory: async (projectId, limit) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/history${qs({ limit })}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- GEO agent (Generative Engine Optimization — sitewide entity consistency) ---
+  runGeoAgent: async (projectId) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/run`, {}, getAuthHeaders());
+    return res.data;
+  },
+  approveGeoRecommendations: async (projectId, auditId) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/approve`, {}, getAuthHeaders());
+    return res.data;
+  },
+  rejectGeoRecommendations: async (projectId, auditId, reason) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/reject`, { reason }, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAgentHistory: async (projectId, limit) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/history${qs({ limit })}`, getAuthHeaders());
+    return res.data;
+  },
+
   // --- Strategies (used by Dashboard/Approvals) ---
   getStrategies: async (projectId) => {
     const res = await axios.get(`${API_URL}/seo-workspace/strategies${qs({ projectId })}`, getAuthHeaders());
@@ -263,6 +299,17 @@ export const seoWorkspaceApi = {
   generateReport: async (projectId, data = {}) => {
     const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/generate-report`, data, getAuthHeaders());
     return res.data;
+  },
+  downloadReport: async (projectId, reportId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/reports/${reportId}/download`, {
+      ...getAuthHeaders(),
+      responseType: 'blob'
+    });
+    // Prefer the filename the server assigned via Content-Disposition; fall back to a generic name.
+    const disposition = res.headers?.['content-disposition'] || '';
+    const match = /filename="?([^"]+)"?/i.exec(disposition);
+    const filename = match ? match[1] : `report-${reportId}`;
+    return { blob: res.data, filename };
   },
 
   // --- Comments (polymorphic: targetType is 'Strategy' | 'Task' | 'Report') ---
