@@ -10,6 +10,32 @@ const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 const { Option } = Select;
 
+// Mirrors backend/src/modules/seoWorkspace/models/workspaceAutomation.model.js enums
+// and automationAgent.service.js's VALID_TASK_TYPES — kept in sync manually since
+// there's no shared frontend/backend constants file in this codebase.
+const AUTOMATION_RULE_TYPES = [
+  { value: 'rank_drop_alert', label: 'Rank Drop Alert' },
+  { value: 'scheduled_report', label: 'Scheduled Report' },
+  { value: 'content_freshness', label: 'Content Freshness' },
+  { value: 'backlink_loss', label: 'Backlink Loss' },
+  { value: 'credential_health_check', label: 'Credential Health Check' }
+];
+const AUTOMATION_FREQUENCIES = ['daily', 'weekly', 'monthly'];
+const AUTOMATION_ACTION_TYPES = [
+  { value: 'create_task', label: 'Create Task' },
+  { value: 'send_report', label: 'Send Report' },
+  { value: 'send_notification', label: 'Send Notification' },
+  { value: 'pause_autopilot', label: 'Pause Autopilot' }
+];
+const AUTOMATION_OPERATORS = [
+  { value: 'gt', label: '>' },
+  { value: 'gte', label: '>=' },
+  { value: 'lt', label: '<' },
+  { value: 'lte', label: '<=' },
+  { value: 'eq', label: '=' }
+];
+const AUTOMATION_TASK_TYPES = ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization'];
+
 const SEOWorkspace = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
   const [isApiKeyConfigured, setIsApiKeyConfigured] = useState(true);
@@ -39,6 +65,11 @@ const SEOWorkspace = () => {
   const [activeReport, setActiveReport] = useState(null);
   const [selectedSettingsProject, setSelectedSettingsProject] = useState(null);
   const [selectedKeywordProject, setSelectedKeywordProject] = useState(null);
+  const [automationRules, setAutomationRules] = useState([]);
+  const [selectedAutomationProject, setSelectedAutomationProject] = useState(null);
+  const [loadingAutomation, setLoadingAutomation] = useState(false);
+  const [ruleModalVisible, setRuleModalVisible] = useState(false);
+  const [ruleForm] = Form.useForm();
   const [form] = Form.useForm();
   const [actionLoading, setActionLoading] = useState({ isLoading: false, message: "" });
   
@@ -164,6 +195,114 @@ const SEOWorkspace = () => {
     } catch (error) {
       console.error(error);
       message.error(`Failed to ${status} task`);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedAutomationProject && activeSubTab === 'automation') {
+      fetchAutomationRules(selectedAutomationProject);
+    }
+  }, [selectedAutomationProject, activeSubTab]);
+
+  const fetchAutomationRules = async (projectId) => {
+    try {
+      setLoadingAutomation(true);
+      const res = await axios.get(`/seo-workspace/projects/${projectId}/automation`);
+      setAutomationRules(res.data.data || res.data || []);
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to load automation rules');
+    } finally {
+      setLoadingAutomation(false);
+    }
+  };
+
+  const handleCreateAutomationRule = async (values) => {
+    try {
+      const payload = {
+        name: values.name,
+        ruleType: values.ruleType,
+        frequency: values.frequency,
+        trigger: values.ruleType === 'scheduled_report' ? {} : {
+          metric: values.metric || null,
+          operator: values.operator || null,
+          value: values.value ?? null
+        },
+        action: {
+          type: values.actionType,
+          config: values.actionType === 'create_task' ? { taskType: values.taskType } : {}
+        }
+      };
+      await axios.post(`/seo-workspace/projects/${selectedAutomationProject}/automation`, payload);
+      message.success('Automation rule created — pending approval');
+      setRuleModalVisible(false);
+      ruleForm.resetFields();
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.error || 'Failed to create automation rule');
+    }
+  };
+
+  const handleApproveRule = async (ruleId) => {
+    try {
+      await axios.put(`/seo-workspace/projects/${selectedAutomationProject}/automation/${ruleId}/approve`);
+      message.success('Rule approved');
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to approve rule');
+    }
+  };
+
+  const handleRejectRule = async (ruleId) => {
+    try {
+      await axios.put(`/seo-workspace/projects/${selectedAutomationProject}/automation/${ruleId}/reject`, { reason: 'Rejected from workspace UI' });
+      message.success('Rule rejected');
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to reject rule');
+    }
+  };
+
+  const handleToggleRule = async (ruleId, isEnabled) => {
+    try {
+      await axios.put(`/seo-workspace/projects/${selectedAutomationProject}/automation/${ruleId}/toggle`, { isEnabled });
+      message.success(isEnabled ? 'Rule enabled' : 'Rule disabled');
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to update rule');
+    }
+  };
+
+  const handleRetryRule = async (ruleId) => {
+    try {
+      setActionLoading({ isLoading: true, message: 'Re-evaluating rule...' });
+      await axios.post(`/seo-workspace/projects/${selectedAutomationProject}/automation/${ruleId}/retry`);
+      message.success('Rule executed');
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to retry rule');
+    } finally {
+      setActionLoading({ isLoading: false, message: '' });
+    }
+  };
+
+  const handleRunAutomationNow = async () => {
+    if (!selectedAutomationProject) return;
+    try {
+      setActionLoading({ isLoading: true, message: 'Evaluating all rules for this project...' });
+      await axios.post(`/seo-workspace/projects/${selectedAutomationProject}/automation/run`);
+      message.success('Automation run complete');
+      fetchAutomationRules(selectedAutomationProject);
+    } catch (error) {
+      console.error(error);
+      message.error('Automation run failed');
+    } finally {
+      setActionLoading({ isLoading: false, message: '' });
     }
   };
 
@@ -384,6 +523,7 @@ const SEOWorkspace = () => {
           { key: 'keywords', label: 'Keywords' },
           { key: 'content', label: 'Content Strategy' },
           { key: 'approvals', label: 'Approvals Queue' },
+          { key: 'automation', label: 'Automation' },
           { key: 'reports', label: 'Reports' },
           { key: 'analytics', label: 'Analytics' },
           { key: 'settings', label: 'Settings' }
@@ -564,6 +704,112 @@ const SEOWorkspace = () => {
                       <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
                         <Button type="primary" onClick={() => handleUpdateTaskStatus(task._id, 'Approved')} className="seo-glow-btn" style={{ background: 'var(--accent-success)' }}>Approve</Button>
                         <Button danger onClick={() => handleUpdateTaskStatus(task._id, 'Rejected')} style={{ borderRadius: 12 }}>Reject</Button>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Automation Tab */}
+      {activeSubTab === 'automation' && (
+        <Card className="seo-glass-panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <Title level={4} style={{ margin: 0 }}>Automation Rules (Daily / Weekly / Monthly)</Title>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Select
+                placeholder="Select a project"
+                style={{ width: 250 }}
+                onChange={setSelectedAutomationProject}
+                value={selectedAutomationProject}
+              >
+                {projects.map(p => (
+                  <Option key={p._id} value={p._id}>{p.name}</Option>
+                ))}
+              </Select>
+              {!isViewOnly && (
+                <>
+                  <Button onClick={handleRunAutomationNow} disabled={!selectedAutomationProject}>Run Now</Button>
+                  <Button type="primary" icon={<Plus size={16} />} className="seo-glow-btn" disabled={!selectedAutomationProject} onClick={() => setRuleModalVisible(true)}>
+                    New Rule
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {!selectedAutomationProject ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <CheckCircle size={48} color="#ccc" style={{ marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>Select a project to view its automation rules</Text>
+            </div>
+          ) : loadingAutomation ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <Spin size="large" />
+            </div>
+          ) : automationRules.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Text type="secondary" style={{ display: 'block' }}>No automation rules yet for this project.</Text>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {automationRules.map(rule => (
+                <Card
+                  key={rule._id}
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: rule.approvalStatus === 'Pending Approval' ? '4px solid var(--accent-warning)'
+                      : rule.approvalStatus === 'Approved' ? '4px solid var(--accent-success)'
+                      : '4px solid var(--accent-danger)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <Tag className="seo-badge seo-badge-info">{rule.ruleType}</Tag>
+                        <Tag color="purple">{rule.frequency}</Tag>
+                        <Tag className={`seo-badge ${rule.approvalStatus === 'Pending Approval' ? 'seo-badge-pending' : rule.approvalStatus === 'Approved' ? 'seo-badge-success' : ''}`}>
+                          {rule.approvalStatus}
+                        </Tag>
+                        <Tag color={rule.isEnabled ? 'green' : 'default'}>{rule.isEnabled ? 'Enabled' : 'Disabled'}</Tag>
+                      </div>
+                      <Title level={5} style={{ margin: '0 0 4px 0' }}>{rule.name}</Title>
+                      <Text type="secondary">
+                        Action: {rule.action?.type}
+                        {rule.trigger?.metric && ` · Trigger: ${rule.trigger.metric} ${rule.trigger.operator} ${rule.trigger.value}`}
+                      </Text>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          Last triggered: {rule.lastTriggeredAt ? new Date(rule.lastTriggeredAt).toLocaleString() : 'Never'}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {!isViewOnly && (
+                      <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                        {rule.approvalStatus === 'Pending Approval' && (
+                          <>
+                            <Button type="primary" size="small" onClick={() => handleApproveRule(rule._id)} className="seo-glow-btn" style={{ background: 'var(--accent-success)' }}>Approve</Button>
+                            <Button danger size="small" onClick={() => handleRejectRule(rule._id)}>Reject</Button>
+                          </>
+                        )}
+                        {rule.approvalStatus === 'Approved' && (
+                          <>
+                            <Switch
+                              checked={rule.isEnabled}
+                              onChange={(checked) => handleToggleRule(rule._id, checked)}
+                              checkedChildren="On"
+                              unCheckedChildren="Off"
+                            />
+                            <Button size="small" onClick={() => handleRetryRule(rule._id)}>Run Now</Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -814,7 +1060,78 @@ const SEOWorkspace = () => {
         </Form>
       </Modal>
 
-      {/* Review Strategy Modal */}
+      {/* Create Automation Rule Modal */}
+      <Modal
+        title={<Title level={4} style={{ margin: 0, fontWeight: 800 }}>New Automation Rule</Title>}
+        open={ruleModalVisible}
+        onCancel={() => setRuleModalVisible(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={ruleForm} layout="vertical" onFinish={handleCreateAutomationRule} style={{ marginTop: 24 }}>
+          <Form.Item label="Rule Name" name="name" rules={[{ required: true, message: 'Please enter a name for this rule' }]}>
+            <Input size="large" placeholder="e.g. Weekly rank-drop watch" style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Form.Item label="Rule Type" name="ruleType" rules={[{ required: true, message: 'Please select a rule type' }]}>
+            <Select size="large" placeholder="What should this rule watch?">
+              {AUTOMATION_RULE_TYPES.map(rt => <Option key={rt.value} value={rt.value}>{rt.label}</Option>)}
+            </Select>
+          </Form.Item>
+
+          <Form.Item label="Frequency" name="frequency" initialValue="daily" rules={[{ required: true }]}>
+            <Select size="large">
+              {AUTOMATION_FREQUENCIES.map(f => <Option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</Option>)}
+            </Select>
+          </Form.Item>
+
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.ruleType !== cur.ruleType}>
+            {({ getFieldValue }) => getFieldValue('ruleType') && getFieldValue('ruleType') !== 'scheduled_report' && (
+              <>
+                <Form.Item label="Trigger Metric" name="metric" tooltip="e.g. rankDrop, daysSinceAudit, totalBacklinks">
+                  <Input placeholder="metric name" style={{ borderRadius: 8 }} />
+                </Form.Item>
+                <Row gutter={12}>
+                  <Col span={12}>
+                    <Form.Item label="Operator" name="operator">
+                      <Select placeholder="Operator">
+                        {AUTOMATION_OPERATORS.map(op => <Option key={op.value} value={op.value}>{op.label}</Option>)}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Threshold Value" name="value">
+                      <Input type="number" placeholder="e.g. 2" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
+          </Form.Item>
+
+          <Form.Item label="Action" name="actionType" rules={[{ required: true, message: 'Please select an action' }]}>
+            <Select size="large" placeholder="What should happen when this rule fires?">
+              {AUTOMATION_ACTION_TYPES.map(at => <Option key={at.value} value={at.value}>{at.label}</Option>)}
+            </Select>
+          </Form.Item>
+
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.actionType !== cur.actionType}>
+            {({ getFieldValue }) => getFieldValue('actionType') === 'create_task' && (
+              <Form.Item label="Task Type" name="taskType" rules={[{ required: true, message: 'Please select a task type' }]}>
+                <Select placeholder="Task type for the generated task">
+                  {AUTOMATION_TASK_TYPES.map(t => <Option key={t} value={t}>{t}</Option>)}
+                </Select>
+              </Form.Item>
+            )}
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right', marginTop: 32 }}>
+            <Button onClick={() => setRuleModalVisible(false)} className="seo-glow-btn-secondary" style={{ marginRight: 12 }}>Cancel</Button>
+            <Button type="primary" htmlType="submit" className="seo-glow-btn">Create Rule</Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
       <Modal
         title={<Title level={4} style={{ margin: 0, fontWeight: 800 }}>{activeStrategy?.title || 'SEO Content Strategy'}</Title>}
         open={strategyModalVisible}

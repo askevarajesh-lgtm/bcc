@@ -154,7 +154,7 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
  * @param {Object} evaluation - result of evaluateTrigger()
  * @param {string} workspaceId
  */
-async function executeAction(rule, project, decision, evaluation, workspaceId) {
+async function executeRule(rule, project, decision, evaluation, workspaceId) {
   switch (rule.action?.type) {
     case 'create_task': {
       const task = await WorkspaceTask.create({
@@ -209,6 +209,17 @@ async function executeAction(rule, project, decision, evaluation, workspaceId) {
 }
 
 /**
+ * @param {Object} rule
+ * @param {Object} project
+ * @param {Object} decision - result of decideAction()
+ * @param {Object} evaluation - result of evaluateTrigger()
+ * @param {string} workspaceId
+ */
+async function dispatchExecution(rule, project, decision, evaluation, workspaceId) {
+  return executeRule(rule, project, decision, evaluation, workspaceId);
+}
+
+/**
  * @param {string} projectId
  * @param {string} [workspaceId]
  * @returns {Promise<{ triggered: Array, skipped: Array, failures: Array }>}
@@ -256,7 +267,7 @@ async function run(projectId, workspaceId) {
           }
 
           const decision = await decideAction(rule, project, evaluation, agencyId);
-          const outcome = await executeAction(rule, project, decision, evaluation, agencyId);
+          const outcome = await dispatchExecution(rule, project, decision, evaluation, agencyId);
 
           rule.lastTriggeredAt = new Date();
           await rule.save();
@@ -334,7 +345,7 @@ async function retryRule(projectId, ruleId, workspaceId) {
       }
 
       const decision = await decideAction(rule, project, evaluation, agencyId);
-      const outcome = await executeAction(rule, project, decision, evaluation, agencyId);
+      const outcome = await dispatchExecution(rule, project, decision, evaluation, agencyId);
 
       rule.lastTriggeredAt = new Date();
       await rule.save();
@@ -455,6 +466,47 @@ async function recordRuleFeedbackIfAny(projectId, rule, reason) {
 }
 
 /**
+ * @returns {Promise<string[]>} distinct projectId strings
+ */
+async function getEligibleProjectIds() {
+  const projectIds = await WorkspaceAutomation.distinct('projectId', {
+    isEnabled: true,
+    approvalStatus: 'Approved'
+  });
+  return projectIds.map((id) => id.toString());
+}
+
+/**
+ * @param {string} projectId
+ */
+async function listRules(projectId) {
+  return WorkspaceAutomation.find({ projectId }).sort({ createdAt: -1 }).lean();
+}
+
+/**
+ * @param {string} ruleId
+ * @param {string} projectId
+ * @param {string} userId
+ * @param {boolean} isEnabled
+ */
+async function toggleRule(ruleId, projectId, userId, isEnabled) {
+  const rule = await WorkspaceAutomation.findOne({ _id: ruleId, projectId });
+  if (!rule) throw new Error('Automation rule not found for this project.');
+
+  const fromValue = rule.isEnabled;
+  rule.isEnabled = !!isEnabled;
+  await rule.save();
+
+  auditLogService.record({
+    targetType: 'Automation', targetId: rule._id, projectId,
+    action: rule.isEnabled ? 'automation_rule_enabled' : 'automation_rule_disabled',
+    fromValue, toValue: rule.isEnabled, userId
+  });
+
+  return rule.toObject();
+}
+
+/**
  * @param {string} projectId
  * @param {number} [limit=20]
  */
@@ -477,8 +529,12 @@ module.exports = {
   createRule,
   approveRule,
   rejectRule,
+  toggleRule,
+  listRules,
   getExecutionHistory,
+  getEligibleProjectIds,
   evaluateTrigger,
   decideAction,
+  dispatchExecution,
   isDue
 };

@@ -90,6 +90,15 @@ router.get('/projects/:projectId/aeo-agent/history', workspaceController.getAeoA
 router.post('/projects/:projectId/geo-agent/run', blockViewOnly, workspaceController.runGeoAgent);
 router.put('/projects/:projectId/geo-agent/:auditId/approve', blockViewOnly, workspaceController.approveGeoRecommendations);
 router.put('/projects/:projectId/geo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectGeoRecommendations);
+
+router.post('/projects/:projectId/automation/run', blockViewOnly, workspaceController.runAutomationAgent);
+router.post('/projects/:projectId/automation', blockViewOnly, workspaceController.createAutomationRule);
+router.get('/projects/:projectId/automation', workspaceController.listAutomationRules);
+router.put('/projects/:projectId/automation/:ruleId/approve', blockViewOnly, workspaceController.approveAutomationRule);
+router.put('/projects/:projectId/automation/:ruleId/reject', blockViewOnly, workspaceController.rejectAutomationRule);
+router.put('/projects/:projectId/automation/:ruleId/toggle', blockViewOnly, workspaceController.toggleAutomationRule);
+router.post('/projects/:projectId/automation/:ruleId/retry', blockViewOnly, workspaceController.retryAutomationRule);
+router.get('/projects/:projectId/automation/history', workspaceController.getAutomationExecutionHistory);
 router.get('/projects/:projectId/geo-agent/history', workspaceController.getGeoAgentExecutionHistory);
 
 // Keywords

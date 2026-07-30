@@ -104,7 +104,31 @@ class WorkspaceCronService {
     });
 
     this.jobs.push(reportSchedulerJob);
-    console.log('[WorkspaceCronService] Autopilot + scheduled-report jobs scheduled.');
+
+    const automationJob = cron.schedule('*/15 * * * *', async () => {
+      console.log('[WorkspaceCronService] Checking automation rules...');
+      await this.runDueAutomationRules();
+    });
+
+    this.jobs.push(automationJob);
+    console.log('[WorkspaceCronService] Autopilot + scheduled-report + automation-rule jobs scheduled.');
+  }
+
+  async runDueAutomationRules() {
+    const automationAgent = require('./automationAgent.service');
+    try {
+      const projectIds = await automationAgent.getEligibleProjectIds();
+
+      for (const projectId of projectIds) {
+        try {
+          await automationAgent.run(projectId);
+        } catch (err) {
+          console.error(`[WorkspaceCronService] Automation run failed for project ${projectId}:`, err.message);
+        }
+      }
+    } catch (error) {
+      console.error('[WorkspaceCronService] Error checking automation rules:', error);
+    }
   }
 
   async runDueScheduledReports() {
@@ -143,8 +167,6 @@ class WorkspaceCronService {
             }
           };
 
-          // The freshly generated instance is a one-off delivery, not itself
-          // a new recurring schedule — only scheduleDef keeps recurring.
           const newReport = await this.orchestrator.seoReporterAgent(scheduleDef.projectId, auditDiff, {});
 
           const project = await WorkspaceProject.findById(scheduleDef.projectId);

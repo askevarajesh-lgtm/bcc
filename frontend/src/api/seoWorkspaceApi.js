@@ -1,6 +1,3 @@
-// Same pattern as contentAiApi.js — plain axios, Bearer token, one function
-// per endpoint. Mirrors backend/src/modules/seoWorkspace/seoWorkspace.routes.js
-// exactly; nothing here calls an endpoint that doesn't exist on the backend.
 import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -279,6 +276,40 @@ export const seoWorkspaceApi = {
   },
   deleteComment: async (commentId) => {
     const res = await axios.delete(`${API_URL}/seo-workspace/comments/${commentId}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Automation rules (scheduler-driven: daily/weekly/monthly) ---
+  runAutomationAgent: async (projectId) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/automation/run`, {}, getAuthHeaders());
+    return res.data;
+  },
+  createAutomationRule: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/automation`, data, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationRules: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/automation`, getAuthHeaders());
+    return res.data;
+  },
+  approveAutomationRule: async (projectId, ruleId) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/automation/${ruleId}/approve`, {}, getAuthHeaders());
+    return res.data;
+  },
+  rejectAutomationRule: async (projectId, ruleId, reason) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/automation/${ruleId}/reject`, { reason }, getAuthHeaders());
+    return res.data;
+  },
+  toggleAutomationRule: async (projectId, ruleId, isEnabled) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/automation/${ruleId}/toggle`, { isEnabled }, getAuthHeaders());
+    return res.data;
+  },
+  retryAutomationRule: async (projectId, ruleId) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/automation/${ruleId}/retry`, {}, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationHistory: async (projectId, limit) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/automation/history${qs({ limit })}`, getAuthHeaders());
     return res.data;
   },
 

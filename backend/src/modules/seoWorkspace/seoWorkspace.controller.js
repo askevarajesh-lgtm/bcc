@@ -22,6 +22,7 @@ const internalLinkingAgent = require('./services/internalLinkingAgent.service');
 const imageSeoAgent = require('./services/imageSeoAgent.service');
 const aeoAgent = require('./services/aeoAgent.service');
 const geoAgent = require('./services/geoAgent.service');
+const automationAgent = require('./services/automationAgent.service');
 const auditLogService = require('./services/auditLog.service');
 const taskVerification = require('./services/taskVerification.service');
 const AiSettings = require('../aiStudio/models/aiSettings.model');
@@ -794,6 +795,120 @@ exports.getGeoAgentExecutionHistory = async (req, res) => {
     const { projectId } = req.params;
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await geoAgent.getExecutionHistory(projectId, limit);
+    res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.runAutomationAgent = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const workspaceId = getWorkspaceId(req);
+    const result = await automationAgent.run(projectId, workspaceId);
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('[runAutomationAgent] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.createAutomationRule = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const rule = await automationAgent.createRule(projectId, req.body, req.user._id);
+    res.status(201).json({ success: true, data: rule });
+  } catch (error) {
+    console.error('[createAutomationRule] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.listAutomationRules = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const rules = await automationAgent.listRules(projectId);
+    res.status(200).json({ success: true, data: rules });
+  } catch (error) {
+    console.error('[listAutomationRules] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.approveAutomationRule = async (req, res) => {
+  try {
+    const { projectId, ruleId } = req.params;
+    const result = await automationAgent.approveRule(ruleId, projectId, req.user._id);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error approving automation rule:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error approving automation rule' });
+  }
+};
+
+exports.rejectAutomationRule = async (req, res) => {
+  try {
+    const { projectId, ruleId } = req.params;
+    const { reason } = req.body;
+    const result = await automationAgent.rejectRule(ruleId, projectId, req.user._id, reason);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error rejecting automation rule:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error rejecting automation rule' });
+  }
+};
+
+exports.toggleAutomationRule = async (req, res) => {
+  try {
+    const { projectId, ruleId } = req.params;
+    const { isEnabled } = req.body;
+    const result = await automationAgent.toggleRule(ruleId, projectId, req.user._id, isEnabled);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error toggling automation rule:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error toggling automation rule' });
+  }
+};
+
+exports.retryAutomationRule = async (req, res) => {
+  try {
+    const { projectId, ruleId } = req.params;
+    const workspaceId = getWorkspaceId(req);
+    const result = await automationAgent.retryRule(projectId, ruleId, workspaceId);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error retrying automation rule:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error retrying automation rule' });
+  }
+};
+
+exports.getAutomationExecutionHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const history = await automationAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
