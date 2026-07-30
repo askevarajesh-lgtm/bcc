@@ -152,6 +152,123 @@ const DEFAULT_AGENTS = {
     modelProvider: 'openai',
     modelName: 'gpt-4o-mini',
     isSystemDefault: true
+  },
+
+  // --- ContentAI generator agents (content-ai-platform-architecture.md §4) ---
+  'content-landing-page-writer': {
+    key: 'content-landing-page-writer',
+    displayName: 'Landing Page Writer',
+    skills: ['landing-page-copywriting', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-blog-writer': {
+    key: 'content-blog-writer',
+    displayName: 'Blog Writer',
+    skills: ['blog-longform-writing', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-product-writer': {
+    key: 'content-product-writer',
+    displayName: 'Product Writer',
+    skills: ['product-commerce-copywriting', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-category-writer': {
+    key: 'content-category-writer',
+    displayName: 'Category Writer',
+    skills: ['category-copywriting', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-faq-generator': {
+    key: 'content-faq-generator',
+    displayName: 'FAQ Generator',
+    skills: ['faq-generation'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-meta-generator': {
+    key: 'content-meta-generator',
+    displayName: 'Meta Generator',
+    // Reuses the existing seoWorkspace skill — not duplicated here a second time.
+    skills: ['builder-onpage-metadata-optimization'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-og-generator': {
+    key: 'content-og-generator',
+    displayName: 'Open Graph Generator',
+    skills: ['builder-onpage-metadata-optimization', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-schema-generator': {
+    key: 'content-schema-generator',
+    displayName: 'Schema Generator',
+    // Reuses the existing seoWorkspace skill — not duplicated here a second time.
+    skills: ['schema-markup-generation'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-alt-text-generator': {
+    key: 'content-alt-text-generator',
+    displayName: 'Alt Text Generator',
+    // Reuses the existing seoWorkspace skill — not duplicated here a second time.
+    skills: ['image-alt-text-optimization'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-cta-generator': {
+    key: 'content-cta-generator',
+    displayName: 'CTA Generator',
+    skills: ['cta-writing', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-internal-link-generator': {
+    key: 'content-internal-link-generator',
+    displayName: 'Internal Link Generator',
+    skills: ['internal-linking'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-rewriter': {
+    key: 'content-rewriter',
+    displayName: 'Content Rewriter',
+    skills: ['content-rewriting', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'content-expander': {
+    key: 'content-expander',
+    displayName: 'Content Expander',
+    skills: ['content-expansion', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
+  },
+  'tone-optimizer': {
+    key: 'tone-optimizer',
+    displayName: 'Tone Optimizer',
+    skills: ['tone-adaptation', 'brand-voice-alignment'],
+    modelProvider: 'openai',
+    modelName: 'gpt-4o-mini',
+    isSystemDefault: true
   }
 };
 

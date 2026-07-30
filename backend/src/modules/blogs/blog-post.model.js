@@ -24,6 +24,12 @@ const BlogPostSchema = new mongoose.Schema({
   css: { type: String, default: "" },
   metaTitle: { type: String, default: "" },
   metaDescription: { type: String, default: "" },
+
+  // Additive — ContentAI Open Graph / Schema generators (content-ai-platform-architecture.md §1/§9).
+  ogTitle: { type: String, default: "" },
+  ogDescription: { type: String, default: "" },
+  schemaMarkup: { type: mongoose.Schema.Types.Mixed, default: null },
+
   isFeatured: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false, required: true }
 }, { timestamps: true });

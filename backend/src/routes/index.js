@@ -57,6 +57,7 @@ const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const reportRoutes = require('../modules/reports/report.routes');
 const seoIntelligenceRoutes = require('../modules/seoIntelligence/seoIntelligence.routes');
 const seoWorkspaceRoutes = require('../modules/seoWorkspace/seoWorkspace.routes');
+const contentAIRoutes = require('../modules/contentAI/contentAI.routes');
 const semrushRoutes = require('../modules/semrush/semrush.routes');
 const competitorIntelligenceRoutes = require('../modules/competitorIntelligence/competitorIntelligence.routes');
 
@@ -83,6 +84,7 @@ router.use('/benchmark', benchmarkRoutes);
 router.use('/reports', reportRoutes);
 router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/seo-workspace', seoWorkspaceRoutes);
+router.use('/content-ai', contentAIRoutes);
 router.use('/semrush', semrushRoutes);
 router.use('/competitor-intelligence', competitorIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));

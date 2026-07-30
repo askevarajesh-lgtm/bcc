@@ -12,6 +12,13 @@ const PageSchema = new mongoose.Schema({
   stylesheetUrls: { type: [String], default: [] },
   customHeadCode: { type: String, default: "" },
   customBodyCode: { type: String, default: "" },
+  metaTitle: { type: String, default: '' },
+  metaDescription: { type: String, default: '' },
+  ogTitle: { type: String, default: '' },
+  ogDescription: { type: String, default: '' },
+  ogImageUrl: { type: String, default: '' },
+  schemaMarkup: { type: mongoose.Schema.Types.Mixed, default: null },
+
   isDeleted: { type: Boolean, default: false, required: true }
 }, { timestamps: true });
 
