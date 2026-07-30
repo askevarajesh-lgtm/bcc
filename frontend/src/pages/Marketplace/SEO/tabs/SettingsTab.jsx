@@ -6,6 +6,9 @@ import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 
 const { Title, Text } = Typography;
 
+// Backed by GET/POST /seo-workspace/settings/api-key
+// (seoWorkspace.controller.js#getSettingsStatus / #saveSettings) — the only
+// workspace-level setting the backend currently exposes.
 const SettingsTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

@@ -3,11 +3,6 @@ import { Select, Button, Modal, Form, Input, Space, message, Empty } from 'antd'
 import { Plus } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 
-// Shared across Audit / Keywords / Competitors / Technical SEO / Reports /
-// Settings — every one of those is scoped to a WorkspaceProject
-// (backend/src/modules/seoWorkspace/models/workspaceProject.model.js).
-// Fetches real projects via GET /seo-workspace/projects; nothing here is
-// mocked. Selection is lifted to the parent so tabs can react to it.
 const ProjectSelector = ({ value, onChange, style }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);

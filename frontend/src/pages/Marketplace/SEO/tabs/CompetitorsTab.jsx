@@ -48,7 +48,7 @@ const CompetitorsTab = () => {
     setHistoryLoading(true);
     try {
       const res = await seoWorkspaceApi.getCompetitorHistory(projectId);
-      setHistory(res.data || []);
+      setHistory(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       message.error('Failed to load history');
     } finally {
@@ -111,7 +111,7 @@ const CompetitorsTab = () => {
               <Table
                 rowKey="_id"
                 size="small"
-                dataSource={result.suggestedCompetitors || []}
+                dataSource={Array.isArray(result.suggestedCompetitors) ? result.suggestedCompetitors : []}
                 columns={columns}
                 rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (r) => ({ disabled: r.status !== 'Suggested' }) }}
                 pagination={{ pageSize: 10 }}
@@ -144,7 +144,7 @@ const CompetitorsTab = () => {
                       rowKey={(r, i) => r._id || i}
                       size="small"
                       pagination={{ pageSize: 5 }}
-                      dataSource={history}
+                      dataSource={Array.isArray(history) ? history : []}
                       locale={{ emptyText: <Empty description="No previous runs" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
                       columns={[
                         { title: 'Status', dataIndex: 'status', key: 'status' },

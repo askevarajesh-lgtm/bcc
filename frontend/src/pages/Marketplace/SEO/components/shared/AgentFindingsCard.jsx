@@ -6,17 +6,6 @@ import { ApprovalStatusTag } from './StatusTags';
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-/**
- * Generic "run agent -> review findings -> approve/reject -> history" card.
- * Reused by Audit, Technical SEO, Blog SEO, Store SEO, Website Builder SEO —
- * every one of these persists to a model shaped like:
- *   { agent: { summary, <findingsKey>: [...], approvalStatus, rejectionReason, generatedTaskIds|generatedTasks } }
- * (see seoWorkspace/models/workspaceAudit.model.js, workspaceTechnicalAudit.model.js,
- * blogSeo.model.js, storeSeo.model.js, websiteBuilderSeo.model.js — all identical shape).
- *
- * Nothing here fabricates data: every field rendered comes directly from the
- * document returned by the run/approve/reject/history API calls passed in.
- */
 const AgentFindingsCard = ({
   title,
   runLabel = 'Run Analysis',
@@ -51,7 +40,7 @@ const AgentFindingsCard = ({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const findings = doc?.agent?.[findingsKey] || [];
+  const findings = Array.isArray(doc?.agent?.[findingsKey]) ? doc.agent[findingsKey] : [];
   const approvalStatus = doc?.agent?.approvalStatus || 'Not Requested';
 
   const run = async () => {
@@ -101,7 +90,8 @@ const AgentFindingsCard = ({
     setHistoryLoading(true);
     try {
       const res = await onLoadHistory();
-      setHistory(res.data || res || []);
+      const list = res.data || res;
+      setHistory(Array.isArray(list) ? list : []);
     } catch (err) {
       message.error('Failed to load history');
     } finally {
@@ -182,7 +172,7 @@ const AgentFindingsCard = ({
                   rowKey={(r, i) => r._id || i}
                   size="small"
                   pagination={{ pageSize: 5 }}
-                  dataSource={history}
+                  dataSource={history || []}
                   locale={{ emptyText: <Empty description="No previous runs" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
                   columns={[
                     { title: 'Status', dataIndex: 'status', key: 'status' },

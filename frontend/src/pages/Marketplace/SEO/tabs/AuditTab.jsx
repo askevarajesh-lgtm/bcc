@@ -120,7 +120,7 @@ const AuditTab = () => {
                 rowKey="_id"
                 size="small"
                 loading={loadingPast}
-                dataSource={pastAudits}
+                dataSource={pastAudits || []}
                 pagination={{ pageSize: 5 }}
                 locale={{ emptyText: <Empty description="No audits run yet for this project" /> }}
                 columns={[

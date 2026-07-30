@@ -1,9 +1,5 @@
 import React from 'react';
 import { Tag } from 'antd';
-
-// Shared color mapping for the agent.approvalStatus enum that's identical
-// across every agent-output model in seoWorkspace (audit / technical audit /
-// competitor / content brief / schema markup / internal link / image seo).
 const APPROVAL_COLORS = {
   'Not Requested': 'default',
   'Pending Approval': 'gold',

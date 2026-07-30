@@ -76,7 +76,7 @@ const KeywordsTab = () => {
     setRelatedLoading(true);
     try {
       const res = await seoWorkspaceApi.getRelatedKeywords(projectId, relatedInput.trim());
-      setRelated(res.data || []);
+      setRelated(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       message.error(err?.response?.data?.message || 'Failed to fetch related keywords');
     } finally {
@@ -136,7 +136,7 @@ const KeywordsTab = () => {
                 <Table
                   rowKey={(r) => r.keyword}
                   size="small"
-                  dataSource={related}
+                  dataSource={related || []}
                   pagination={{ pageSize: 5 }}
                   locale={{ emptyText: <Empty description="No candidates found" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
                   columns={[
@@ -179,7 +179,7 @@ const KeywordsTab = () => {
                 rowKey="_id"
                 size="small"
                 loading={loading}
-                dataSource={keywords}
+                dataSource={keywords || []}
                 columns={columns}
                 pagination={{ pageSize: 10 }}
                 rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}

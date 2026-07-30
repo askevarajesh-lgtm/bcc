@@ -78,7 +78,7 @@ const DashboardTab = () => {
                   rowKey="_id"
                   size="small"
                   pagination={false}
-                  dataSource={data.projects}
+                  dataSource={Array.isArray(data.projects) ? data.projects : []}
                   locale={{ emptyText: <Empty description="No projects yet" /> }}
                   columns={[
                     { title: 'Name', dataIndex: 'name', key: 'name' },
@@ -104,7 +104,7 @@ const DashboardTab = () => {
                     size="small"
                     pagination={false}
                     showHeader={false}
-                    dataSource={data.recentActivity}
+                    dataSource={Array.isArray(data.recentActivity) ? data.recentActivity : []}
                     columns={[
                       {
                         key: 'entry',

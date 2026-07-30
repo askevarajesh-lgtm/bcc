@@ -103,7 +103,7 @@ const ReportsTab = () => {
             rowKey="_id"
             size="small"
             loading={loading}
-            dataSource={reports}
+            dataSource={reports || []}
             pagination={{ pageSize: 10 }}
             locale={{ emptyText: <Empty description="No reports yet — generate one once you have at least 2 audits." /> }}
             columns={[
