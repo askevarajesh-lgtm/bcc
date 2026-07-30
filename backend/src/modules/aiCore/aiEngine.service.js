@@ -1,42 +1,12 @@
-/**
- * AI Core — AI Engine
- *
- * The single place that resolves an AI client and makes a completion call.
- * Reuses, unchanged:
- *   - `aiStudio/models/aiSettings.model.js` (AiSettings) for per-tenant keys
- *   - `utils/crypto.js` for decrypting stored keys
- *   - `utils/aiClientWrapper.js` for the actual OpenAI/Anthropic call shape
- *
- * `workspaceAgentOrchestrator.service.js` currently has its own private
- * `_getAiClient(workspaceId)` implementing this exact same lookup. This is
- * not duplicated here a second time — this is the one place it should live;
- * wiring the orchestrator to call this instead of its own copy is a
- * follow-up (next phase, per instructions) so this pass doesn't touch or
- * risk breaking the orchestrator's existing behavior.
- *
- * Adds three things the orchestrator's version doesn't have: retries
- * (Retry System), execution tracking (Execution Status), and structured
- * telemetry (Logger) — all optional/additive, none of them change what a
- * call returns.
- */
-// BUGFIX (SEO Auditor Agent pass): all three paths below had one extra
-// '../' and resolved outside backend/src entirely. This file lives at
-// backend/src/modules/aiCore/ — the same depth as
-// backend/src/modules/seoWorkspace/seoWorkspace.controller.js, which
-// requires these exact three modules with the paths used here; matched
-// against that working reference instead of guessing.
+
 const AiSettings = require('../aiStudio/models/aiSettings.model');
 const cryptoUtils = require('../../utils/crypto');
 const AiClientWrapper = require('../../utils/aiClientWrapper');
 const retry = require('./retry.service');
 const executionStatus = require('./executionStatus.service');
 const logger = require('./logger.service');
+const { DEFAULT_AI_MODEL } = require('./config/aiDefaults');
 
-/**
- * Resolves an AiClientWrapper for a given workspace/tenant. Same resolution
- * order as the orchestrator's existing `_getAiClient`: Anthropic key first
- * if present, otherwise falls back to OpenAI if one is configured.
- */
 async function getClient(workspaceId) {
   if (!workspaceId) throw new Error('AI Engine: workspaceId is required to resolve an AI client.');
 
@@ -57,7 +27,7 @@ async function getClient(workspaceId) {
  * @param {Object} params
  * @param {string} params.workspaceId - required, tenant scope for key lookup
  * @param {Array}  params.messages - chat-style messages, per AiClientWrapper's contract
- * @param {string} [params.model='gpt-4o-mini']
+ * @param {string} [params.model] - defaults to DEFAULT_AI_MODEL (config/aiDefaults.js) when not supplied
  * @param {number} [params.temperature=0.7]
  * @param {number} [params.maxTokens]
  * @param {boolean} [params.jsonMode=false] - requests a JSON object response
@@ -68,7 +38,7 @@ async function getClient(workspaceId) {
  */
 async function complete(params) {
   const {
-    workspaceId, messages, model = 'gpt-4o-mini', temperature = 0.7,
+    workspaceId, messages, model = DEFAULT_AI_MODEL, temperature = 0.7,
     maxTokens, jsonMode = false, agentKey, projectId, retryOptions = {}
   } = params;
 
