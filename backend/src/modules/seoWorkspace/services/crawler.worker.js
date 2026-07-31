@@ -166,7 +166,36 @@ class CrawlWorker {
   }
 
   async saveKeywords(job, queueItemUrl, extractedKeywords) {
-    const bulkOps = extractedKeywords.map(k => {
+    const keywordQuality = require('./keywordQuality.service');
+    const keywordIntent = require('./keywordIntent.service');
+    const keywordOpportunity = require('./keywordOpportunity.service');
+
+    const validKeywords = [];
+    
+    // Apply Quality Filter and Intent Classification
+    for (const k of extractedKeywords) {
+      const quality = keywordQuality.assessQuality(k.keyword, { searchVolume: 0 });
+      if (quality.isRejected) continue; // Skip bad keywords
+      
+      const intentData = keywordIntent.classify(k.keyword);
+      
+      // Calculate a base opportunity score (will be enriched later when API data is fetched)
+      const opportunity = keywordOpportunity.calculateOpportunity({
+        searchVolume: 0,
+        keywordDifficulty: 0,
+        cpc: 0,
+        currentRank: null,
+        intent: intentData.intent
+      });
+
+      validKeywords.push({
+        ...k,
+        intentData,
+        opportunity
+      });
+    }
+
+    const bulkOps = validKeywords.map(k => {
       // Map source elements into a readable string or take the top one
       const htmlElementStr = k.sourceElements.map(se => se.element).join(',');
 
@@ -182,6 +211,7 @@ class CrawlWorker {
             $set: {
               agencyId: job.agencyId,
               source: 'discovery_crawler',
+              'metrics.intent': k.intentData.intent
             },
             $setOnInsert: {
               status: 'Approved',
@@ -190,10 +220,9 @@ class CrawlWorker {
               'metrics.cpc': 0,
               'metrics.competition': 0,
               'metrics.keywordDifficulty': 0,
-              'metrics.intent': 'unknown',
               isQuestion: false
             },
-            $inc: { 'agent.opportunityScore': k.score }, // Accumulate score across pages
+            $max: { 'agent.opportunityScore': k.opportunity.score },
             $addToSet: { 
               entities: { $each: k.entities }
             },

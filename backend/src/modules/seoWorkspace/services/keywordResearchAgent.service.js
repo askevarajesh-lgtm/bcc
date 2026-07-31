@@ -63,17 +63,39 @@ async function collectKeywordCandidates(project, agencyId, seedKeyword) {
     
     const rawKeywords = hybridKeywordExtractor.extractFromHtml(html, siteUrl);
     
-    // Sort by score and take the top ones
-    const topKeywords = rawKeywords.slice(0, MAX_CANDIDATES);
+    const keywordQuality = require('./keywordQuality.service');
+    const keywordIntent = require('./keywordIntent.service');
+    const keywordOpportunity = require('./keywordOpportunity.service');
+
+    const validKeywords = [];
     
-    return topKeywords.map(k => ({
-      keyword: k.keyword,
-      searchVolume: 0,
-      cpc: 0,
-      competition: 0,
-      intent: 'unknown',
-      keywordDifficulty: 0
-    }));
+    for (const k of rawKeywords) {
+      const quality = keywordQuality.assessQuality(k.keyword, { searchVolume: 0 });
+      if (quality.isRejected) continue;
+      
+      const intentData = keywordIntent.classify(k.keyword);
+      const opportunity = keywordOpportunity.calculateOpportunity({
+        searchVolume: 0,
+        keywordDifficulty: 0,
+        cpc: 0,
+        currentRank: null,
+        intent: intentData.intent
+      });
+
+      validKeywords.push({
+        keyword: k.keyword,
+        searchVolume: 0,
+        cpc: 0,
+        competition: 0,
+        intent: intentData.intent,
+        keywordDifficulty: 0,
+        opportunityScore: opportunity.score
+      });
+    }
+
+    // Sort by opportunity score and take the top ones
+    validKeywords.sort((a, b) => b.opportunityScore - a.opportunityScore);
+    return validKeywords.slice(0, MAX_CANDIDATES);
   } catch (error) {
     logger.error(TAG, `Synchronous scrape failed for instant candidates: ${error.message}`);
   }
@@ -226,7 +248,8 @@ async function run(projectId, workspaceId, options = {}) {
             'metrics.competition': k.competition || 0,
             'metrics.intent': k.intent || 'unknown',
             isQuestion: false
-          }
+          },
+          $max: { 'agent.opportunityScore': k.opportunityScore || 50 }
         },
         upsert: true
       }

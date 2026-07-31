@@ -54,7 +54,11 @@ const WorkspaceProjectSchema = new mongoose.Schema({
   },
   settings: {
     autopilot: { type: Boolean, default: false },
-    frequency: { type: String, enum: ['daily', 'weekly'], default: 'weekly' }
+    frequency: { type: String, enum: ['daily', 'weekly', 'monthly', 'manual'], default: 'weekly' },
+    budget: {
+      dailyProviderLimit: { type: Number, default: 500 },
+      monthlyProviderLimit: { type: Number, default: 10000 }
+    }
   },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }

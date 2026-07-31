@@ -33,100 +33,28 @@ class WorkspaceCronService {
           
           if (keywords.length === 0) continue;
 
-          logger.info('WorkspaceCronService', `[REQUEST_PREP] Preparing SERP tasks for ${keywords.length} keywords`);
-          const tasks = keywords.map(kw => ({
-            keyword: kw.keyword,
-            location_code: kw.locationCode || 2840,
-            language_code: kw.languageCode || 'en'
-          }));
-
-          logger.info('WorkspaceCronService', `[PROVIDER_FETCH] Calling keywordProviderChain.getSerpResults`);
-          const res = await keywordProviderChain.getSerpResults(tasks);
-          const realSerpData = res.data || [];
+          const rankTrackingService = require('./rankTracking.service');
+          await rankTrackingService.trackKeywords(project, keywords);
           
-          let pipelineStatus = 'UNKNOWN';
-          if (res.status === 'TIMEOUT') pipelineStatus = 'TIMEOUT';
-          else if (res.status === 'RATE_LIMIT') pipelineStatus = 'RATE_LIMIT';
-          else if (res.status === 'PROVIDER_ERROR') pipelineStatus = 'PROVIDER_ERROR';
-          else if (res.status === 'SUCCESS' && realSerpData.length > 0) pipelineStatus = 'SUCCESS';
-          else pipelineStatus = 'NOT_FOUND_TOP100'; // Default to NOT_FOUND if empty but successful
-
-          for (const [index, kw] of keywords.entries()) {
-            const previousRank = kw.ranking?.currentRank;
-            let currentRank = null;
-            let currentStatus = 'UNKNOWN';
-
-              if (pipelineStatus === 'SUCCESS') {
-                const taskResult = realSerpData[index] || {};
-                const topResults = taskResult.topResults || [];
-                const projectDomain = project.domain.replace(/^https?:\/\/(www\.)?/, '');
-                const foundItems = topResults.filter(item => item.domain && item.domain.includes(projectDomain));
-                
-                if (foundItems.length > 0) {
-                  currentRank = foundItems[0].rank;
-                  kw.ranking.url = foundItems[0].url;
-                  currentStatus = 'FOUND';
-                  logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" found at rank ${currentRank}`);
-                  
-                  // Cannibalization Check
-                  if (foundItems.length > 1) {
-                    kw.cannibalization = {
-                      isCannibalized: true,
-                      conflictUrls: foundItems.map(item => item.url),
-                      severity: foundItems[1].rank < 20 ? 'high' : 'medium'
-                    };
-                    logger.warn('WorkspaceCronService', `[CANNIBALIZATION] Keyword "${kw.keyword}" has ${foundItems.length} conflicting URLs.`);
-                  } else {
-                    kw.cannibalization = { isCannibalized: false, conflictUrls: [], severity: 'none' };
-                  }
-                } else {
-                  currentStatus = 'NOT_FOUND_TOP100';
-                  kw.cannibalization = { isCannibalized: false, conflictUrls: [], severity: 'none' };
-                  logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" not found in top results.`);
-                }
-              } else {
-                currentStatus = pipelineStatus;
-                logger.warn('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" rank unavailable due to ${currentStatus}`);
-              }
-  
-              kw.ranking = kw.ranking || {};
-              kw.ranking.previousRank = previousRank;
-              kw.ranking.currentRank = currentRank;
-              kw.ranking.status = currentStatus;
-              
-              if (currentRank && (!kw.ranking.bestRank || currentRank < kw.ranking.bestRank)) {
-                  kw.ranking.bestRank = currentRank;
-              }
-  
-              kw.ranking.history = kw.ranking.history || [];
-              kw.ranking.history.push({
-                date: new Date(),
-                rank: currentRank
-              });
-  
-              logger.info('WorkspaceCronService', `[DB_SAVE] Saving rank for "${kw.keyword}" (Rank: ${currentRank}, Status: ${currentStatus})`);
-              await kw.save();
-            
-            // Recovery task logic
-            // Rule: ONLY trigger on organic drops or transition from FOUND to NOT_FOUND_TOP100
-            // DO NOT trigger on infrastructure errors (TIMEOUT, RATE_LIMIT, PROVIDER_ERROR)
+          // Re-fetch keywords to check if we need recovery tasks based on the updated ranks
+          const updatedKeywords = await WorkspaceKeyword.find({ projectId: project._id, isDeleted: false });
+          for (const kw of updatedKeywords) {
             let isOrganicDrop = false;
             let isNewlyLost = false;
 
-            if (currentStatus === 'FOUND' && previousRank !== null && currentRank !== null) {
-              const drop = currentRank - previousRank;
-              if (drop >= 2) isOrganicDrop = true;
+            if (kw.ranking.trend === 'Declined' && kw.ranking.rankChange && kw.ranking.rankChange < -1) {
+              isOrganicDrop = true;
             }
-
-            if (currentStatus === 'NOT_FOUND_TOP100' && previousRank !== null) {
+            if (kw.ranking.trend === 'Lost Visibility') {
               isNewlyLost = true;
             }
 
             if (isOrganicDrop || isNewlyLost) {
-              const dropMsg = isNewlyLost ? 'Dropped out of Top 100' : `Dropped from ${previousRank} to ${currentRank}`;
+              const dropMsg = isNewlyLost ? 'Dropped out of Top 100' : `Dropped from ${kw.ranking.previousRank} to ${kw.ranking.currentRank}`;
               logger.info('WorkspaceCronService', `[ALERT] Generating recovery task for "${kw.keyword}": ${dropMsg}`);
               try {
-                await this.orchestrator.seoMonitorAgent(project, kw, isNewlyLost ? 100 : (currentRank - previousRank));
+                const dropAmount = isNewlyLost ? 100 : Math.abs(kw.ranking.rankChange);
+                await this.orchestrator.seoMonitorAgent(project, kw, dropAmount);
               } catch (taskErr) {
                 logger.error('WorkspaceCronService', `Error generating task for ${kw.keyword}: ${taskErr.message}`);
               }

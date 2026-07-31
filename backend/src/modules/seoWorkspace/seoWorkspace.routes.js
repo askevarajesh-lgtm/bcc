@@ -45,6 +45,7 @@ router.get('/projects/:projectId/keyword-research/history', workspaceController.
 router.post('/projects/:projectId/keywords/detect-intent', blockViewOnly, workspaceController.detectKeywordIntent);
 router.post('/projects/:projectId/keywords/related', blockViewOnly, workspaceController.getRelatedKeywords);
 router.get('/projects/:projectId/keywords/clusters', workspaceController.getKeywordClusters);
+router.get('/projects/:projectId/keywords/authority', workspaceController.getTopicalAuthority);
 router.get('/projects/:projectId/keywords/gap', workspaceController.getKeywordGap);
 
 
@@ -107,6 +108,8 @@ router.get('/projects/:projectId/geo-agent/history', workspaceController.getGeoA
 
 // Keywords
 router.get('/keywords', workspaceController.getKeywords);
+router.post('/projects/:projectId/keywords/refresh', blockViewOnly, workspaceController.refreshKeywords);
+router.get('/projects/:projectId/keywords/distribution', workspaceController.getRankDistribution);
 
 // Strategies
 router.get('/strategies', workspaceController.getStrategies);

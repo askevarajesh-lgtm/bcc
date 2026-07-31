@@ -118,13 +118,10 @@ class HybridKeywordExtractor {
       const entities = doc.topics().out('array');
       // 2. Noun Phrases
       const nouns = doc.nouns().out('array');
-      // 3. N-grams (bi-grams, tri-grams)
-      const ngrams = [];
-      doc.ngrams().out('array').forEach(n => {
-        if (n.size >= 2 && n.size <= 4) ngrams.push(n.normal);
-      });
+      // 3. Instead of ngrams (which requires a plugin in v14+), use terms
+      const terms = doc.terms().out('array');
 
-      const combined = [...new Set([...entities, ...nouns, ...ngrams])];
+      const combined = [...new Set([...entities, ...nouns, ...terms])];
 
       combined.forEach(phrase => {
         // Phrase Normalization and Lemmatization

@@ -117,9 +117,30 @@ const KeywordsTab = () => {
       setSelectedRowKeys([]);
       load();
     } catch (err) {
-      message.error(err?.response?.data?.message || 'Action failed');
+      message.error(err?.response?.data?.error || err?.response?.data?.message || 'Action failed');
     }
   };
+
+  const [distribution, setDistribution] = useState(null);
+  const loadDistribution = async () => {
+    if (!projectId) return;
+    try {
+      const res = await seoWorkspaceApi.getRankDistribution(projectId);
+      setDistribution(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRefreshKeywords = () => {
+    act(() => seoWorkspaceApi.refreshKeywords(projectId, selectedRowKeys), 'Rank tracking refresh queued');
+  };
+
+  useEffect(() => {
+    if (projectId) {
+      loadDistribution();
+    }
+  }, [projectId, keywords]);
 
   const fetchRelated = async () => {
     if (!relatedInput.trim()) return;
@@ -182,7 +203,7 @@ const KeywordsTab = () => {
     { title: 'CPC', dataIndex: ['metrics', 'cpc'], key: 'cpc', render: v => v ? `$${v.toFixed(2)}` : <Text type="secondary">N/A</Text> },
     { title: 'KD %', dataIndex: ['metrics', 'keywordDifficulty'], key: 'kd', render: v => v ? <Text style={{ color: KD_COLOR(v), fontWeight: 500 }}>{v}</Text> : <Text type="secondary">N/A</Text> },
     { title: 'Trend (12m)', dataIndex: ['metrics', 'trends'], key: 'trends', render: (t) => <TrendSparkline data={t} /> },
-    { title: 'SERP', dataIndex: ['metrics', 'serpFeatures'], key: 'serp', render: (f) => f && f.length ? <Tooltip title={f.join(', ')}><Badge count={f.length} style={{ backgroundColor: '#1890ff' }} /></Tooltip> : <Text type="secondary">N/A</Text> },
+    { title: 'SERP', dataIndex: ['ranking', 'serpFeatures'], key: 'serp', render: (f) => f && f.length ? <Tooltip title={f.join(', ')}><Badge count={f.length} style={{ backgroundColor: '#1890ff' }} /></Tooltip> : <Text type="secondary">N/A</Text> },
     {
       title: 'Rank',
       dataIndex: ['ranking', 'currentRank'],
@@ -191,7 +212,7 @@ const KeywordsTab = () => {
       render: (r, rec) => {
         const status = rec.ranking?.status || 'UNKNOWN';
 
-        if (status !== 'FOUND' || r === null || r === undefined) {
+        if (r === null || r === undefined) {
           const statusMap = {
             NOT_FOUND_TOP100: { color: 'default', text: 'Not Found (>100)' },
             TIMEOUT: { color: 'warning', text: 'Timeout' },
@@ -220,6 +241,10 @@ const KeywordsTab = () => {
         );
       }
     },
+    { title: 'Visibility', dataIndex: ['ranking', 'visibilityScore'], key: 'visibility', render: v => v ? v : <Text type="secondary">-</Text> },
+    { title: 'Trend', dataIndex: ['ranking', 'trend'], key: 'trend', render: (t, r) => t ? <Tooltip title={`Velocity: ${r.ranking?.velocity || 0}`}><Tag color={t === 'Improved' ? 'green' : t === 'Declined' ? 'red' : t === 'Lost Visibility' ? 'default' : 'blue'}>{t}</Tag></Tooltip> : <Text type="secondary">-</Text> },
+    { title: 'Confidence', dataIndex: ['ranking', 'confidenceScore'], key: 'confidence', render: (c, r) => c ? <Tooltip title={r.ranking?.confidenceReason || ''}><Badge status={c >= 90 ? 'success' : c >= 70 ? 'warning' : 'error'} text={`${c}%`} /></Tooltip> : <Text type="secondary">-</Text> },
+    { title: 'URL', dataIndex: ['ranking', 'url'], key: 'url', width: 150, ellipsis: true, render: u => u ? <a href={`https://${u}`} target="_blank" rel="noreferrer" style={{fontSize:12}}>{u}</a> : <Text type="secondary">-</Text> },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <Tag color={STATUS_COLORS[s] || 'default'}>{s}</Tag> }
   ];
 
@@ -270,10 +295,21 @@ const KeywordsTab = () => {
                   </>
                 )}
                 <Button icon={<Sparkles size={14}/>} onClick={runResearch} loading={running} type="primary" ghost>Extract Keywords</Button>
-                <Button icon={<RefreshCcw size={14}/>} onClick={load} loading={loading}>Refresh</Button>
+                <Button icon={<RefreshCcw size={14}/>} onClick={handleRefreshKeywords}>Manual Refresh</Button>
                 <Button icon={<Download size={14}/>} onClick={handleExport}>Export CSV</Button>
               </Space>
             </div>
+
+            {distribution && (
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Top 3" value={distribution.top3} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Top 10" value={distribution.top10} valueStyle={{ color: '#1890ff' }} /></Card></Col>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Top 20" value={distribution.top20} /></Card></Col>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Top 100" value={distribution.top100} /></Card></Col>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Visibility Score" value={distribution.averageVisibility} /></Card></Col>
+                <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Not Ranked" value={distribution.notRanked} valueStyle={{ color: '#cf1322' }} /></Card></Col>
+              </Row>
+            )}
             
             <Table
               rowKey="_id"
@@ -398,6 +434,22 @@ const KeywordsTab = () => {
                 )}
               ]}
             />
+          </TabPane>
+
+          <TabPane tab={<Space><Target size={16}/> Topical Authority</Space>} key="authority">
+            <Card size="small" bordered={false} style={{ background: '#f9f9f9', marginBottom: 16 }}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text>Topic Authority is calculated by comparing your search volume coverage across keyword clusters.</Text>
+                <Button type="primary" onClick={async () => {
+                  try {
+                    const res = await seoWorkspaceApi.getTopicalAuthority(projectId);
+                    message.info(`Your overall Topical Authority Score is: ${res.data.authorityScore}/100`);
+                  } catch (e) {
+                    message.error('Failed to load Topical Authority');
+                  }
+                }}>Calculate Authority</Button>
+              </Space>
+            </Card>
           </TabPane>
         </Tabs>
       )}

@@ -94,6 +94,18 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/clusters`, getAuthHeaders());
     return res.data;
   },
+  getTopicalAuthority: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/authority`, getAuthHeaders());
+    return res.data;
+  },
+  refreshKeywords: async (projectId, keywordIds = []) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/keywords/refresh`, { keywordIds }, getAuthHeaders());
+    return res.data;
+  },
+  getRankDistribution: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/distribution`, getAuthHeaders());
+    return res.data;
+  },
   getKeywordGap: async (projectId, competitorUrl) => {
     const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/gap${qs({ competitorUrl })}`, getAuthHeaders());
     return res.data;

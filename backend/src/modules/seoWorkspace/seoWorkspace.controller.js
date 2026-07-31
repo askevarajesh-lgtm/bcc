@@ -1064,6 +1064,86 @@ exports.getKeywords = async (req, res) => {
   }
 };
 
+exports.refreshKeywords = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { keywordIds } = req.body; // array of keyword _ids
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+
+    let query = { projectId: project._id, isDeleted: false };
+    if (keywordIds && keywordIds.length > 0) {
+      query._id = { $in: keywordIds };
+    }
+
+    const keywords = await WorkspaceKeyword.find(query);
+    if (keywords.length === 0) return res.status(400).json({ success: false, error: 'No keywords to refresh' });
+
+    // Enforce budget
+    const limit = project.settings?.budget?.dailyProviderLimit || 500;
+    if (keywords.length > limit) {
+      return res.status(400).json({ success: false, error: `Daily refresh limit of ${limit} exceeded.` });
+    }
+
+    // Pass to rank tracking service
+    const rankTrackingService = require('./services/rankTracking.service');
+    
+    // In a real enterprise system this would push to BullMQ, but here we trigger asynchronously
+    rankTrackingService.trackKeywords(project, keywords).catch(e => console.error('Rank tracking background error:', e));
+
+    res.json({ success: true, message: `Rank refresh queued for ${keywords.length} keywords.` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getRankDistribution = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+
+    const keywords = await WorkspaceKeyword.find({ projectId: project._id, isDeleted: false });
+    
+    const distribution = {
+      top3: 0, top10: 0, top20: 0, top50: 0, top100: 0, notRanked: 0, total: keywords.length,
+      averageVisibility: 0,
+      totalVisibility: 0
+    };
+
+    let totalVis = 0;
+    let trackedCount = 0;
+
+    keywords.forEach(kw => {
+      const r = kw.ranking?.currentRank;
+      if (r) {
+        if (r <= 3) distribution.top3++;
+        if (r <= 10) distribution.top10++;
+        if (r <= 20) distribution.top20++;
+        if (r <= 50) distribution.top50++;
+        if (r <= 100) distribution.top100++;
+      } else {
+        distribution.notRanked++;
+      }
+
+      const vis = kw.ranking?.visibilityScore || 0;
+      totalVis += vis;
+      if (kw.ranking?.status === 'FOUND') trackedCount++;
+    });
+
+    distribution.totalVisibility = totalVis;
+    distribution.averageVisibility = trackedCount > 0 ? Math.round(totalVis / trackedCount) : 0;
+
+    res.json({ success: true, data: distribution });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.getKeywordClusters = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -1072,19 +1152,70 @@ exports.getKeywordClusters = async (req, res) => {
     const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
     if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
 
-    const keywords = await WorkspaceKeyword.find({ projectId, status: 'Approved' }).lean();
+    const keywords = await WorkspaceKeyword.find({ projectId }).lean();
+    if (keywords.length === 0) return res.json({ success: true, data: [] });
 
-    const clusters = keywords.reduce((acc, kw) => {
-      const parent = kw.parentKeyword || kw.cluster || 'Uncategorized';
-      if (!acc[parent]) {
-        acc[parent] = { parentKeyword: parent, searchVolume: 0, keywords: [] };
-      }
-      acc[parent].searchVolume += (kw.metrics?.searchVolume || 0);
-      acc[parent].keywords.push(kw);
-      return acc;
-    }, {});
+    // Identify keywords that need clustering
+    const semanticClustering = require('./services/semanticClustering.service');
+    
+    // Process mapping for semanticClustering.service
+    const clusterCandidates = keywords.map(k => ({
+      _id: k._id,
+      keyword: k.keyword,
+      searchVolume: k.metrics?.searchVolume || 0,
+      opportunityScore: k.agent?.opportunityScore || 0
+    }));
 
-    const result = Object.values(clusters).sort((a, b) => b.searchVolume - a.searchVolume);
+    // Run semantic clustering dynamically (this returns an array of clusters)
+    // The service handles string similarity and token overlap mathematically
+    const dynamicClusters = semanticClustering.clusterKeywords(clusterCandidates, 0.4);
+
+    // Save the new cluster assignments back to the DB to persist the AI categorization
+    const bulkOps = [];
+    dynamicClusters.forEach(cluster => {
+      cluster.members.forEach(memberKeyword => {
+        bulkOps.push({
+          updateOne: {
+            filter: { projectId, keyword: memberKeyword },
+            update: { $set: { parentKeyword: cluster.parentKeyword, cluster: cluster.parentKeyword } }
+          }
+        });
+      });
+    });
+
+    if (bulkOps.length > 0) {
+       await WorkspaceKeyword.bulkWrite(bulkOps);
+    }
+
+    // Now format the response for the UI Dashboard
+    const formattedResult = dynamicClusters.map(c => {
+      // Find the actual keyword objects that belong to this cluster
+      const kwObjects = keywords.filter(k => c.members.includes(k.keyword));
+      return {
+        parentKeyword: c.parentKeyword,
+        searchVolume: c.clusterScore,
+        confidence: c.clusterConfidence,
+        keywords: kwObjects
+      };
+    }).sort((a, b) => b.searchVolume - a.searchVolume);
+
+    res.json({ success: true, data: formattedResult });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getTopicalAuthority = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+
+    const topicalAuthority = require('./services/topicalAuthority.service');
+    const result = await topicalAuthority.calculateAuthority(projectId);
+
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

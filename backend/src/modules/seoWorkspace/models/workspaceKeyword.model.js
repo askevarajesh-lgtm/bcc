@@ -34,9 +34,21 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
       enum: ['FOUND', 'NOT_FOUND_TOP100', 'PROVIDER_ERROR', 'TIMEOUT', 'RATE_LIMIT', 'CRAWL_ERROR', 'UNKNOWN'], 
       default: 'UNKNOWN' 
     },
+    trend: { type: String, enum: ['Improved', 'Declined', 'Stable', 'Lost Visibility', 'New', 'None'], default: 'None' },
+    rankChange: { type: Number, default: 0 },
+    velocity: { type: Number, default: 0 },
+    visibilityScore: { type: Number, default: 0 },
+    visibilityTrend: { type: String, default: 'Stable' },
+    confidenceScore: { type: Number, default: null },
+    confidenceReason: { type: String, default: null },
+    serpFeatures: [{ type: String }],
     history: [{
       date: { type: Date },
-      rank: { type: Number } // Can be null if status was NOT_FOUND_TOP100 or ERROR
+      rank: { type: Number }, // Can be null if status was NOT_FOUND_TOP100 or ERROR
+      status: { type: String },
+      url: { type: String },
+      visibilityScore: { type: Number },
+      serpFeatures: [{ type: String }]
     }]
   },
 
