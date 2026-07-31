@@ -14,7 +14,8 @@ const scoreColor = (score) => (score > 80 ? '#52c41a' : score > 50 ? '#faad14' :
 const AuditTab = () => {
   const [projectId, setProjectId] = useState(null);
   const [runningBasic, setRunningBasic] = useState(false);
-  const [liveProgress, setLiveProgress] = useState(null); // { percent: 0, status: '' }
+  const [liveProgress, setLiveProgress] = useState(null); // { status: '', progress: {}, startedAt: null }
+  const [auditProfile, setAuditProfile] = useState('standard');
   
   const [pastAudits, setPastAudits] = useState([]);
   const [loadingPast, setLoadingPast] = useState(false);
@@ -55,31 +56,55 @@ const AuditTab = () => {
     if (projectId) loadPastAudits(projectId);
   }, [projectId]);
 
+  // Poll API for audit status
+  useEffect(() => {
+    let interval;
+    if (projectId && runningBasic) {
+      interval = setInterval(async () => {
+        try {
+          const res = await seoWorkspaceApi.getAuditStatus(projectId);
+          if (res.status === 'completed' || res.status === 'budget_reached' || res.status === 'failed') {
+            setRunningBasic(false);
+            setLiveProgress(null);
+            clearInterval(interval);
+            if (res.status === 'completed' || res.status === 'budget_reached') {
+              message.success(`Audit finished (${res.status})`);
+              loadPastAudits(projectId);
+            } else {
+              message.error('Audit failed');
+            }
+          } else if (res.status === 'running' || res.status === 'queued' || res.status === 'synthesizing') {
+            setLiveProgress({ status: res.status, progress: res.progress, startedAt: res.startedAt });
+          }
+        } catch (err) { 
+          // Stop polling on API error
+          setRunningBasic(false);
+          setLiveProgress(null);
+          clearInterval(interval);
+        }
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [projectId, runningBasic]);
+
   const runBasicAudit = async () => {
     setRunningBasic(true);
     setError(null);
-    setLiveProgress({ percent: 10, status: 'Initializing crawler...' });
-    
-    // Simulate live progress
-    const interval = setInterval(() => {
-      setLiveProgress(prev => {
-        if (!prev) return prev;
-        const next = prev.percent + Math.floor(Math.random() * 15);
-        if (next >= 90) return { percent: 90, status: 'Finalizing AI Analysis...' };
-        return { percent: next, status: 'Crawling pages...' };
-      });
-    }, 800);
-
     try {
-      await seoWorkspaceApi.runAuditorAgent(projectId); // Run the full AI auditor agent immediately
-      message.success('Enterprise Audit completed');
-      await loadPastAudits(projectId);
+      const res = await seoWorkspaceApi.runAuditorAgent(projectId, { profile: auditProfile });
+      if (res && res.data && res.data.jobId) {
+        message.info('Audit crawl queued in background...');
+      } else if (res && res.jobId) { // Fallback if API structure changes
+        message.info('Audit crawl queued in background...');
+      } else {
+        throw new Error('No jobId returned');
+      }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to run audit');
-    } finally {
-      clearInterval(interval);
-      setLiveProgress(null);
+      setError(err?.response?.data?.message || err.message || 'Failed to start audit');
       setRunningBasic(false);
+      setLiveProgress(null);
     }
   };
 
@@ -183,6 +208,11 @@ const AuditTab = () => {
           </div>
         </div>
         <Space>
+          <Select value={auditProfile} onChange={setAuditProfile} style={{ width: 150 }} disabled={runningBasic}>
+            <Option value="quick">Quick Audit</Option>
+            <Option value="standard">Standard Audit</Option>
+            <Option value="deep">Deep Audit</Option>
+          </Select>
           <Button icon={<ArrowRightLeft size={16} />} onClick={() => setCompareMode(true)} disabled={pastAudits.length < 2 || !projectId}>Compare Mode</Button>
           <Button type="primary" loading={runningBasic} disabled={!projectId} onClick={runBasicAudit}>Run New Audit</Button>
         </Space>
@@ -197,8 +227,23 @@ const AuditTab = () => {
           type="info"
           icon={<Activity />}
           showIcon
-          message={<Space><Text strong>Crawl in Progress...</Text> <Text type="secondary">{liveProgress.status}</Text></Space>}
-          description={<Progress percent={liveProgress.percent} status="active" strokeColor={{ from: '#108ee9', to: '#87d068' }} />}
+          message={<Space><Text strong>Crawl in Progress ({liveProgress.status})...</Text></Space>}
+          description={
+            <div style={{ marginTop: 8 }}>
+              <Space split={<Divider type="vertical" />}>
+                <Text>Discovered: <b>{liveProgress.progress?.urlsDiscovered || 0}</b></Text>
+                <Text style={{ color: '#1890ff' }}>Crawled: <b>{liveProgress.progress?.urlsCrawled || 0}</b></Text>
+                <Text type="secondary">Remaining: <b>{liveProgress.progress?.urlsRemaining || 0}</b></Text>
+                <Text style={{ color: '#faad14' }}>Skipped: <b>{liveProgress.progress?.urlsSkipped || 0}</b></Text>
+                <Text type="danger">Failed: <b>{liveProgress.progress?.failedUrls || 0}</b></Text>
+              </Space>
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary" ellipsis style={{ maxWidth: '100%' }}>
+                  Current URL: {liveProgress.progress?.currentUrl || 'Initializing...'}
+                </Text>
+              </div>
+            </div>
+          }
           style={{ marginBottom: 24 }}
         />
       )}

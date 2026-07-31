@@ -64,8 +64,12 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/audits/compare${qs({ auditId1, auditId2 })}`, getAuthHeaders());
     return res.data;
   },
-  runAuditorAgent: async (projectId) => {
-    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/seo-auditor/run`, {}, getAuthHeaders());
+  runAuditorAgent: async (projectId, options = {}) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/seo-auditor/run`, options, getAuthHeaders());
+    return res.data;
+  },
+  getAuditStatus: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/audit/status`, getAuthHeaders());
     return res.data;
   },
   approveAuditFindings: async (projectId, auditId) => {
@@ -84,6 +88,14 @@ export const seoWorkspaceApi = {
   // --- Keywords (basic + Keyword Research agent) ---
   getKeywords: async (filters = {}) => {
     const res = await axios.get(`${API_URL}/seo-workspace/keywords${qs(filters)}`, getAuthHeaders());
+    return res.data;
+  },
+  getKeywordClusters: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/clusters`, getAuthHeaders());
+    return res.data;
+  },
+  getKeywordGap: async (projectId, competitorUrl) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/keywords/gap${qs({ competitorUrl })}`, getAuthHeaders());
     return res.data;
   },
   runKeywordResearchAgent: async (projectId, seedKeyword) => {

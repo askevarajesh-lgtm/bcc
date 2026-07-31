@@ -17,7 +17,9 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     cpc: { type: Number, default: 0 },
     competition: { type: Number, default: 0 }, // 0 to 1
     keywordDifficulty: { type: Number, default: 0 }, // 0 to 100
-    intent: { type: String, enum: ['informational', 'navigational', 'commercial', 'transactional', 'unknown'], default: 'unknown' }
+    intent: { type: String, enum: ['informational', 'navigational', 'commercial', 'transactional', 'unknown'], default: 'unknown' },
+    trends: [{ type: Number }], // 12 months search volume trend
+    serpFeatures: [{ type: String }] // e.g., 'featured_snippet', 'people_also_ask'
   },
 
   // Ranking data
@@ -26,8 +28,20 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     previousRank: { type: Number, default: null },
     bestRank: { type: Number, default: null },
     url: { type: String, default: null }, // URL that is ranking
-    isFeaturedSnippet: { type: Boolean, default: false }
+    isFeaturedSnippet: { type: Boolean, default: false },
+    status: { 
+      type: String, 
+      enum: ['FOUND', 'NOT_FOUND_TOP100', 'PROVIDER_ERROR', 'TIMEOUT', 'RATE_LIMIT', 'CRAWL_ERROR', 'UNKNOWN'], 
+      default: 'UNKNOWN' 
+    },
+    history: [{
+      date: { type: Date },
+      rank: { type: Number } // Can be null if status was NOT_FOUND_TOP100 or ERROR
+    }]
   },
+
+  cluster: { type: String, default: null },
+  parentKeyword: { type: String, default: null },
 
   // Tags for organizing keywords
   tags: [{ type: String }],

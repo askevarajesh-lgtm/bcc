@@ -210,7 +210,8 @@ exports.runAuditorAgent = async (req, res) => {
     }
 
     const workspaceId = getWorkspaceId(req);
-    const audit = await seoAuditorAgent.run(projectId, workspaceId);
+    const options = req.body || {};
+    const audit = await seoAuditorAgent.run(projectId, workspaceId, options);
 
     res.status(200).json({ success: true, data: audit });
   } catch (error) {
@@ -248,6 +249,26 @@ exports.getAuditorExecutionHistory = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await seoAuditorAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAuditStatus = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const WorkspaceAuditJob = require('./models/workspaceAuditJob.model');
+    const job = await WorkspaceAuditJob.findOne({ projectId }).sort({ createdAt: -1 });
+    if (!job) {
+      return res.json({ status: 'none' });
+    }
+    res.json({
+      status: job.status,
+      jobId: job._id,
+      progress: job.progress,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -893,6 +914,8 @@ exports.toggleAutomationRule = async (req, res) => {
   }
 };
 
+
+
 exports.retryAutomationRule = async (req, res) => {
   try {
     const { projectId, ruleId } = req.params;
@@ -1036,6 +1059,58 @@ exports.getKeywords = async (req, res) => {
     }
 
     res.json(keywords);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getKeywordClusters = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+
+    const keywords = await WorkspaceKeyword.find({ projectId, status: 'Approved' }).lean();
+
+    const clusters = keywords.reduce((acc, kw) => {
+      const parent = kw.parentKeyword || kw.cluster || 'Uncategorized';
+      if (!acc[parent]) {
+        acc[parent] = { parentKeyword: parent, searchVolume: 0, keywords: [] };
+      }
+      acc[parent].searchVolume += (kw.metrics?.searchVolume || 0);
+      acc[parent].keywords.push(kw);
+      return acc;
+    }, {});
+
+    const result = Object.values(clusters).sort((a, b) => b.searchVolume - a.searchVolume);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getKeywordGap = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { competitorUrl } = req.query;
+    if (!competitorUrl) return res.status(400).json({ success: false, error: 'Competitor URL is required' });
+
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+
+    // Since we cannot fabricate metrics, we would normally query an external API here (like DataForSEO).
+    // In this stub, we return an explicit empty payload indicating external data isn't directly wired.
+    res.json({
+      success: true,
+      data: {
+        competitorUrl,
+        missingKeywords: [],
+        message: 'External Competitor API not configured. Cannot generate gap keywords without valid provider.'
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

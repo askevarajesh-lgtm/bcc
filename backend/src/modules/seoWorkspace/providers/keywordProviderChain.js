@@ -41,19 +41,39 @@ function isEmpty(result) {
  * @returns {Promise<{ data: any, providerId: string|null }>}
  */
 async function callChain(methodName, args) {
+  let lastError = null;
+  let lastStatus = null;
+
   for (const provider of PROVIDERS) {
     if (!provider.isConfigured) continue;
     try {
       const data = await provider[methodName](...args);
       if (!isEmpty(data)) {
-        return { data, providerId: provider.id };
+        return { data, providerId: provider.id, status: 'SUCCESS' };
       }
       logger.debug(TAG, `${provider.id}.${methodName} returned no data, trying next provider`);
     } catch (error) {
       logger.warn(TAG, `${provider.id}.${methodName} failed: ${error.message}, trying next provider`);
+      lastError = error;
+      
+      const msg = error.message.toLowerCase();
+      if (msg.includes('timeout') || error.code === 'ECONNABORTED') {
+        lastStatus = 'TIMEOUT';
+      } else if (msg.includes('payment required') || msg.includes('balance') || msg.includes('402')) {
+        lastStatus = 'RATE_LIMIT';
+      } else {
+        lastStatus = 'PROVIDER_ERROR';
+      }
     }
   }
-  return { data: Array.isArray(await safeEmptyShape(methodName)) ? [] : [], providerId: null };
+  
+  const emptyData = Array.isArray(await safeEmptyShape(methodName)) ? [] : [];
+  return { 
+    data: emptyData, 
+    providerId: null, 
+    error: lastError,
+    status: lastStatus || (hasAnyConfiguredProvider() ? 'NOT_FOUND' : 'UNCONFIGURED')
+  };
 }
 
 async function safeEmptyShape() {

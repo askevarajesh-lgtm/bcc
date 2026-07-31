@@ -11,6 +11,9 @@ const retry = require('../../aiCore/retry.service');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 const agentLoader = require('../../aiCore/agentLoader.service');
+const WorkspaceAuditJob = require('../models/workspaceAuditJob.model');
+const WorkspaceAuditQueue = require('../models/workspaceAuditQueue.model');
+const WorkspaceAuditPage = require('../models/workspaceAuditPage.model');
 
 const AGENT_KEY = 'seo-auditor';
 const TAG = 'SeoAuditorAgent';
@@ -211,39 +214,126 @@ Return at most ${MAX_FINDINGS} findings, ranked by likely impact. Respond ONLY w
 /**
  * @param {string} projectId
  * @param {string} [workspaceId] - falls back to the project's own tenant fields if omitted
- * @returns {Promise<Object>} the completed WorkspaceAudit document
+ * @param {Object} [options]
+ * @param {string} [options.profile] - quick, standard, deep, custom
+ * @returns {Promise<Object>} the running job info
  */
-async function run(projectId, workspaceId) {
-  const project = await WorkspaceProject.findById(projectId);
-  if (!project) throw new Error('Project not found');
+async function run(projectId, workspaceId, options = {}, userId = 'system') {
+  logger.info(TAG, `[Audit Start Request] Project ID: ${projectId} | User ID: ${userId} | Profile: ${options.profile || 'standard'}`);
+  
+  try {
+    const project = await WorkspaceProject.findById(projectId);
+    if (!project) throw new Error('Project not found');
+    if (!project.domain) throw new Error('Project domain is not configured');
 
-  const agencyId = workspaceId || project.createdBy || project.companyId;
+    const agencyId = workspaceId || project.createdBy || project.companyId;
+    const profile = options.profile || 'standard';
 
-  return executionQueue.run(`seo-auditor:${projectId}`, async () => {
-    const executionId = `seoAuditorAgent:${projectId}:${Date.now()}`;
-    const startedAt = Date.now();
-
-    logger.logExecution({ executionId, source: 'seoAuditorAgent', agentKey: AGENT_KEY, projectId, status: 'started' });
-
-    try {
-      const audit = await collectRawAudit(project, agencyId);
-      const analyzed = await analyzeAudit(project, audit, agencyId);
-
-      logger.logExecution({
-        executionId, source: 'seoAuditorAgent', agentKey: AGENT_KEY, projectId,
-        status: 'succeeded', durationMs: Date.now() - startedAt,
-        meta: { auditId: analyzed._id, findingsCount: analyzed.agent?.findings?.length || 0 }
-      });
-
-      return analyzed;
-    } catch (error) {
-      logger.logExecution({
-        executionId, source: 'seoAuditorAgent', agentKey: AGENT_KEY, projectId,
-        status: 'failed', durationMs: Date.now() - startedAt, error: error.message
-      });
-      throw error;
+    // 1. Check if an audit job is already running
+    const existingJob = await WorkspaceAuditJob.findOne({ projectId: project._id, status: 'running' });
+    if (existingJob) {
+      logger.info(TAG, `Existing running job found: ${existingJob._id}`);
+      return { status: 'running', jobId: existingJob._id, progress: existingJob.progress };
     }
+
+    // 2. Create Audit Job
+    logger.info(TAG, `Creating Audit Job...`);
+    const job = await WorkspaceAuditJob.create({
+      projectId: project._id,
+      agencyId,
+      profile,
+      status: 'running',
+      startedAt: new Date(),
+      progress: { urlsDiscovered: 1, urlsRemaining: 1 }
+    });
+    logger.info(TAG, `Audit Job Created: ${job._id}`);
+
+    // 3. Enqueue Root URL
+    const siteUrl = project.domain.startsWith('http') ? project.domain : `https://${project.domain}`;
+    logger.info(TAG, `Enqueueing root URL: ${siteUrl}`);
+    await WorkspaceAuditQueue.create({
+      jobId: job._id,
+      url: siteUrl,
+      depth: 0,
+      status: 'pending'
+    });
+
+    // 4. Start the worker manually if needed
+    try {
+      logger.info(TAG, `Starting worker...`);
+      const enterpriseCrawlWorker = require('./enterpriseCrawl.worker.js');
+      if (!enterpriseCrawlWorker.isRunning) enterpriseCrawlWorker.start();
+    } catch(e) {
+      logger.error(TAG, `Failed to nudge enterprise crawl worker: ${e.message}`);
+    }
+
+    logger.logExecution({ 
+      executionId: `seoAuditorAgent:${projectId}:${Date.now()}`, 
+      source: 'seoAuditorAgent', 
+      agentKey: AGENT_KEY, 
+      projectId, 
+      status: 'started',
+      meta: { jobId: job._id, profile }
+    });
+
+    return { status: 'queued', jobId: job._id };
+  } catch (error) {
+    logger.error(TAG, `[Audit Start Failed] Project: ${projectId} | Error: ${error.message}\nStack: ${error.stack}`);
+    throw error;
+  }
+}
+
+/**
+ * Run Site-wide AI Analysis on Completed Audit Job
+ */
+async function synthesizeSiteAudit(jobId) {
+  const job = await WorkspaceAuditJob.findById(jobId).populate('projectId');
+  if (!job || !job.projectId) throw new Error('Job/Project not found');
+
+  const project = job.projectId;
+  const agencyId = job.agencyId;
+
+  // Aggregate results from WorkspaceAuditPage
+  const pages = await WorkspaceAuditPage.find({ jobId: job._id }).lean();
+  
+  const totalPages = pages.length || 1;
+  const crawlability = Math.round((pages.filter(p => p.statusCode === 200).length / totalPages) * 100);
+  
+  const issues = {
+    missingMeta: pages.filter(p => p.checks?.missingTitle || p.checks?.missingDescription).length,
+    missingH1: pages.filter(p => p.checks?.missingH1).length,
+    thinContent: pages.filter(p => p.checks?.thinContent).length,
+    brokenLinks: pages.reduce((sum, p) => sum + (p.checks?.brokenLinksCount || 0), 0)
+  };
+  
+  const onPageScore = Math.max(0, 100 - (issues.missingMeta + issues.missingH1) * 2);
+
+  const rawAudit = await WorkspaceAudit.create({
+    projectId: project._id,
+    agencyId,
+    taskId: job._id,
+    status: 'completed',
+    metrics: {
+      onpageScore: onPageScore,
+      technicalScore: crawlability,
+      pagesCrawled: pages.length,
+      performance: crawlability,
+      crawlability,
+      security: project.domain.startsWith('https') ? 100 : 0,
+      onPage: onPageScore,
+      overall: Math.round((crawlability + onPageScore) / 2)
+    },
+    issues: {
+      brokenLinks: issues.brokenLinks,
+      missingMeta: issues.missingMeta,
+      slowPages: issues.thinContent
+    },
+    completedAt: new Date()
   });
+
+  // Call the AI Analyzer
+  const analyzed = await analyzeAudit(project, rawAudit, agencyId);
+  return analyzed;
 }
 
 /**

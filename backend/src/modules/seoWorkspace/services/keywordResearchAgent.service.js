@@ -171,6 +171,9 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
   return { summary: parsed.summary || '', selected };
 }
 
+const WorkspaceCrawlJob = require('../models/workspaceCrawlJob.model');
+const WorkspaceCrawlQueue = require('../models/workspaceCrawlQueue.model');
+
 /**
  * @param {string} projectId
  * @param {string} [workspaceId]
@@ -184,83 +187,47 @@ async function run(projectId, workspaceId, options = {}) {
 
   const agencyId = workspaceId || project.createdBy || project.companyId;
 
-  return executionQueue.run(`keyword-research:${projectId}`, async () => {
-    const executionId = `keywordResearchAgent:${projectId}:${Date.now()}`;
-    const startedAt = Date.now();
+  // Check for an existing running job
+  const existingJob = await WorkspaceCrawlJob.findOne({ projectId: project._id, status: 'running' });
+  if (existingJob) {
+    return { candidateCount: 0, suggestedKeywords: [], summary: 'A keyword discovery crawl is already running in the background.' };
+  }
 
-    logger.logExecution({ executionId, source: 'keywordResearchAgent', agentKey: AGENT_KEY, projectId, status: 'started' });
-
-    try {
-      const candidates = await collectKeywordCandidates(project, agencyId, options.seedKeyword);
-      const { summary, selected } = await analyzeAndSuggest(project, candidates, agencyId);
-
-      let suggestedKeywords = [];
-      if (selected.length > 0) {
-        const bulkOps = selected.map((k) => ({
-          updateOne: {
-            filter: {
-              projectId: project._id,
-              keyword: k.keyword,
-              locationCode: DEFAULT_LOCATION_CODE,
-              languageCode: DEFAULT_LANGUAGE_CODE
-            },
-            update: {
-              $set: {
-                agencyId,
-                'metrics.searchVolume': k.searchVolume,
-                'metrics.cpc': k.cpc,
-                'metrics.competition': k.competition,
-                'metrics.keywordDifficulty': k.keywordDifficulty,
-                'metrics.intent': k.intent,
-                isQuestion: keywordIntelligence.QUESTION_REGEX.test(k.keyword.trim()),
-                source: 'keyword-research-agent',
-                'agent.agentKey': AGENT_KEY,
-                'agent.opportunityScore': k.opportunityScore,
-                'agent.rationale': k.rationale,
-                'agent.theme': k.theme
-              },
-              $setOnInsert: { status: 'Suggested' }
-            },
-            upsert: true
-          }
-        }));
-        await WorkspaceKeyword.bulkWrite(bulkOps);
-
-        suggestedKeywords = await WorkspaceKeyword.find({
-          projectId: project._id,
-          keyword: { $in: selected.map((k) => k.keyword) },
-          locationCode: DEFAULT_LOCATION_CODE,
-          languageCode: DEFAULT_LANGUAGE_CODE
-        }).lean();
-
-        const keywordIdByName = new Map(suggestedKeywords.map((k) => [k.keyword.toLowerCase(), k._id]));
-        await recommendationMemory.recordManyRecommendations(selected.map((k) => ({
-          projectId: project._id,
-          agencyId,
-          keyword: k.keyword,
-          keywordId: keywordIdByName.get(k.keyword.toLowerCase()) || null,
-          agentKey: AGENT_KEY,
-          theme: k.theme,
-          opportunityScore: k.opportunityScore,
-          rationale: k.rationale
-        })));
-      }
-
-      logger.logExecution({
-        executionId, source: 'keywordResearchAgent', agentKey: AGENT_KEY, projectId,
-        status: 'succeeded', durationMs: Date.now() - startedAt,
-        meta: { candidateCount: candidates.length, suggestedCount: suggestedKeywords.length }
-      });
-
-      return { candidateCount: candidates.length, suggestedKeywords, summary };
-    } catch (error) {
-      logger.logExecution({
-        executionId, source: 'keywordResearchAgent', agentKey: AGENT_KEY, projectId,
-        status: 'failed', durationMs: Date.now() - startedAt, error: error.message
-      });
-      throw error;
-    }
+  // Create new crawl job
+  const job = await WorkspaceCrawlJob.create({
+    projectId: project._id,
+    agencyId,
+    status: 'running',
+    startedAt: new Date(),
+    progress: { pagesCrawled: 0, keywordsExtracted: 0, duplicatesRemoved: 0, keywordsSaved: 0 }
   });
+
+  // Enqueue root URL
+  const siteUrl = project.domain.startsWith('http') ? project.domain : `https://${project.domain}`;
+  await WorkspaceCrawlQueue.create({
+    jobId: job._id,
+    url: siteUrl,
+    status: 'pending'
+  });
+
+  // Start the worker if not already running (worker is self-polling, but we can nudge it)
+  try {
+    const crawlWorker = require('./crawler.worker.js');
+    if (!crawlWorker.isRunning) crawlWorker.start();
+  } catch(e) {
+    logger.error(TAG, `Failed to nudge crawl worker: ${e.message}`);
+  }
+
+  logger.logExecution({ 
+    executionId: `keywordResearchAgent:${projectId}:${Date.now()}`, 
+    source: 'keywordResearchAgent', 
+    agentKey: AGENT_KEY, 
+    projectId, 
+    status: 'started',
+    meta: { jobId: job._id }
+  });
+
+  return { candidateCount: 0, suggestedKeywords: [], summary: 'Keyword discovery crawl has been queued and is processing in the background.' };
 }
 
 /**

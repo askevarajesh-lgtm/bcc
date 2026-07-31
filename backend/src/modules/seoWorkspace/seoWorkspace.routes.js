@@ -29,6 +29,7 @@ router.put('/projects/:projectId/settings', blockViewOnly, workspaceController.u
 router.get('/audits', workspaceController.getAudits);
 router.post('/projects/:projectId/audit', blockViewOnly, workspaceController.runAudit);
 router.get('/projects/:projectId/audits/compare', workspaceController.compareAudits);
+router.get('/projects/:projectId/audit/status', workspaceController.getAuditStatus);
 
 
 router.post('/projects/:projectId/seo-auditor/run', blockViewOnly, workspaceController.runAuditorAgent);
@@ -43,6 +44,8 @@ router.put('/projects/:projectId/keyword-research/reject', blockViewOnly, worksp
 router.get('/projects/:projectId/keyword-research/history', workspaceController.getKeywordResearchExecutionHistory);
 router.post('/projects/:projectId/keywords/detect-intent', blockViewOnly, workspaceController.detectKeywordIntent);
 router.post('/projects/:projectId/keywords/related', blockViewOnly, workspaceController.getRelatedKeywords);
+router.get('/projects/:projectId/keywords/clusters', workspaceController.getKeywordClusters);
+router.get('/projects/:projectId/keywords/gap', workspaceController.getKeywordGap);
 
 
 router.post('/projects/:projectId/competitor-agent/run', blockViewOnly, workspaceController.runCompetitorAgent);
