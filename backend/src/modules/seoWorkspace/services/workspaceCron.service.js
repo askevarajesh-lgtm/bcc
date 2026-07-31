@@ -56,42 +56,56 @@ class WorkspaceCronService {
             let currentRank = null;
             let currentStatus = 'UNKNOWN';
 
-            if (pipelineStatus === 'SUCCESS') {
-              const taskResult = realSerpData[index] || {};
-              const topResults = taskResult.topResults || [];
-              const projectDomain = project.domain.replace(/^https?:\/\/(www\.)?/, '');
-              const foundItem = topResults.find(item => item.domain && item.domain.includes(projectDomain));
-              
-              if (foundItem) {
-                currentRank = foundItem.rank;
-                currentStatus = 'FOUND';
-                logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" found at rank ${currentRank}`);
+              if (pipelineStatus === 'SUCCESS') {
+                const taskResult = realSerpData[index] || {};
+                const topResults = taskResult.topResults || [];
+                const projectDomain = project.domain.replace(/^https?:\/\/(www\.)?/, '');
+                const foundItems = topResults.filter(item => item.domain && item.domain.includes(projectDomain));
+                
+                if (foundItems.length > 0) {
+                  currentRank = foundItems[0].rank;
+                  kw.ranking.url = foundItems[0].url;
+                  currentStatus = 'FOUND';
+                  logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" found at rank ${currentRank}`);
+                  
+                  // Cannibalization Check
+                  if (foundItems.length > 1) {
+                    kw.cannibalization = {
+                      isCannibalized: true,
+                      conflictUrls: foundItems.map(item => item.url),
+                      severity: foundItems[1].rank < 20 ? 'high' : 'medium'
+                    };
+                    logger.warn('WorkspaceCronService', `[CANNIBALIZATION] Keyword "${kw.keyword}" has ${foundItems.length} conflicting URLs.`);
+                  } else {
+                    kw.cannibalization = { isCannibalized: false, conflictUrls: [], severity: 'none' };
+                  }
+                } else {
+                  currentStatus = 'NOT_FOUND_TOP100';
+                  kw.cannibalization = { isCannibalized: false, conflictUrls: [], severity: 'none' };
+                  logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" not found in top results.`);
+                }
               } else {
-                currentStatus = 'NOT_FOUND_TOP100';
-                logger.info('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" not found in top results.`);
+                currentStatus = pipelineStatus;
+                logger.warn('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" rank unavailable due to ${currentStatus}`);
               }
-            } else {
-              currentStatus = pipelineStatus;
-              logger.warn('WorkspaceCronService', `[RANK_EXTRACTION] Keyword "${kw.keyword}" rank unavailable due to ${currentStatus}`);
-            }
-
-            kw.ranking = kw.ranking || {};
-            kw.ranking.previousRank = previousRank;
-            kw.ranking.currentRank = currentRank;
-            kw.ranking.status = currentStatus;
-            
-            if (currentRank && (!kw.ranking.bestRank || currentRank < kw.ranking.bestRank)) {
-                kw.ranking.bestRank = currentRank;
-            }
-
-            kw.ranking.history = kw.ranking.history || [];
-            kw.ranking.history.push({
-              date: new Date(),
-              rank: currentRank
-            });
-
-            logger.info('WorkspaceCronService', `[DB_SAVE] Saving rank for "${kw.keyword}" (Rank: ${currentRank}, Status: ${currentStatus})`);
-            await kw.save();
+  
+              kw.ranking = kw.ranking || {};
+              kw.ranking.previousRank = previousRank;
+              kw.ranking.currentRank = currentRank;
+              kw.ranking.status = currentStatus;
+              
+              if (currentRank && (!kw.ranking.bestRank || currentRank < kw.ranking.bestRank)) {
+                  kw.ranking.bestRank = currentRank;
+              }
+  
+              kw.ranking.history = kw.ranking.history || [];
+              kw.ranking.history.push({
+                date: new Date(),
+                rank: currentRank
+              });
+  
+              logger.info('WorkspaceCronService', `[DB_SAVE] Saving rank for "${kw.keyword}" (Rank: ${currentRank}, Status: ${currentStatus})`);
+              await kw.save();
             
             // Recovery task logic
             // Rule: ONLY trigger on organic drops or transition from FOUND to NOT_FOUND_TOP100

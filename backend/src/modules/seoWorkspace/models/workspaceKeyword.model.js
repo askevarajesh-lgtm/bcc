@@ -17,7 +17,7 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     cpc: { type: Number, default: 0 },
     competition: { type: Number, default: 0 }, // 0 to 1
     keywordDifficulty: { type: Number, default: 0 }, // 0 to 100
-    intent: { type: String, enum: ['informational', 'navigational', 'commercial', 'transactional', 'unknown'], default: 'unknown' },
+    intent: { type: String, enum: ['informational', 'navigational', 'commercial', 'transactional', 'local', 'branded', 'unknown'], default: 'unknown' },
     trends: [{ type: Number }], // 12 months search volume trend
     serpFeatures: [{ type: String }] // e.g., 'featured_snippet', 'people_also_ask'
   },
@@ -40,8 +40,31 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     }]
   },
 
+  // Cannibalization Detection
+  cannibalization: {
+    isCannibalized: { type: Boolean, default: false },
+    conflictUrls: [{ type: String }],
+    severity: { type: String, enum: ['high', 'medium', 'low', 'none'], default: 'none' }
+  },
+
+  // Clustering and NLP
   cluster: { type: String, default: null },
   parentKeyword: { type: String, default: null },
+  clusterConfidence: { type: Number, default: null },
+  topicId: { type: String, default: null },
+  entities: [{ type: String }], // NLP extracted entities
+  
+  intentConfidence: { type: Number, default: null },
+  intentReason: { type: String, default: null },
+
+  // Discovery mapping (Which URLs contain this keyword)
+  pageUrls: [{
+    url: { type: String },
+    htmlElement: { type: String }, // e.g. H1, Title, Meta
+    frequency: { type: Number, default: 1 },
+    firstSeen: { type: Date, default: Date.now },
+    lastSeen: { type: Date, default: Date.now }
+  }],
 
   // Tags for organizing keywords
   tags: [{ type: String }],
@@ -50,14 +73,28 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
 
   isDeleted: { type: Boolean, default: false },
 
-  source: { type: String, enum: ['manual', 'ranked-import', 'keyword-research-agent'], default: 'manual' },
+  // Source and Lifecycle
+  source: { type: String, enum: ['manual', 'ranked-import', 'keyword-research-agent', 'discovery_crawler'], default: 'manual' },
   status: { type: String, enum: ['Suggested', 'Approved', 'Rejected'], default: 'Approved' },
-  agent: {
-    agentKey: { type: String, default: null }, // e.g. 'keyword-research'; data reference only
-    opportunityScore: { type: Number, default: null }, // 0-100
-    rationale: { type: String, default: null },
-    theme: { type: String, default: null } // short grouping label, used to detect repeated rejections
+  lifecycle: { 
+    type: String, 
+    enum: ['Discovered', 'Suggested', 'Approved', 'Tracked', 'Ranking', 'Growing', 'Declining', 'Archived'], 
+    default: 'Discovered' 
   },
+
+  // Agent, Quality, Authority
+  qualityScore: { type: Number, default: null }, // 0-100
+  qualityReason: { type: String, default: null },
+  authorityScore: { type: Number, default: null }, // 0-100
+  
+  agent: {
+    agentKey: { type: String, default: null },
+    opportunityScore: { type: Number, default: null }, // 0-100
+    opportunityBreakdown: { type: mongoose.Schema.Types.Mixed, default: {} }, // Why the score is what it is
+    rationale: { type: String, default: null },
+    theme: { type: String, default: null } 
+  },
+
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   approvedAt: { type: Date, default: null },
   rejectionReason: { type: String, default: null },
@@ -68,6 +105,7 @@ WorkspaceKeywordSchema.index({ projectId: 1, keyword: 1, locationCode: 1, langua
 
 // Fast queries for dashboard
 WorkspaceKeywordSchema.index({ projectId: 1, 'ranking.currentRank': 1 });
-WorkspaceKeywordSchema.index({ projectId: 1, isQuestion: 1 });
+WorkspaceKeywordSchema.index({ projectId: 1, lifecycle: 1 });
+WorkspaceKeywordSchema.index({ projectId: 1, cluster: 1 });
 
 module.exports = mongoose.model('WorkspaceKeyword', WorkspaceKeywordSchema, 'workspace_keywords');

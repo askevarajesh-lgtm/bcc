@@ -12,6 +12,8 @@ const retry = require('../../aiCore/retry.service');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 const agentLoader = require('../../aiCore/agentLoader.service');
+const axios = require('axios');
+const hybridKeywordExtractor = require('./hybridKeywordExtractor.service');
 
 const AGENT_KEY = 'keyword-research';
 const TAG = 'KeywordResearchAgent';
@@ -29,70 +31,53 @@ const DEFAULT_LANGUAGE_CODE = 'en';
  */
 async function collectKeywordCandidates(project, agencyId, seedKeyword) {
   const seed = (seedKeyword || project.name || project.domain || '').trim();
-  let candidates = [];
+  
+  // 1. First, try to fetch existing keywords discovered by the background crawler in the database
+  const dbKeywords = await WorkspaceKeyword.find({ 
+    projectId: project._id, 
+    source: 'discovery_crawler' 
+  })
+  .sort({ 'agent.opportunityScore': -1 })
+  .limit(MAX_CANDIDATES)
+  .lean();
 
-  if (providerChain.hasAnyConfiguredProvider() && seed) {
-    try {
-      candidates = await retry.withRetry(
-        () => keywordIntelligence.discoverKeywords(seed, {
-          locationCode: DEFAULT_LOCATION_CODE,
-          languageCode: DEFAULT_LANGUAGE_CODE,
-          limit: 30,
-          projectId: project._id
-        }),
-        { retries: 2, onRetry: (error, attempt) => logger.warn(TAG, `keywordIntelligence.discoverKeywords retry ${attempt + 1}: ${error.message}`) }
-      );
-      candidates = candidates.slice(0, MAX_CANDIDATES);
-    } catch (error) {
-      logger.warn(TAG, `Keyword provider chain failed for seed "${seed}", falling back to AI seed generation: ${error.message}`, { projectId: project._id });
-    }
+  if (dbKeywords && dbKeywords.length > 0) {
+    logger.info(TAG, `Found ${dbKeywords.length} deterministic crawler keywords in DB for "${seed}"`);
+    return dbKeywords.map((k) => ({
+      keyword: k.keyword,
+      searchVolume: k.metrics?.searchVolume || 0,
+      cpc: k.metrics?.cpc || 0,
+      competition: k.metrics?.competition || 0,
+      intent: k.metrics?.intent || 'unknown',
+      keywordDifficulty: k.metrics?.keywordDifficulty || 0
+    }));
   }
 
-  if (candidates.length === 0) {
-    const seeds = await generateAiKeywordSeeds(project, agencyId, seed);
-    candidates = seeds.map((k) => ({
-      keyword: k,
+  // 2. If the DB is empty (i.e. the crawler literally just started), synchronously scrape the homepage right now!
+  try {
+    const siteUrl = project.domain.startsWith('http') ? project.domain : `https://${project.domain}`;
+    logger.info(TAG, `DB empty. Synchronously scraping homepage for instant candidates: ${siteUrl}`);
+    
+    const response = await axios.get(siteUrl, { timeout: 10000, maxRedirects: 3 });
+    const html = response.data;
+    
+    const rawKeywords = hybridKeywordExtractor.extractFromHtml(html, siteUrl);
+    
+    // Sort by score and take the top ones
+    const topKeywords = rawKeywords.slice(0, MAX_CANDIDATES);
+    
+    return topKeywords.map(k => ({
+      keyword: k.keyword,
       searchVolume: 0,
       cpc: 0,
       competition: 0,
       intent: 'unknown',
       keywordDifficulty: 0
     }));
-  }
-
-  return candidates;
-}
-
-async function generateAiKeywordSeeds(project, workspaceId, seed) {
-  const agentConfig = await agentLoader.resolve(AGENT_KEY);
-  const skillsBlock = agentLoader.loadSkillsForAgent(agentConfig);
-  const memoryBlock = await sharedMemory.recallAsPromptContext({ agencyId: workspaceId, projectId: project._id });
-
-  const prompt = `You are the Keyword Research Agent. Generate 20 realistic, specific SEO keyword targets for "${seed}" — the website ${project.domain} (${project.name}).
-${skillsBlock}
-${memoryBlock}
-Respond ONLY with a JSON array of 20 lowercase keyword strings, nothing else. No commentary, no markdown.`;
-
-  const raw = await aiEngine.complete({
-    workspaceId,
-    agentKey: AGENT_KEY,
-    projectId: project._id,
-    messages: [{ role: 'user', content: prompt }],
-    model: agentConfig.modelName,
-    temperature: 0.7,
-    maxTokens: 400,
-    jsonMode: true,
-    retryOptions: { retries: 2 }
-  });
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((k) => typeof k === 'string' && k.trim().length > 0).slice(0, 20);
-    }
   } catch (error) {
-    logger.error(TAG, `Failed to parse AI keyword-seed JSON: ${error.message}`, { projectId: project._id });
+    logger.error(TAG, `Synchronous scrape failed for instant candidates: ${error.message}`);
   }
+
   return [];
 }
 
@@ -174,48 +159,36 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 const WorkspaceCrawlJob = require('../models/workspaceCrawlJob.model');
 const WorkspaceCrawlQueue = require('../models/workspaceCrawlQueue.model');
 
-/**
- * @param {string} projectId
- * @param {string} [workspaceId]
- * @param {Object} [options]
- * @param {string} [options.seedKeyword]
- * @returns {Promise<{ candidateCount: number, suggestedKeywords: Array, summary: string }>}
- */
 async function run(projectId, workspaceId, options = {}) {
   const project = await WorkspaceProject.findById(projectId);
   if (!project) throw new Error('Project not found');
 
   const agencyId = workspaceId || project.createdBy || project.companyId;
 
-  // Check for an existing running job
-  const existingJob = await WorkspaceCrawlJob.findOne({ projectId: project._id, status: 'running' });
-  if (existingJob) {
-    return { candidateCount: 0, suggestedKeywords: [], summary: 'A keyword discovery crawl is already running in the background.' };
-  }
-
-  // Create new crawl job
-  const job = await WorkspaceCrawlJob.create({
-    projectId: project._id,
-    agencyId,
-    status: 'running',
-    startedAt: new Date(),
-    progress: { pagesCrawled: 0, keywordsExtracted: 0, duplicatesRemoved: 0, keywordsSaved: 0 }
-  });
-
-  // Enqueue root URL
-  const siteUrl = project.domain.startsWith('http') ? project.domain : `https://${project.domain}`;
-  await WorkspaceCrawlQueue.create({
-    jobId: job._id,
-    url: siteUrl,
-    status: 'pending'
-  });
-
-  // Start the worker if not already running (worker is self-polling, but we can nudge it)
+  // 1. Kick off the background crawl (fire and forget)
   try {
-    const crawlWorker = require('./crawler.worker.js');
-    if (!crawlWorker.isRunning) crawlWorker.start();
-  } catch(e) {
-    logger.error(TAG, `Failed to nudge crawl worker: ${e.message}`);
+    const existingJob = await WorkspaceCrawlJob.findOne({ projectId: project._id, status: 'running' });
+    if (!existingJob) {
+      const job = await WorkspaceCrawlJob.create({
+        projectId: project._id,
+        agencyId,
+        status: 'running',
+        startedAt: new Date(),
+        progress: { pagesCrawled: 0, keywordsExtracted: 0, duplicatesRemoved: 0, keywordsSaved: 0 }
+      });
+
+      const siteUrl = project.domain.startsWith('http') ? project.domain : `https://${project.domain}`;
+      await WorkspaceCrawlQueue.create({
+        jobId: job._id,
+        url: siteUrl,
+        status: 'pending'
+      });
+
+      const crawlWorker = require('./crawler.worker.js');
+      if (!crawlWorker.isRunning) crawlWorker.start();
+    }
+  } catch (e) {
+    logger.error(TAG, `Failed to launch crawl worker: ${e.message}`);
   }
 
   logger.logExecution({ 
@@ -223,11 +196,54 @@ async function run(projectId, workspaceId, options = {}) {
     source: 'keywordResearchAgent', 
     agentKey: AGENT_KEY, 
     projectId, 
-    status: 'started',
-    meta: { jobId: job._id }
+    status: 'started'
   });
 
-  return { candidateCount: 0, suggestedKeywords: [], summary: 'Keyword discovery crawl has been queued and is processing in the background.' };
+  // 2. Synchronously fetch initial candidates so the UI can display them immediately
+  const candidates = await collectKeywordCandidates(project, agencyId, options.seedKeyword);
+  
+  if (candidates.length > 0) {
+    const suggestedKeywords = candidates.slice(0, MAX_SUGGESTIONS).map(c => ({
+       keyword: c.keyword,
+       opportunityScore: 75,
+       rationale: 'Discovered instantly',
+       theme: 'General',
+       ...c
+    }));
+    
+    // Save them to DB immediately as Suggested so they appear in the UI table
+    const bulkOps = suggestedKeywords.map(k => ({
+      updateOne: {
+        filter: { projectId, keyword: k.keyword },
+        update: {
+          $set: { agencyId, source: 'discovery' },
+          $setOnInsert: {
+            status: 'Approved',
+            lifecycle: 'Discovered',
+            'metrics.searchVolume': k.searchVolume || 0,
+            'metrics.cpc': k.cpc || 0,
+            'metrics.keywordDifficulty': k.keywordDifficulty || 0,
+            'metrics.competition': k.competition || 0,
+            'metrics.intent': k.intent || 'unknown',
+            isQuestion: false
+          }
+        },
+        upsert: true
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await WorkspaceKeyword.bulkWrite(bulkOps);
+    }
+    
+    return { 
+      candidateCount: candidates.length, 
+      suggestedKeywords, 
+      summary: `Found ${candidates.length} keyword candidates immediately. A deeper crawl is also running in the background.` 
+    };
+  }
+
+  return { candidateCount: 0, suggestedKeywords: [], summary: 'Keyword discovery crawl has been queued and is processing in the background. Keywords will appear shortly.' };
 }
 
 /**

@@ -16,9 +16,18 @@ class CrawlWorker {
     this.batchSize = 5; // process 5 pages concurrently
   }
 
-  start() {
+  async start() {
     if (this.isRunning) return;
     this.isRunning = true;
+    
+    try {
+      // Revert any stuck processing items from previous crashes
+      await WorkspaceCrawlQueue.updateMany({ status: 'processing' }, { $set: { status: 'pending' } });
+      logger.info(TAG, 'Reverted stuck processing items to pending.');
+    } catch (err) {
+      logger.warn(TAG, 'Failed to revert stuck items on startup: ' + err.message);
+    }
+    
     this.poll();
   }
 
@@ -29,40 +38,46 @@ class CrawlWorker {
   async poll() {
     while (this.isRunning) {
       try {
-        const jobs = await WorkspaceCrawlJob.find({ status: 'running' }).limit(1);
+        const jobs = await WorkspaceCrawlJob.find({ status: 'running' });
         if (jobs.length === 0) {
           await new Promise(r => setTimeout(r, 5000)); // Sleep if no jobs
           continue;
         }
 
-        const job = jobs[0];
-        
-        // Find pending URLs for this job
-        const queueItems = await WorkspaceCrawlQueue.find({ jobId: job._id, status: 'pending' })
-          .limit(this.batchSize);
+        let didWork = false;
 
-        if (queueItems.length === 0) {
-          // Check if any are still processing
-          const processingCount = await WorkspaceCrawlQueue.countDocuments({ jobId: job._id, status: 'processing' });
-          if (processingCount === 0) {
-            // Job is truly completed
-            job.status = 'completed';
-            job.completedAt = new Date();
-            await job.save();
-            logger.info(TAG, `Crawl Job ${job._id} completed. Extracted ${job.progress.keywordsExtracted} keywords.`);
-          } else {
-            // Wait for processing to finish
-            await new Promise(r => setTimeout(r, 2000));
+        for (const job of jobs) {
+          // Find pending URLs for this job
+          const queueItems = await WorkspaceCrawlQueue.find({ jobId: job._id, status: 'pending' })
+            .limit(this.batchSize);
+
+          if (queueItems.length === 0) {
+            // Check if any are still processing
+            const processingCount = await WorkspaceCrawlQueue.countDocuments({ jobId: job._id, status: 'processing' });
+            if (processingCount === 0) {
+              // Job is truly completed
+              job.status = 'completed';
+              job.completedAt = new Date();
+              await job.save();
+              logger.info(TAG, `Crawl Job ${job._id} completed. Extracted ${job.progress.keywordsExtracted} keywords.`);
+            }
+            continue; // Skip to next job (do not infinitely block here)
           }
-          continue;
+
+          didWork = true;
+
+          // Mark as processing
+          const itemIds = queueItems.map(q => q._id);
+          await WorkspaceCrawlQueue.updateMany({ _id: { $in: itemIds } }, { $set: { status: 'processing' } });
+
+          // Process concurrently
+          await Promise.all(queueItems.map(item => this.processUrl(job, item)));
         }
 
-        // Mark as processing
-        const itemIds = queueItems.map(q => q._id);
-        await WorkspaceCrawlQueue.updateMany({ _id: { $in: itemIds } }, { $set: { status: 'processing' } });
-
-        // Process concurrently
-        await Promise.all(queueItems.map(item => this.processUrl(job, item)));
+        if (!didWork) {
+          // If all jobs are waiting on processing items, sleep to prevent CPU spinning
+          await new Promise(r => setTimeout(r, 2000));
+        }
 
       } catch (error) {
         logger.error(TAG, `Worker polling error: ${error.message}`);
@@ -91,7 +106,7 @@ class CrawlWorker {
       keywordsExtracted = keywords.length;
 
       // Save to database
-      await this.saveKeywords(job, keywords);
+      await this.saveKeywords(job, queueItem.url, keywords);
 
       // Update progress
       await WorkspaceCrawlJob.findByIdAndUpdate(job._id, {
@@ -150,45 +165,55 @@ class CrawlWorker {
     }
   }
 
-  async saveKeywords(job, extractedKeywords) {
-    // extractedKeywords is sorted by score
-    // To prevent saving thousands of junk 1-score words per page, we might filter, 
-    // but the prompt says: "Do not permanently discard discovered keywords. Store all discovered keywords with relevance scores."
-    
-    // We will do bulk upserts to merge scores globally for the project
-    const bulkOps = extractedKeywords.map(k => ({
-      updateOne: {
-        filter: {
-          projectId: job.projectId,
-          keyword: k.keyword,
-          locationCode: DEFAULT_LOCATION_CODE,
-          languageCode: DEFAULT_LANGUAGE_CODE
-        },
-        update: {
-          $set: {
-            agencyId: job.agencyId,
-            source: 'discovery_crawler',
+  async saveKeywords(job, queueItemUrl, extractedKeywords) {
+    const bulkOps = extractedKeywords.map(k => {
+      // Map source elements into a readable string or take the top one
+      const htmlElementStr = k.sourceElements.map(se => se.element).join(',');
+
+      return {
+        updateOne: {
+          filter: {
+            projectId: job.projectId,
+            keyword: k.keyword,
+            locationCode: DEFAULT_LOCATION_CODE,
+            languageCode: DEFAULT_LANGUAGE_CODE
           },
-          $setOnInsert: {
-            status: 'Suggested',
-            'metrics.searchVolume': 0,
-            'metrics.cpc': 0,
-            'metrics.competition': 0,
-            'metrics.keywordDifficulty': 0,
-            'metrics.intent': 'unknown',
-            isQuestion: false
+          update: {
+            $set: {
+              agencyId: job.agencyId,
+              source: 'discovery_crawler',
+            },
+            $setOnInsert: {
+              status: 'Approved',
+              lifecycle: 'Discovered',
+              'metrics.searchVolume': 0,
+              'metrics.cpc': 0,
+              'metrics.competition': 0,
+              'metrics.keywordDifficulty': 0,
+              'metrics.intent': 'unknown',
+              isQuestion: false
+            },
+            $inc: { 'agent.opportunityScore': k.score }, // Accumulate score across pages
+            $addToSet: { 
+              entities: { $each: k.entities }
+            },
+            $push: {
+              pageUrls: {
+                url: queueItemUrl,
+                htmlElement: htmlElementStr,
+                frequency: k.frequency,
+                firstSeen: new Date(),
+                lastSeen: new Date()
+              }
+            }
           },
-          $inc: { 'agent.opportunityScore': k.score } // Accumulate score across pages
-        },
-        upsert: true
-      }
-    }));
+          upsert: true
+        }
+      };
+    });
 
     if (bulkOps.length > 0) {
-      // Chunk bulkOps to avoid payload too large (e.g. 500 at a time)
       const chunkSize = 500;
-      let duplicatesRemoved = 0; // This is a bit tricky to track cleanly with upserts, but we accumulate scores instead.
-      
       for (let i = 0; i < bulkOps.length; i += chunkSize) {
         const chunk = bulkOps.slice(i, i + chunkSize);
         await WorkspaceKeyword.bulkWrite(chunk);

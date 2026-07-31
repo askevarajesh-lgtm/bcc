@@ -40,7 +40,7 @@ const KeywordsTab = () => {
   // Tracked Keywords State
   const [keywords, setKeywords] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('Approved');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [intentFilter, setIntentFilter] = useState('All');
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -211,6 +211,11 @@ const KeywordsTab = () => {
             <Text strong>{r}</Text>
             {diff > 0 && <Text type="success" style={{ fontSize: 12 }}>+{diff}</Text>}
             {diff < 0 && <Text type="danger" style={{ fontSize: 12 }}>{diff}</Text>}
+            {rec.cannibalization?.isCannibalized && (
+              <Tooltip title={`Cannibalization Detected: ${rec.cannibalization.conflictUrls.length} conflicting URLs. Severity: ${rec.cannibalization.severity}`}>
+                <Badge dot status="error" />
+              </Tooltip>
+            )}
           </Space>
         );
       }
@@ -368,14 +373,31 @@ const KeywordsTab = () => {
               </Space>
             </Card>
 
-            {gapData && (
-              <Alert 
-                type="info" 
-                showIcon 
-                message="API Integration Required" 
-                description={gapData.message || "Competitor gap analysis requires an active external API connection (e.g., DataForSEO). No fake data was generated."}
-              />
-            )}
+          </TabPane>
+
+          <TabPane tab={<Space><Alert size={16}/> Cannibalization Report</Space>} key="cannibalization">
+            <Card size="small" bordered={false} style={{ background: '#f9f9f9', marginBottom: 16 }}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text>Identify keywords where multiple pages on your site are competing against each other in search results.</Text>
+              </Space>
+            </Card>
+            
+            <Table
+              rowKey="_id"
+              size="small"
+              dataSource={keywords.filter(k => k.cannibalization?.isCannibalized)}
+              locale={{ emptyText: <Empty description="No cannibalization detected! Your canonical strategy is solid." /> }}
+              columns={[
+                { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: k => <Text strong>{k}</Text> },
+                { title: 'Current Rank', dataIndex: ['ranking', 'currentRank'], key: 'rank' },
+                { title: 'Severity', dataIndex: ['cannibalization', 'severity'], key: 'severity', render: s => <Tag color={s === 'high' ? 'red' : 'orange'}>{s.toUpperCase()}</Tag> },
+                { title: 'Conflicting URLs', dataIndex: ['cannibalization', 'conflictUrls'], key: 'urls', render: urls => (
+                  <Space direction="vertical" size={2}>
+                    {urls?.map(url => <Text key={url} style={{ fontSize: 12 }}>{url}</Text>)}
+                  </Space>
+                )}
+              ]}
+            />
           </TabPane>
         </Tabs>
       )}
