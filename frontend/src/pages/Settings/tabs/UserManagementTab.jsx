@@ -80,7 +80,8 @@ const UserManagementTab = () => {
         'Agency Ops': [
           'People', 'Time Tracking', 'Resources', 'Sales Pipeline', 
           'Business Intel', 'Global Meetings', 'Global Calendar', 'Global Deliverables'
-        ]
+        ],
+        'HRMS': ['Performance', 'Daily Reports', 'SEO Panel']
       };
     } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
       const groups = {
@@ -119,6 +120,8 @@ const UserManagementTab = () => {
       // Settings extras (can go in General or Agency Ops)
       groups.General.push('Master Item');
 
+      groups['HRMS'] = ['Performance', 'Daily Reports', 'SEO Panel'];
+
       return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
       const groups = {
@@ -149,6 +152,8 @@ const UserManagementTab = () => {
 
       // Agency Ops default modules
       groups['Agency Ops'].push('People', 'Time Tracking', 'Sales Pipeline');
+
+      groups['HRMS'] = ['Performance', 'Daily Reports', 'SEO Panel'];
 
       return groups;
     }
@@ -263,7 +268,7 @@ const UserManagementTab = () => {
             let formRole = record.role;
             if (record.customRoleId) {
                const customRole = roles.find(r => r._id === record.customRoleId);
-               if (customRole) formRole = customRole.roleKey;
+               if (customRole) formRole = customRole.roleKey || customRole._id;
             }
             userForm.setFieldsValue({
               ...record,
@@ -587,7 +592,7 @@ const UserManagementTab = () => {
           </Form.Item>
           <Form.Item name="role" label={<strong style={{ color: 'var(--text-secondary)' }}>Role</strong>} rules={[{ required: true }]}>
             <Select size="large">
-              {roles.map(r => <Option key={r._id} value={r.roleKey}>{r.roleName}</Option>)}
+              {roles.map(r => <Option key={r._id} value={r.roleKey || r._id}>{r.roleName}</Option>)}
             </Select>
           </Form.Item>
           <Form.Item name="status" label={<strong style={{ color: 'var(--text-secondary)' }}>Status</strong>} rules={[{ required: true }]}>

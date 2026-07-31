@@ -40,6 +40,15 @@ const masterItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isCampaign: {
+    type: Boolean,
+    default: false
+  },
+  campaignDetails: {
+    numberOfDays: { type: Number, default: 0 },
+    dailyBudget: { type: Number, default: 0 },
+    campaignAmount: { type: Number, default: 0 }
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

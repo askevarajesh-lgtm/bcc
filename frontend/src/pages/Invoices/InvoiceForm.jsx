@@ -243,7 +243,7 @@ const InvoiceForm = () => {
                   ₹{item.price?.toLocaleString()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Total Amount">
-                  ₹{item.price?.toLocaleString()}
+                  ₹{((item.price || 0) + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0)).toLocaleString()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Status">
                   <Tag color={item.status === 'active' ? 'green' : 'red'}>
@@ -251,8 +251,19 @@ const InvoiceForm = () => {
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Handling Duration">
-                  1 Month
+                  {item.handlingDuration || '1 Month'}
                 </Descriptions.Item>
+                
+                {item.isCampaign && (
+                  <Descriptions.Item label="Campaign Details" span={2}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px 16px', borderRadius: 6 }}>
+                      <Typography.Text strong>Number of Days:</Typography.Text> {item.campaignDetails?.numberOfDays} <br />
+                      <Typography.Text strong>Daily Budget:</Typography.Text> ₹{item.campaignDetails?.dailyBudget?.toLocaleString()} <br />
+                      <Typography.Text strong>Campaign Amount:</Typography.Text> ₹{item.campaignDetails?.campaignAmount?.toLocaleString()} <br />
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>* Paid directly to Meta.</Typography.Text>
+                    </div>
+                  </Descriptions.Item>
+                )}
                 
                 {item.categories?.map((cat, index) => (
                   <Descriptions.Item key={cat._id || index} label={`Number of ${cat.name}`}>

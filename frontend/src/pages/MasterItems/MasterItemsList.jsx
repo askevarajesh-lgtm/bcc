@@ -103,6 +103,7 @@ const MasterItemsList = () => {
                 )
               },
               { title: 'Price', dataIndex: 'price', key: 'price', render: (val) => `₹${val}` },
+              { title: 'Campaign Amt', key: 'campaignAmount', render: (_, record) => record.isCampaign ? `₹${record.campaignDetails?.campaignAmount || 0}` : 'N/A' },
               { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={status === 'active' ? 'green' : 'red'}>{status}</Tag> },
               { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
               {
@@ -177,6 +178,15 @@ const MasterItemsList = () => {
 
                 <div style={{ flex: 1, marginBottom: 28 }}>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    
+                    {item.isCampaign && (
+                      <li style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                        <CheckCircleOutlined style={{ color: '#c45484', marginTop: 3, fontSize: 16 }} />
+                        <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
+                          Campaign Amount: <strong style={{ color: '#c45484' }}>₹{item.campaignDetails?.campaignAmount?.toLocaleString()}</strong>
+                        </span>
+                      </li>
+                    )}
 
                     {item.categories && item.categories.length > 0 && item.categories.map((cat, idx) => (
                       <li key={`cat-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>

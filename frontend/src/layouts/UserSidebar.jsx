@@ -60,8 +60,30 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
   if (hasPerm('Agency Ops-Sales Pipeline')) menuItems.push({ key: '/user/workspace/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
 
-  // Performance module for all employees
-  menuItems.push({ key: '/user/performance', icon: getIcon(Target), label: 'Performance' });
+  const hrmsChildren = [];
+  // Performance is currently granted for all employees as per original logic, but we can respect permission if present,
+  // or default to true since it was previously hardcoded. Let's keep it hardcoded for employees or check permission.
+  // Actually, to match AgencySidebar logic, we can just check hasPerm. But wait, previously it was forced for all.
+  // Let's add it if hasPerm('HRMS-Performance') OR just add it anyway. The previous code didn't check permission.
+  // Let's keep the existing behaviour for Performance.
+  hrmsChildren.push({ key: '/user/hrms/performance', icon: getIcon(Target), label: 'Performance' });
+
+  if (hasPerm('HRMS-Daily Reports')) {
+    hrmsChildren.push({ key: '/user/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
+  }
+  
+  if (hasPerm('HRMS-SEO Panel')) {
+    hrmsChildren.push({ key: '/user/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
+  }
+
+  if (hrmsChildren.length > 0) {
+    menuItems.push({
+      key: 'hrms',
+      label: 'HRMS',
+      icon: getIcon(Target),
+      children: hrmsChildren
+    });
+  }
 
   if (hasPerm('Intelligence-Analytics & Attribution')) menuItems.push({ key: '/user/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics' });
   if (hasPerm('Intelligence-MOS Score')) menuItems.push({ key: '/user/intelligence/mos', icon: getIcon(BarChart2), label: 'MOS Score' });

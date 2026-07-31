@@ -200,6 +200,10 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
     hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
   }
+  
+  if (feats.includes('seo-panel') || ['agency_super_admin', 'agency_manager'].includes(role)) {
+    hrmsChildren.push({ key: '/agency/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
+  }
 
   if (hrmsChildren.length > 0) {
     menuItems.push({

@@ -23,6 +23,25 @@ const ProfessionalInvoice = ({ invoice }) => {
   // Derive items from masterItems if available
   const masterItems = invoice.proposalId?.masterItems || [];
   
+  const tableItems = [];
+  masterItems.forEach(item => {
+    tableItems.push({
+      ...item,
+      _id: item._id ? `${item._id}-service` : `service-${Math.random()}`
+    });
+    if (item.isCampaign && item.campaignDetails) {
+      tableItems.push({
+        _id: item._id ? `${item._id}-campaign` : `campaign-${Math.random()}`,
+        name: `${item.name} - Campaign`,
+        description: `Days: ${item.campaignDetails.numberOfDays} | Daily Budget: ₹${item.campaignDetails.dailyBudget?.toLocaleString()} (* Paid directly to Meta)`,
+        category: 'Campaign',
+        handlingDuration: item.handlingDuration || 'N/A',
+        price: item.campaignDetails.campaignAmount,
+        isCampaignRow: true,
+      });
+    }
+  });
+  
   const columns = [
     {
       title: "Description",
@@ -168,7 +187,7 @@ const ProfessionalInvoice = ({ invoice }) => {
 
       {/* Items Table */}
       <Table
-        dataSource={masterItems}
+        dataSource={tableItems}
         columns={columns}
         rowKey="_id"
         pagination={false}

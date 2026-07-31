@@ -1289,7 +1289,24 @@ const ProjectDetail = () => {
                     rowKey="_id"
                     columns={[
                       { title: 'Item Code', dataIndex: 'itemCode', key: 'itemCode' },
-                      { title: 'Name', dataIndex: 'name', key: 'name' },
+                      { 
+                        title: 'Name', 
+                        dataIndex: 'name', 
+                        key: 'name',
+                        render: (text, record) => (
+                          <div>
+                            <div>{text}</div>
+                            {record.isCampaign && record.campaignDetails && (
+                              <div style={{ fontSize: '12px', marginTop: 8, background: 'var(--bg-secondary)', padding: 8, borderRadius: 4 }}>
+                                <strong>Campaign Details:</strong><br/>
+                                Days: {record.campaignDetails.numberOfDays} | 
+                                Budget: ₹{record.campaignDetails.dailyBudget} | 
+                                Total: ₹{record.campaignDetails.campaignAmount}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      },
                       { title: 'Category', dataIndex: 'category', key: 'category' },
                       { title: 'Price', dataIndex: 'price', key: 'price', render: (val) => `$${val || 0}` },
                       { title: 'Duration', dataIndex: 'duration', key: 'duration' }

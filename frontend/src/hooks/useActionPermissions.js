@@ -43,6 +43,10 @@ export function useActionPermissions(path) {
   if (path === '/reporting') moduleName = 'Intelligence-Reports';
   if (path === '/seointelligence') moduleName = 'Intelligence-SEO Intelligence';
 
+  if (path === '/seo-panel') moduleName = 'HRMS-SEO Panel';
+  if (path === '/daily-reports') moduleName = 'HRMS-Daily Reports';
+  if (path === '/performance') moduleName = 'HRMS-Performance';
+
   const hasPermission = useCallback((action) => {
     // Agency Managers, Admins, and Super Admins always have FULL access
     if (ALWAYS_FULL_ACCESS_ROLES.includes(role)) return true;
@@ -76,7 +80,8 @@ export function useActionPermissions(path) {
         'Workspace-Performance Ads', 'Workspace-CRM & Leads', 'Workspace-Automation', 'Workspace-Websites',
         'Workspace-Meetings', 'Workspace-Calendar', 'Workspace-Deliverables',
         'Intelligence-Analytics & Attribution', 'Intelligence-MOS Score', 'Intelligence-ChatGPT', 'Intelligence-Canva',
-        'Intelligence-AI Agent', 'Intelligence-Benchmarks', 'Intelligence-Reports', 'Intelligence-SEO Intelligence'
+        'Intelligence-AI Agent', 'Intelligence-Benchmarks', 'Intelligence-Reports', 'Intelligence-SEO Intelligence',
+        'HRMS-SEO Panel', 'HRMS-Daily Reports', 'HRMS-Performance'
       ];
       if (knownModules.includes(moduleName)) return false;
       return true;

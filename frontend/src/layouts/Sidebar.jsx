@@ -236,6 +236,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           ] : []),
           { key: '/hrms/performance', icon: getIcon(Activity), label: 'Performance' },
           { key: '/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' },
+          { key: '/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' },
         ],
       }
     ] : []),

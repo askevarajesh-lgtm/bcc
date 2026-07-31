@@ -119,6 +119,7 @@ router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
 router.use('/sla-success', slaRoutes);
 router.use('/hrms', hrmsRoutes);
+router.use('/seo-panel', require('../modules/seo-panel/seo.routes'));
 router.use('/notepad', notepadRoutes);
 
 // CRM Workflow Mounts

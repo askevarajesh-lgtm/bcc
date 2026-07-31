@@ -32,7 +32,9 @@ const MasterItemDetailsCard = ({
   remainingShoots,
   selectedCategories,
   overriddenHandlingAmount,
-  overriddenCampaignAmount
+  overriddenCampaignAmount,
+  overriddenBasePrice,
+  overriddenTotalAmount
 }) => {
   if (!service) return null;
 
@@ -42,8 +44,10 @@ const MasterItemDetailsCard = ({
   const videos = numberOfVideos ?? service.numberOfVideos;
   const shoots = numberOfShoots ?? service.numberOfShoots;
 
-  const handlingAmt = overriddenHandlingAmount ?? service.handlingAmount;
-  const campaignAmt = overriddenCampaignAmount ?? service.campaignAmount;
+  const campaignAmt = overriddenCampaignAmount ?? (service.isCampaign ? service.campaignDetails?.campaignAmount : service.campaignAmount);
+  const basePrice = overriddenBasePrice ?? service.basePrice ?? service.price ?? service.rate;
+  const totalAmount = overriddenTotalAmount ?? service.totalAmount ?? ((basePrice || 0) + (campaignAmt || 0));
+  const handlingAmt = overriddenHandlingAmount ?? service.handlingAmount ?? basePrice;
 
   return (
     <Card
@@ -77,10 +81,10 @@ const MasterItemDetailsCard = ({
         </Descriptions.Item>
 
         <Descriptions.Item label="Base Price">
-          {formatCurrency(service.basePrice)}
+          {formatCurrency(basePrice)}
         </Descriptions.Item>
         <Descriptions.Item label="Total Amount">
-          {formatCurrency(service.totalAmount)}
+          {formatCurrency(totalAmount)}
         </Descriptions.Item>
 
         <Descriptions.Item label="Status">

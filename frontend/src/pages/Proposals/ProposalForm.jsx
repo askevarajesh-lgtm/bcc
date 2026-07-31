@@ -71,7 +71,9 @@ const ProposalForm = () => {
                customCategories: categories,
                customCategoryCounts: categoryCounts,
                customApplicableAccess: item.applicableAccess || [],
-               customHandlingDuration: item.handlingDuration
+               customHandlingDuration: item.handlingDuration,
+               customIsCampaign: item.isCampaign || false,
+               customCampaignDetails: item.campaignDetails || { numberOfDays: 0, dailyBudget: 0, campaignAmount: 0 }
              });
           }
         }
@@ -84,10 +86,27 @@ const ProposalForm = () => {
   };
 
   useEffect(() => {
-    if (selectedMasterItem) {
-      form.setFieldsValue({ grandTotal: selectedMasterItem.price });
+    if (selectedMasterItem && !isCustomizing) {
+      const basePrice = selectedMasterItem.price || 0;
+      const campAmt = selectedMasterItem.isCampaign ? (selectedMasterItem.campaignDetails?.campaignAmount || 0) : 0;
+      form.setFieldsValue({ grandTotal: basePrice + campAmt });
     }
-  }, [selectedMasterItem, form]);
+  }, [selectedMasterItem, isCustomizing, form]);
+
+  const handleCustomValuesChange = (changedValues, allValues) => {
+    if (isCustomizing) {
+      let needsRecalc = false;
+      if ('customPrice' in changedValues) needsRecalc = true;
+      if (changedValues.customCampaignDetails && ('campaignAmount' in changedValues.customCampaignDetails)) needsRecalc = true;
+      if ('customIsCampaign' in changedValues) needsRecalc = true;
+      
+      if (needsRecalc) {
+        const cPrice = allValues.customPrice || 0;
+        const cCampAmt = allValues.customIsCampaign ? (allValues.customCampaignDetails?.campaignAmount || 0) : 0;
+        form.setFieldsValue({ grandTotal: cPrice + cCampAmt });
+      }
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -153,7 +172,9 @@ const ProposalForm = () => {
           handlingDuration: values.customHandlingDuration,
           status: 'active',
           categories: formattedCategories,
-          applicableAccess: values.customApplicableAccess || []
+          applicableAccess: values.customApplicableAccess || [],
+          isCampaign: values.customIsCampaign || false,
+          campaignDetails: values.customIsCampaign ? values.customCampaignDetails : undefined
         };
       }
 
@@ -191,7 +212,7 @@ const ProposalForm = () => {
         <Button onClick={() => navigate(`${getBaseRoute()}/proposals`)}>Back</Button>
       </div>
       <Card loading={loading}>
-        <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleCustomValuesChange}>
           <Form.Item label="Proposal Name" name="name" rules={[{ required: true }]}>
             <Input placeholder="e.g. Q3 SEO Campaign" />
           </Form.Item>
@@ -229,7 +250,9 @@ const ProposalForm = () => {
                       customCategories: categories,
                       customCategoryCounts: categoryCounts,
                       customApplicableAccess: selectedMasterItem.applicableAccess || [],
-                      customHandlingDuration: selectedMasterItem.handlingDuration
+                      customHandlingDuration: selectedMasterItem.handlingDuration,
+                      customIsCampaign: selectedMasterItem.isCampaign || false,
+                      customCampaignDetails: selectedMasterItem.campaignDetails || { numberOfDays: 0, dailyBudget: 0, campaignAmount: 0 }
                     });
                   }
                 }} checkedChildren="Custom" unCheckedChildren="Original" />
@@ -248,7 +271,7 @@ const ProposalForm = () => {
                   ₹{selectedMasterItem.price?.toLocaleString()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Total Amount">
-                  ₹{selectedMasterItem.price?.toLocaleString()}
+                  ₹{((selectedMasterItem.price || 0) + (selectedMasterItem.isCampaign ? (selectedMasterItem.campaignDetails?.campaignAmount || 0) : 0)).toLocaleString()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Status">
                   <Tag color={selectedMasterItem.status === 'active' ? 'green' : 'red'}>
@@ -258,6 +281,17 @@ const ProposalForm = () => {
                 <Descriptions.Item label="Handling Duration">
                   {selectedMasterItem.handlingDuration || 'N/A'}
                 </Descriptions.Item>
+                
+                {selectedMasterItem.isCampaign && (
+                  <Descriptions.Item label="Campaign Details" span={2}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px 16px', borderRadius: 6 }}>
+                      <Text strong>Number of Days:</Text> {selectedMasterItem.campaignDetails?.numberOfDays} <br />
+                      <Text strong>Daily Budget:</Text> ₹{selectedMasterItem.campaignDetails?.dailyBudget?.toLocaleString()} <br />
+                      <Text strong>Campaign Amount:</Text> ₹{selectedMasterItem.campaignDetails?.campaignAmount?.toLocaleString()} <br />
+                      <Text type="secondary" style={{ fontSize: 12 }}>* Paid directly to Meta.</Text>
+                    </div>
+                  </Descriptions.Item>
+                )}
                 
                 {selectedMasterItem.categories?.map((cat, index) => (
                   <Descriptions.Item key={cat._id || index} label={`Number of ${cat.name}`}>
@@ -320,6 +354,67 @@ const ProposalForm = () => {
                 }}
               </Form.Item>
 
+              <Form.Item name="customIsCampaign" valuePropName="checked">
+                <Switch checkedChildren="Campaign Enabled" unCheckedChildren="Campaign Disabled" />
+              </Form.Item>
+
+              <Form.Item noStyle dependencies={['customIsCampaign']}>
+                {({ getFieldValue }) => {
+                  const isCamp = getFieldValue('customIsCampaign');
+                  return isCamp ? (
+                    <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                      <Title level={5} style={{ marginTop: 0 }}>Campaign Details</Title>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item label="Number of Days" name={['customCampaignDetails', 'numberOfDays']} rules={[{ required: true }]}>
+                            <InputNumber 
+                              style={{ width: '100%' }} 
+                              min={0} 
+                              onChange={(val) => {
+                                const budget = form.getFieldValue(['customCampaignDetails', 'dailyBudget']) || 0;
+                                const campAmt = val * budget;
+                                form.setFieldsValue({ customCampaignDetails: { campaignAmount: campAmt } });
+                                const basePrice = form.getFieldValue('customPrice') || 0;
+                                form.setFieldsValue({ grandTotal: basePrice + campAmt });
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item label="Daily Budget" name={['customCampaignDetails', 'dailyBudget']} rules={[{ required: true }]}>
+                            <InputNumber 
+                              style={{ width: '100%' }} 
+                              min={0} 
+                              prefix="₹" 
+                              onChange={(val) => {
+                                const days = form.getFieldValue(['customCampaignDetails', 'numberOfDays']) || 0;
+                                const campAmt = days * val;
+                                form.setFieldsValue({ customCampaignDetails: { campaignAmount: campAmt } });
+                                const basePrice = form.getFieldValue('customPrice') || 0;
+                                form.setFieldsValue({ grandTotal: basePrice + campAmt });
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item label="Campaign Amount" name={['customCampaignDetails', 'campaignAmount']} rules={[{ required: true }]}>
+                            <InputNumber 
+                              style={{ width: '100%' }} 
+                              min={0} 
+                              prefix="₹" 
+                              onChange={(val) => {
+                                const basePrice = form.getFieldValue('customPrice') || 0;
+                                form.setFieldsValue({ grandTotal: basePrice + (val || 0) });
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
+                  ) : null;
+                }}
+              </Form.Item>
+
               <Divider orientation="left">Applicable Access / Deliverables</Divider>
               <Form.List name="customApplicableAccess">
                 {(fields, { add, remove }) => (
@@ -357,7 +452,7 @@ const ProposalForm = () => {
               </Form.Item>
 
               <Form.Item label="Service Price" name="customPrice" rules={[{ required: true }]}>
-                <InputNumber style={{ width: '100%' }} prefix="₹" min={0} onChange={val => form.setFieldsValue({ grandTotal: val })} />
+                <InputNumber style={{ width: '100%' }} prefix="₹" min={0} />
               </Form.Item>
 
               <Form.Item label="Handling Duration" name="customHandlingDuration">
@@ -371,6 +466,8 @@ const ProposalForm = () => {
                   <Option value="1 Year">1 Year</Option>
                 </Select>
               </Form.Item>
+
+
             </div>
           )}
 
@@ -388,7 +485,7 @@ const ProposalForm = () => {
           </Form.Item>
 
           <Space style={{ marginTop: 16 }}>
-            <Button type="primary" htmlType="submit" loading={loading}>Save</Button>
+            <Button type="primary" htmlType="submit" loading={loading}>{isEditing ? 'Update' : 'Save'}</Button>
             <Button onClick={() => navigate(`${getBaseRoute()}/proposals`)} disabled={loading}>Cancel</Button>
           </Space>
         </Form>

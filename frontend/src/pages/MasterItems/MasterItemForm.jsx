@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, Row, Col, message, Divider } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Row, Col, message, Divider, Switch } from 'antd';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
@@ -57,6 +57,8 @@ const MasterItemForm = () => {
           categoryCounts,
           applicableAccess: item.applicableAccess || [],
           handlingDuration: item.handlingDuration || "1 Month",
+          isCampaign: item.isCampaign || false,
+          campaignDetails: item.campaignDetails || { numberOfDays: 0, dailyBudget: 0, campaignAmount: 0 }
         });
       } else {
         message.error("Failed to load item");
@@ -87,6 +89,8 @@ const MasterItemForm = () => {
         price: values.price,
         status: values.status,
         handlingDuration: values.handlingDuration,
+        isCampaign: values.isCampaign || false,
+        campaignDetails: values.isCampaign ? values.campaignDetails : undefined
       };
 
       const token = localStorage.getItem("token");
@@ -115,6 +119,21 @@ const MasterItemForm = () => {
   };
 
   const selectedCategories = Form.useWatch('categories', form) || [];
+  const isCampaignChecked = Form.useWatch('isCampaign', form) || false;
+  
+  // Auto-calculate campaign amount when days or budget change
+  const handleCampaignValuesChange = (changedValues, allValues) => {
+    if (changedValues.campaignDetails && ('numberOfDays' in changedValues.campaignDetails || 'dailyBudget' in changedValues.campaignDetails)) {
+      const days = allValues.campaignDetails?.numberOfDays || 0;
+      const budget = allValues.campaignDetails?.dailyBudget || 0;
+      form.setFieldsValue({
+        campaignDetails: {
+          ...allValues.campaignDetails,
+          campaignAmount: days * budget
+        }
+      });
+    }
+  };
 
   return (
     <div className="page-container">
@@ -123,7 +142,7 @@ const MasterItemForm = () => {
         <Button onClick={() => navigate(`${getBaseRoute()}/master-items`)}>Back</Button>
       </div>
       <Card loading={loading}>
-        <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleCampaignValuesChange}>
           <Form.Item label="Item Name" name="name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
@@ -151,6 +170,33 @@ const MasterItemForm = () => {
                   </Col>
                 </Row>
               ))}
+            </div>
+          )}
+
+          <Form.Item name="isCampaign" valuePropName="checked">
+            <Switch checkedChildren="Campaign Enabled" unCheckedChildren="Campaign Disabled" />
+          </Form.Item>
+
+          {isCampaignChecked && (
+            <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+              <Title level={5} style={{ marginTop: 0 }}>Campaign Details</Title>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item label="Number of Days" name={['campaignDetails', 'numberOfDays']} rules={[{ required: true }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="Daily Budget" name={['campaignDetails', 'dailyBudget']} rules={[{ required: true }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} prefix="₹" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="Campaign Amount" name={['campaignDetails', 'campaignAmount']} rules={[{ required: true }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} prefix="₹" />
+                  </Form.Item>
+                </Col>
+              </Row>
             </div>
           )}
 

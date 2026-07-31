@@ -128,6 +128,11 @@ const InvoiceTransactionsTab = ({ invoice, isClientRole }) => {
 
   const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString()}`;
 
+  const masterItems = invoice?.proposalId?.masterItems || [];
+  const computedCampaignAmount = masterItems.reduce((acc, item) => acc + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0), 0);
+  const computedHandlingAmount = (invoice?.grandTotal || 0) - computedCampaignAmount;
+
+
   return (
     <div className="invoice-transactions-tab">
       {!isClientRole && (
@@ -142,13 +147,13 @@ const InvoiceTransactionsTab = ({ invoice, isClientRole }) => {
             <Col xs={24} sm={12} md={8}>
               <Card size="small" bordered>
                 <Text type="secondary">Handling Amount</Text>
-                <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{formatCurrency(invoice?.handlingAmount)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{formatCurrency(computedHandlingAmount)}</Title>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
               <Card size="small" bordered>
                 <Text type="secondary">Campaign Amount</Text>
-                <Title level={4} style={{ margin: 0 }}>{formatCurrency(invoice?.campaignAmount)}</Title>
+                <Title level={4} style={{ margin: 0 }}>{formatCurrency(computedCampaignAmount)}</Title>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>

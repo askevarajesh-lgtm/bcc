@@ -107,7 +107,13 @@ exports.createUser = async (req, res, next) => {
     let incomingRole = userData.role;
     if (incomingRole && !SYSTEM_ROLES.includes(incomingRole)) {
       // It's a dynamic custom role, look it up
-      const customRole = await Role.findOne({ roleKey: incomingRole });
+      const mongoose = require('mongoose');
+      const customRole = await Role.findOne({ 
+        $or: [
+          { roleKey: incomingRole }, 
+          { _id: mongoose.Types.ObjectId.isValid(incomingRole) ? incomingRole : null }
+        ] 
+      });
       if (customRole) {
         userData.customRoleId = customRole._id;
         userData.roleName = customRole.roleName;
@@ -241,7 +247,13 @@ exports.updateUser = async (req, res, next) => {
     
     // Check for Two-Tier Role Mapping during update
     if (updateData.role && !SYSTEM_ROLES.includes(updateData.role)) {
-      const customRole = await Role.findOne({ roleKey: updateData.role });
+      const mongoose = require('mongoose');
+      const customRole = await Role.findOne({ 
+        $or: [
+          { roleKey: updateData.role }, 
+          { _id: mongoose.Types.ObjectId.isValid(updateData.role) ? updateData.role : null }
+        ] 
+      });
       if (customRole) {
         updateData.customRoleId = customRole._id;
         updateData.roleName = customRole.roleName;

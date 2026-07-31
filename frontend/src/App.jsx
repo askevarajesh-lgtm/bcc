@@ -137,6 +137,8 @@ import PerformancePage from './pages/performance/PerformancePage';
 import SelfAssessmentForm from './pages/performance/SelfAssessmentForm';
 import TransactionsPage from './pages/transactions/TransactionsPage';
 import SalesTrackingPageEnhanced from './pages/sales/SalesTrackingPageEnhanced';
+import SEOPanel from './pages/seo-panel/SEOPanel';
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -314,6 +316,7 @@ const AppRoutes = () => {
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="hrms/daily-reports" element={<DailyReports />} />
+          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
         </Route>
       </Route>
 
@@ -383,6 +386,7 @@ const AppRoutes = () => {
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="hrms/daily-reports" element={<DailyReports />} />
+          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
         </Route>
       </Route>
 
@@ -534,11 +538,15 @@ const AppRoutes = () => {
           <Route path="workspace/deliverables" element={<DeliverablesPage />} />
           <Route path="workspace/salespipeline" element={<SalesPipeline />} />
           
-          {/* Performance Module for All Employees */}
-          <Route path="performance" element={<PerformancePage />} />
-          <Route path="performance/history/:userId?" element={<PerformancePage />} />
-          <Route path="performance/self-assessment" element={<SelfAssessmentForm />} />
+          {/* HRMS Modules for Employees */}
+          <Route path="hrms/performance" element={<PerformancePage />} />
+          <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
+          <Route path="hrms/daily-reports" element={<DailyReports />} />
+          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
           
+          {/* Keep legacy route temporarily for fallback if needed */}
+          <Route path="performance" element={<PerformancePage />} />
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />

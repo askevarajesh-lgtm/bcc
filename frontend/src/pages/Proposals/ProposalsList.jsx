@@ -92,7 +92,24 @@ const ProposalsList = () => {
             { title: 'Proposal #', dataIndex: 'proposalNumber', key: 'proposalNumber' },
             { title: 'Name', dataIndex: 'name', key: 'name' },
             { title: 'Client', dataIndex: 'clientId', key: 'client', render: (client) => client?.name || 'Unknown' },
-            { title: 'Amount', dataIndex: 'grandTotal', key: 'grandTotal', render: (val) => `₹${val?.toLocaleString()}` },
+            { 
+              title: 'Campaign Amount', 
+              key: 'campaignAmount', 
+              render: (_, record) => {
+                const campAmt = record.masterItems?.reduce((acc, item) => acc + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0), 0) || 0;
+                return `₹${campAmt.toLocaleString()}`;
+              } 
+            },
+            { 
+              title: 'Service Amount', 
+              key: 'serviceAmount', 
+              render: (_, record) => {
+                const campAmt = record.masterItems?.reduce((acc, item) => acc + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0), 0) || 0;
+                const total = record.grandTotal || 0;
+                return `₹${(total - campAmt).toLocaleString()}`;
+              } 
+            },
+            { title: 'Total Amount', dataIndex: 'grandTotal', key: 'grandTotal', render: (val) => `₹${val?.toLocaleString()}` },
             { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={status === 'Approved' ? 'green' : 'blue'}>{status}</Tag> },
             { title: 'Created By', dataIndex: 'createdBy', key: 'createdBy', render: (user) => user?.name || 'Unknown' },
             { title: 'Actions', key: 'actions', render: (_, record) => (
@@ -162,6 +179,18 @@ const ProposalsList = () => {
                             <li key={`acc-${idx}`}><Text type="secondary">{access.name}: <strong>{access.value}</strong></Text></li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    
+                    {/* Render Campaign Details if available */}
+                    {item.isCampaign && item.campaignDetails && (
+                      <div style={{ marginTop: 12, padding: 8, background: 'var(--bg-secondary)', borderRadius: 6 }}>
+                        <Text strong>Campaign Details:</Text>
+                        <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+                          <Text type="secondary">Days: <strong>{item.campaignDetails.numberOfDays}</strong></Text>
+                          <Text type="secondary">Daily Budget: <strong>₹{item.campaignDetails.dailyBudget?.toLocaleString()}</strong></Text>
+                          <Text type="secondary">Amount: <strong>₹{item.campaignDetails.campaignAmount?.toLocaleString()}</strong></Text>
+                        </div>
                       </div>
                     )}
                   </Card>

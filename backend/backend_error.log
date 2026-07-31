@@ -789,4 +789,9 @@ Require stack:
     at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
     at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n
+    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n2026-07-31T04:53:16.857Z\nValidationError: Validation failed: role: `6a6304d76c45eb55a98f503e` is not a valid enum value for path `role`.
+    at model.Query.validate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4189:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query._findOneAndUpdate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:3616:5)
+    at async maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:65)
+    at async exports.updateUser (E:\Bcc Seo\backend\src\modules\auth\user.controller.js:269:18)\n\n
