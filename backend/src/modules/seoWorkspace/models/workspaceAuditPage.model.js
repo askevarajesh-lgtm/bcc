@@ -16,11 +16,21 @@ const workspaceAuditPageSchema = new mongoose.Schema({
 
   // HTML Structure
   title: { type: String },
+  titleLength: { type: Number },
   metaDescription: { type: String },
-  h1: { type: String },
+  h1: { type: [String], default: [] },
+  h2: { type: [String], default: [] },
+  h3: { type: [String], default: [] },
+  h4: { type: [String], default: [] },
+  h5: { type: [String], default: [] },
+  h6: { type: [String], default: [] },
   canonical: { type: String },
   robots: { type: String },
   wordCount: { type: Number },
+  viewport: { type: String },
+  language: { type: String },
+  charset: { type: String },
+  securityHeaders: mongoose.Schema.Types.Mixed,
   
   // Extended Assets
   images: [{
@@ -45,7 +55,10 @@ const workspaceAuditPageSchema = new mongoose.Schema({
     thinContent: { type: Boolean, default: false },
     brokenLinksCount: { type: Number, default: 0 },
     missingAltCount: { type: Number, default: 0 }
-  }
+  },
+  
+  // Deterministic Issues found on this page
+  findings: [mongoose.Schema.Types.Mixed]
 }, { timestamps: true });
 
 workspaceAuditPageSchema.index({ jobId: 1, url: 1 }, { unique: true });

@@ -16,13 +16,20 @@ const WorkspaceAuditSchema = new mongoose.Schema({
     pagesWithErrors: { type: Number, default: 0 },
     pagesWithWarnings: { type: Number, default: 0 },
     
-    // AI Agent Extensions
-    performance: { type: Number, default: 0 },
-    crawlability: { type: Number, default: 0 },
-    security: { type: Number, default: 0 },
-    onPage: { type: Number, default: 0 },
-    mobileUsability: { type: Number, default: 0 },
-    overall: { type: Number, default: 0 }
+    // Category Scores
+    technical: { type: Number, default: null },
+    content: { type: Number, default: null },
+    performance: { type: Number, default: null },
+    security: { type: Number, default: null },
+    accessibility: { type: Number, default: null },
+    schema: { type: Number, default: null },
+    images: { type: Number, default: null },
+    internalLinking: { type: Number, default: null },
+    indexability: { type: Number, default: null },
+    overall: { type: Number, default: 0 },
+    
+    // Score Explanations
+    scoreBreakdown: [mongoose.Schema.Types.Mixed]
   },
 
   // Breakdown of issues
@@ -43,15 +50,18 @@ const WorkspaceAuditSchema = new mongoose.Schema({
     agentKey: { type: String, default: null }, // e.g. 'seo-auditor'; data reference only
     summary: { type: String, default: null },
     findings: [{
-      category: { type: String, required: true }, // e.g. 'broken_links', 'missing_meta', 'slow_pages', 'canonical_issues', 'ssl_issues', 'thin_content'
+      issueId: { type: String, required: true },
+      category: { type: String, required: true },
       severity: { type: String, enum: ['critical', 'high', 'medium', 'low'], default: 'medium' },
       issue: { type: String, required: true },
-      recommendation: { type: String, default: '' },
-      aiExplanation: { type: String, default: null }, // Why is this an issue?
-      generatedFix: { type: mongoose.Schema.Types.Mixed, default: null }, // Safe auto-fix code snippet
-      htmlPreview: { type: String, default: null }, // Snippet of HTML where issue occurred
-      taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'], default: 'Content Edit' },
-      pageUrl: { type: String, default: null }
+      affectedUrl: { type: String, default: null },
+      evidence: { type: mongoose.Schema.Types.Mixed, default: null },
+      rootCause: { type: String, default: null },
+      suggestedTechnicalFix: { type: String, default: null },
+      expectedSeoImpact: { type: String, default: null },
+      estimatedDifficulty: { type: String, default: null },
+      aiExplanation: { type: String, default: null }, // Added by AI afterwards
+      taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Technical Fix'], default: 'Content Edit' }
     }],
     approvalStatus: { type: String, enum: ['Not Requested', 'Pending Approval', 'Approved', 'Rejected'], default: 'Not Requested' },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

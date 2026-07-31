@@ -42,7 +42,11 @@ const workspaceAuditJobSchema = new mongoose.Schema({
     urlsRemaining: { type: Number, default: 0 },
     urlsSkipped: { type: Number, default: 0 },
     failedUrls: { type: Number, default: 0 },
-    currentUrl: { type: String, default: '' }
+    currentUrl: { type: String, default: '' },
+    currentStage: { type: String, default: 'Initializing' },
+    currentAnalyzer: { type: String, default: 'None' },
+    pagesPerSecond: { type: Number, default: 0 },
+    estimatedTimeRemainingMs: { type: Number, default: 0 }
   },
   startedAt: { type: Date },
   completedAt: { type: Date },
