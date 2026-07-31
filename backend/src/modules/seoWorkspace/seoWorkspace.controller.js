@@ -7,6 +7,7 @@ const WorkspaceReport = require('./models/workspaceReport.model');
 const WorkspaceComment = require('./models/workspaceComment.model');
 const WorkspaceAttachment = require('./models/workspaceAttachment.model');
 const WorkspaceAuditLog = require('./models/workspaceAuditLog.model');
+const WorkspaceTechnicalAudit = require('./models/workspaceTechnicalAudit.model');
 
 const WorkspaceAgentOrchestrator = require('./services/workspaceAgentOrchestrator.service');
 const WordPressService = require('../seoIntelligence/services/wordPress.service');
@@ -935,6 +936,76 @@ exports.getAudits = async (req, res) => {
   }
 };
 
+exports.compareAudits = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { auditId1, auditId2 } = req.query;
+    
+    if (!auditId1 || !auditId2) {
+      return res.status(400).json({ success: false, error: 'Both auditId1 and auditId2 are required as query parameters.' });
+    }
+
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+    const project = await WorkspaceProject.findOne({ _id: projectId, companyId, isDeleted: false });
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found' });
+    }
+
+    const [audit1, audit2] = await Promise.all([
+      WorkspaceAudit.findOne({ _id: auditId1, projectId }).lean(),
+      WorkspaceAudit.findOne({ _id: auditId2, projectId }).lean()
+    ]);
+
+    if (!audit1 || !audit2) {
+      return res.status(404).json({ success: false, error: 'One or both audits not found' });
+    }
+
+    // Sort to compare older vs newer regardless of input order
+    const [older, newer] = audit1.createdAt < audit2.createdAt ? [audit1, audit2] : [audit2, audit1];
+
+    const olderIssues = older.agent?.findings || [];
+    const newerIssues = newer.agent?.findings || [];
+
+    const olderIssueMap = new Map(olderIssues.map(i => [`${i.category}-${i.issue}-${i.pageUrl}`, i]));
+    
+    const newFindings = [];
+    const resolvedFindings = [];
+    const remainingFindings = [];
+
+    newerIssues.forEach(issue => {
+      const key = `${issue.category}-${issue.issue}-${issue.pageUrl}`;
+      if (olderIssueMap.has(key)) {
+        remainingFindings.push(issue);
+        olderIssueMap.delete(key);
+      } else {
+        newFindings.push(issue);
+      }
+    });
+
+    olderIssueMap.forEach(issue => {
+      resolvedFindings.push(issue);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        olderAuditId: older._id,
+        newerAuditId: newer._id,
+        olderScore: older.metrics?.overall || older.metrics?.onpageScore,
+        newerScore: newer.metrics?.overall || newer.metrics?.onpageScore,
+        scoreDelta: (newer.metrics?.overall || newer.metrics?.onpageScore) - (older.metrics?.overall || older.metrics?.onpageScore),
+        comparisons: {
+          newFindings,
+          resolvedFindings,
+          remainingFindings
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.getKeywords = async (req, res) => {
   try {
     const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
@@ -1491,27 +1562,83 @@ exports.getDashboard = async (req, res) => {
     const projects = await WorkspaceProject.find(projectQuery).select('_id name domain phase stats').lean();
     const projectIds = projects.map(p => p._id);
 
+    // Calculate Average Scores
+    let totalSeoScore = 0, totalHealthScore = 0;
+    let validSeoScores = 0, validHealthScores = 0;
+    projects.forEach(p => {
+      if (p.stats?.lastAuditScore != null) { totalSeoScore += p.stats.lastAuditScore; validSeoScores++; }
+      if (p.stats?.lastHealthScore != null) { totalHealthScore += p.stats.lastHealthScore; validHealthScores++; }
+    });
+    const avgSeoScore = validSeoScores > 0 ? Math.round(totalSeoScore / validSeoScores) : 0;
+    const avgHealthScore = validHealthScores > 0 ? Math.round(totalHealthScore / validHealthScores) : 0;
+
     const [
       pendingStrategies,
       pendingTasks,
       failedTasks,
-      recentActivity
+      recentActivity,
+      keywords,
+      latestTechAudits
     ] = await Promise.all([
       WorkspaceStrategy.countDocuments({ projectId: { $in: projectIds }, status: 'Pending Approval' }),
       WorkspaceTask.countDocuments({ projectId: { $in: projectIds }, status: 'Pending' }),
       WorkspaceTask.countDocuments({ projectId: { $in: projectIds }, status: 'Failed' }),
-      WorkspaceAuditLog.find({ projectId: { $in: projectIds } }).populate('userId', 'name').sort({ createdAt: -1 }).limit(10)
+      WorkspaceAuditLog.find({ projectId: { $in: projectIds } }).populate('userId', 'name').sort({ createdAt: -1 }).limit(10).lean(),
+      WorkspaceKeyword.find({ projectId: { $in: projectIds }, isDeleted: false }).select('ranking').lean(),
+      WorkspaceTechnicalAudit.aggregate([
+        { $match: { projectId: { $in: projectIds } } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: "$projectId", latest: { $first: "$$ROOT" } } }
+      ])
     ]);
+
+    // Aggregate Keyword Data
+    let keywordsImproved = 0, keywordsDeclined = 0, keywordsStable = 0;
+    keywords.forEach(kw => {
+      const current = kw.ranking?.currentRank || 0;
+      const prev = kw.ranking?.previousRank || 0;
+      if (current > 0 && prev > 0) {
+        if (current < prev) keywordsImproved++;
+        else if (current > prev) keywordsDeclined++;
+        else keywordsStable++;
+      } else {
+        keywordsStable++; // unranked or no change
+      }
+    });
+
+    // Aggregate Technical Data
+    let totalPagesCrawled = 0, totalErrors = 0, sitesWithGoodVitals = 0;
+    latestTechAudits.forEach(auditGroup => {
+      const audit = auditGroup.latest;
+      totalPagesCrawled += audit.signals?.crawl?.pagesCrawled || 0;
+      totalErrors += (audit.signals?.crawl?.clientErrors4xx || 0) + (audit.signals?.crawl?.serverErrors5xx || 0);
+      if (audit.signals?.coreWebVitals?.desktop || audit.signals?.coreWebVitals?.mobile) {
+        sitesWithGoodVitals++; // simplified proxy for CWV status
+      }
+    });
 
     res.json({
       success: true,
       data: {
         totalProjects: projects.length,
         projects,
+        avgSeoScore,
+        avgHealthScore,
         pendingStrategies,
         pendingTasks,
         failedTasks,
-        recentActivity
+        recentActivity,
+        keywords: {
+          total: keywords.length,
+          improved: keywordsImproved,
+          declined: keywordsDeclined,
+          stable: keywordsStable
+        },
+        technical: {
+          totalPagesCrawled,
+          totalErrors,
+          sitesWithGoodVitals
+        }
       }
     });
   } catch (error) {

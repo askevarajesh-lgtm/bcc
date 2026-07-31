@@ -28,6 +28,7 @@ router.put('/projects/:projectId/settings', blockViewOnly, workspaceController.u
 // Audits
 router.get('/audits', workspaceController.getAudits);
 router.post('/projects/:projectId/audit', blockViewOnly, workspaceController.runAudit);
+router.get('/projects/:projectId/audits/compare', workspaceController.compareAudits);
 
 
 router.post('/projects/:projectId/seo-auditor/run', blockViewOnly, workspaceController.runAuditorAgent);

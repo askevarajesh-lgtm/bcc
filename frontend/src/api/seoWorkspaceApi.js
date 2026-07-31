@@ -60,6 +60,10 @@ export const seoWorkspaceApi = {
     const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/audit`, {}, getAuthHeaders());
     return res.data;
   },
+  compareAudits: async (projectId, auditId1, auditId2) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/audits/compare${qs({ auditId1, auditId2 })}`, getAuthHeaders());
+    return res.data;
+  },
   runAuditorAgent: async (projectId) => {
     const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/seo-auditor/run`, {}, getAuthHeaders());
     return res.data;

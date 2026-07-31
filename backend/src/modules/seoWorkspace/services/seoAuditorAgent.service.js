@@ -149,6 +149,9 @@ Respond with a JSON object of this exact shape:
       "severity": "critical | high | medium | low",
       "issue": "specific description of the problem",
       "recommendation": "specific, actionable next step",
+      "aiExplanation": "detailed explanation of why this is an issue and how it impacts SEO",
+      "generatedFix": "safe code or content snippet that can be applied to fix the issue",
+      "htmlPreview": "a snippet of the affected HTML code (if applicable)",
       "taskType": "Update Meta Tags | Content Edit | Schema Injection | Create Redirect | Internal Linking",
       "pageUrl": "affected page path, or the site root if not page-specific"
     }
@@ -163,7 +166,7 @@ Return at most ${MAX_FINDINGS} findings, ranked by likely impact. Respond ONLY w
     messages: [{ role: 'user', content: prompt }],
     model: agentConfig.modelName,
     temperature: 0.4,
-    maxTokens: 1500,
+    maxTokens: 2500, // increased to allow for explanations and code snippets
     jsonMode: true,
     retryOptions: { retries: 2 }
   });
@@ -182,6 +185,9 @@ Return at most ${MAX_FINDINGS} findings, ranked by likely impact. Respond ONLY w
       severity: VALID_SEVERITIES.includes(f.severity) ? f.severity : 'medium',
       issue: f.issue || 'Unspecified issue',
       recommendation: f.recommendation || '',
+      aiExplanation: f.aiExplanation || null,
+      generatedFix: f.generatedFix || null,
+      htmlPreview: f.htmlPreview || null,
       taskType: VALID_TASK_TYPES.includes(f.taskType) ? f.taskType : 'Content Edit',
       pageUrl: f.pageUrl || project.domain
     }))

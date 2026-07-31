@@ -91,9 +91,10 @@ class WorkspaceAgentOrchestrator {
           agencyId: project.createdBy || project.companyId,
           keyword: k,
           metrics: {
-            searchVolume: Math.floor(Math.random() * 5000) + 100,
-            keywordDifficulty: 50,
-            intent: 'informational'
+            searchVolume: 0,
+            keywordDifficulty: 0,
+            intent: 'informational',
+            status: 'insufficient_data'
           },
           ranking: { 
             currentRank: 0,

@@ -47,6 +47,9 @@ const WorkspaceAuditSchema = new mongoose.Schema({
       severity: { type: String, enum: ['critical', 'high', 'medium', 'low'], default: 'medium' },
       issue: { type: String, required: true },
       recommendation: { type: String, default: '' },
+      aiExplanation: { type: String, default: null }, // Why is this an issue?
+      generatedFix: { type: mongoose.Schema.Types.Mixed, default: null }, // Safe auto-fix code snippet
+      htmlPreview: { type: String, default: null }, // Snippet of HTML where issue occurred
       taskType: { type: String, enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'], default: 'Content Edit' },
       pageUrl: { type: String, default: null }
     }],

@@ -64,10 +64,10 @@ class WorkspaceCronService {
                 currentRank = 100;
               }
             } else {
-              // Simulated Fallback for demo: Randomly drop rank by 1-4 positions for 30% of keywords
-              if (Math.random() > 0.7) {
-                currentRank = previousRank + Math.floor(Math.random() * 4) + 1;
-              }
+              // No SERP data available, leave rank unchanged and explicitly mark as stale/insufficient data
+              currentRank = previousRank;
+              kw.metrics = kw.metrics || {};
+              kw.metrics.status = 'insufficient_data';
             }
 
             const drop = currentRank - previousRank;
