@@ -60,11 +60,14 @@ function hasAnyConfiguredProvider() {
 }
 
 module.exports = {
-  getOverview: (domain, opts) => callChain('getOverview', [domain, opts]),
-  getKeywordGap: (yourDomain, competitorDomain, opts) => callChain('getKeywordGap', [yourDomain, competitorDomain, opts]),
-  getContentGap: (yourDomain, competitorDomain, opts) => callChain('getContentGap', [yourDomain, competitorDomain, opts]),
-  getBacklinkGap: (yourDomain, competitorDomain, opts) => callChain('getBacklinkGap', [yourDomain, competitorDomain, opts]),
-  getPageGap: (yourDomain, competitorDomain, opts) => callChain('getPageGap', [yourDomain, competitorDomain, opts]),
+  getOverview:     (domain, opts) => callChain('getOverview', [domain, opts]),
+  getKeywordGap:   (yourDomain, competitorDomain, opts) => callChain('getKeywordGap', [yourDomain, competitorDomain, opts]),
+  getContentGap:   (yourDomain, competitorDomain, opts) => callChain('getContentGap', [yourDomain, competitorDomain, opts]),
+  getBacklinkGap:  (yourDomain, competitorDomain, opts) => callChain('getBacklinkGap', [yourDomain, competitorDomain, opts]),
+  getPageGap:      (yourDomain, competitorDomain, opts) => callChain('getPageGap', [yourDomain, competitorDomain, opts]),
+  getTopPages:     (domain, opts) => callChain('getTopPages', [domain, opts]),
+  getSerpFeatures: (keyword, opts) => callChain('getSerpFeatures', [keyword, opts]),
   hasAnyConfiguredProvider,
   PROVIDERS // exposed for tests / diagnostics only
 };
+

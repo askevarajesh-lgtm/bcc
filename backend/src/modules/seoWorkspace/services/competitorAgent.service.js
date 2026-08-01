@@ -16,8 +16,8 @@ const TAG = 'CompetitorAgent';
 
 const VALID_THREAT_LEVELS = ['low', 'medium', 'high'];
 const MAX_CANDIDATES = 10;
-const MAX_SUGGESTIONS = 10;
-const BACKLINK_ENRICHMENT_LIMIT = 5; 
+const MAX_SUGGESTIONS = 3;
+const BACKLINK_ENRICHMENT_LIMIT = 5;
 
 /**
  * @param {Object} project - a WorkspaceProject document
@@ -204,7 +204,7 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
     messages: [{ role: 'user', content: prompt }],
     model: agentConfig.modelName,
     temperature: 0.4,
-    maxTokens: 1800,
+    maxTokens: 4000,
     jsonMode: true,
     retryOptions: { retries: 2 }
   });

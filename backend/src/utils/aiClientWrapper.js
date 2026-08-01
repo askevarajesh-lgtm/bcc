@@ -9,7 +9,7 @@ class AiClientWrapper {
     } else {
       this.openai = new OpenAI({ apiKey });
     }
-    
+
     this.chat = {
       completions: {
         create: async (params) => {
@@ -26,25 +26,25 @@ class AiClientWrapper {
                 messages.push({ role: msg.role, content: msg.content });
               }
             }
-            
+
             if (params.response_format && params.response_format.type === 'json_object') {
               systemPrompt += '\n\nYou must output ONLY valid JSON, with no markdown formatting or other text.';
             }
 
             // Map model to claude if needed
             let model = 'claude-sonnet-5'; // default for anthropic
-            
+
             const anthropicParams = {
               model,
               max_tokens: params.max_tokens || 4096,
               messages
             };
-            
+
             if (systemPrompt) anthropicParams.system = systemPrompt.trim();
             // Temperature is deprecated for this model, omitting it
-            
+
             const msg = await this.anthropic.messages.create(anthropicParams);
-            
+
             let textContent = '';
             if (msg && msg.content && msg.content.length > 0) {
               const textObj = msg.content.find(c => c.type === 'text');
@@ -55,9 +55,9 @@ class AiClientWrapper {
               }
             }
             if (params.response_format && params.response_format.type === 'json_object' && textContent) {
-               textContent = textContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+              textContent = textContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
             }
-            
+
             // Mock OpenAI response structure
             return {
               choices: [

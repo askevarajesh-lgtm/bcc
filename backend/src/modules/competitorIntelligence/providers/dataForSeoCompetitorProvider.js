@@ -145,6 +145,41 @@ class DataForSeoCompetitorProvider {
         competitorDomain: them
       }));
   }
+
+  /**
+   * Returns the top pages for a domain by estimated organic traffic.
+   * Derived from the ranked-keywords list, deduped by URL.
+   * @returns {Promise<TopPage[]>}
+   */
+  async getTopPages(domain, opts = {}) {
+    const target = normalizeDomain(domain);
+    const items = await dataForSeoService.getRankedKeywords(
+      target,
+      opts.limit || RANKED_KEYWORDS_LIMIT,
+      opts.locationCode,
+      opts.languageCode
+    );
+
+    // Aggregate by page URL
+    const pageMap = new Map();
+    (items || []).forEach((item) => {
+      const url = item.ranked_serp_element?.serp_item?.url;
+      if (!url) return;
+      const vol = item.keyword_data?.keyword_info?.search_volume || 0;
+      if (!pageMap.has(url)) {
+        pageMap.set(url, { url, traffic: 0, keywords: 0, backlinks: 0, ctr: 0, estimatedRevenue: 0, domain: target });
+      }
+      const page = pageMap.get(url);
+      page.keywords += 1;
+      page.traffic  += vol * 0.05; // rough CTR estimate per keyword
+    });
+
+    return Array.from(pageMap.values())
+      .sort((a, b) => b.traffic - a.traffic)
+      .slice(0, opts.limit || 50)
+      .map((p) => ({ ...p, traffic: Math.round(p.traffic) }));
+  }
 }
 
 module.exports = new DataForSeoCompetitorProvider();
+

@@ -132,6 +132,19 @@ class SemrushCompetitorProvider {
       competitorDomain: them
     }];
   }
+
+  /**
+   * Genuinely no page-level top-pages data available from Semrush's wired-up
+   * endpoints — return empty rather than fabricate URLs.
+   */
+  async getTopPages() { return []; }
+
+  /**
+   * Genuinely no SERP features data available from Semrush's wired-up
+   * endpoints — return null rather than fabricate features.
+   */
+  async getSerpFeatures() { return null; }
 }
 
 module.exports = new SemrushCompetitorProvider();
+

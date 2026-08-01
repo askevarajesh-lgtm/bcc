@@ -31,10 +31,11 @@ const logger = require('../../aiCore/logger.service');
 const TAG = 'ComparisonEngine';
 
 const CHAIN_METHOD_BY_TYPE = {
-  keyword_gap: 'getKeywordGap',
-  content_gap: 'getContentGap',
+  keyword_gap:  'getKeywordGap',
+  content_gap:  'getContentGap',
   backlink_gap: 'getBacklinkGap',
-  page_gap: 'getPageGap'
+  page_gap:     'getPageGap',
+  top_pages:    'getTopPages'  // new: per-domain top pages by traffic
 };
 
 function normalizeDomain(domain) {
@@ -55,7 +56,7 @@ function newComparisonId() {
  * @param {string} params.agencyId
  * @param {string} params.yourDomain
  * @param {string[]} params.competitorDomains
- * @param {'keyword_gap'|'content_gap'|'backlink_gap'|'page_gap'|'overview'} params.type
+ * @param {'keyword_gap'|'content_gap'|'backlink_gap'|'page_gap'|'top_pages'|'overview'} params.type
  * @param {Object} [params.opts] - { locationCode, languageCode, limit, forceRefresh, comparisonId }
  * @returns {Promise<ComparisonResult>}
  */
@@ -73,6 +74,8 @@ async function compare(params) {
     let result;
     if (type === 'overview') {
       result = await runOverview(yourDomain, competitorDomains, opts);
+    } else if (type === 'top_pages') {
+      result = await runTopPages(yourDomain, competitorDomains, opts);
     } else {
       result = await runGap(type, yourDomain, competitorDomains, opts);
     }
@@ -118,6 +121,34 @@ async function runOverview(yourDomain, competitorDomains, opts) {
     overview: overviews.filter(Boolean),
     summary: { totalGaps: 0, byType },
     providerId: null
+  };
+}
+
+async function runTopPages(yourDomain, competitorDomains, opts) {
+  const allDomains = [yourDomain, ...competitorDomains];
+  let providerIdUsed = null;
+  const pagesByDomain = {};
+
+  await Promise.all(allDomains.map(async (domain) => {
+    const normalized = normalizeDomain(domain);
+    const cacheParams = { domain: normalized, locationCode: opts.locationCode, languageCode: opts.languageCode, op: 'top_pages' };
+    const { data, providerId } = await cache.getOrFetch(
+      'top_pages', cacheParams,
+      () => providerChain.getTopPages(domain, opts),
+      { projectId: opts.projectId, bypassCache: opts.forceRefresh }
+    );
+    if (providerId) providerIdUsed = providerId;
+    pagesByDomain[normalized] = data || [];
+  }));
+
+  return {
+    domains: allDomains.map(normalizeDomain),
+    type: 'top_pages',
+    rows: [],
+    pagesByDomain,
+    overview: null,
+    summary: { totalGaps: 0, byType: { top_pages: Object.values(pagesByDomain).reduce((s, a) => s + a.length, 0) } },
+    providerId: providerIdUsed
   };
 }
 
@@ -172,4 +203,46 @@ async function invalidateCache(type, yourDomain, competitorDomain, opts = {}) {
   });
 }
 
-module.exports = { compare, invalidateCache };
+/**
+ * Returns an executive summary of comparison data across all competitor domains.
+ * Used by the dashboard summary endpoint. Fetches from cache only (no new API calls).
+ *
+ * @param {string} yourDomain
+ * @param {string[]} competitorDomains
+ * @param {{ projectId?: string }} [opts]
+ * @returns {Promise<Object>}
+ */
+async function getCompetitorSummary(yourDomain, competitorDomains, opts = {}) {
+  // Run overview to get domain metrics
+  const overviewResult = await compare({
+    projectId: opts.projectId || 'summary',
+    agencyId: opts.agencyId || 'summary',
+    yourDomain,
+    competitorDomains,
+    type: 'overview',
+    opts
+  }).catch(() => ({ overview: [] }));
+
+  const overviews = overviewResult.overview || [];
+  const yours = overviews.find((o) => normalizeDomain(o?.domain) === normalizeDomain(yourDomain)) || {};
+  const competitors = overviews.filter((o) => normalizeDomain(o?.domain) !== normalizeDomain(yourDomain));
+
+  const avgTraffic = competitors.length
+    ? Math.round(competitors.reduce((s, c) => s + (c.organicTraffic || 0), 0) / competitors.length)
+    : 0;
+
+  return {
+    yourDomain: normalizeDomain(yourDomain),
+    yourMetrics: yours,
+    competitorCount: competitors.length,
+    avgCompetitorTraffic: avgTraffic,
+    trafficDifference: avgTraffic - (yours.organicTraffic || 0),
+    avgCompetitorKeywords: competitors.length
+      ? Math.round(competitors.reduce((s, c) => s + (c.organicKeywords || 0), 0) / competitors.length)
+      : 0,
+    competitors
+  };
+}
+
+module.exports = { compare, invalidateCache, getCompetitorSummary };
+

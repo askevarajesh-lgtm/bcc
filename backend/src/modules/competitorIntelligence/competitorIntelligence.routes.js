@@ -14,6 +14,7 @@ const blockViewOnly = (req, res, next) => {
   next();
 };
 
+// ── Existing routes (unchanged) ──────────────────────────────────────────────
 router.post('/projects/:projectId/compare', blockViewOnly, controller.runComparison);
 
 router.post('/projects/:projectId/recommendations/generate', blockViewOnly, controller.generateRecommendations);
@@ -24,4 +25,20 @@ router.post('/projects/:projectId/tasks/generate', blockViewOnly, controller.gen
 
 router.get('/projects/:projectId/history', controller.getExecutionHistory);
 
+// ── New enterprise routes ─────────────────────────────────────────────────────
+// Competitor list + summary (read-only, all roles)
+router.get('/projects/:projectId/competitors',         controller.getCompetitors);
+router.get('/projects/:projectId/competitors/summary', controller.getCompetitorSummary);
+router.get('/projects/:projectId/competitors/trend',   controller.getCompetitorTrend);
+
+// Snapshot capture (write, blocks view-only)
+router.post('/projects/:projectId/snapshot',           blockViewOnly, controller.captureSnapshot);
+
+// Opportunity engine (read-only)
+router.get('/projects/:projectId/opportunities',       controller.getOpportunities);
+
+// Threat score re-computation (write, blocks view-only)
+router.post('/projects/:projectId/threat-scores',      blockViewOnly, controller.computeThreatScores);
+
 module.exports = router;
+

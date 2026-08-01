@@ -54,6 +54,21 @@
  *     overview: DomainOverview[] | null, // populated for type === 'overview'
  *     creditsUsed: number | null     // from the provider's response metadata, where available
  *   }
+ *
+ *   TopPage = {
+ *     url: string,
+ *     traffic: number,              // estimated monthly organic traffic
+ *     keywords: number,             // keyword count ranking for this page
+ *     backlinks: number,            // inbound links (0 if unknown)
+ *     ctr: number,                  // estimated average CTR (0 if unknown)
+ *     estimatedRevenue: number,     // 0 if unknown
+ *     domain: string
+ *   }
+ *
+ *   SerpFeatures = {
+ *     keyword: string,
+ *     features: string[]            // e.g. ['featured_snippet', 'video', 'shopping', 'paa', 'ai_overview']
+ *   }
  */
 
 class CompetitorProviderInterface {
@@ -77,6 +92,19 @@ class CompetitorProviderInterface {
 
   /** @returns {Promise<ComparisonRow[]>} pages the competitor has ranking pages for that the target domain has no equivalent for */
   async getPageGap(_yourDomain, _competitorDomain, _opts) { throw new Error('Not implemented'); }
+
+  /**
+   * Returns the top pages for a domain by organic traffic.
+   * @returns {Promise<TopPage[]>} — empty array if provider doesn't support this
+   */
+  async getTopPages(_domain, _opts) { return []; }
+
+  /**
+   * Returns SERP features present for a keyword.
+   * @returns {Promise<SerpFeatures | null>} — null if provider doesn't support this
+   */
+  async getSerpFeatures(_keyword, _opts) { return null; }
 }
 
 module.exports = CompetitorProviderInterface;
+
