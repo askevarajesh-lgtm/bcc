@@ -458,7 +458,29 @@ export const seoWorkspaceApi = {
     return res.data;
   },
   getTargetHistory: async (targetType, targetId, limit) => {
-    const res = await axios.get(`${API_URL}/seo-workspace/${targetType}/${targetId}/history${qs({ limit })}`, getAuthHeaders());
+    const res = await axios.get(`${API_URL}/${targetType}/${targetId}/history${qs({ limit })}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Automation V1 (Engine) ---
+  getAutomationTemplates: async () => {
+    const res = await axios.get(`${API_URL}/v1/automation/templates`, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationMetrics: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/metrics`, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationQueue: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/queue`, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationWorkflows: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/workflows`, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationHistoryLogs: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/history`, getAuthHeaders());
     return res.data;
   }
 };

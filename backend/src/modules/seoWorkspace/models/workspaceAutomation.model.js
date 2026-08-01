@@ -7,7 +7,7 @@ const WorkspaceAutomationSchema = new mongoose.Schema({
 
   ruleType: {
     type: String,
-    enum: ['rank_drop_alert', 'scheduled_report', 'content_freshness', 'backlink_loss', 'credential_health_check'],
+    enum: ['rank_drop_alert', 'scheduled_report', 'content_freshness', 'backlink_loss', 'credential_health_check', 'workflow'],
     required: true
   },
 
@@ -20,13 +20,13 @@ const WorkspaceAutomationSchema = new mongoose.Schema({
   action: {
     type: {
       type: String,
-      enum: ['create_task', 'send_report', 'send_notification', 'pause_autopilot'],
+      enum: ['create_task', 'send_report', 'send_notification', 'pause_autopilot', 'execute_workflow'],
       required: true
     },
     config: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
 
-  frequency: { type: String, enum: ['daily', 'weekly', 'monthly'], default: 'daily' },
+  frequency: { type: String, enum: ['daily', 'weekly', 'monthly', 'custom', 'event_driven'], default: 'daily' },
 
   marketplaceModuleRequired: { type: String, default: 'seo_autopilot' },
 
@@ -35,12 +35,17 @@ const WorkspaceAutomationSchema = new mongoose.Schema({
 
   approvalStatus: {
     type: String,
-    enum: ['Pending Approval', 'Approved', 'Rejected'],
+    enum: ['Draft', 'Pending Approval', 'Approved', 'Published', 'Paused', 'Archived', 'Rejected'],
     default: 'Pending Approval'
   },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   approvedAt: { type: Date, default: null },
   rejectionReason: { type: String, default: null },
+
+  // New Enterprise Workflow Fields
+  activeVersion: { type: mongoose.Schema.Types.ObjectId, ref: 'AutomationWorkflowVersion', default: null },
+  summary: { type: String, default: null },
+  workflowId: { type: mongoose.Schema.Types.ObjectId, ref: 'AutomationWorkflow', default: null },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });

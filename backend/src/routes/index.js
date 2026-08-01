@@ -84,6 +84,9 @@ router.use('/benchmark', benchmarkRoutes);
 router.use('/reports', reportRoutes);
 router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/seo-workspace', seoWorkspaceRoutes);
+
+const automationV1Routes = require('../modules/seoWorkspace/routes/automationV1.routes');
+router.use('/v1/automation', automationV1Routes);
 router.use('/content-ai', contentAIRoutes);
 router.use('/semrush', semrushRoutes);
 router.use('/competitor-intelligence', competitorIntelligenceRoutes);

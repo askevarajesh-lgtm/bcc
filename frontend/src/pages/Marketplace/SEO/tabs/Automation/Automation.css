@@ -1,0 +1,75 @@
+.automation-tab-container {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  min-height: calc(100vh - 200px);
+}
+
+.automation-main-tabs .ant-tabs-nav {
+  margin-bottom: 24px;
+}
+
+.workflow-editor-container {
+  width: 100%;
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.workflow-editor-header {
+  padding: 16px 24px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.workflow-editor-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.workflow-palette {
+  width: 250px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.palette-item {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: grab;
+  background: var(--bg-secondary);
+  transition: all 0.2s;
+}
+.palette-item:active {
+  cursor: grabbing;
+}
+.palette-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.workflow-canvas {
+  flex: 1;
+  position: relative;
+}
+
+.workflow-inspector {
+  width: 320px;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
+  padding: 16px;
+  overflow-y: auto;
+}
