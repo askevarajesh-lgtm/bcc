@@ -154,6 +154,10 @@ router.get('/projects/:projectId/reports-analytics', workspaceController.getRepo
 router.get('/dashboard', workspaceController.getDashboard);
 router.get('/search', workspaceController.globalSearch);
 
+// Monitoring Module (Enterprise)
+const monitoringRoutes = require('./routes/monitoringV1.routes');
+router.use('/projects/:projectId/monitoring', monitoringRoutes);
+
 // Comments (polymorphic: targetType is 'Strategy' | 'Task' | 'Report')
 router.get('/:targetType/:targetId/comments', workspaceController.getComments);
 router.post('/:targetType/:targetId/comments', blockViewOnly, workspaceController.createComment);

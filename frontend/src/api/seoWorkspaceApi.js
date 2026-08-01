@@ -462,6 +462,40 @@ export const seoWorkspaceApi = {
     return res.data;
   },
 
+  // --- Monitoring (Enterprise) ---
+  getMonitoringDashboard: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/dashboard`, getAuthHeaders());
+    return res.data;
+  },
+  triggerMonitoringScan: async (projectId) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/scan`, {}, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringScanStatus: async (projectId, scanId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/scan/${scanId}/status`, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringAlerts: async (projectId, status) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/alerts${qs({ status })}`, getAuthHeaders());
+    return res.data;
+  },
+  updateMonitoringAlertStatus: async (projectId, alertId, status, resolutionNotes) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/alerts/${alertId}/status`, { status, resolutionNotes }, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringHistory: async (projectId, timeframeDays) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/history${qs({ timeframeDays })}`, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringSettings: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/settings`, getAuthHeaders());
+    return res.data;
+  },
+  updateMonitoringSettings: async (projectId, settings) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/settings`, settings, getAuthHeaders());
+    return res.data;
+  },
+
   // --- Automation V1 (Engine) ---
   getAutomationTemplates: async () => {
     const res = await axios.get(`${API_URL}/v1/automation/templates`, getAuthHeaders());
