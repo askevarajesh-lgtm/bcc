@@ -166,6 +166,110 @@ function notifyClusterCreated(payload) {
   keywordEvents.emitSafe(EVENTS.CLUSTER_CREATED, payload);
 }
 
+/**
+ * ENTERPRISE EVIDENCE ENGINE: Deterministic Ranking Priority
+ * GSC (if available) -> DataForSEO -> UNAVAILABLE
+ */
+function resolveRankingPriority(gscRank, dataForSeoRank, gscUrl, dfsUrl) {
+  if (gscRank && gscRank > 0) {
+    return {
+      rank: gscRank,
+      url: gscUrl,
+      source: 'GSC'
+    };
+  } else if (dataForSeoRank && dataForSeoRank > 0) {
+    return {
+      rank: dataForSeoRank,
+      url: dfsUrl,
+      source: 'DataForSEO'
+    };
+  }
+  return { rank: null, url: null, source: 'UNAVAILABLE' };
+}
+
+/**
+ * ENTERPRISE EVIDENCE ENGINE: Transparent Opportunity Score
+ * Exposes the calculation breakdown deterministically without AI.
+ */
+function calculateOpportunityScore({ searchVolume = 0, keywordDifficulty = 0, currentRank = 0, intent = 'informational' }) {
+  let score = 0;
+  const breakdown = {};
+
+  // Search Volume Weight (Max 40 points)
+  let svWeight = 0;
+  if (searchVolume > 10000) svWeight = 40;
+  else if (searchVolume > 1000) svWeight = 30;
+  else if (searchVolume > 100) svWeight = 15;
+  else svWeight = 5;
+  score += svWeight;
+  breakdown.svWeight = svWeight;
+
+  // Difficulty Weight (Max 30 points) - Lower is better
+  let kdWeight = 0;
+  if (keywordDifficulty < 20) kdWeight = 30;
+  else if (keywordDifficulty < 50) kdWeight = 20;
+  else if (keywordDifficulty < 75) kdWeight = 10;
+  else kdWeight = 0;
+  score += kdWeight;
+  breakdown.kdWeight = kdWeight;
+
+  // Rank Weight (Max 20 points) - "Low hanging fruit" (Rank 11-20 is best opportunity)
+  let rankWeight = 0;
+  if (currentRank >= 11 && currentRank <= 20) rankWeight = 20;
+  else if (currentRank >= 4 && currentRank <= 10) rankWeight = 15;
+  else if (currentRank > 20 && currentRank <= 50) rankWeight = 10;
+  else if (currentRank >= 1 && currentRank <= 3) rankWeight = 5; // Already winning
+  else rankWeight = 0;
+  score += rankWeight;
+  breakdown.rankWeight = rankWeight;
+
+  // Intent Weight (Max 10 points) - Transactional/Commercial worth more
+  let intentWeight = 0;
+  if (['transactional', 'commercial'].includes(intent)) intentWeight = 10;
+  else if (intent === 'local') intentWeight = 8;
+  else intentWeight = 5; // informational/navigational
+  score += intentWeight;
+  breakdown.intentWeight = intentWeight;
+
+  return {
+    score,
+    breakdown,
+    rationale: `Scored ${score}/100: SV (${svWeight}), KD (${kdWeight}), Rank (${rankWeight}), Intent (${intentWeight})`
+  };
+}
+
+/**
+ * ENTERPRISE EVIDENCE ENGINE: Multi-Intent Classification
+ * Uses a deterministic keyword lookup method to assign confidence.
+ */
+function classifyIntent(keyword) {
+  const kw = keyword.toLowerCase();
+  const intents = [];
+  
+  const transactionalPhrases = ['buy', 'purchase', 'cheap', 'price', 'discount', 'order'];
+  const commercialPhrases = ['best', 'top', 'review', 'vs', 'compare', 'alternative'];
+  const localPhrases = ['near me', 'location', 'directions', 'city', 'in'];
+  const informationalPhrases = ['how', 'what', 'why', 'guide', 'tutorial', 'learn'];
+  
+  let transConf = transactionalPhrases.some(p => kw.includes(p)) ? 80 : 0;
+  let commConf = commercialPhrases.some(p => kw.includes(p)) ? 70 : 0;
+  let locConf = localPhrases.some(p => kw.includes(p)) ? 90 : 0;
+  let infoConf = informationalPhrases.some(p => kw.includes(p)) ? 85 : 0;
+  
+  if (transConf) intents.push({ intent: 'transactional', confidence: transConf, reason: 'Contains transactional keywords' });
+  if (commConf) intents.push({ intent: 'commercial', confidence: commConf, reason: 'Contains commercial investigation words' });
+  if (locConf) intents.push({ intent: 'local', confidence: locConf, reason: 'Contains local intent modifiers' });
+  if (infoConf || intents.length === 0) intents.push({ intent: 'informational', confidence: infoConf || 50, reason: infoConf ? 'Contains informational queries' : 'Fallback intent' });
+  
+  // Sort by confidence
+  intents.sort((a, b) => b.confidence - a.confidence);
+  
+  return {
+    primaryIntent: intents[0].intent,
+    allIntents: intents
+  };
+}
+
 logger.debug(TAG, `Initialized. Configured providers: ${providerChain.PROVIDERS.filter((p) => p.isConfigured).map((p) => p.id).join(', ') || 'none'}`);
 
 module.exports = {
@@ -179,5 +283,8 @@ module.exports = {
   filterLongTailKeywords,
   notifyGapDetected,
   notifyClusterCreated,
+  resolveRankingPriority,
+  calculateOpportunityScore,
+  classifyIntent,
   QUESTION_REGEX
 };

@@ -14,12 +14,35 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
   // Latest Metrics (Cached for fast retrieval)
   metrics: {
     searchVolume: { type: Number, default: 0 },
+    searchVolumeSource: { type: String, default: 'UNAVAILABLE' }, // e.g., 'DataForSEO', 'GSC'
     cpc: { type: Number, default: 0 },
+    cpcSource: { type: String, default: 'UNAVAILABLE' },
     competition: { type: Number, default: 0 }, // 0 to 1
+    competitionSource: { type: String, default: 'UNAVAILABLE' },
     keywordDifficulty: { type: Number, default: 0 }, // 0 to 100
+    keywordDifficultySource: { type: String, default: 'UNAVAILABLE' },
     intent: { type: String, enum: ['informational', 'navigational', 'commercial', 'transactional', 'local', 'branded', 'unknown'], default: 'unknown' },
+    intents: [{ // Multi-Intent Classification
+      intent: { type: String },
+      confidence: { type: Number },
+      reason: { type: String }
+    }],
     trends: [{ type: Number }], // 12 months search volume trend
-    serpFeatures: [{ type: String }] // e.g., 'featured_snippet', 'people_also_ask'
+    trendSource: { type: String, default: 'UNAVAILABLE' },
+    serpFeatures: [{ type: String }], // e.g., 'featured_snippet', 'people_also_ask'
+    estimatedTraffic: { type: Number, default: 0 },
+    trafficSource: { type: String, default: 'UNAVAILABLE' },
+  },
+
+  // Enterprise Evidence Engine
+  evidence: {
+    discoverySource: { type: String, enum: ['GSC', 'DataForSEO', 'Crawler', 'Manual'], default: 'Manual' },
+    discoveryUrl: { type: String, default: null },
+    discoveryElement: { type: String, default: null }, // e.g., 'H1', 'Title', 'Meta', 'Body'
+    discoverySnippet: { type: String, default: null },
+    discoveryTimestamp: { type: Date, default: null },
+    confidenceScore: { type: Number, default: 0 }, // Deterministic score based on frequency, pages, etc.
+    confidenceCalculation: { type: mongoose.Schema.Types.Mixed, default: {} }, // Exposed calculation breakdown
   },
 
   // Ranking data
@@ -27,11 +50,18 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     currentRank: { type: Number, default: null },
     previousRank: { type: Number, default: null },
     bestRank: { type: Number, default: null },
+    rankingSource: { type: String, enum: ['GSC', 'DataForSEO', 'UNAVAILABLE'], default: 'UNAVAILABLE' },
+    searchEngine: { type: String, default: 'Google' }, // e.g., 'Google', 'Bing', 'YouTube'
+    device: { type: String, enum: ['Desktop', 'Mobile', 'Tablet', 'Unknown'], default: 'Unknown' },
+    country: { type: String, default: null },
+    region: { type: String, default: null },
+    city: { type: String, default: null },
     url: { type: String, default: null }, // URL that is ranking
+    isUnexpectedUrl: { type: Boolean, default: false }, // Flagged if ranking URL doesn't match crawled URLs
     isFeaturedSnippet: { type: Boolean, default: false },
     status: { 
       type: String, 
-      enum: ['FOUND', 'NOT_FOUND_TOP100', 'PROVIDER_ERROR', 'TIMEOUT', 'RATE_LIMIT', 'CRAWL_ERROR', 'UNKNOWN'], 
+      enum: ['FOUND', 'NOT_FOUND_TOP100', 'PROVIDER_ERROR', 'TIMEOUT', 'RATE_LIMIT', 'CRAWL_ERROR', 'UNKNOWN', 'UNAVAILABLE'], 
       default: 'UNKNOWN' 
     },
     trend: { type: String, enum: ['Improved', 'Declined', 'Stable', 'Lost Visibility', 'New', 'None'], default: 'None' },
@@ -39,16 +69,15 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
     velocity: { type: Number, default: 0 },
     visibilityScore: { type: Number, default: 0 },
     visibilityTrend: { type: String, default: 'Stable' },
-    confidenceScore: { type: Number, default: null },
-    confidenceReason: { type: String, default: null },
     serpFeatures: [{ type: String }],
     history: [{
       date: { type: Date },
-      rank: { type: Number }, // Can be null if status was NOT_FOUND_TOP100 or ERROR
+      rank: { type: Number },
       status: { type: String },
       url: { type: String },
       visibilityScore: { type: Number },
-      serpFeatures: [{ type: String }]
+      serpFeatures: [{ type: String }],
+      source: { type: String }
     }]
   },
 
@@ -63,17 +92,23 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
   cluster: { type: String, default: null },
   parentKeyword: { type: String, default: null },
   clusterConfidence: { type: Number, default: null },
+  clusterSource: { type: String, default: 'UNAVAILABLE' },
   topicId: { type: String, default: null },
   entities: [{ type: String }], // NLP extracted entities
   
   intentConfidence: { type: Number, default: null },
   intentReason: { type: String, default: null },
 
-  // Discovery mapping (Which URLs contain this keyword)
-  pageUrls: [{
+  // Page Level Keyword Mapping (Enterprise Content Coverage)
+  pages: [{
     url: { type: String },
-    htmlElement: { type: String }, // e.g. H1, Title, Meta
-    frequency: { type: Number, default: 1 },
+    isPrimary: { type: Boolean, default: false },
+    occurrences: { type: Number, default: 1 },
+    htmlElements: [{ 
+      element: { type: String }, // e.g., 'H1', 'Title', 'Anchor', 'Body'
+      count: { type: Number, default: 1 },
+      weight: { type: Number, default: 1 }
+    }],
     firstSeen: { type: Date, default: Date.now },
     lastSeen: { type: Date, default: Date.now }
   }],
@@ -90,7 +125,7 @@ const WorkspaceKeywordSchema = new mongoose.Schema({
   status: { type: String, enum: ['Suggested', 'Approved', 'Rejected'], default: 'Approved' },
   lifecycle: { 
     type: String, 
-    enum: ['Discovered', 'Suggested', 'Approved', 'Tracked', 'Ranking', 'Growing', 'Declining', 'Archived'], 
+    enum: ['Discovered', 'Suggested', 'Approved', 'Tracked', 'Ranking', 'Improving', 'Declining', 'Recovered', 'Archived'], 
     default: 'Discovered' 
   },
 

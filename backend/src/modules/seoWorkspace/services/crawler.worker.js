@@ -98,8 +98,28 @@ class CrawlWorker {
         throw new Error('Not HTML content');
       }
 
+      const $ = cheerio.load(html);
+
+      // --- Indexability Validation ---
+      const robotsMeta = $('meta[name="robots"]').attr('content') || '';
+      if (robotsMeta.toLowerCase().includes('noindex')) {
+        logger.info(TAG, `Skipping URL (noindex): ${queueItem.url}`);
+        queueItem.status = 'completed';
+        await queueItem.save();
+        return; // Ignore keywords from this page
+      }
+
+      const canonicalHref = $('link[rel="canonical"]').attr('href');
+      if (canonicalHref && canonicalHref !== queueItem.url) {
+        logger.info(TAG, `Skipping URL (canonicalized): ${queueItem.url} -> ${canonicalHref}`);
+        queueItem.status = 'completed';
+        await queueItem.save();
+        return;
+      }
+      // -------------------------------
+
       // Discover and queue new internal links (BFS)
-      await this.enqueueInternalLinks(job, queueItem.url, html);
+      await this.enqueueInternalLinks(job, queueItem.url, html, $);
 
       // Extract NLP keywords
       const keywords = hybridKeywordExtractor.extractFromHtml(html, queueItem.url);
@@ -131,8 +151,7 @@ class CrawlWorker {
     }
   }
 
-  async enqueueInternalLinks(job, sourceUrl, html) {
-    const $ = cheerio.load(html);
+  async enqueueInternalLinks(job, sourceUrl, html, $) {
     const host = new URL(sourceUrl).hostname.replace(/^www\./, '');
     const newLinks = new Set();
 

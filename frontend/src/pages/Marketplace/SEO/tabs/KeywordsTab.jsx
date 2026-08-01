@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Typography, Card, Table, Select, Space, Button, Empty, Alert, Tag, message,
-  Input, Row, Col, Popconfirm, Tabs, Statistic, Divider, Tooltip, Badge
+  Input, Row, Col, Popconfirm, Tabs, Statistic, Divider, Tooltip, Badge, Drawer, Descriptions
 } from 'antd';
 import { Hash, Sparkles, Network, TrendingUp, Search, Download, Target, Filter, RefreshCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,8 +13,8 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
-const INTENT_COLORS = { informational: 'blue', navigational: 'purple', commercial: 'orange', transactional: 'green', unknown: 'default' };
-const STATUS_COLORS = { Suggested: 'gold', Approved: 'green', Rejected: 'red' };
+const INTENT_COLORS = { informational: 'blue', navigational: 'orange', commercial: 'purple', transactional: 'green', local: 'cyan', unknown: 'default' };
+const STATUS_COLORS = { Suggested: 'orange', Pending: 'orange', Approved: 'green', Rejected: 'red', Declined: 'red', Archived: 'default' };
 const KD_COLOR = (kd) => kd < 30 ? '#52c41a' : kd < 70 ? '#faad14' : '#f5222d';
 
 const TrendSparkline = ({ data = [] }) => {
@@ -61,6 +61,15 @@ const KeywordsTab = () => {
   const [competitorUrl, setCompetitorUrl] = useState('');
   const [gapData, setGapData] = useState(null);
   const [loadingGap, setLoadingGap] = useState(false);
+  
+  // Evidence Drawer State
+  const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false);
+  const [selectedKeywordEvidence, setSelectedKeywordEvidence] = useState(null);
+
+  const openEvidenceDrawer = (record) => {
+    setSelectedKeywordEvidence(record);
+    setEvidenceDrawerOpen(true);
+  };
 
   const load = async () => {
     if (!projectId) return;
@@ -192,60 +201,139 @@ const KeywordsTab = () => {
   };
 
   const columns = [
-    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (k, r) => (
-      <Space direction="vertical" size={0}>
-        <Text strong>{k}</Text>
-        {r.cluster && <Text type="secondary" style={{fontSize: 11}}>Cluster: {r.cluster}</Text>}
-      </Space>
-    )},
-    { title: 'Intent', dataIndex: ['metrics', 'intent'], key: 'intent', render: (i) => <Tag color={INTENT_COLORS[i] || 'default'}>{i || 'N/A'}</Tag> },
-    { title: 'Volume', dataIndex: ['metrics', 'searchVolume'], key: 'volume', sorter: (a, b) => (a.metrics?.searchVolume || 0) - (b.metrics?.searchVolume || 0), render: v => v ? v.toLocaleString() : <Text type="secondary">N/A</Text> },
-    { title: 'CPC', dataIndex: ['metrics', 'cpc'], key: 'cpc', render: v => v ? `$${v.toFixed(2)}` : <Text type="secondary">N/A</Text> },
-    { title: 'KD %', dataIndex: ['metrics', 'keywordDifficulty'], key: 'kd', render: v => v ? <Text style={{ color: KD_COLOR(v), fontWeight: 500 }}>{v}</Text> : <Text type="secondary">N/A</Text> },
-    { title: 'Trend (12m)', dataIndex: ['metrics', 'trends'], key: 'trends', render: (t) => <TrendSparkline data={t} /> },
-    { title: 'SERP', dataIndex: ['ranking', 'serpFeatures'], key: 'serp', render: (f) => f && f.length ? <Tooltip title={f.join(', ')}><Badge count={f.length} style={{ backgroundColor: '#1890ff' }} /></Tooltip> : <Text type="secondary">N/A</Text> },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Keyword</span>, 
+      dataIndex: 'keyword', 
+      key: 'keyword', 
+      width: 320, 
+      align: 'left',
+      ellipsis: true,
+      render: (k, r) => (
+        <Space direction="vertical" size={0}>
+          <a onClick={(e) => { e.preventDefault(); openEvidenceDrawer(r); }} style={{ fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{k}</a>
+          {r.cluster && <Text type="secondary" style={{fontSize: 11}}>Cluster: {r.cluster}</Text>}
+        </Space>
+      )
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Intent</span>, 
+      dataIndex: ['metrics', 'intent'], 
+      key: 'intent', 
+      width: 100, 
+      align: 'center',
+      render: (i) => <Tag color={INTENT_COLORS[i] || 'default'} style={{ margin: 0 }}>{i || 'unknown'}</Tag> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Volume</span>, 
+      dataIndex: ['metrics', 'searchVolume'], 
+      key: 'volume', 
+      width: 100, 
+      align: 'right',
+      sorter: (a, b) => (a.metrics?.searchVolume || 0) - (b.metrics?.searchVolume || 0), 
+      render: v => v ? <Text>{v.toLocaleString()}</Text> : <Text type="secondary">-</Text> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>KD %</span>, 
+      dataIndex: ['metrics', 'keywordDifficulty'], 
+      key: 'kd', 
+      width: 80, 
+      align: 'right',
+      render: v => v ? <Text style={{ color: KD_COLOR(v), fontWeight: 500 }}>{v}</Text> : <Text type="secondary">-</Text> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>CPC</span>, 
+      dataIndex: ['metrics', 'cpc'], 
+      key: 'cpc', 
+      width: 90, 
+      align: 'right',
+      render: v => v ? <Text>${v.toFixed(2)}</Text> : <Text type="secondary">-</Text> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Traffic</span>, 
+      dataIndex: ['metrics', 'estimatedTraffic'], 
+      key: 'traffic', 
+      width: 120, 
+      align: 'right',
+      render: v => v ? <Text>{v.toLocaleString()}</Text> : <Text type="secondary">-</Text> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Opportunity</span>, 
+      dataIndex: ['agent', 'opportunityScore'], 
+      key: 'opportunity', 
+      width: 120, 
+      align: 'center',
+      sorter: (a, b) => (a.agent?.opportunityScore || 0) - (b.agent?.opportunityScore || 0), 
+      render: v => v ? <Badge count={v} style={{ backgroundColor: v > 70 ? '#52c41a' : v > 40 ? '#faad14' : '#d9d9d9', minWidth: 32 }} /> : <Text type="secondary">-</Text> 
+    },
     {
-      title: 'Rank',
+      title: <span style={{whiteSpace:'nowrap'}}>Rank</span>,
       dataIndex: ['ranking', 'currentRank'],
       key: 'rank',
-      width: 140,
+      width: 80,
+      align: 'right',
       render: (r, rec) => {
-        const status = rec.ranking?.status || 'UNKNOWN';
-
-        if (r === null || r === undefined) {
-          const statusMap = {
-            NOT_FOUND_TOP100: { color: 'default', text: 'Not Found (>100)' },
-            TIMEOUT: { color: 'warning', text: 'Timeout' },
-            RATE_LIMIT: { color: 'error', text: 'Rate Limit' },
-            PROVIDER_ERROR: { color: 'error', text: 'Provider Error' },
-            CRAWL_ERROR: { color: 'error', text: 'Crawl Error' },
-            UNKNOWN: { color: 'default', text: 'Pending' }
-          };
-          const s = statusMap[status] || statusMap.UNKNOWN;
-          return <Tooltip title={`Status: ${status}`}><Badge status={s.color} text={s.text} /></Tooltip>;
-        }
-        
+        if (r === null || r === undefined) return <Text type="secondary">-</Text>;
         const prev = rec.ranking?.previousRank;
         const diff = prev ? prev - r : 0;
         return (
-          <Space>
+          <Space size={4}>
             <Text strong>{r}</Text>
-            {diff > 0 && <Text type="success" style={{ fontSize: 12 }}>+{diff}</Text>}
-            {diff < 0 && <Text type="danger" style={{ fontSize: 12 }}>{diff}</Text>}
-            {rec.cannibalization?.isCannibalized && (
-              <Tooltip title={`Cannibalization Detected: ${rec.cannibalization.conflictUrls.length} conflicting URLs. Severity: ${rec.cannibalization.severity}`}>
-                <Badge dot status="error" />
-              </Tooltip>
-            )}
+            {diff > 0 && <Text type="success" style={{ fontSize: 11 }}>+{diff}</Text>}
+            {diff < 0 && <Text type="danger" style={{ fontSize: 11 }}>{diff}</Text>}
           </Space>
         );
       }
     },
-    { title: 'Visibility', dataIndex: ['ranking', 'visibilityScore'], key: 'visibility', render: v => v ? v : <Text type="secondary">-</Text> },
-    { title: 'Trend', dataIndex: ['ranking', 'trend'], key: 'trend', render: (t, r) => t ? <Tooltip title={`Velocity: ${r.ranking?.velocity || 0}`}><Tag color={t === 'Improved' ? 'green' : t === 'Declined' ? 'red' : t === 'Lost Visibility' ? 'default' : 'blue'}>{t}</Tag></Tooltip> : <Text type="secondary">-</Text> },
-    { title: 'Confidence', dataIndex: ['ranking', 'confidenceScore'], key: 'confidence', render: (c, r) => c ? <Tooltip title={r.ranking?.confidenceReason || ''}><Badge status={c >= 90 ? 'success' : c >= 70 ? 'warning' : 'error'} text={`${c}%`} /></Tooltip> : <Text type="secondary">-</Text> },
-    { title: 'URL', dataIndex: ['ranking', 'url'], key: 'url', width: 150, ellipsis: true, render: u => u ? <a href={`https://${u}`} target="_blank" rel="noreferrer" style={{fontSize:12}}>{u}</a> : <Text type="secondary">-</Text> },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <Tag color={STATUS_COLORS[s] || 'default'}>{s}</Tag> }
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Trend</span>, 
+      dataIndex: ['metrics', 'trends'], 
+      key: 'trend', 
+      width: 120, 
+      align: 'center',
+      render: (t) => <TrendSparkline data={t} /> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Confidence</span>, 
+      dataIndex: ['evidence', 'confidenceScore'], 
+      key: 'confidence', 
+      width: 110, 
+      align: 'center',
+      render: (c) => c ? <Badge status={c >= 90 ? 'success' : c >= 70 ? 'warning' : 'error'} text={<span style={{fontSize: 12}}>{c}%</span>} /> : <Text type="secondary">-</Text> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Status</span>, 
+      dataIndex: 'status', 
+      key: 'status', 
+      width: 120, 
+      align: 'center',
+      render: (s) => <Tag color={STATUS_COLORS[s] || 'default'} style={{ margin: 0 }}>{s}</Tag> 
+    },
+    { 
+      title: <span style={{whiteSpace:'nowrap'}}>Discovery Source</span>, 
+      dataIndex: ['evidence', 'discoverySource'], 
+      key: 'discovery', 
+      width: 130, 
+      align: 'center',
+      responsive: ['xl', 'xxl', 'lg'],
+      render: (d) => <Text style={{fontSize: 12}} type="secondary" ellipsis>{d || 'Crawler'}</Text> 
+    },
+    {
+      title: <span style={{whiteSpace:'nowrap'}}>Actions</span>,
+      key: 'actions',
+      width: 80,
+      align: 'center',
+      fixed: 'right',
+      render: (_, r) => (
+        <Space size={8}>
+          <Tooltip title="View Details">
+            <Button type="text" size="small" icon={<Search size={14} />} onClick={() => openEvidenceDrawer(r)} />
+          </Tooltip>
+          <Tooltip title="Refresh Metrics">
+            <Button type="text" size="small" icon={<RefreshCcw size={14} />} onClick={() => act(() => seoWorkspaceApi.refreshKeywords(projectId, [r._id]), 'Refreshing')} />
+          </Tooltip>
+        </Space>
+      )
+    }
   ];
 
   return (
@@ -310,27 +398,49 @@ const KeywordsTab = () => {
                 <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Not Ranked" value={distribution.notRanked} valueStyle={{ color: '#cf1322' }} /></Card></Col>
               </Row>
             )}
+            <style>{`
+              .enterprise-table .ant-table-thead > tr > th {
+                white-space: nowrap !important;
+                height: 52px;
+                vertical-align: middle;
+                background-color: #fafafa;
+              }
+              .enterprise-table .ant-table-tbody > tr > td {
+                padding: 12px 16px !important;
+                height: 48px;
+                vertical-align: middle;
+              }
+              .enterprise-table .ant-table-tbody > tr:hover > td {
+                background-color: #f0f7ff !important;
+              }
+            `}</style>
             
-            <Table
-              rowKey="_id"
-              size="small"
-              loading={loading}
-              dataSource={filteredKeywords}
-              columns={columns}
-              pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['20', '50', '100', '500'] }}
-              rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-              footer={() => {
-                const hiddenCount = keywords.length - filteredKeywords.length;
-                return hiddenCount > 0 ? (
-                  <Text type="secondary">
-                    Showing {filteredKeywords.length} of {keywords.length} keywords. {hiddenCount} keywords are hidden due to active filters.
-                  </Text>
-                ) : (
-                  <Text type="secondary">Showing all {keywords.length} keywords.</Text>
-                );
-              }}
-              locale={{ emptyText: <Empty description="No keywords found. Switch to the Discovery tab to find opportunities." /> }}
-            />
+            <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+              <Table
+                rowKey="_id"
+                className="enterprise-table"
+                size="middle"
+                tableLayout="fixed"
+                loading={loading}
+                dataSource={filteredKeywords}
+                columns={columns}
+                sticky={true}
+                scroll={{ x: 'max-content' }}
+                pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['20', '50', '100', '500'] }}
+                rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+                footer={() => {
+                  const hiddenCount = keywords.length - filteredKeywords.length;
+                  return hiddenCount > 0 ? (
+                    <Text type="secondary">
+                      Showing {filteredKeywords.length} of {keywords.length} keywords. {hiddenCount} keywords are hidden due to active filters.
+                    </Text>
+                  ) : (
+                    <Text type="secondary">Showing all {keywords.length} keywords.</Text>
+                  );
+                }}
+                locale={{ emptyText: <Empty description="No keywords found. Switch to the Discovery tab to find opportunities." /> }}
+              />
+            </div>
           </TabPane>
 
           <TabPane tab={<Space><Sparkles size={16}/> Discovery & Opportunities</Space>} key="discovery">
@@ -453,6 +563,55 @@ const KeywordsTab = () => {
           </TabPane>
         </Tabs>
       )}
+
+      {/* ENTERPRISE EVIDENCE DRAWER */}
+      <Drawer
+        title={<Space><Search size={18} /> Keyword Evidence: {selectedKeywordEvidence?.keyword}</Space>}
+        placement="right"
+        width={600}
+        onClose={() => setEvidenceDrawerOpen(false)}
+        open={evidenceDrawerOpen}
+      >
+        {selectedKeywordEvidence && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <Descriptions title="Discovery Evidence" bordered size="small" column={1}>
+              <Descriptions.Item label="Source">{selectedKeywordEvidence.evidence?.discoverySource || 'Manual'}</Descriptions.Item>
+              <Descriptions.Item label="First Seen">{selectedKeywordEvidence.evidence?.discoveryTimestamp ? new Date(selectedKeywordEvidence.evidence.discoveryTimestamp).toLocaleString() : 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Source URL">{selectedKeywordEvidence.evidence?.discoveryUrl || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="HTML Element">{selectedKeywordEvidence.evidence?.discoveryElement || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Confidence">{selectedKeywordEvidence.evidence?.confidenceScore || 0}%</Descriptions.Item>
+              <Descriptions.Item label="Lifecycle State"><Tag>{selectedKeywordEvidence.lifecycle || 'Discovered'}</Tag></Descriptions.Item>
+            </Descriptions>
+
+            <Descriptions title="Ranking Evidence" bordered size="small" column={1}>
+              <Descriptions.Item label="Current Rank">{selectedKeywordEvidence.ranking?.currentRank || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Ranking Source"><Tag color="blue">{selectedKeywordEvidence.ranking?.rankingSource || 'UNAVAILABLE'}</Tag></Descriptions.Item>
+              <Descriptions.Item label="Search Engine">{selectedKeywordEvidence.ranking?.searchEngine || 'Google'} ({selectedKeywordEvidence.ranking?.device || 'Unknown'})</Descriptions.Item>
+              <Descriptions.Item label="Ranking URL">{selectedKeywordEvidence.ranking?.url ? <a href={selectedKeywordEvidence.ranking.url} target="_blank" rel="noreferrer">{selectedKeywordEvidence.ranking.url}</a> : 'N/A'}</Descriptions.Item>
+              {selectedKeywordEvidence.ranking?.isUnexpectedUrl && <Descriptions.Item label="Warning"><Alert type="warning" message="Unexpected Ranking URL flagged" showIcon /></Descriptions.Item>}
+            </Descriptions>
+
+            <Descriptions title="Metric Sources" bordered size="small" column={1}>
+              <Descriptions.Item label="Search Volume">{selectedKeywordEvidence.metrics?.searchVolume || 0} (Source: <Tag>{selectedKeywordEvidence.metrics?.searchVolumeSource || 'DataForSEO'}</Tag>)</Descriptions.Item>
+              <Descriptions.Item label="Keyword Difficulty">{selectedKeywordEvidence.metrics?.keywordDifficulty || 0} (Source: <Tag>{selectedKeywordEvidence.metrics?.keywordDifficultySource || 'DataForSEO'}</Tag>)</Descriptions.Item>
+              <Descriptions.Item label="CPC">${selectedKeywordEvidence.metrics?.cpc || 0} (Source: <Tag>{selectedKeywordEvidence.metrics?.cpcSource || 'DataForSEO'}</Tag>)</Descriptions.Item>
+            </Descriptions>
+
+            <Descriptions title="Opportunity & Intent Calculation" bordered size="small" column={1}>
+              <Descriptions.Item label="Primary Intent"><Tag color={INTENT_COLORS[selectedKeywordEvidence.metrics?.intent] || 'default'}>{selectedKeywordEvidence.metrics?.intent || 'Unknown'}</Tag></Descriptions.Item>
+              <Descriptions.Item label="Opportunity Score"><Badge count={selectedKeywordEvidence.agent?.opportunityScore || 0} style={{ backgroundColor: '#1890ff' }} /></Descriptions.Item>
+              <Descriptions.Item label="Score Rationale">
+                {selectedKeywordEvidence.agent?.rationale || 'Calculation not available.'}
+                {selectedKeywordEvidence.agent?.opportunityBreakdown && (
+                  <pre style={{ fontSize: 11, background: '#f5f5f5', padding: 8, marginTop: 8 }}>
+                    {JSON.stringify(selectedKeywordEvidence.agent.opportunityBreakdown, null, 2)}
+                  </pre>
+                )}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
+      </Drawer>
     </motion.div>
   );
 };
