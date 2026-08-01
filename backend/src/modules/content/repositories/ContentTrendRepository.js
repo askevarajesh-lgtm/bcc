@@ -14,7 +14,7 @@ class ContentTrendRepository {
     return await ContentTrend.findOneAndUpdate(
       { _id: id, workspaceId },
       { $set: updateData },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

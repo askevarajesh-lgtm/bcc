@@ -55,7 +55,7 @@ exports.updateInvoice = async (req, res, next) => {
 
     req.body.updatedBy = req.user._id;
 
-    const updatedInvoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const updatedInvoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     res.status(200).json({ success: true, data: updatedInvoice });
   } catch (error) {
     next(error);

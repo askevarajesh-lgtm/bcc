@@ -213,14 +213,29 @@ class DataForSeoService {
    * @param {string[]} tasks   Array of { keyword, location_code, language_code }
    */
   async getSerpResults(tasks) {
-    const payload = tasks.map(t => ({
-      keyword:       t.keyword,
-      location_code: t.location_code || 2840,
+    const validTasks = tasks.filter(t => t && t.keyword && typeof t.keyword === 'string' && t.keyword.trim().length > 0);
+    if (validTasks.length === 0) return [];
+
+    const payload = validTasks.map(t => ({
+      keyword:       t.keyword.trim(),
+      location_code: parseInt(t.location_code || 2840, 10),
       language_code: t.language_code || 'en',
       depth:         100 // full 10 pages
     }));
-    const raw = await this.makeRequest('/serp/google/organic/live/advanced', 'POST', payload);
-    return raw.tasks || [];
+    
+    const chunks = [];
+    for (let i = 0; i < payload.length; i += 100) {
+      chunks.push(payload.slice(i, i + 100));
+    }
+    
+    const allTasks = [];
+    for (const chunk of chunks) {
+      const raw = await this.makeRequest('/serp/google/organic/live/advanced', 'POST', chunk);
+      if (raw && raw.tasks) {
+        allTasks.push(...raw.tasks);
+      }
+    }
+    return allTasks;
   }
 
   // ─────────────────────────────────────────────────────

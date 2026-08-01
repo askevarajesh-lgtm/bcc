@@ -114,7 +114,7 @@ class StrategyService {
       // Update or Create the Strategy document in DB
       let strategy = await Strategy.findOne({ agency: agencyId });
       if (strategy) {
-        strategy = await Strategy.findOneAndUpdate({ agency: agencyId }, newStrategy, { new: true });
+        strategy = await Strategy.findOneAndUpdate({ agency: agencyId }, newStrategy, { returnDocument: 'after' });
       } else {
         strategy = await Strategy.create(newStrategy);
       }

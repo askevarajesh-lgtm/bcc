@@ -37,7 +37,7 @@ exports.generatePayroll = async (req, res, next) => {
       payroll = await Payroll.findOneAndUpdate(
         { _id: payroll._id },
         { ...req.body, netSalary, processedBy: req.user._id },
-        { new: true }
+        { returnDocument: 'after' }
       );
     } else {
       payroll = await Payroll.create({

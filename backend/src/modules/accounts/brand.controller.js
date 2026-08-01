@@ -171,7 +171,7 @@ exports.updateBrandStatus = async (req, res, next) => {
     const brand = await User.findOneAndUpdate(
       filter,
       { status },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!brand) {
@@ -244,7 +244,7 @@ exports.updateBrand = async (req, res, next) => {
     const brand = await User.findOneAndUpdate(
       filter,
       updates,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!brand) {
@@ -281,7 +281,7 @@ exports.updateBrandProfile = async (req, res, next) => {
     const brand = await User.findByIdAndUpdate(
       brandId,
       updates,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!brand) {

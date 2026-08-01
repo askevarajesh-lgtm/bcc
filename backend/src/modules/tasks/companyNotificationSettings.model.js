@@ -96,7 +96,7 @@ const companyNotificationSettingsSchema = new mongoose.Schema(
 );
 
 // Indexes
-companyNotificationSettingsSchema.index({ companyId: 1 });
+
 
 module.exports = mongoose.model(
   "CompanyNotificationSettings",

@@ -40,7 +40,7 @@ exports.updatePackage = async (req, res, next) => {
     const updatedPackage = await ClientPackage.findOneAndUpdate(
       { _id: packageId, agencyId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!updatedPackage) return res.status(404).json({ success: false, message: 'Package not found' });

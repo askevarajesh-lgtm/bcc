@@ -88,7 +88,7 @@ const updateCoordinatorTask = async (id, updateData, tenantCompanyId) => {
   return await CoordinatorTask.findOneAndUpdate(
     { _id: id, tenantCompanyId },
     { $set: updateData },
-    { new: true },
+    { returnDocument: 'after' },
   )
     .populate("companyId", "name email phone address")
     .populate("assignedTo", "name email role profileImage");

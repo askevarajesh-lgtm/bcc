@@ -4927,7 +4927,7 @@ const updateNotificationSettings = async (
   const settings = await CompanyNotificationSettings.findOneAndUpdate(
     { companyId: tenantCompanyId },
     { $set: settingsData },
-    { new: true, upsert: true },
+    { returnDocument: 'after', upsert: true },
   );
 
   logger.info(

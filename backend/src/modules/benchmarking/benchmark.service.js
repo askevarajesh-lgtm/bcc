@@ -137,7 +137,7 @@ const calculateAndAggregateBenchmarks = async () => {
         await IndustryBenchmark.findOneAndUpdate(
             { industryName: industry },
             { avgMos, avgSeo, avgSocial, avgAds, avgLeads, avgContent, avgCx, lastUpdated: new Date() },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         // Calculate percentiles for each client and update ClientBenchmark

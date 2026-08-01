@@ -50,7 +50,7 @@ const syncPerformanceAds = async (agencyId) => {
     const dashboard = await PerformanceAd.findOneAndUpdate(
       { agency: agencyId },
       { ...data, lastSynced: new Date() },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     return dashboard;
   }
@@ -124,7 +124,7 @@ const syncPerformanceAds = async (agencyId) => {
     const dashboard = await PerformanceAd.findOneAndUpdate(
       { agency: agencyId },
       { ...data, lastSynced: new Date() },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     return dashboard;
   } catch (error) {

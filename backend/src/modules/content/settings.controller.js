@@ -58,7 +58,7 @@ exports.saveSettings = async (req, res) => {
     await AiSettings.findOneAndUpdate(
       { workspaceId },
       { $set: updateFields },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return res.status(200).json({ success: true, message: 'Settings saved successfully' });

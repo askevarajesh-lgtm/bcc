@@ -35,7 +35,7 @@ router.put('/profile', async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     
     if (!user) {

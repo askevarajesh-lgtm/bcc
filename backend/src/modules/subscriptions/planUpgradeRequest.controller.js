@@ -117,7 +117,7 @@ exports.updateUpgradeRequestStatus = async (req, res, next) => {
     const upgradeRequest = await PlanUpgradeRequest.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!upgradeRequest) {

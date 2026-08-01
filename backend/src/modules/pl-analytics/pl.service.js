@@ -133,7 +133,7 @@ const calculateProjectPL = async (projectId, tenantCompanyId) => {
       period,
       calculatedAt: new Date(),
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
 
   return plEntry;
@@ -196,7 +196,7 @@ const updatePLFromPayment = async (payment, tenantCompanyId) => {
         period,
         calculatedAt: new Date(),
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     );
   }
 };

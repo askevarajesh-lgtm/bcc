@@ -43,7 +43,7 @@ exports.updateDepartment = async (req, res, next) => {
     const department = await HRDepartment.findOneAndUpdate(
       { _id: req.params.id, tenantCompanyId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!department) {
       return res.status(404).json({ success: false, message: 'Department not found' });

@@ -76,7 +76,7 @@ exports.updateReport = async (req, res, next) => {
     const report = await ReportSchedule.findOneAndUpdate(
       { _id: reportId, agencyId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!report) return res.status(404).json({ success: false, message: 'Report not found' });

@@ -17,7 +17,7 @@ exports.getSchedules = async (agencyId) => {
 };
 
 exports.updateScheduleStatus = async (scheduleId, status) => {
-    return await ReportSchedule.findByIdAndUpdate(scheduleId, { status }, { new: true });
+    return await ReportSchedule.findByIdAndUpdate(scheduleId, { status }, { returnDocument: 'after' });
 };
 
 exports.deleteSchedule = async (scheduleId) => {

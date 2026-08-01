@@ -32,10 +32,7 @@ exports.createPackage = async (req, res) => {
 
 exports.updatePackage = async (req, res) => {
   try {
-    const pkg = await AgencyPackage.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const pkg = await AgencyPackage.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     if (!pkg) {
       return res.status(404).json({ success: false, message: 'Package not found' });
     }

@@ -119,7 +119,7 @@ exports.updateAgency = async (req, res, next) => {
     const agency = await User.findOneAndUpdate(
       { _id: req.params.id, role: { $in: [targetRole] } },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!agency) {
       return res.status(404).json({ success: false, message: 'Agency not found' });

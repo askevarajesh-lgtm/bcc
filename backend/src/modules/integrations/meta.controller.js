@@ -77,7 +77,7 @@ exports.handleCallback = async (req, res, next) => {
           expiresAt
         }
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Redirect back to frontend settings or performance ads dashboard

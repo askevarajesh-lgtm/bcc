@@ -105,7 +105,7 @@ exports.updateProject = async (req, res) => {
     const website = await SeoWebsite.findOneAndUpdate(
       { _id: id, companyId, isDeleted: false },
       { $set: req.body },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!website) {
@@ -130,7 +130,7 @@ exports.deleteProject = async (req, res) => {
     const website = await SeoWebsite.findOneAndUpdate(
       { _id: id, companyId, isDeleted: false },
       { $set: { isDeleted: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!website) {
@@ -808,7 +808,7 @@ exports.updateProjectSettings = async (req, res) => {
     const { projectId } = req.params;
     const { settings } = req.body;
     
-    const project = await SeoWebsite.findByIdAndUpdate(projectId, { settings }, { new: true });
+    const project = await SeoWebsite.findByIdAndUpdate(projectId, { settings }, { returnDocument: 'after' });
     if (!project) return res.status(404).json({ error: 'Project not found' });
     
     res.json(project);

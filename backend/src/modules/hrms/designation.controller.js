@@ -30,7 +30,7 @@ exports.updateDesignation = async (req, res, next) => {
     const designation = await HRDesignation.findOneAndUpdate(
       { _id: req.params.id, tenantCompanyId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!designation) return res.status(404).json({ success: false, message: 'Designation not found' });
     res.status(200).json({ success: true, data: designation });

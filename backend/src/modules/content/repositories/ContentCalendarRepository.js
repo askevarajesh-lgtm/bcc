@@ -20,7 +20,7 @@ class ContentCalendarRepository {
     return await ContentCalendarItem.findOneAndUpdate(
       { _id: id, workspaceId },
       { $set: updateData },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

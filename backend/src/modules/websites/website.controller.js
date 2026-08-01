@@ -754,7 +754,7 @@ exports.updateWebsite = async (req, res, next) => {
                 customBodyCode: p.customBodyCode || ''
               }
             },
-            { new: true }
+            { returnDocument: 'after' }
           );
           if (updatedPage) finalPages.push(updatedPage);
         }

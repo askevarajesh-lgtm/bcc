@@ -132,8 +132,7 @@ const deliverableSchema = new mongoose.Schema({
 
 // Indexes for fast querying
 deliverableSchema.index({ companyId: 1, status: 1 });
-deliverableSchema.index({ clientId: 1 });
-deliverableSchema.index({ assignee: 1 });
+
 deliverableSchema.index({ dueDate: 1 });
 
 module.exports = mongoose.model('Deliverable', deliverableSchema);

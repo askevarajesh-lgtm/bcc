@@ -48,7 +48,7 @@ const startSlaScheduler = () => {
             status,
             assignedTo: task.assignedTo
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       }
 
@@ -113,7 +113,7 @@ const startSlaScheduler = () => {
             priority: status === 'Breached' ? 'High' : 'Medium',
             status
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       }
 
@@ -155,7 +155,7 @@ const startSlaScheduler = () => {
             priority: status === 'Breached' ? 'Critical' : 'Medium',
             status
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       }
 

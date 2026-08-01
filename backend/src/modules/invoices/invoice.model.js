@@ -120,7 +120,7 @@ const invoiceSchema = new mongoose.Schema({
 });
 
 // Indexes
-invoiceSchema.index({ invoiceNumber: 1 });
+
 invoiceSchema.index({ clientId: 1, adminId: 1, agencyId: 1, brandId: 1 });
 invoiceSchema.index({ proposalId: 1 });
 invoiceSchema.index({ paymentStatus: 1 });

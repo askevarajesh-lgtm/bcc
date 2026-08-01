@@ -224,7 +224,7 @@ Include:
     await MosScoreHistory.findOneAndUpdate(
       { clientId, monthYear },
       { $set: { actionPlan: actionPlanObj } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     res.status(200).json({ success: true, data: actionPlanObj });

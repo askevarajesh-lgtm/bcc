@@ -89,7 +89,12 @@ class WorkspaceCronService {
               try {
                 await this.orchestrator.seoMonitorAgent(project, kw, drop);
               } catch (taskErr) {
-                console.error(`[WorkspaceCronService] Error generating task for ${kw.keyword}:`, taskErr.message);
+                if (taskErr.message && taskErr.message.includes('AI Provider API key is missing')) {
+                  // Only warn once per project or silently skip to avoid log spam
+                  console.warn(`[WorkspaceCronService] Skipping task for ${kw.keyword}: AI API key missing.`);
+                } else {
+                  console.error(`[WorkspaceCronService] Error generating task for ${kw.keyword}:`, taskErr.message);
+                }
               }
             }
           }

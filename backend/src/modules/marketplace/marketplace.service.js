@@ -97,7 +97,7 @@ const verifyPurchase = async (companyId, moduleName, razorpayOrderId, razorpayPa
   const purchase = await MarketplacePurchase.findOneAndUpdate(
     { razorpayOrderId, companyId, moduleName },
     { status: 'completed', razorpayPaymentId },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!purchase) {

@@ -1709,7 +1709,7 @@ router.put("/configuration/youtube", async (req, res) => {
         "configuration.campaignScheduled.youtube.updatedAt": new Date(),
       },
     },
-    { new: true },
+    { returnDocument: 'after' },
   )
     .select("configuration.campaignScheduled.youtube")
     .lean();
@@ -2423,7 +2423,7 @@ router.post("/posts/:id/publish", async (req, res) => {
       status: { $nin: ["Published", "Publishing"] },
     },
     { $set: { status: "Publishing" } },
-    { new: true },
+    { returnDocument: 'after' },
   ).lean();
 
   if (!post) {
@@ -2503,7 +2503,7 @@ router.post(
         status: { $nin: ["Published", "Publishing"] },
       },
       { $set: { status: "Publishing" } },
-      { new: true },
+      { returnDocument: 'after' },
     ).lean();
 
     if (!post) {

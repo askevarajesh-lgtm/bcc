@@ -278,10 +278,7 @@ exports.updateUser = async (req, res, next) => {
       if (dept) updateData.departmentName = dept.name;
     }
 
-    const user = await User.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true
-    }).select('-password');
+    const user = await User.findByIdAndUpdate(req.params.id, updateData, { returnDocument: 'after', runValidators: true }).select('-password');
     
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });

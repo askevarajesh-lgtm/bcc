@@ -39,7 +39,7 @@ exports.createRole = async (req, res, next) => {
 
 exports.updateRole = async (req, res, next) => {
   try {
-    const role = await Role.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const role = await Role.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     if (!role) return res.status(404).json({ success: false, message: 'Not found' });
     res.status(200).json({ success: true, data: role });
   } catch (error) {

@@ -56,7 +56,7 @@ exports.createDepartment = async (req, res, next) => {
 
 exports.updateDepartment = async (req, res, next) => {
   try {
-    const department = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const department = await Department.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     if (!department) return res.status(404).json({ success: false, message: 'Not found' });
     res.status(200).json({ success: true, data: department });
   } catch (error) {

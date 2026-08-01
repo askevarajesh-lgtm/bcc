@@ -79,7 +79,7 @@ const proposalSchema = new mongoose.Schema({
 });
 
 // Indexes
-proposalSchema.index({ proposalNumber: 1 });
+
 proposalSchema.index({ clientId: 1, adminId: 1, agencyId: 1, brandId: 1 });
 proposalSchema.index({ status: 1 });
 

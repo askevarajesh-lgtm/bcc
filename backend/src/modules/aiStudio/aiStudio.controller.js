@@ -58,7 +58,7 @@ const saveSettings = async (req, res) => {
     await AiSettings.findOneAndUpdate(
       { workspaceId },
       { $set: updateFields },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return res.status(200).json({ success: true, message: 'Settings saved successfully' });
@@ -245,7 +245,7 @@ const deleteAsset = async (req, res) => {
     const asset = await AiAsset.findOneAndUpdate(
       { _id: id, workspaceId },
       { isDeleted: true },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!asset) return res.status(404).json({ success: false, message: 'Asset not found' });
@@ -315,7 +315,7 @@ const deleteConversation = async (req, res) => {
     const conversation = await AiConversation.findOneAndUpdate(
       { _id: id, workspaceId },
       { isDeleted: true },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });

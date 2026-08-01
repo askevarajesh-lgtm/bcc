@@ -42,7 +42,7 @@ exports.updatePackage = async (req, res, next) => {
     const pkg = await DirectClientPackage.findOneAndUpdate(
       { _id: req.params.id, createdBy: req.user._id },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!pkg) {

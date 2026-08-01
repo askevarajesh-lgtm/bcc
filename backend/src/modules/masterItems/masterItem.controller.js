@@ -118,7 +118,7 @@ exports.updateMasterItem = async (req, res, next) => {
       }
     }
 
-    const updatedItem = await MasterItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const updatedItem = await MasterItem.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     res.status(200).json({ success: true, data: updatedItem });
   } catch (error) {
     next(error);

@@ -2172,7 +2172,7 @@ async function processDuePosts() {
       const post = await Post.findOneAndUpdate(
         { _id: p._id, status: "Scheduled" },
         { $set: { status: "Publishing" } },
-        { new: true },
+        { returnDocument: 'after' },
       ).lean();
 
       if (!post) {

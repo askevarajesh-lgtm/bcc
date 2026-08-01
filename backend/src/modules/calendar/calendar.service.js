@@ -357,7 +357,7 @@ const calendarService = {
           }
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!event) throw new Error('Event not found or unauthorized');
@@ -390,7 +390,7 @@ const calendarService = {
           }
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!event) throw new Error('Event not found');

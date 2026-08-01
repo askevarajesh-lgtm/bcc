@@ -132,7 +132,7 @@ exports.updateProposal = async (req, res, next) => {
       delete req.body.customMasterItem;
     }
 
-    const updatedProposal = await Proposal.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const updatedProposal = await Proposal.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     res.status(200).json({ success: true, data: updatedProposal });
   } catch (error) {
     next(error);

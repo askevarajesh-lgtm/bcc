@@ -79,8 +79,7 @@ const salesTargetSchema = new mongoose.Schema(
 );
 
 // Indexes
-salesTargetSchema.index({ userId: 1, month: 1, year: 1 });
-salesTargetSchema.index({ team: 1, month: 1, year: 1 });
+
 salesTargetSchema.index({ companyId: 1 });
 
 // Prevent duplicate targets (either userId or team must be unique per period)

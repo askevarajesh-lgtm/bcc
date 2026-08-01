@@ -22,7 +22,7 @@ class ContentItemRepository {
     return await ContentItem.findOneAndUpdate(
       { _id: id, workspaceId },
       { $set: updateData },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

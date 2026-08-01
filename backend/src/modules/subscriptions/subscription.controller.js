@@ -38,10 +38,7 @@ exports.updatePlan = async (req, res, next) => {
     if (req.body.popular) {
       await SubscriptionPlan.updateMany({ _id: { $ne: req.params.id } }, { popular: false });
     }
-    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     if (!plan) {
       return res.status(404).json({ success: false, message: 'Plan not found' });
     }

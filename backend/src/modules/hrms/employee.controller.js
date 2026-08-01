@@ -113,7 +113,7 @@ exports.updateEmployee = async (req, res, next) => {
     const employee = await Employee.findOneAndUpdate(
       { _id: req.params.id, tenantCompanyId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
     res.status(200).json({ success: true, data: employee });

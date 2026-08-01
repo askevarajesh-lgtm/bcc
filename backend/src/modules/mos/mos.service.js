@@ -183,7 +183,7 @@ exports.calculateAgencyMOS = async (user) => {
         overallMos,
         monthYear
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     results.push({

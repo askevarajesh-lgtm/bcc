@@ -105,7 +105,7 @@ exports.handleCallback = async (req, res, next) => {
           expiresAt
         }
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     res.redirect(`${FRONTEND_URL}${redirectPath}?facebook_oauth=success`);
