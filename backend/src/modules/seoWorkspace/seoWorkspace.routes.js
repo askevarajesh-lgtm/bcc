@@ -90,7 +90,12 @@ router.post('/projects/:projectId/aeo-agent/run', blockViewOnly, workspaceContro
 router.put('/projects/:projectId/aeo-agent/:auditId/approve', blockViewOnly, workspaceController.approveAeoRecommendations);
 router.put('/projects/:projectId/aeo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectAeoRecommendations);
 router.get('/projects/:projectId/aeo-agent/history', workspaceController.getAeoAgentExecutionHistory);
-
+router.get('/projects/:projectId/aeo-agent/:auditId/summary', workspaceController.getAeoAuditSummary);
+router.get('/projects/:projectId/aeo-agent/:auditId/pages', workspaceController.getAeoAuditPages);
+router.get('/projects/:projectId/aeo-agent/:auditId/simulations', workspaceController.getAeoAuditSimulations);
+router.get('/projects/:projectId/aeo-agent/:auditId/entity-graph', workspaceController.getAeoAuditEntityGraph);
+router.get('/projects/:projectId/aeo-agent/:auditId/recommendations', workspaceController.getAeoAuditRecommendations);
+router.get('/projects/:projectId/aeo-agent/:auditId/export', workspaceController.exportAeoAudit);
 
 router.post('/projects/:projectId/geo-agent/run', blockViewOnly, workspaceController.runGeoAgent);
 router.put('/projects/:projectId/geo-agent/:auditId/approve', blockViewOnly, workspaceController.approveGeoRecommendations);

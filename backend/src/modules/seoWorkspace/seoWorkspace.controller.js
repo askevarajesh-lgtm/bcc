@@ -8,7 +8,10 @@ const WorkspaceComment = require('./models/workspaceComment.model');
 const WorkspaceAttachment = require('./models/workspaceAttachment.model');
 const WorkspaceAuditLog = require('./models/workspaceAuditLog.model');
 const WorkspaceTechnicalAudit = require('./models/workspaceTechnicalAudit.model');
-
+const WorkspaceAeoAuditPage = require('./models/workspaceAeoAuditPage.model');
+const WorkspaceAeoAuditSimulation = require('./models/workspaceAeoAuditSimulation.model');
+const WorkspaceAeoAuditEntityGraph = require('./models/workspaceAeoAuditEntityGraph.model');
+const WorkspaceAeoAuditRecommendation = require('./models/workspaceAeoAuditRecommendation.model');
 const WorkspaceAgentOrchestrator = require('./services/workspaceAgentOrchestrator.service');
 const WordPressService = require('../seoIntelligence/services/wordPress.service');
 const GoogleService = require('../seoIntelligence/services/google.service');
@@ -786,6 +789,115 @@ exports.getAeoAgentExecutionHistory = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await aeoAgent.getExecutionHistory(projectId, limit);
     res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAeoAuditSummary = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const audit = await WorkspaceAeoAudit.findById(auditId);
+    if (!audit) return res.status(404).json({ success: false, message: 'Audit not found' });
+    res.status(200).json({ success: true, data: audit });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAeoAuditPages = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const { page, limit, status } = req.query;
+    const query = { auditId };
+    if (status) query.status = status;
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+
+    const pages = await WorkspaceAeoAuditPage.find(query)
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .lean();
+    
+    const total = await WorkspaceAeoAuditPage.countDocuments(query);
+
+    res.status(200).json({ 
+      success: true, 
+      data: pages,
+      pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAeoAuditSimulations = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const { pageUrl, platform } = req.query;
+    const query = { auditId };
+    if (pageUrl) query.pageUrl = pageUrl;
+    if (platform) query.platform = platform;
+
+    const simulations = await WorkspaceAeoAuditSimulation.find(query).lean();
+    res.status(200).json({ success: true, data: simulations });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAeoAuditEntityGraph = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const { pageUrl } = req.query;
+    const query = { auditId };
+    if (pageUrl) query.pageUrl = pageUrl;
+
+    const graphs = await WorkspaceAeoAuditEntityGraph.find(query).lean();
+    res.status(200).json({ success: true, data: graphs });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAeoAuditRecommendations = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const { category, priority, status } = req.query;
+    const query = { auditId };
+    if (category) query.category = category;
+    if (priority) query.priority = priority;
+    if (status) query.status = status;
+
+    const recommendations = await WorkspaceAeoAuditRecommendation.find(query).lean();
+    res.status(200).json({ success: true, data: recommendations });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.exportAeoAudit = async (req, res) => {
+  try {
+    const { auditId } = req.params;
+    const [pages, recs] = await Promise.all([
+      WorkspaceAeoAuditPage.find({ auditId }).lean(),
+      WorkspaceAeoAuditRecommendation.find({ auditId }).lean()
+    ]);
+
+    let csv = 'Type,URL,Title,Priority,Category,Status\n';
+    
+    pages.forEach(p => {
+      csv += `"Page","${p.pageUrl || ''}","","","",""\n`;
+    });
+
+    recs.forEach(r => {
+      csv += `"Recommendation","${r.pageUrl || 'Sitewide'}","${(r.title || '').replace(/"/g, '""')}","${r.priority || ''}","${r.category || ''}","${r.status || ''}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="aeo-export-${auditId}.csv"`);
+    res.status(200).send(csv);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

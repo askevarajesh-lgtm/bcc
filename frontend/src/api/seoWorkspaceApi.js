@@ -264,6 +264,26 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/history${qs({ limit })}`, getAuthHeaders());
     return res.data;
   },
+  getAeoAuditSummary: async (projectId, auditId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/summary`, getAuthHeaders());
+    return res.data;
+  },
+  getAeoAuditPages: async (projectId, auditId, params = {}) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/pages${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  getAeoAuditSimulations: async (projectId, auditId, params = {}) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/simulations${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  getAeoAuditEntityGraph: async (projectId, auditId, params = {}) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/entity-graph${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  getAeoAuditRecommendations: async (projectId, auditId, params = {}) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/aeo-agent/${auditId}/recommendations${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
 
   // --- GEO agent (Generative Engine Optimization — sitewide entity consistency) ---
   runGeoAgent: async (projectId) => {

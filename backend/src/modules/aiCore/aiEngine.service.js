@@ -12,11 +12,21 @@ async function getClient(workspaceId) {
 
   const settings = await AiSettings.findOne({ workspaceId });
   if (settings) {
-    if (settings.anthropicApiKey) {
-      return new AiClientWrapper(cryptoUtils.decrypt(settings.anthropicApiKey), 'anthropic');
+    const provider = settings.aiProvider || (settings.anthropicApiKey ? 'anthropic' : 'openai');
+    
+    if (provider === 'anthropic' && settings.anthropicApiKey) {
+      return { 
+        client: new AiClientWrapper(cryptoUtils.decrypt(settings.anthropicApiKey), 'anthropic'),
+        provider: 'anthropic',
+        configuredModel: settings.model 
+      };
     }
-    if (settings.openaiApiKey) {
-      return new AiClientWrapper(cryptoUtils.decrypt(settings.openaiApiKey), 'openai');
+    if (provider === 'openai' && settings.openaiApiKey) {
+      return { 
+        client: new AiClientWrapper(cryptoUtils.decrypt(settings.openaiApiKey), 'openai'),
+        provider: 'openai',
+        configuredModel: settings.model 
+      };
     }
   }
 
@@ -44,6 +54,9 @@ async function complete(params) {
 
   const executionId = `aiEngine:${agentKey || 'unspecified'}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
   const startedAt = Date.now();
+  
+  // We resolve the client and model inside the retry loop because settings might change,
+  // but we can log the requested model now.
   executionStatus.start(executionId, { agentKey, projectId, model });
   logger.logExecution({ executionId, source: 'aiEngine', agentKey, projectId, status: 'started', meta: { model } });
 
@@ -52,9 +65,14 @@ async function complete(params) {
       if (attempt > 0) {
         logger.logExecution({ executionId, source: 'aiEngine', agentKey, projectId, status: 'retrying', meta: { attempt } });
       }
-      const client = await getClient(workspaceId);
+      
+      const { client, configuredModel } = await getClient(workspaceId);
+      
+      // Prioritize the user's workspace settings if available, otherwise fallback to the agent's default
+      const finalModel = configuredModel || model;
+      
       const requestParams = {
-        model,
+        model: finalModel,
         messages,
         temperature
       };

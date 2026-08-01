@@ -14,7 +14,7 @@ class AiClientWrapper {
       completions: {
         create: async (params) => {
           if (this.provider === 'openai') {
-            return await this.openai.chat.completions.create(params);
+            return await this.openai.chat.completions.create(params, { timeout: 45000 });
           } else {
             // Anthropic logic
             let systemPrompt = '';
@@ -31,8 +31,7 @@ class AiClientWrapper {
               systemPrompt += '\n\nYou must output ONLY valid JSON, with no markdown formatting or other text.';
             }
 
-            // Map model to claude if needed
-            let model = 'claude-sonnet-5'; // default for anthropic
+            let model = params.model || 'claude-sonnet-5';
 
             const anthropicParams = {
               model,
@@ -43,7 +42,7 @@ class AiClientWrapper {
             if (systemPrompt) anthropicParams.system = systemPrompt.trim();
             // Temperature is deprecated for this model, omitting it
 
-            const msg = await this.anthropic.messages.create(anthropicParams);
+            const msg = await this.anthropic.messages.create(anthropicParams, { timeout: 45000 });
 
             let textContent = '';
             if (msg && msg.content && msg.content.length > 0) {

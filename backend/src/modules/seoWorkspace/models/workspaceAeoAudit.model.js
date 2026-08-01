@@ -3,8 +3,34 @@ const WorkspaceAeoAuditSchema = new mongoose.Schema({
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceProject', required: true, index: true },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
-  status: { type: String, enum: ['pending', 'in_progress', 'completed', 'failed'], default: 'pending' },
+  status: { 
+    type: String, 
+    enum: [
+      'pending', 'queued', 'running', 'in_progress', 
+      'completed', 'completed_with_warnings', 'failed', 'cancelled'
+    ], 
+    default: 'pending' 
+  },
 
+  progress: { type: Number, default: 0 },
+
+  // New fields for normalized architecture (Phase 1)
+  summary: { type: String, default: null },
+  overallScores: {
+    aeo: { type: Number, default: null },
+    citation: { type: Number, default: null },
+    eeat: { type: Number, default: null },
+    platforms: {
+      chatgpt: { type: Number, default: null },
+      googleAiOverviews: { type: Number, default: null },
+      gemini: { type: Number, default: null },
+      perplexity: { type: Number, default: null },
+      copilot: { type: Number, default: null }
+    }
+  },
+  executionTime: { type: Number, default: 0 }, // in milliseconds
+
+  // Legacy fields (kept for backward compatibility)
   inputs: {
     pages: [{
       url: { type: String },
@@ -27,11 +53,11 @@ const WorkspaceAeoAuditSchema = new mongoose.Schema({
     agentKey: { type: String, default: null }, // 'aeo-agent'; data reference only
     summary: { type: String, default: null },
     pages: [{
-      pageUrl: { type: String, required: true }, 
+      pageUrl: { type: String }, 
       aeoReadinessScore: { type: Number, min: 0, max: 100, default: null },
-      directAnswerSuggestion: { type: String, default: '' }, // 40-60 word grounded direct-answer snippet
+      directAnswerSuggestion: { type: String, default: '' }, 
       suggestedFaqBlock: [{ question: { type: String }, answer: { type: String } }],
-      missingElements: [{ type: String }], // e.g. "no question-format subheadings", "no byline/entity statement"
+      missingElements: [{ type: String }],
       rationale: { type: String, default: '' }
     }],
     approvalStatus: { type: String, enum: ['Not Requested', 'Pending Approval', 'Approved', 'Rejected'], default: 'Not Requested' },

@@ -1,7 +1,12 @@
 const WorkspaceProject = require('../models/workspaceProject.model');
 const WorkspaceAeoAudit = require('../models/workspaceAeoAudit.model');
+const WorkspaceAeoAuditPage = require('../models/workspaceAeoAuditPage.model');
+const WorkspaceAeoAuditSimulation = require('../models/workspaceAeoAuditSimulation.model');
+const WorkspaceAeoAuditEntityGraph = require('../models/workspaceAeoAuditEntityGraph.model');
+const WorkspaceAeoAuditRecommendation = require('../models/workspaceAeoAuditRecommendation.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
 const CrawlService = require('../../seoIntelligence/services/crawl.service');
+const SchemaValidatorService = require('./schemaValidator.service');
 const auditLogService = require('./auditLog.service');
 
 const aiEngine = require('../../aiCore/aiEngine.service');
@@ -13,295 +18,360 @@ const agentLoader = require('../../aiCore/agentLoader.service');
 
 const AGENT_KEY = 'aeo-agent';
 const TAG = 'AeoAgent';
+const AEO_CRAWL_PAGE_LIMIT = 20;
 
-const AEO_CRAWL_PAGE_LIMIT = 15; 
-const MAX_PAGES_PER_RUN = 10; 
-
-/**
- * @param {Object} project - a WorkspaceProject document
- * @returns {Promise<{ pages: Array, dataSource: string }>}
- */
-async function collectAeoSignals(project) {
-  const rootUrl = /^https?:\/\//i.test(project.domain) ? project.domain : `https://${project.domain}`;
-
-  const crawlResult = await retry.withRetry(() => new CrawlService(rootUrl, AEO_CRAWL_PAGE_LIMIT).run(), { retries: 1 })
-    .catch((error) => {
-      logger.warn(TAG, `Page-signal crawl failed for ${rootUrl}, continuing with an empty page set: ${error.message}`, { projectId: project._id });
-      return { pages: [] };
-    });
-
-  const pages = (crawlResult.pages || [])
-    .filter((p) => p.status === 200 && p.indexable !== false)
-    .map((p) => ({
-      url: p.final_url || p.url,
-      title: p.title || '',
-      metaDescription: p.meta_description || '',
-      h1: p.h1 || '',
-      headings: Array.isArray(p.headings) ? p.headings : [],
-      wordCount: p.word_count || 0,
-      listCount: p.listCount || 0,
-      tableCount: p.tableCount || 0,
-      hasExistingFaqSchema: !!p.hasExistingFaqSchema,
-      indexable: p.indexable !== false
-    }));
-
-  return { pages, dataSource: pages.length > 0 ? 'crawl' : 'internal-only' };
-}
-
-/**
- * @param {Object} project
- * @param {Array} pages - from collectAeoSignals
- * @param {string} workspaceId
- * @returns {Promise<{ summary: string, pages: Array }>}
- */
-async function generateAeoRecommendations(project, pages, workspaceId) {
-  if (pages.length === 0) {
-    return { summary: 'No indexable pages were available to generate AEO recommendations for.', pages: [] };
-  }
-
-  const agentConfig = await agentLoader.resolve(AGENT_KEY);
-  const skillsBlock = agentLoader.loadSkillsForAgent(agentConfig);
-  const memoryBlock = await sharedMemory.recallAsPromptContext({ agencyId: workspaceId, projectId: project._id });
-  const candidatePages = pages.slice(0, MAX_PAGES_PER_RUN);
-
-  const prompt = `You are the AEO Agent for ${project.name} (${project.domain}). Judge how ready each page below is to be extracted from and cited by an AI answer engine (Google AI Overviews, ChatGPT, Perplexity, Gemini, Copilot), based only on what's actually given — do not invent facts, statistics, or claims that aren't reflected in the page's title/meta description/H1/headings.
-
-Pages (word counts of 0 mean the crawl couldn't read body content — treat conservatively; listCount/tableCount/hasExistingFaqSchema are objective, code-measured signals):
-${JSON.stringify(candidatePages, null, 2)}
-${skillsBlock}
-${memoryBlock}
-
-Only propose recommendations for pages in the list above — do not invent a page URL. Respond with a JSON object of this exact shape:
-{
-  "summary": "2-4 sentence summary of the overall AEO opportunity across these pages",
-  "pages": [
-    {
-      "pageUrl": "must exactly match one url above",
-      "aeoReadinessScore": 0-100 integer per the skill's scoring guidance,
-      "directAnswerSuggestion": "a grounded 40-60 word direct-answer snippet for the top of the page, or empty string if not enough signal to write one",
-      "suggestedFaqBlock": [{ "question": "...", "answer": "..." }],
-      "missingElements": ["short phrases describing what's missing, e.g. 'no question-format subheadings'"],
-      "rationale": "1-2 sentence justification grounded in the page signals given"
-    }
-  ]
-}
-Respond ONLY with valid JSON, no markdown formatting or commentary.`;
-
-  const raw = await aiEngine.complete({
-    workspaceId,
-    agentKey: AGENT_KEY,
-    projectId: project._id,
-    messages: [{ role: 'user', content: prompt }],
-    model: agentConfig.modelName,
-    temperature: 0.3,
-    maxTokens: 2500,
-    jsonMode: true,
-    retryOptions: { retries: 2 }
-  });
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    logger.error(TAG, `Failed to parse AI AEO-generation JSON for project ${project._id}: ${error.message}`, { projectId: project._id });
-    parsed = { summary: 'Automated generation did not return structured output; manual review recommended.', pages: [] };
-  }
-
-  const candidateUrls = new Set(candidatePages.map((p) => p.url));
-  const generatedPages = (Array.isArray(parsed.pages) ? parsed.pages : [])
-    .filter((p) => p.pageUrl && candidateUrls.has(p.pageUrl))
-    .slice(0, MAX_PAGES_PER_RUN)
-    .map((p) => {
-      const rawScore = Number(p.aeoReadinessScore);
-      return {
-        pageUrl: p.pageUrl,
-        aeoReadinessScore: Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : null,
-        directAnswerSuggestion: typeof p.directAnswerSuggestion === 'string' ? p.directAnswerSuggestion : '',
-        suggestedFaqBlock: Array.isArray(p.suggestedFaqBlock)
-          ? p.suggestedFaqBlock
-            .filter((f) => f && f.question && f.answer)
-            .slice(0, 8)
-            .map((f) => ({ question: String(f.question), answer: String(f.answer) }))
-          : [],
-        missingElements: Array.isArray(p.missingElements) ? p.missingElements.slice(0, 10).map(String) : [],
-        rationale: p.rationale || ''
-      };
-    });
-
-  return { summary: parsed.summary || '', pages: generatedPages };
-}
-
-/**
- * @param {string} projectId
- * @param {string} [workspaceId]
- * @returns {Promise<Object>} the saved WorkspaceAeoAudit document
- */
 async function run(projectId, workspaceId) {
   const project = await WorkspaceProject.findById(projectId);
   if (!project) throw new Error('Project not found');
 
   const agencyId = workspaceId || project.createdBy || project.companyId;
 
-  return executionQueue.run(`aeo-agent:${projectId}`, async () => {
-    const executionId = `aeoAgent:${projectId}:${Date.now()}`;
-    const startedAt = Date.now();
-
-    logger.logExecution({ executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId, status: 'started' });
-
-    try {
-      const { pages: pageSignals, dataSource } = await collectAeoSignals(project);
-      const { summary, pages } = await generateAeoRecommendations(project, pageSignals, agencyId);
-
-      const audit = await WorkspaceAeoAudit.create({
-        projectId: project._id,
-        agencyId,
-        status: 'completed',
-        inputs: { pages: pageSignals, dataSource },
-        completedAt: new Date(),
-        agent: {
-          agentKey: AGENT_KEY,
-          summary,
-          pages,
-          approvalStatus: pages.length > 0 ? 'Pending Approval' : 'Not Requested'
-        }
-      });
-
-      logger.logExecution({
-        executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId,
-        status: 'succeeded', durationMs: Date.now() - startedAt,
-        meta: { auditId: audit._id, pageCount: pages.length }
-      });
-
-      return audit;
-    } catch (error) {
-      logger.logExecution({
-        executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId,
-        status: 'failed', durationMs: Date.now() - startedAt, error: error.message
-      });
-      throw error;
-    }
+  // Create audit in queued state
+  const audit = await WorkspaceAeoAudit.create({
+    projectId: project._id,
+    agencyId,
+    status: 'queued'
   });
+
+  // Dispatch background job (does not block HTTP response)
+  executionQueue.run(`aeo-audit:${audit._id}`, async () => {
+    await processAeoAudit(audit._id, project, agencyId);
+  }).catch(e => logger.error(TAG, `Queue dispatch failed: ${e.message}`, { auditId: audit._id }));
+
+  return audit;
 }
 
-/**
- * @param {string} auditId
- * @param {string} projectId
- * @param {string} userId
- */
-async function approveAeoRecommendations(auditId, projectId, userId) {
-  const audit = await WorkspaceAeoAudit.findOne({ _id: auditId, projectId });
-  if (!audit) throw new Error('AEO audit run not found');
+async function processAeoAudit(auditId, project, workspaceId) {
+  const executionId = `aeoAudit:${auditId}:${Date.now()}`;
+  const startedAt = Date.now();
 
-  if (!audit.agent || audit.agent.approvalStatus !== 'Pending Approval') {
-    throw new Error(`Publish Gate Blocked: AEO audit must be 'Pending Approval' to approve. Current status is '${audit.agent?.approvalStatus || 'Not Requested'}'.`);
+  try {
+    await WorkspaceAeoAudit.findByIdAndUpdate(auditId, { status: 'running' });
+    logger.logExecution({ executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId: project._id, status: 'started' });
+
+    const rootUrl = /^https?:\/\//i.test(project.domain) ? project.domain : `https://${project.domain}`;
+    const crawlResult = await retry.withRetry(() => new CrawlService(rootUrl, AEO_CRAWL_PAGE_LIMIT).run(), { retries: 1 })
+      .catch((error) => {
+        logger.warn(TAG, `Crawl failed for ${rootUrl}: ${error.message}`);
+        return { pages: [] };
+      });
+
+    const uniquePagesMap = new Map();
+    crawlResult.pages.filter(p => p.status === 200 && p.indexable).forEach(p => {
+      const url = p.final_url || p.url;
+      if (!uniquePagesMap.has(url)) {
+        uniquePagesMap.set(url, p);
+      }
+    });
+    const indexablePages = Array.from(uniquePagesMap.values());
+    
+    // Create page records
+    const pageRecords = await Promise.all(indexablePages.map(async p => {
+      // Programmatic schema validation first
+      const schemaValidation = SchemaValidatorService.validate(p.jsonLd);
+      
+      return WorkspaceAeoAuditPage.create({
+        auditId,
+        projectId: project._id,
+        pageUrl: p.final_url || p.url,
+        status: 'queued',
+        schemaValidation
+      });
+    }));
+
+    // Process pages with concurrency limit (e.g., 3 pages at a time) to respect rate limits
+    const CONCURRENCY = 3;
+    let failedPages = 0;
+    let completedPages = 0;
+    const totalPages = pageRecords.length;
+    
+    const processQueue = [...pageRecords.map((record, index) => ({ record, crawlData: indexablePages[index] }))];
+    
+    const worker = async () => {
+      while (processQueue.length > 0) {
+        const item = processQueue.shift();
+        try {
+          await processAeoPage(item.record, item.crawlData, project, workspaceId);
+        } catch (err) {
+          failedPages++;
+          await WorkspaceAeoAuditPage.findByIdAndUpdate(item.record._id, { status: 'failed', error: err.message });
+          logger.error(TAG, `Page analysis failed for ${item.record.pageUrl}: ${err.message}`, { auditId });
+        }
+        completedPages++;
+        const progress = Math.round((completedPages / (totalPages || 1)) * 100);
+        await WorkspaceAeoAudit.findByIdAndUpdate(auditId, { progress });
+      }
+    };
+
+    const workers = Array(CONCURRENCY).fill(null).map(() => worker());
+    await Promise.all(workers);
+
+    // Final Summarization
+    const finalAudit = await generateSummary(auditId, project, workspaceId, startedAt);
+    finalAudit.status = failedPages > 0 ? 'completed_with_warnings' : 'completed';
+    await finalAudit.save();
+
+    logger.logExecution({ executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId: project._id, status: 'succeeded' });
+
+  } catch (error) {
+    logger.logExecution({ executionId, source: 'aeoAgent', agentKey: AGENT_KEY, projectId: project._id, status: 'failed', error: error.message });
+    await WorkspaceAeoAudit.findByIdAndUpdate(auditId, { status: 'failed' });
+  }
+}
+
+async function processAeoPage(pageRecord, crawlData, project, workspaceId) {
+  await WorkspaceAeoAuditPage.findByIdAndUpdate(pageRecord._id, { status: 'running' });
+  
+  const agentConfig = await agentLoader.resolve(AGENT_KEY);
+  const memoryBlock = await sharedMemory.recallAsPromptContext({ agencyId: workspaceId, projectId: project._id });
+
+  // 1. Page Analysis & Entity & Simulation Prompt
+  const analysisPrompt = `You are the AEO Agent for ${project.name}. Analyze this page's readiness for Answer Engines.
+Page URL: ${crawlData.final_url}
+Title: ${crawlData.title}
+H1: ${crawlData.h1}
+Word Count: ${crawlData.word_count}
+Schema Validation Issues: ${JSON.stringify(pageRecord.schemaValidation.issues)}
+Headings: ${JSON.stringify(crawlData.headings)}
+
+${memoryBlock}
+
+Output strictly valid JSON with this exact schema:
+{
+  "readinessScore": 0-100,
+  "contentQuality": 0-100,
+  "readability": 0-100,
+  "entities": {
+    "nodes": [ { "id": "entity_name", "label": "Display Name", "type": "Organization|Person|Product|Service|Brand|Location|Technology|Event|Topic", "confidence": 0-100 } ],
+    "edges": [ { "source": "id1", "target": "id2", "relationship": "string", "confidence": 0-100 } ]
+  },
+  "simulations": [
+    {
+      "platform": "ChatGPT" | "Google AI Overviews" | "Gemini" | "Perplexity" | "Copilot",
+      "citationLikelihood": 0-100,
+      "confidenceScore": 0-100,
+      "bestCandidateParagraph": "string",
+      "missingInformation": ["string"],
+      "reasons": ["string"],
+      "suggestedImprovements": ["string"]
+    }
+  ]
+}`;
+
+  const analysisRaw = await aiEngine.complete({
+    workspaceId, agentKey: AGENT_KEY, projectId: project._id,
+    messages: [{ role: 'user', content: analysisPrompt }],
+    model: agentConfig.modelName, temperature: 0.2, maxTokens: 4000, jsonMode: true,
+    retryOptions: { retries: 2, factor: 2 } // Exponential backoff is handled by retryOptions
+  });
+
+  const analysisResult = JSON.parse(analysisRaw);
+
+  // Save Page Scores
+  await WorkspaceAeoAuditPage.findByIdAndUpdate(pageRecord._id, {
+    'pageScores.readinessScore': analysisResult.readinessScore,
+    'pageScores.contentQuality': analysisResult.contentQuality,
+    'pageScores.readability': analysisResult.readability
+  });
+
+  // Save Entities
+  if (analysisResult.entities?.nodes?.length) {
+    await WorkspaceAeoAuditEntityGraph.create({
+      auditId: pageRecord.auditId,
+      projectId: project._id,
+      pageUrl: pageRecord.pageUrl,
+      nodes: analysisResult.entities.nodes,
+      edges: analysisResult.entities.edges || []
+    });
   }
 
-  audit.agent.approvalStatus = 'Approved';
-  audit.agent.approvedBy = userId;
-  audit.agent.approvedAt = new Date();
-  audit.agent.rejectionReason = null;
+  // Save Simulations
+  if (analysisResult.simulations?.length) {
+    for (const sim of analysisResult.simulations) {
+      await WorkspaceAeoAuditSimulation.create({
+        auditId: pageRecord.auditId,
+        pageUrl: pageRecord.pageUrl,
+        platform: sim.platform,
+        citationLikelihood: sim.citationLikelihood,
+        confidenceScore: sim.confidenceScore,
+        simulation: {
+          bestCandidateParagraph: sim.bestCandidateParagraph,
+          missingInformation: sim.missingInformation || [],
+          reasons: sim.reasons || [],
+          suggestedImprovements: sim.suggestedImprovements || []
+        }
+      });
+    }
+  }
 
-  const tasksToCreate = (audit.agent.pages || []).map((p) => ({
+  // 2. Recommendations Prompt
+  const recPrompt = `Based on the AEO analysis for ${crawlData.final_url}, provide actionable recommendations.
+Readiness Score: ${analysisResult.readinessScore}
+Schema Issues: ${JSON.stringify(pageRecord.schemaValidation.issues)}
+
+Output strictly valid JSON:
+{
+  "recommendations": [
+    {
+      "title": "string",
+      "description": "string",
+      "category": "Technical" | "Content" | "Schema" | "Metadata" | "Internal Linking" | "Entities" | "EEAT",
+      "priority": "Critical" | "High" | "Medium" | "Low",
+      "impact": "High" | "Medium" | "Low",
+      "difficulty": "Hard" | "Medium" | "Easy",
+      "estimatedEffort": "e.g., 2 hours",
+      "suggestedFix": "Detailed fix instructions"
+    }
+  ]
+}`;
+
+  const recRaw = await aiEngine.complete({
+    workspaceId, agentKey: AGENT_KEY, projectId: project._id,
+    messages: [{ role: 'user', content: recPrompt }],
+    model: agentConfig.modelName, temperature: 0.2, maxTokens: 2500, jsonMode: true,
+    retryOptions: { retries: 2, factor: 2 }
+  });
+
+  const recResult = JSON.parse(recRaw);
+  if (recResult.recommendations?.length) {
+    const recsToInsert = recResult.recommendations.map(r => ({
+      auditId: pageRecord.auditId,
+      projectId: project._id,
+      pageUrl: pageRecord.pageUrl,
+      ...r
+    }));
+    await WorkspaceAeoAuditRecommendation.insertMany(recsToInsert);
+  }
+
+  await WorkspaceAeoAuditPage.findByIdAndUpdate(pageRecord._id, { status: 'completed', completedAt: new Date() });
+}
+
+async function generateSummary(auditId, project, workspaceId, startedAt) {
+  const pages = await WorkspaceAeoAuditPage.find({ auditId }).lean();
+  const recs = await WorkspaceAeoAuditRecommendation.find({ auditId }).lean();
+  const simulations = await WorkspaceAeoAuditSimulation.find({ auditId }).lean();
+
+  const avgReadiness = pages.length ? Math.round(pages.reduce((sum, p) => sum + (p.pageScores?.readinessScore || 0), 0) / pages.length) : 0;
+  
+  // Calculate average platform scores
+  const platforms = { chatgpt: 0, googleAiOverviews: 0, gemini: 0, perplexity: 0, copilot: 0 };
+  const counts = { chatgpt: 0, googleAiOverviews: 0, gemini: 0, perplexity: 0, copilot: 0 };
+  
+  simulations.forEach(s => {
+    const p = s.platform.toLowerCase().replace(/[^a-z]/g, '');
+    if (platforms[p] !== undefined && s.citationLikelihood) {
+      platforms[p] += s.citationLikelihood;
+      counts[p]++;
+    }
+  });
+  
+  Object.keys(platforms).forEach(k => {
+    platforms[k] = counts[k] > 0 ? Math.round(platforms[k] / counts[k]) : 0;
+  });
+
+  const agentConfig = await agentLoader.resolve(AGENT_KEY);
+  const sumPrompt = `You are the AEO Agent for ${project.name}. Summarize the entire audit.
+Avg Readiness: ${avgReadiness}
+Total Pages Analyzed: ${pages.length}
+Total Recommendations: ${recs.length}
+
+Output strictly valid JSON:
+{
+  "summary": "2-4 sentence executive summary of AEO readiness across the site.",
+  "eeatScore": 0-100 (estimated overall EEAT signal strength based on presence of entities and schema),
+  "citationScore": 0-100 (overall aggregate citation likelihood)
+}`;
+
+  let summaryData = { summary: 'Audit completed.', eeatScore: 0, citationScore: 0 };
+  try {
+    const sumRaw = await aiEngine.complete({
+      workspaceId, agentKey: AGENT_KEY, projectId: project._id,
+      messages: [{ role: 'user', content: sumPrompt }],
+      model: agentConfig.modelName, temperature: 0.3, maxTokens: 1000, jsonMode: true,
+      retryOptions: { retries: 1 }
+    });
+    summaryData = JSON.parse(sumRaw);
+  } catch (e) {
+    logger.warn(TAG, `Summary generation failed: ${e.message}`);
+  }
+
+  const audit = await WorkspaceAeoAudit.findById(auditId);
+  audit.summary = summaryData.summary;
+  audit.overallScores = {
+    aeo: avgReadiness,
+    citation: summaryData.citationScore || 0,
+    eeat: summaryData.eeatScore || 0,
+    platforms
+  };
+  audit.completedAt = new Date();
+  audit.executionTime = Date.now() - startedAt;
+  
+  return audit;
+}
+
+// ------------------------------------------
+// Legacy Approval Workflow (mapped to tasks)
+// ------------------------------------------
+async function approveAeoRecommendations(auditId, projectId, userId, recommendationIds = []) {
+  // If specific recommendations passed, approve those, otherwise approve pending.
+  const query = { auditId, projectId, status: 'Pending' };
+  if (recommendationIds.length > 0) {
+    query._id = { $in: recommendationIds };
+  }
+
+  const recs = await WorkspaceAeoAuditRecommendation.find(query);
+  const tasksToCreate = recs.map(r => ({
     projectId,
-    pageUrl: p.pageUrl,
+    pageUrl: r.pageUrl || project.domain,
     taskType: 'AEO Optimization',
-    description: `[AEO Agent] Improve answer-engine readiness for ${p.pageUrl}${p.aeoReadinessScore !== null && p.aeoReadinessScore !== undefined ? ` (score: ${p.aeoReadinessScore}/100)` : ''}${p.missingElements?.length ? ` — missing: ${p.missingElements.join(', ')}` : ''}`,
-    proposedChanges: {
-      aeoReadinessScore: p.aeoReadinessScore,
-      directAnswerSuggestion: p.directAnswerSuggestion,
-      suggestedFaqBlock: p.suggestedFaqBlock,
-      missingElements: p.missingElements
-    },
+    description: `[AEO - ${r.category}] ${r.title}\n\n${r.description}\n\nSuggested Fix:\n${r.suggestedFix}`,
+    proposedChanges: { recommendationId: r._id },
     status: 'Pending'
   }));
 
   let createdTasks = [];
   if (tasksToCreate.length > 0) {
     createdTasks = await WorkspaceTask.insertMany(tasksToCreate);
-    audit.agent.generatedTaskIds = createdTasks.map((t) => t._id);
-  }
-
-  await audit.save();
-
-  auditLogService.record({
-    targetType: 'AeoAudit', targetId: audit._id, projectId,
-    action: 'aeo_audit_approved', fromValue: 'Pending Approval', toValue: 'Approved', userId
-  });
-
-  return { audit, createdTasks };
-}
-
-/**
- * Human Approval Gate — reject path.
- */
-async function rejectAeoRecommendations(auditId, projectId, userId, reason) {
-  const audit = await WorkspaceAeoAudit.findOne({ _id: auditId, projectId });
-  if (!audit) throw new Error('AEO audit run not found');
-
-  if (!audit.agent || audit.agent.approvalStatus !== 'Pending Approval') {
-    throw new Error(`AEO audit must be 'Pending Approval' to reject. Current status is '${audit.agent?.approvalStatus || 'Not Requested'}'.`);
-  }
-
-  audit.agent.approvalStatus = 'Rejected';
-  audit.agent.rejectionReason = reason || null;
-  await audit.save();
-
-  auditLogService.record({
-    targetType: 'AeoAudit', targetId: audit._id, projectId,
-    action: 'aeo_audit_rejected', fromValue: 'Pending Approval', toValue: 'Rejected', userId
-  });
-
-  await recordExcludedPagesIfAny(audit, projectId, userId, reason);
-
-  return audit;
-}
-
-async function recordExcludedPagesIfAny(audit, projectId, userId, reason) {
-  try {
-    const pages = audit.agent?.pages || [];
-    if (pages.length === 0) return;
-
-    const project = await WorkspaceProject.findById(projectId);
-    const agencyId = project?.createdBy || project?.companyId || userId;
-
-    for (const page of pages.slice(0, 5)) {
-      await sharedMemory.remember({
-        agencyId,
-        projectId,
-        title: `Rejected AEO recommendation: ${page.pageUrl}`,
-        description: `The AEO Agent's answer-readiness recommendation for ${page.pageUrl} was rejected.`,
-        content: reason
-          ? `Do not propose the same AEO recommendation for ${page.pageUrl} again. Reason given: ${reason}`
-          : `Do not propose the same AEO recommendation for ${page.pageUrl} again.`,
-        type: 'do_not_do'
-      });
+    // Update recs with task IDs
+    for (let i = 0; i < recs.length; i++) {
+      recs[i].status = 'Task Created';
+      recs[i].taskId = createdTasks[i]._id;
+      await recs[i].save();
     }
-  } catch (error) {
-    logger.warn(TAG, `Failed to record excluded-AEO-page memory for project ${projectId}: ${error.message}`, { projectId });
   }
+
+  auditLogService.record({
+    targetType: 'AeoAudit', targetId: auditId, projectId,
+    action: 'aeo_recommendations_approved', fromValue: 'Pending', toValue: 'Task Created', userId
+  });
+
+  return { approvedCount: recs.length, createdTasks };
 }
 
-/**
- * @param {string} projectId
- * @param {number} [limit=20]
- */
-async function getExecutionHistory(projectId, limit = 20) {
-  const ExecutionLog = require('../../aiCore/executionLog.model');
+async function rejectAeoRecommendations(auditId, projectId, userId, recommendationIds = [], reason) {
+  const query = { auditId, projectId, status: 'Pending' };
+  if (recommendationIds.length > 0) {
+    query._id = { $in: recommendationIds };
+  }
+  
+  await WorkspaceAeoAuditRecommendation.updateMany(query, { $set: { status: 'Ignored' } });
 
-  return ExecutionLog.find({
-    projectId,
-    $or: [{ agentKey: AGENT_KEY }, { source: 'aeoAgent' }]
-  })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
+  auditLogService.record({
+    targetType: 'AeoAudit', targetId: auditId, projectId,
+    action: 'aeo_recommendations_ignored', fromValue: 'Pending', toValue: 'Ignored', userId
+  });
+
+  return { success: true };
+}
+
+async function getExecutionHistory(projectId, limit = 20) {
+  return WorkspaceAeoAudit.find({ projectId }).sort({ createdAt: -1 }).limit(limit).lean();
 }
 
 module.exports = {
   AGENT_KEY,
   run,
-  collectAeoSignals,
-  generateAeoRecommendations,
+  processAeoAudit,
   approveAeoRecommendations,
   rejectAeoRecommendations,
   getExecutionHistory
