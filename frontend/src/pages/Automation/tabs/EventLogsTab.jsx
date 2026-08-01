@@ -62,7 +62,7 @@ const EventLogsTab = ({ itemVariants }) => {
       title: 'ACTIONS', 
       key: 'actions', 
       align: 'right', 
-      render: () => <Button type="primary" icon={<Eye size={14} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 600 }}>View</Button> 
+      render: () => <Button type="primary" icon={<Eye size={14} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600 }}>View</Button> 
     }
   ];
 

@@ -134,7 +134,7 @@ const Analytics = () => {
             style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }}
           />
           {activeTab === 'analytics' && (
-            <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>
+            <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>
               Export
             </Button>
           )}

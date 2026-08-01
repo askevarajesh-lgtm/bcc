@@ -453,7 +453,7 @@ const TasksPage = () => {
             <Card
               hoverable
               onClick={() => setIsPosterModalOpen(true)}
-              styles={{ body: summaryCardBody("#2563eb") }}
+              styles={{ body: summaryCardBody("var(--accent-primary)") }}
               style={summaryCardBase}
             >
               <Statistic
@@ -463,7 +463,7 @@ const TasksPage = () => {
                 valueStyle={summaryValueStyle}
                 prefix={
                   <PictureOutlined
-                    style={{ color: isDark ? "#93c5fd" : "#2563eb" }}
+                    style={{ color: isDark ? "#93c5fd" : "var(--accent-primary)" }}
                   />
                 }
               />
@@ -764,7 +764,7 @@ const TasksPage = () => {
               styles={{ body: { padding: "32px 24px" } }}
               className="task-type-card"
             >
-              <BankOutlined style={{ fontSize: 48, color: "#3b82f6", marginBottom: 16 }} />
+              <BankOutlined style={{ fontSize: 48, color: "var(--accent-primary)", marginBottom: 16 }} />
               <Title level={4} style={{ margin: 0 }}>Client</Title>
               <Text type="secondary">Task for a specific client company</Text>
             </Card>

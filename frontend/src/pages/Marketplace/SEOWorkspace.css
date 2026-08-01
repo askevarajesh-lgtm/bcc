@@ -117,7 +117,7 @@
 
 /* Glowing Buttons */
 .seo-glow-btn {
-  background: linear-gradient(135deg, var(--accent-primary) 0%, #2563eb 100%) !important;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary) 100%) !important;
   border: none !important;
   color: #fff !important;
   border-radius: 12px !important;

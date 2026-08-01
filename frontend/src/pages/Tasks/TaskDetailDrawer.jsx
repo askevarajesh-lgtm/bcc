@@ -348,7 +348,7 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
               <Descriptions.Item
                 label={
                   <Space>
-                    <PlayCircleOutlined style={{ color: "#1890ff" }} />
+                    <PlayCircleOutlined style={{ color: "var(--accent-primary)" }} />
                     Start Time
                   </Space>
                 }

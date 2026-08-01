@@ -147,7 +147,7 @@ const FormEmbedView = () => {
             style={{ 
               height: 56, 
               borderRadius: 12, 
-              backgroundColor: settings.accentColor || "#3b82f6", 
+              backgroundColor: settings.accentColor || "var(--accent-primary)", 
               border: 'none', 
               fontWeight: 800, 
               fontSize: 16 

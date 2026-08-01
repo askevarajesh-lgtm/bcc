@@ -49,7 +49,7 @@ const Finance = () => {
         <a style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}><Download size={14} /> Download PDF</a>
       ) : (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Button type="primary" size="small" style={{ borderRadius: 6, background: 'var(--accent-secondary)', border: 'none', fontSize: 11, fontWeight: 600, height: 26 }} icon={<LinkIcon size={12} />}>Send Link</Button>
+          <Button type="primary" size="small" style={{ borderRadius: 6, background: 'var(--accent-primary)', border: 'none', fontSize: 11, fontWeight: 600, height: 26 }} icon={<LinkIcon size={12} />}>Send Link</Button>
           <Button size="small" style={{ borderRadius: 6, fontSize: 11, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', height: 26 }} icon={<QrCode size={12} />}>QR</Button>
           <a style={{ color: 'var(--text-secondary)', fontSize: 12, marginLeft: 8, fontWeight: 600 }}>Record</a>
           <MoreHorizontal size={16} color="var(--text-tertiary)" style={{ cursor: 'pointer', marginLeft: 8 }} />
@@ -70,7 +70,7 @@ const Finance = () => {
           <Button icon={<Calendar size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>This Month <ChevronDown size={14} /></Button>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Export</Button>
           <Button icon={<Settings size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Set Up Auto-Collection</Button>
-          <Button type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New Invoice</Button>
+          <Button type="primary" icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New Invoice</Button>
         </div>
       </motion.div>
 
@@ -190,7 +190,7 @@ const Finance = () => {
                 </div>
               </div>
 
-              <Button type="primary" block icon={<LinkIcon size={18} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', marginBottom: 16, height: 48, fontWeight: 700, fontSize: 14 }}>Send payment links to all pending</Button>
+              <Button type="primary" block icon={<LinkIcon size={18} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', border: 'none', marginBottom: 16, height: 48, fontWeight: 700, fontSize: 14 }}>Send payment links to all pending</Button>
               <Button block icon={<Settings size={18} />} style={{ borderRadius: 8, marginBottom: 16, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Set up UPI Autopay mandates</Button>
               <Button block icon={<QrCode size={18} />} style={{ borderRadius: 8, height: 48, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14 }}>Generate UPI QR for outstanding</Button>
             </Col>

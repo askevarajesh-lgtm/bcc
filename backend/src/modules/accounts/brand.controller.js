@@ -272,6 +272,7 @@ exports.updateBrandProfile = async (req, res, next) => {
     if (domain) updates.domain = domain;
     if (industry) updates.industry = industry;
     if (logo) updates.logo = logo;
+    if (req.body.theme) updates.theme = req.body.theme;
 
     // Use req.user._id since the brand_super_admin's user record is the brand record 
     // or their brandId if they are just a user

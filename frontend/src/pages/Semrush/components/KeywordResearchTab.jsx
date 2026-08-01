@@ -62,7 +62,7 @@ const KeywordResearchTab = () => {
     if (kd >= 60) return '#fa8c16'; 
     if (kd >= 40) return '#faad14'; 
     if (kd >= 20) return '#52c41a'; 
-    return '#1890ff'; 
+    return 'var(--accent-primary)'; 
   };
 
   const getDifficultyLabel = (kd) => {

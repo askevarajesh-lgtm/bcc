@@ -268,7 +268,7 @@ const FacebookLeadsTab = () => {
           <Title level={4} style={{ marginBottom: "20px" }}>How it works</Title>
           <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "20px" }}>
             <div style={{ maxWidth: "250px", textAlign: "center" }}>
-              <ApiOutlined style={{ fontSize: "28px", color: "#0ea5e9", marginBottom: "12px" }} />
+              <ApiOutlined style={{ fontSize: "28px", color: "var(--accent-secondary)", marginBottom: "12px" }} />
               <Title level={5}>1. Authenticate</Title>
               <Text type="secondary">Log in via Facebook secure OAuth dialog and authorize Page lead retrievals.</Text>
             </div>

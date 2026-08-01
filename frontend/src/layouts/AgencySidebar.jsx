@@ -119,7 +119,6 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     
     // Default modules always available
     workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
-    workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
     workspaceChildren.push({
       key: 'task_management',
       label: 'Task Management',
@@ -181,11 +180,12 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const accountsChildren = [];
+  accountsChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
   accountsChildren.push({ key: '/agency/accounts/transactions', icon: getIcon(CreditCard), label: 'Transactions' });
   accountsChildren.push({ key: '/agency/accounts/sales-tracking', icon: getIcon(TrendingUp), label: 'Sales Tracking' });
   accountsChildren.push({ key: '/agency/accounts/expenses', icon: getIcon(FileText), label: 'Expenses Management' });
-  // accountsChildren.push({ key: '/agency/accounts/campaign-expenses', icon: getIcon(DollarSign), label: 'Campaign Expenses' });
-  // accountsChildren.push({ key: '/agency/accounts/pl-analytics', icon: getIcon(PieChart), label: 'P&L Analytics' });
+  accountsChildren.push({ key: '/agency/accounts/campaign-expenses', icon: getIcon(DollarSign), label: 'Campaign Expenses' });
+  accountsChildren.push({ key: '/agency/accounts/pl-analytics', icon: getIcon(PieChart), label: 'P&L Analytics' });
 
   if (accountsChildren.length > 0) {
     menuItems.push({
@@ -251,7 +251,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       brandLogo={user?.logo}
       brandTitle={dynamicAgencyName}
       brandSubtitle={user?.roleName || "Agency Portal"}
-      accent="#3b82f6"
+      accent="var(--accent-primary)"
       accentSoft="rgba(59, 130, 246, 0.12)"
       menuItems={menuItems}
       selectedKeys={getSelectedKeys()}

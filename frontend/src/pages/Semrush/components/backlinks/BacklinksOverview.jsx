@@ -86,7 +86,7 @@ const BacklinksOverview = ({ setActiveTab }) => {
         </div>
         <div className="bl-stat-block">
           <span className="bl-stat-title">Overall Toxicity Score <InfoCircleOutlined /></span>
-          <span className="bl-stat-value" style={{ fontSize: 13, color: '#1890ff', fontWeight: 500, cursor: 'pointer' }}>Set up Backlink Audit</span>
+          <span className="bl-stat-value" style={{ fontSize: 13, color: 'var(--accent-primary)', fontWeight: 500, cursor: 'pointer' }}>Set up Backlink Audit</span>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ const BacklinksOverview = ({ setActiveTab }) => {
            <h3 className="bl-card-title">Authority Score <InfoCircleOutlined /></h3>
            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
              <span style={{ fontSize: 32, fontWeight: 700, color: '#2b2b2b' }}>{score}</span>
-             <Tag color="#e6f7ff" style={{ color: '#1890ff', fontWeight: 600, border: 'none', borderRadius: 12 }}>Low authority</Tag>
+             <Tag color="#e6f7ff" style={{ color: 'var(--accent-primary)', fontWeight: 600, border: 'none', borderRadius: 12 }}>Low authority</Tag>
            </div>
            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
              <ResponsiveContainer width="100%" height={200}>
@@ -228,7 +228,7 @@ const BacklinksOverview = ({ setActiveTab }) => {
                            </span>
                            <div style={{ display: 'flex', gap: 16 }}>
                               <span style={{ color: '#8c8c8c' }}>{pct.toFixed(0)}%</span>
-                              <span style={{ color: '#1890ff', width: 30, textAlign: 'right' }}>{formatNumber(t.value)}</span>
+                              <span style={{ color: 'var(--accent-primary)', width: 30, textAlign: 'right' }}>{formatNumber(t.value)}</span>
                            </div>
                         </div>
                      )
@@ -327,11 +327,11 @@ const BacklinksOverview = ({ setActiveTab }) => {
             </div>
             {(data.pages || []).slice(0, 5).map(p => (
                <div key={p.url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
-                  <span style={{ color: '#1890ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                  <span style={{ color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                      <Tag color="#ffe8e6" style={{ color: '#ff7a45', border: 'none', marginRight: 8 }}>200</Tag>
                      {p.url} <ExternalLink size={12} />
                   </span>
-                  <span style={{ color: '#1890ff' }}>{formatNumber(p.domains)}</span>
+                  <span style={{ color: 'var(--accent-primary)' }}>{formatNumber(p.domains)}</span>
                </div>
             ))}
             <div style={{ marginTop: 24 }}>

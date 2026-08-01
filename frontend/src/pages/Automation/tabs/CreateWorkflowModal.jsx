@@ -29,7 +29,7 @@ const CreateWorkflowModal = ({ visible, onClose, onCreate }) => {
         <Button key="back" onClick={onClose} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
           Cancel
         </Button>,
-        <Button key="submit" type="primary" onClick={handleCreate} disabled={!name.trim()} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-secondary)' }}>
+        <Button key="submit" type="primary" onClick={handleCreate} disabled={!name.trim()} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-primary)' }}>
           Create Workflow
         </Button>,
       ]}
@@ -52,7 +52,7 @@ const CreateWorkflowModal = ({ visible, onClose, onCreate }) => {
           position: 'relative',
           cursor: 'pointer'
         }}>
-          <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Zap size={24} />
           </div>
           <div>

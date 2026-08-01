@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox } from 'antd';
+import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox, ColorPicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
+import { useTheme } from '../../../contexts/ThemeContext';
 import ClientPackagesTab from './ClientPackagesTab';
+import TaxSettingsTab from '../../Settings/tabs/TaxSettingsTab';
+import { Percent } from 'lucide-react';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -22,6 +25,7 @@ const availableFeatures = [
 
 const AgencySettingsTab = () => {
   const { user, setUser } = useAuth();
+  const { updatePreviewTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [formAgency] = Form.useForm();
   const [formAccount] = Form.useForm();
@@ -36,7 +40,9 @@ const AgencySettingsTab = () => {
         name: user.companyName || '',
         domain: user.domain || '',
         email: user.contactEmail || '',
-        phone: user.supportPhone || ''
+        phone: user.supportPhone || '',
+        theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
+        theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
       });
       formAccount.setFieldsValue({
         firstName: (user.name || '').split(' ')[0] || '',
@@ -84,18 +90,35 @@ const AgencySettingsTab = () => {
     }
   };
 
+  const handleValuesChange = (changedValues) => {
+    if (changedValues.theme_primaryColor || changedValues.theme_secondaryColor) {
+      const primary = changedValues.theme_primaryColor ? (typeof changedValues.theme_primaryColor === 'string' ? changedValues.theme_primaryColor : changedValues.theme_primaryColor.toHexString()) : null;
+      const secondary = changedValues.theme_secondaryColor ? (typeof changedValues.theme_secondaryColor === 'string' ? changedValues.theme_secondaryColor : changedValues.theme_secondaryColor.toHexString()) : null;
+      updatePreviewTheme(primary, secondary);
+    }
+  };
+
   const handleSaveAgency = async (values) => {
     setLoading(true);
     try {
-      const res = await api.put(`/users/${user._id}`, {
+      const payload = {
         companyName: values.name,
         domain: values.domain,
         contactEmail: values.email,
-        supportPhone: values.phone
-      });
-      const updatedUser = res.data.data;
+        supportPhone: values.phone,
+        theme: {
+          primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
+          secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
+        }
+      };
+      const res = await api.put(`/users/${user._id}`, payload);
+      let updatedUser = { ...user, ...res.data.data };
+      if (res.data.data.theme) {
+        updatedUser.effectiveTheme = res.data.data.theme;
+      }
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event('user-updated'));
       message.success('Agency details updated successfully');
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update agency details');
@@ -148,12 +171,15 @@ const AgencySettingsTab = () => {
         <Form 
           form={formAgency} 
           layout="vertical" 
+          onValuesChange={handleValuesChange}
           onFinish={handleSaveAgency} 
           initialValues={{ 
             name: user?.companyName || '', 
             domain: user?.domain || '', 
             email: user?.contactEmail || '', 
-            phone: user?.supportPhone || '' 
+            phone: user?.supportPhone || '',
+            theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
+            theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
           }}
         >
           <Row gutter={24}>
@@ -175,6 +201,16 @@ const AgencySettingsTab = () => {
             <Col xs={24} md={12}>
               <Form.Item label={<Text style={{ fontWeight: 600 }}>Support Phone</Text>} name="phone">
                 <Input size="large" style={{ borderRadius: 8 }} placeholder="+1 (555) 000-0000" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Primary Theme Color</Text>} name="theme_primaryColor">
+                <ColorPicker format="hex" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Secondary Theme Color</Text>} name="theme_secondaryColor">
+                <ColorPicker format="hex" />
               </Form.Item>
             </Col>
           </Row>
@@ -325,10 +361,15 @@ const AgencySettingsTab = () => {
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Briefcase size={16} /> Client Packages</span>,
       children: <ClientPackagesTab />,
     },
+    {
+      key: 'tax-settings',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Percent size={16} /> Tax Settings</span>,
+      children: <TaxSettingsTab />,
+    },
   ];
 
   const items = user?.role === 'agency_manager' 
-    ? baseItems.filter(item => ['account', 'client-packages'].includes(item.key))
+    ? baseItems.filter(item => ['account', 'client-packages', 'tax-settings'].includes(item.key))
     : baseItems;
 
   return (

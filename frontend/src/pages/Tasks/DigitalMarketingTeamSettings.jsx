@@ -136,7 +136,7 @@ const DigitalMarketingTeamSettings = () => {
           {/* Designer limit */}
           <Col xs={24} md={12}>
             <Card style={cardStyle} bodyStyle={{ padding: "20px 24px" }}>
-              <div style={accentStyle("#2563eb")}>
+              <div style={accentStyle("var(--accent-primary)")}>
                 <PictureOutlined />
               </div>
               <Title

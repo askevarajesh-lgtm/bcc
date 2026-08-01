@@ -301,7 +301,7 @@ const ManageFunnelView = ({ activeFunnel, setView, itemVariants }) => {
                   </div>
                 </div>
 
-                <Button type="primary" onClick={handleSaveSettings} block style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 16 }}>
+                <Button type="primary" onClick={handleSaveSettings} block style={{ background: 'var(--accent-primary)', border: "none", borderRadius: 8, fontWeight: 700, height: 44, marginBottom: 16 }}>
                   Save Funnel
                 </Button>
               </Card>
@@ -522,7 +522,7 @@ const FunnelsTab = ({ itemVariants }) => {
         </div>
         <Space>
           <Button icon={<FolderPlus size={16} />} style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', fontWeight: 600 }}>Create Folder</Button>
-          <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalOpen(true)} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>New Funnel</Button>
+          <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalOpen(true)} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>New Funnel</Button>
         </Space>
       </div>
 
@@ -548,7 +548,7 @@ const FunnelsTab = ({ itemVariants }) => {
               </div>
               <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>No funnels yet</Title>
               <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14, fontWeight: 500 }}>Create your first funnel from blank, AI, templates, or a ZIP export.</Text>
-              <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalOpen(true)} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', border: 'none', fontWeight: 600, padding: '0 24px' }}>New Funnel</Button>
+              <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalOpen(true)} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', border: 'none', fontWeight: 600, padding: '0 24px' }}>New Funnel</Button>
             </div>
           )
         }}

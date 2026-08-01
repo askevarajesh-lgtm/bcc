@@ -13,7 +13,7 @@ const BlogEmbedView = () => {
   const [loading, setLoading] = useState(true);
 
   const themeFont = searchParams.get("font") || blogData?.websiteTheme?.fontFamily || "Inter";
-  const themeColor = searchParams.get("color") || blogData?.websiteTheme?.primaryColor || "#3b82f6";
+  const themeColor = searchParams.get("color") || blogData?.websiteTheme?.primaryColor || "var(--accent-primary)";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
 
   useEffect(() => {
@@ -63,8 +63,8 @@ const BlogEmbedView = () => {
   const siteStylesheetUrls = !isEmbed ? (blogData.siteStylesheetUrls || []) : [];
 
   return (
-    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
-    <div style={{ fontFamily: `'${themeFont}', 'Inter', sans-serif` }}>
+    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Outfit', sans-serif` } }}>
+    <div style={{ fontFamily: `'${themeFont}', 'Outfit', sans-serif` }}>
       <link rel="stylesheet" href={googleFontHref} />
       {siteStylesheetUrls.map((href) => (
         <link key={href} rel="stylesheet" href={href} />

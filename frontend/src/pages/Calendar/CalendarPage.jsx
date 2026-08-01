@@ -319,7 +319,7 @@ const CalendarPage = () => {
       render: (text, record) => (
         <div>
           <span
-            style={{ fontWeight: 600, color: '#1890ff', cursor: 'pointer' }}
+            style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }}
             onClick={() => {
               setSelectedEventId(record._id);
               setDetailModalVisible(true);
@@ -445,7 +445,7 @@ const CalendarPage = () => {
             size="large"
             icon={<PlusOutlined />}
             onClick={openCreateDrawer}
-            style={{ borderRadius: '8px', background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
+            style={{ borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary) 100%)', border: 'none' }}
           >
             Create Event
           </Button>

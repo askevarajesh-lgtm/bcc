@@ -120,7 +120,7 @@ const ProfessionalInvoice = ({ invoice }) => {
       {/* Header Section */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 40 }}>
         <Col>
-          <Title level={2} style={{ margin: 0, color: isDark ? "#7aa6ff" : "#1890ff" }}>
+          <Title level={2} style={{ margin: 0, color: isDark ? "#7aa6ff" : "var(--accent-primary)" }}>
             INVOICE
           </Title>
           <Text style={{ fontSize: "16px", color: textSecondaryColor }}>
@@ -221,7 +221,7 @@ const ProfessionalInvoice = ({ invoice }) => {
             <Title level={4} style={{ margin: 0 }}>
               Grand Total:
             </Title>
-            <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
+            <Title level={4} style={{ margin: 0, color: "var(--accent-primary)" }}>
               ₹{(invoice.grandTotal || 0).toLocaleString()}
             </Title>
           </Row>

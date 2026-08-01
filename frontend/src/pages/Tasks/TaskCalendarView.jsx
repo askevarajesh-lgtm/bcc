@@ -306,8 +306,8 @@ const TaskCalendarView = ({ onTaskClick, departmentFilter }) => {
                 }}
                 style={{
                   border: "none",
-                  background: isDark ? "#1d4ed8" : "#eff6ff",
-                  color: isDark ? "#dbeafe" : "#1d4ed8",
+                  background: isDark ? "var(--accent-primary)" : "#eff6ff",
+                  color: isDark ? "#dbeafe" : "var(--accent-primary)",
                   borderRadius: 999,
                   padding: "2px 8px",
                   fontSize: 11,

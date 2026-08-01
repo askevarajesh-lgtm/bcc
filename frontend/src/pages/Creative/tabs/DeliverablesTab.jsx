@@ -38,7 +38,7 @@ const DeliverablesTab = ({ itemVariants }) => {
       key: 'approvedDate', 
       render: (text, record) => {
         if (record.status === 'approved') {
-          return <span style={{ color: 'var(--accent-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ background: 'var(--accent-secondary)', color: '#fff', borderRadius: 4, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={12}/></div>{text}</span>;
+          return <span style={{ color: 'var(--accent-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ background: 'var(--accent-primary)', color: '#fff', borderRadius: 4, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={12}/></div>{text}</span>;
         } else {
           return <span style={{ color: 'var(--accent-warning)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Hourglass size={14}/>{text}</span>;
         }

@@ -213,7 +213,7 @@ const AIStudioTab = ({ itemVariants }) => {
                     <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5 }}>CHARACTER LIMIT</Text>
                     <Text strong style={{ color: 'var(--accent-secondary)' }}>{characterLimit}</Text>
                   </div>
-                  <Slider value={characterLimit} onChange={setCharacterLimit} max={2200} trackStyle={{ background: 'var(--accent-secondary)' }} handleStyle={{ borderColor: 'var(--accent-secondary)' }} />
+                  <Slider value={characterLimit} onChange={setCharacterLimit} max={2200} trackStyle={{ background: 'var(--accent-primary)' }} handleStyle={{ borderColor: 'var(--accent-secondary)' }} />
                 </div>
 
                 <div>
@@ -225,7 +225,7 @@ const AIStudioTab = ({ itemVariants }) => {
                   </div>
                 </div>
 
-                <Button loading={isGenerating} onClick={() => handleGenerate(false)} type="primary" size="large" icon={!isGenerating && <Sparkles size={18} />} style={{ background: 'var(--accent-secondary)', width: '100%', marginTop: 12, height: 50, borderRadius: 12, fontSize: 16, fontWeight: 600, border: 'none', boxShadow: '0 4px 14px rgba(13, 148, 136, 0.4)' }}>
+                <Button loading={isGenerating} onClick={() => handleGenerate(false)} type="primary" size="large" icon={!isGenerating && <Sparkles size={18} />} style={{ background: 'var(--accent-primary)', width: '100%', marginTop: 12, height: 50, borderRadius: 12, fontSize: 16, fontWeight: 600, border: 'none', boxShadow: '0 4px 14px rgba(13, 148, 136, 0.4)' }}>
                   {isGenerating ? 'Generating...' : 'Generate Content'}
                 </Button>
               </div>

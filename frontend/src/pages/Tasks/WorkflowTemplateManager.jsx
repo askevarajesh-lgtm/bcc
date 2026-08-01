@@ -36,7 +36,7 @@ const { Option } = Select;
 
 const WorkflowTemplateManager = () => {
   const [form] = Form.useForm();
-  const [templateColor, setTemplateColor] = useState("#1890ff");
+  const [templateColor, setTemplateColor] = useState("var(--accent-primary)");
   const [statuses, setStatuses] = useState([]);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -76,7 +76,7 @@ const WorkflowTemplateManager = () => {
       .map((dept) => ({
         value: dept.slug || dept._id,
         label: dept.name,
-        color: "#1890ff", // Default color for mapping, though individual templates have their own
+        color: "var(--accent-primary)", // Default color for mapping, though individual templates have their own
       }));
   }, [departments, userRole]);
 
@@ -95,7 +95,7 @@ const WorkflowTemplateManager = () => {
           _key: "to_do",
           id: "to_do",
           name: "To Do",
-          color: "#1890ff",
+          color: "var(--accent-primary)",
           order: 1,
         },
         {
@@ -123,7 +123,7 @@ const WorkflowTemplateManager = () => {
       const template = allConfigs.find((c) => c._id === editingTemplate);
       if (template) {
         setSelectedDepartment(template.projectType);
-        setTemplateColor(template.color || "#1890ff");
+        setTemplateColor(template.color || "var(--accent-primary)");
         if (template.statuses && template.statuses.length > 0) {
           // Sort by order and add stable keys if missing
           const sortedStatuses = [...template.statuses]
@@ -149,7 +149,7 @@ const WorkflowTemplateManager = () => {
       _key: `st_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       id: `status_${Date.now()}`,
       name: "New Status",
-      color: "#1890ff",
+      color: "var(--accent-primary)",
       order: statuses.length,
     };
     setStatuses([...statuses, newStatus]);
@@ -201,7 +201,7 @@ const WorkflowTemplateManager = () => {
   const handleReset = () => {
     form.resetFields();
     setSelectedDepartment(null);
-    setTemplateColor("#1890ff");
+    setTemplateColor("var(--accent-primary)");
     setStatuses([
       {
         _key: "backlog",
@@ -210,7 +210,7 @@ const WorkflowTemplateManager = () => {
         color: "#8c8c8c",
         order: 0,
       },
-      { _key: "to_do", id: "to_do", name: "To Do", color: "#1890ff", order: 1 },
+      { _key: "to_do", id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
       {
         _key: "in_progress",
         id: "in_progress",
@@ -293,7 +293,7 @@ const WorkflowTemplateManager = () => {
 
   const defaultColors = [
     "#8c8c8c",
-    "#1890ff",
+    "var(--accent-primary)",
     "#faad14",
     "#722ed1",
     "#ff4d4f",
@@ -321,7 +321,7 @@ const WorkflowTemplateManager = () => {
               width: 16,
               height: 16,
               borderRadius: 4,
-              backgroundColor: record.color || "#1890ff",
+              backgroundColor: record.color || "var(--accent-primary)",
               border: "1px solid #d9d9d9",
             }}
           />
@@ -464,7 +464,7 @@ const WorkflowTemplateManager = () => {
                 {
                   label: "Recommended Colors",
                   colors: [
-                    "#1890ff",
+                    "var(--accent-primary)",
                     "#52c41a",
                     "#faad14",
                     "#f5222d",

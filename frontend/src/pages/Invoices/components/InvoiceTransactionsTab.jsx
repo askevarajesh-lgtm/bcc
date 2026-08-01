@@ -147,7 +147,7 @@ const InvoiceTransactionsTab = ({ invoice, isClientRole }) => {
             <Col xs={24} sm={12} md={8}>
               <Card size="small" bordered>
                 <Text type="secondary">Handling Amount</Text>
-                <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{formatCurrency(computedHandlingAmount)}</Title>
+                <Title level={4} style={{ margin: 0, color: 'var(--accent-primary)' }}>{formatCurrency(computedHandlingAmount)}</Title>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>

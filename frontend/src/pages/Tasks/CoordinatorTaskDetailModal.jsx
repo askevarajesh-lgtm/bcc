@@ -45,7 +45,7 @@ const STATUS_CONFIG = {
     icon: <ClockCircleOutlined />,
   },
   assigned: {
-    color: "#3b82f6",
+    color: "var(--accent-primary)",
     bg: "rgba(59,130,246,0.12)",
     label: "Assigned",
     icon: <ClockCircleOutlined />,

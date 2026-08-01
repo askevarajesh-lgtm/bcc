@@ -115,7 +115,7 @@ const SiteHealthTab = () => {
       {/* Top Header Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Site Audit: <span style={{ color: '#1890ff' }}>{domain}</span></Title>
+          <Title level={3} style={{ margin: 0 }}>Site Audit: <span style={{ color: 'var(--accent-primary)' }}>{domain}</span></Title>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 16 }}>
             <span>Desktop</span>
             <span>JS rendering: Disabled</span>
@@ -150,19 +150,19 @@ const SiteHealthTab = () => {
 
             <div className="sa-col-6 sa-card">
               <Title level={5}>Crawled Pages</Title>
-              <Title level={2} style={{ margin: '8px 0', color: '#1890ff' }}>{pages_crawled}</Title>
+              <Title level={2} style={{ margin: '8px 0', color: 'var(--accent-primary)' }}>{pages_crawled}</Title>
               
               <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 24, background: '#f0f0f0' }}>
                 {healthy > 0 && <div style={{ width: `${(healthy/pages_crawled)*100}%`, background: '#52c41a' }} />}
                 {broken > 0 && <div style={{ width: `${(broken/pages_crawled)*100}%`, background: '#f5222d' }} />}
                 {haveIssues > 0 && <div style={{ width: `${(haveIssues/pages_crawled)*100}%`, background: '#faad14' }} />}
-                {redirected > 0 && <div style={{ width: `${(redirected/pages_crawled)*100}%`, background: '#1890ff' }} />}
+                {redirected > 0 && <div style={{ width: `${(redirected/pages_crawled)*100}%`, background: 'var(--accent-primary)' }} />}
               </div>
 
               <div className="sa-stats-row"><span style={{color: '#52c41a'}}>●</span> Healthy <Text strong>{healthy}</Text></div>
               <div className="sa-stats-row"><span style={{color: '#f5222d'}}>●</span> Broken <Text strong>{broken}</Text></div>
               <div className="sa-stats-row"><span style={{color: '#faad14'}}>●</span> Have issues <Text strong>{haveIssues}</Text></div>
-              <div className="sa-stats-row"><span style={{color: '#1890ff'}}>●</span> Redirects <Text strong>{redirected}</Text></div>
+              <div className="sa-stats-row"><span style={{color: 'var(--accent-primary)'}}>●</span> Redirects <Text strong>{redirected}</Text></div>
               <div className="sa-stats-row"><span style={{color: '#8c8c8c'}}>●</span> Blocked <Text strong>{blocked}</Text></div>
             </div>
 
@@ -180,7 +180,7 @@ const SiteHealthTab = () => {
               <Divider style={{ margin: '16px 0' }} />
               <div style={{ padding: '0 24px 24px 24px' }}>
                 <Title level={5} style={{ margin: 0 }}>Notices</Title>
-                <Title level={2} style={{ color: '#1890ff', margin: 0 }}>{notices}</Title>
+                <Title level={2} style={{ color: 'var(--accent-primary)', margin: 0 }}>{notices}</Title>
               </div>
             </div>
 
@@ -189,11 +189,11 @@ const SiteHealthTab = () => {
               {defectList.slice(0, 5).map((d, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? '1px solid #f0f0f0' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <AlertCircle size={16} color={errorIssues.find(e=>e.id===d.id) ? '#f5222d' : warningIssues.find(w=>w.id===d.id) ? '#faad14' : '#1890ff'} />
+                    <AlertCircle size={16} color={errorIssues.find(e=>e.id===d.id) ? '#f5222d' : warningIssues.find(w=>w.id===d.id) ? '#faad14' : 'var(--accent-primary)'} />
                     <Text>{d.name}</Text>
                   </div>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    <Text strong style={{ color: '#1890ff' }}>{d.count} pages</Text>
+                    <Text strong style={{ color: 'var(--accent-primary)' }}>{d.count} pages</Text>
                     <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                       <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
                     </Popover>
@@ -221,7 +221,7 @@ const SiteHealthTab = () => {
             <Title level={5} style={{ color: '#f5222d', borderBottom: '2px solid #f5222d', paddingBottom: 8 }}>Errors</Title>
             {errorIssues.map((d, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
                 </Popover>
@@ -232,7 +232,7 @@ const SiteHealthTab = () => {
             <Title level={5} style={{ color: '#faad14', borderBottom: '2px solid #faad14', paddingBottom: 8, marginTop: 32 }}>Warnings</Title>
             {warningIssues.map((d, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
                 </Popover>
@@ -240,10 +240,10 @@ const SiteHealthTab = () => {
             ))}
             {warningIssues.length === 0 && <Text type="secondary" style={{ display: 'block', padding: 16 }}>No warnings found.</Text>}
 
-            <Title level={5} style={{ color: '#1890ff', borderBottom: '2px solid #1890ff', paddingBottom: 8, marginTop: 32 }}>Notices</Title>
+            <Title level={5} style={{ color: 'var(--accent-primary)', borderBottom: '2px solid var(--accent-primary)', paddingBottom: 8, marginTop: 32 }}>Notices</Title>
             {noticeIssues.map((d, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <Text><span style={{ color: '#1890ff', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
+                <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
                 </Popover>
@@ -287,7 +287,7 @@ const SiteHealthTab = () => {
                   key: 'issues',
                   render: (_, record) => {
                     const total = (record.errors || 0) + (record.warnings || 0) + (record.notices || 0);
-                    return <Text style={{ color: total > 0 ? '#1890ff' : 'inherit' }}>{total} issues</Text>;
+                    return <Text style={{ color: total > 0 ? 'var(--accent-primary)' : 'inherit' }}>{total} issues</Text>;
                   }
                 },
                 {

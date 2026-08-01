@@ -275,7 +275,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       brandLogo={user?.logo}
       brandTitle="M1"
       brandSubtitle="Agency Growth OS"
-      accent="#3b82f6"
+      accent="var(--accent-primary)"
       accentSoft="rgba(59, 130, 246, 0.12)"
       menuItems={menuItems}
       selectedKeys={selectedKeys}

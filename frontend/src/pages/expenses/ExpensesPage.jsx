@@ -99,7 +99,7 @@ const ExpensesPage = () => {
               title="Net Profit"
               value={0}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#1890ff" }}
+              valueStyle={{ color: "var(--accent-primary)" }}
             />
           </Card>
         </Col>

@@ -66,7 +66,7 @@ const ListViewTab = ({ itemVariants }) => {
       key: 'assignee', 
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Avatar size="small" style={{ background: '#3b82f6', fontWeight: 700, fontSize: 12 }}>AI</Avatar>
+          <Avatar size="small" style={{ background: 'var(--accent-primary)', fontWeight: 700, fontSize: 12 }}>AI</Avatar>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>AI Studio</span>
         </div>
       )

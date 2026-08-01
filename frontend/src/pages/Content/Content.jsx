@@ -173,7 +173,7 @@ const Content = () => {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {canView && (
-            <Button type="primary" onClick={handleExport} icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export Pipeline</Button>
+            <Button type="primary" onClick={handleExport} icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export Pipeline</Button>
           )}
         </div>
       </motion.div>
@@ -182,10 +182,10 @@ const Content = () => {
       <Spin spinning={loading}>
         <Row gutter={[24, 24]} style={{ marginBottom: 24, paddingTop: 16 }}>
           {[
-            { label: 'PUBLISHED THIS MONTH', val: publishedCount, sub: 'Pieces shipped', colorStart: '#3b82f6', colorEnd: '#10b981', icon: <CheckCircle2 size={20} /> },
+            { label: 'PUBLISHED THIS MONTH', val: publishedCount, sub: 'Pieces shipped', colorStart: 'var(--accent-primary)', colorEnd: '#10b981', icon: <CheckCircle2 size={20} /> },
             { label: 'PENDING QA APPROVAL', val: reviewCount, sub: 'Awaiting Gate 2', colorStart: '#f59e0b', colorEnd: '#ef4444', icon: <AlertCircle size={20} /> },
-            { label: 'SCHEDULED', val: scheduledCount, sub: 'Queued for go-live', colorStart: '#8b5cf6', colorEnd: '#3b82f6', icon: <PenTool size={20} /> },
-            { label: 'TOTAL PIPELINE', val: totalCount, sub: 'All statuses', colorStart: '#0d9488', colorEnd: '#0ea5e9', icon: <FileText size={20} /> }
+            { label: 'SCHEDULED', val: scheduledCount, sub: 'Queued for go-live', colorStart: '#8b5cf6', colorEnd: 'var(--accent-primary)', icon: <PenTool size={20} /> },
+            { label: 'TOTAL PIPELINE', val: totalCount, sub: 'All statuses', colorStart: '#0d9488', colorEnd: 'var(--accent-secondary)', icon: <FileText size={20} /> }
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>

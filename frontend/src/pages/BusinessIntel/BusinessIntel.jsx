@@ -88,7 +88,7 @@ const BusinessIntel = () => {
               {timeFilter === '6m' ? 'Last 6 months' : timeFilter === 'ytd' ? 'Year to date' : 'Last 12 months'} <ChevronDown size={14} style={{ marginLeft: 4 }} />
             </Button>
           </Dropdown>
-          <Button onClick={() => window.print()} type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export Board</Button>
+          <Button onClick={() => window.print()} type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export Board</Button>
         </div>
       </motion.div>
 

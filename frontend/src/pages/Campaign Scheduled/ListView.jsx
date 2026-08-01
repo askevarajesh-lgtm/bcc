@@ -344,7 +344,7 @@ export default function ListView({
                 ).length;
 
                 let displayStatus = value;
-                let color = "#1890ff"; // Default Blue
+                let color = "var(--accent-primary)"; // Default Blue
                 let icon = null;
 
                 // Logic: If it says Published but nothing was actually sent, it's a failure.
@@ -369,11 +369,11 @@ export default function ListView({
                   icon = <ClockCircleOutlined />;
                 } else if (value === "Draft") {
                   displayStatus = "Draft";
-                  color = "#1890ff"; // Blue
+                  color = "var(--accent-primary)"; // Blue
                   icon = <FileTextOutlined />;
                 } else if (value === "Scheduled") {
                   displayStatus = "Scheduled";
-                  color = "#1890ff"; // Blue
+                  color = "var(--accent-primary)"; // Blue
                   icon = <ClockCircleOutlined />;
                 }
 

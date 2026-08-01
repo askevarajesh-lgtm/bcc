@@ -40,7 +40,7 @@ const TrendCard = ({ item, itemVariants }) => (
             <Tag color={item.type === 'HOT' ? 'error' : item.type === 'UP RISING' ? 'warning' : 'success'} style={{ borderRadius: 12, fontWeight: 700, margin: 0, padding: '2px 10px' }}>{item.type === 'HOT' ? '🔥 HOT' : item.type === 'UP RISING' ? '🚀 UP RISING' : '🌱 EVERGREEN'}</Tag>
             <Tag style={{ borderRadius: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', margin: 0 }}>{item.platform}</Tag>
           </div>
-          <Button type="primary" size="small" style={{ background: 'var(--accent-secondary)', borderRadius: 16, fontWeight: 600 }}>Generate →</Button>
+          <Button type="primary" size="small" style={{ background: 'var(--accent-primary)', borderRadius: 16, fontWeight: 600 }}>Generate →</Button>
         </div>
 
         <Title level={5} style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</Title>
@@ -63,7 +63,7 @@ const TrendCard = ({ item, itemVariants }) => (
 
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button size="small" icon={<PenTool size={14} />} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-secondary)', color: '#fff', border: 'none' }}>Generate Post</Button>
+            <Button size="small" icon={<PenTool size={14} />} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-primary)', color: '#fff', border: 'none' }}>Generate Post</Button>
             <Button size="small" icon={<Edit3 size={14} />} style={{ borderRadius: 8, fontWeight: 600 }}>Generate Blog</Button>
             <Button size="small" type="text" icon={<Bookmark size={14} />} style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Save Idea</Button>
           </div>
@@ -144,7 +144,7 @@ const TrendsTab = ({ itemVariants }) => {
               </Button>
             );
           })}
-          <Button type="primary" style={{ borderRadius: 20, background: 'var(--accent-secondary)', border: 'none', fontWeight: 600, marginLeft: 8 }} icon={<Sparkles size={14}/>}>Analyse Selected Channels</Button>
+          <Button type="primary" style={{ borderRadius: 20, background: 'var(--accent-primary)', border: 'none', fontWeight: 600, marginLeft: 8 }} icon={<Sparkles size={14}/>}>Analyse Selected Channels</Button>
         </div>
       </motion.div>
 

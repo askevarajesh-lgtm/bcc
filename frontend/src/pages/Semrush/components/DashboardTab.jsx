@@ -66,7 +66,7 @@ const DashboardTab = () => {
                       <>
                         <div>
                           <Text type="secondary">Informational</Text>
-                          <Title level={2} style={{ margin: 0, color: '#1890ff' }}>{Math.round((intentCounts.I / total) * 100)}%</Title>
+                          <Title level={2} style={{ margin: 0, color: 'var(--accent-primary)' }}>{Math.round((intentCounts.I / total) * 100)}%</Title>
                           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{intentCounts.I} keywords</div>
                         </div>
                         <div>
@@ -109,7 +109,7 @@ const DashboardTab = () => {
                   </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Ref. Domains</Text>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1890ff' }}>{formatNumber(backlinks.domains_num)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-primary)' }}>{formatNumber(backlinks.domains_num)}</div>
                   </div>
                 </div>
               </div>
@@ -123,14 +123,14 @@ const DashboardTab = () => {
                 <div style={{ display: 'flex', gap: 24 }}>
                   <div style={{ flex: 1 }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>Visibility Index</Text>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#1890ff', marginBottom: 16 }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-primary)', marginBottom: 16 }}>
                       {Math.min(100, (data['Organic Traffic'] / Math.max(1, (data['Organic Traffic'] + 1000))) * 100).toFixed(1)}%
                     </div>
                     {data.trend && data.trend.length > 0 ? (
                       <div style={{ height: 120, width: '100%' }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={data.trend}>
-                            <Area type="monotone" dataKey="traffic" stroke="#1890ff" strokeWidth={2} fillOpacity={0.1} fill="#1890ff" />
+                            <Area type="monotone" dataKey="traffic" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={0.1} fill="var(--accent-primary)" />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
@@ -146,7 +146,7 @@ const DashboardTab = () => {
                     </div>
                     {topKeywords.map((kw, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                        <Text strong style={{ color: '#1890ff', fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%' }}>{kw.keyword}</Text>
+                        <Text strong style={{ color: 'var(--accent-primary)', fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%' }}>{kw.keyword}</Text>
                         <Tag color={kw.position <= 3 ? 'green' : 'blue'} style={{ margin: 0 }}>{kw.position}</Tag>
                       </div>
                     ))}
@@ -215,7 +215,7 @@ const DashboardTab = () => {
                     
                     return Object.entries(dist).map(([label, count], i) => (
                       <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                        <div style={{ width: '100%', height: `${(count / maxCount) * 100}%`, background: '#1890ff', borderRadius: '4px 4px 0 0', minHeight: 4, transition: 'height 0.5s ease' }} />
+                        <div style={{ width: '100%', height: `${(count / maxCount) * 100}%`, background: 'var(--accent-primary)', borderRadius: '4px 4px 0 0', minHeight: 4, transition: 'height 0.5s ease' }} />
                         <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4, fontWeight: 600 }}>{label}</div>
                       </div>
                     ));

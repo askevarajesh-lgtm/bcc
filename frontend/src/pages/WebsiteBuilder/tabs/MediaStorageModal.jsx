@@ -151,7 +151,7 @@ const MediaStorageModal = ({ isOpen, onClose, onSelectImage }) => {
       )}
       <style dangerouslySetInnerHTML={{__html: `
         .media-item-card:hover {
-          border-color: #3b82f6 !important;
+          border-color: var(--accent-primary) !important;
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
           transform: translateY(-2px);
         }

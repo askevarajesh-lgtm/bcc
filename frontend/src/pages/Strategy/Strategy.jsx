@@ -197,7 +197,7 @@ const Strategy = () => {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button loading={generating} onClick={handleGenerate} icon={<Target size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Generate strategy</Button>
-          <Button type="primary" onClick={() => setIsModalOpen(true)} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>New objective</Button>
+          <Button type="primary" onClick={() => setIsModalOpen(true)} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>New objective</Button>
         </div>
       </motion.div>
 
@@ -315,7 +315,7 @@ const Strategy = () => {
           title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Initiative roadmap</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>What's planned, in-flight and at risk this quarter</Text></div>}
           extra={
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <Button type="primary" onClick={() => setIsInitiativeModalOpen(true)} icon={<Plus size={16} />} size="small" style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-sm)' }}>Add Initiative</Button>
+              <Button type="primary" onClick={() => setIsInitiativeModalOpen(true)} icon={<Plus size={16} />} size="small" style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-sm)' }}>Add Initiative</Button>
               <Button icon={<Filter size={16} />} size="small" style={{ borderRadius: 8, fontWeight: 600, color: 'var(--text-secondary)', borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)' }}>Filters</Button>
             </div>
           }

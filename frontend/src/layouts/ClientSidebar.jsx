@@ -324,7 +324,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       brandLogo={user?.logo}
       brandTitle={dynamicBrandName}
       brandSubtitle={user?.roleName || "Executive Portal"}
-      accent="#10b981"
+      accent="var(--accent-primary)"
       accentSoft="rgba(16, 185, 129, 0.12)"
       menuItems={menuItems}
       selectedKeys={getSelectedKeys()}

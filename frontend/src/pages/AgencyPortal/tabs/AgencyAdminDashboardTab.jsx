@@ -111,7 +111,7 @@ const AgencyAdminDashboardTab = () => {
       <motion.div variants={itemVariants}>
         <Card 
           title={<span style={{ fontWeight: 800, fontSize: 18 }}>Team Performance & Allocations</span>}
-          extra={<Button type="primary" style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8 }}>Manage Team</Button>}
+          extra={<Button type="primary" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8 }}>Manage Team</Button>}
           className="glassmorphism"
           style={{ borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}
           headStyle={{ borderBottom: '1px solid var(--border-color)', padding: '20px 24px' }}

@@ -108,7 +108,7 @@ const nameToColor = (name = "") => {
     "#6366f1",
     "#f59e0b",
     "#10b981",
-    "#3b82f6",
+    "var(--accent-primary)",
     "#ec4899",
     "#8b5cf6",
     "#14b8a6",
@@ -190,7 +190,7 @@ const TaskCardInner = ({
 
   // Category chip config
   const categoryConfig = {
-    New: { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+    New: { color: "var(--accent-primary)", bg: "#eff6ff", border: "#bfdbfe" },
     Correction: { color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
     "Internal Correction": {
       color: "#d97706",
@@ -1746,7 +1746,7 @@ const KanbanBoard = ({
       if (isShortFlow) {
         result = [
           { id: "backlog", name: "Hold", color: "#8c8c8c", order: 0 },
-          { id: "to_do", name: "To Do", color: "#3b82f6", order: 1 },
+          { id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
           {
             id: "in_progress",
             name: "In Progress",
@@ -1758,7 +1758,7 @@ const KanbanBoard = ({
       } else if (effectiveDept === "digital-marketing") {
         result = [
           { id: "backlog", name: "Hold", color: "#8c8c8c", order: 0 },
-          { id: "to_do", name: "To Do", color: "#3b82f6", order: 1 },
+          { id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
           {
             id: "in_progress",
             name: "In Progress",
@@ -1791,7 +1791,7 @@ const KanbanBoard = ({
     if (result.length === 0) {
       result = [
         { id: "backlog", name: "Hold", color: "#8c8c8c", order: 0 },
-        { id: "to_do", name: "To Do", color: "#3b82f6", order: 1 },
+        { id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
         { id: "in_progress", name: "In Progress", color: "#f59e0b", order: 2 },
         { id: "review", name: "Review", color: "#8b5cf6", order: 3 },
         { id: "Rejected", name: "Rejected", color: "#ef4444", order: 4 },
@@ -1824,7 +1824,7 @@ const KanbanBoard = ({
     // Fallback template mapping logic when no DB config exists
     const dmFlow = [
       { id: "backlog", name: "Hold", color: "#8c8c8c", order: 0 },
-      { id: "to_do", name: "To Do", color: "#3b82f6", order: 1 },
+      { id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
       { id: "in_progress", name: "In Progress", color: "#f59e0b", order: 2 },
       { id: "review", name: "Review", color: "#8b5cf6", order: 3 },
       { id: "Rejected", name: "Rejected", color: "#ef4444", order: 4 },
@@ -1833,7 +1833,7 @@ const KanbanBoard = ({
 
     const shortFlow = [
       { id: "backlog", name: "Hold", color: "#8c8c8c", order: 0 },
-      { id: "to_do", name: "To Do", color: "#3b82f6", order: 1 },
+      { id: "to_do", name: "To Do", color: "var(--accent-primary)", order: 1 },
       { id: "in_progress", name: "In Progress", color: "#f59e0b", order: 2 },
       { id: "complete", name: "Complete", color: "#22c55e", order: 3 },
     ];
@@ -2787,7 +2787,7 @@ const KanbanBoard = ({
                   alignItems: "center",
                   justifyContent: "center",
                   background: isDark ? "rgba(96, 165, 250, 0.16)" : "#dbeafe",
-                  color: isDark ? "#93c5fd" : "#2563eb",
+                  color: isDark ? "#93c5fd" : "var(--accent-primary)",
                   flexShrink: 0,
                 }}
               >
@@ -2823,9 +2823,9 @@ const KanbanBoard = ({
                 borderRadius: 999,
                 padding: "6px 12px",
                 fontWeight: 700,
-                borderColor: isDark ? "#1d4ed8" : "#93c5fd",
+                borderColor: isDark ? "var(--accent-primary)" : "#93c5fd",
                 background: isDark ? "rgba(29, 78, 216, 0.2)" : "#eff6ff",
-                color: isDark ? "#1d4ed8" : "#1d4ed8",
+                color: isDark ? "var(--accent-primary)" : "var(--accent-primary)",
               }}
             >
               {selectedDayNotes.length} note
@@ -2997,7 +2997,7 @@ const KanbanBoard = ({
                               gap: 5,
                               fontSize: 11,
                               fontWeight: 600,
-                              color: activeTask.projectId.color || "#2563eb",
+                              color: activeTask.projectId.color || "var(--accent-primary)",
                               background: activeTask.projectId.color
                                 ? `${activeTask.projectId.color}12`
                                 : "#eff6ff",

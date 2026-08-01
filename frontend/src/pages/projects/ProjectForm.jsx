@@ -718,7 +718,7 @@ const ProjectForm = () => {
                               )}
                               <Descriptions.Item label="Price" span={2}>
                                 <strong
-                                  style={{ fontSize: "16px", color: "#1890ff" }}
+                                  style={{ fontSize: "16px", color: "var(--accent-primary)" }}
                                 >
                                   ₹
                                   {(
@@ -883,7 +883,7 @@ const ProjectForm = () => {
                     {
                       label: "Recommended Colors",
                       colors: [
-                        "#1890ff",
+                        "var(--accent-primary)",
                         "#52c41a",
                         "#faad14",
                         "#f5222d",

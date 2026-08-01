@@ -109,7 +109,7 @@
   margin-right: 8px;
 }
 .bl-bar-value {
-  color: #1890ff;
+  color: var(--accent-primary);
   width: 40px;
   text-align: right;
 }

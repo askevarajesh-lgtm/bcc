@@ -308,7 +308,7 @@ const MeetingsPage = () => {
       render: (text, record) => (
         <div>
           <span 
-            style={{ fontWeight: 600, color: '#1890ff', cursor: 'pointer' }}
+            style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }}
             onClick={() => {
               setSelectedMeetingId(record._id);
               setDetailModalVisible(true);
@@ -457,7 +457,7 @@ const MeetingsPage = () => {
             size="large" 
             icon={<PlusOutlined />} 
             onClick={openCreateDrawer}
-            style={{ borderRadius: '8px', background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
+            style={{ borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary) 100%)', border: 'none' }}
           >
             Schedule Meeting
           </Button>
@@ -467,9 +467,9 @@ const MeetingsPage = () => {
       {/* KPI Stats Cards */}
       <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={6}>
-          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid #3b82f6', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
-            <div style={{ padding: '16px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', flexShrink: 0 }}>
-              <CalendarTwoTone style={{ fontSize: 28 }} twoToneColor="#3b82f6" />
+          <Card bodyStyle={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }} style={{ borderRadius: 16, border: 'none', borderLeft: '6px solid var(--accent-primary)', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.05)', color: isDark ? '#fff' : '#000' }}>
+            <div style={{ padding: '16px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', flexShrink: 0 }}>
+              <CalendarTwoTone style={{ fontSize: 28 }} twoToneColor="var(--accent-primary)" />
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total Meetings</div>

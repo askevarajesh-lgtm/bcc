@@ -16,7 +16,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 // Colors for charts
-const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', 'var(--accent-primary)'];
 
 // Mock Trend Data for Charts
 const generateMockTrendData = () => {
@@ -245,7 +245,7 @@ const Reports = () => {
             <Card style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={22} color="#3b82f6" />
+                  <FileText size={22} color="var(--accent-primary)" />
                 </div>
                 <Tag color="default" style={{ borderRadius: 12, margin: 0, fontWeight: 600, border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>-</Tag>
               </div>
@@ -322,7 +322,7 @@ const Reports = () => {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={14}>
             <Card 
-              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} color="#3b82f6" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>Social Media Engagement</Text></div>} 
+              title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} color="var(--accent-primary)" /> <Text style={{ fontWeight: 700, fontSize: 16 }}>Social Media Engagement</Text></div>} 
               className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', height: '100%' }} 
               bodyStyle={{ padding: '24px', height: 350 }}
             >
@@ -333,7 +333,7 @@ const Reports = () => {
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} />
                   <Tooltip cursor={{fill: 'rgba(200,200,200,0.05)'}} contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 20 }} />
-                  <Bar dataKey="likes" name="Likes" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="likes" name="Likes" stackId="a" fill="var(--accent-primary)" radius={[0, 0, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="shares" name="Shares" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="comments" name="Comments" stackId="a" fill="#f59e0b" radius={[6, 6, 0, 0]} maxBarSize={40} />
                 </BarChart>

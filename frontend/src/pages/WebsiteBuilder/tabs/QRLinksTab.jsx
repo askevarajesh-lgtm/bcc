@@ -27,10 +27,10 @@ const qrTypes = [
 ];
 
 const resolveColor = (color) => {
-  if (!color) return '#3b82f6';
-  if (color === 'var(--accent-primary)') return '#3b82f6';
+  if (!color) return 'var(--accent-primary)';
+  if (color === 'var(--accent-primary)') return 'var(--accent-primary)';
   if (color.startsWith('#')) return color;
-  return '#3b82f6';
+  return 'var(--accent-primary)';
 };
 
 const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funnels = [], websites = [] }) => {
@@ -713,7 +713,7 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
                  {qrUrl ? (
                    <img src={qrUrl} alt="QR Code" style={{ width: 200, height: 200, display: 'block' }} />
                  ) : (
-                   <QrCode size={200} color={activeQR.foreground === 'var(--accent-primary)' ? '#3b82f6' : activeQR.foreground} />
+                   <QrCode size={200} color={activeQR.foreground === 'var(--accent-primary)' ? 'var(--accent-primary)' : activeQR.foreground} />
                  )}
                </div>
             </div>

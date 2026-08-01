@@ -102,7 +102,7 @@ const DeliverablesPage = () => {
         <Space>
           <div style={{
             width: 32, height: 32, borderRadius: '50%', background: '#e6f7ff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff', fontWeight: 'bold'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)', fontWeight: 'bold'
           }}>
             {text.charAt(0).toUpperCase()}
           </div>
@@ -132,7 +132,7 @@ const DeliverablesPage = () => {
       align: 'center',
       render: (val) => (
         <Space>
-          <ProfileOutlined style={{ color: '#1890ff' }} />
+          <ProfileOutlined style={{ color: 'var(--accent-primary)' }} />
           <Text strong style={{ fontSize: 16 }}>{val}</Text>
         </Space>
       )
@@ -286,7 +286,7 @@ const DeliverablesPage = () => {
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col span={8}>
           <Card bodyStyle={{ padding: 0, display: 'flex', height: '100%' }} style={{ borderRadius: 16, border: 'none', background: isDark ? '#111c31' : '#ffffff', boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ width: '35%', background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+            <div style={{ width: '35%', background: 'linear-gradient(135deg, var(--accent-primary) 0%, #0284c7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
               <ProfileOutlined style={{ fontSize: 40, color: '#fff' }} />
             </div>
             <div style={{ width: '65%', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

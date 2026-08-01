@@ -4,20 +4,73 @@ const Invoice = require("../invoices/invoice.model");
 
 // Mocking legacy invoiceService methods to work with new Invoice schema
 const invoiceService = {
-  extractHandling: (inv) => inv.totalPaid || inv.amount || 0,
-  getInvoiceGrandTotal: (inv) => inv.grandTotal || 0,
-  getVerifiedTransactionsForPL: async () => [],
+  extractHandling: (inv) => {
+    const masterItems = inv?.proposalId?.masterItems || [];
+    const campaignAmount = masterItems.reduce((acc, item) => acc + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0), 0);
+    return Math.max(0, (inv?.grandTotal || 0) - campaignAmount);
+  },
+  extractCampaign: (inv) => {
+    const masterItems = inv?.proposalId?.masterItems || [];
+    return masterItems.reduce((acc, item) => acc + (item.isCampaign ? (item.campaignDetails?.campaignAmount || 0) : 0), 0);
+  },
+  getInvoiceGrandTotal: (inv) => inv?.grandTotal || 0,
+  
+  getVerifiedTransactionsForPL: async (companyId, filters) => {
+    const Transaction = require("../transactions/transaction.model");
+    const query = {
+      $or: [
+        { agencyId: companyId },
+        { adminId: companyId },
+        { brandId: companyId }
+      ],
+      status: 'Verified',
+      invoiceId: { $ne: null }
+    };
+    if (filters && filters.startDate && filters.endDate) {
+      query.paymentDate = { $gte: new Date(filters.startDate), $lte: new Date(filters.endDate) };
+    }
+    return await Transaction.find(query).populate({
+      path: 'invoiceId',
+      populate: { path: 'proposalId', populate: { path: 'masterItems' } }
+    });
+  },
+
   getDeDuplicatedInvoicesForPL: async (companyId, filters) => {
-    const query = { agencyId: companyId, paymentStatus: 'Paid' };
+    const query = { 
+      $or: [
+        { agencyId: companyId },
+        { adminId: companyId },
+        { brandId: companyId }
+      ],
+      isDeleted: false
+    };
+    if (filters && filters.statuses) {
+      const mappedStatuses = filters.statuses.map(s => s.charAt(0).toUpperCase() + s.toLowerCase().slice(1));
+      query.invoiceStatus = { $in: mappedStatuses };
+    }
     if (filters && filters.startDate && filters.endDate) {
       query.createdAt = { $gte: new Date(filters.startDate), $lte: new Date(filters.endDate) };
     }
-    return await Invoice.find(query);
+    return await Invoice.find(query).populate({
+      path: 'proposalId',
+      populate: { path: 'masterItems' }
+    });
   },
+
   calculatePaymentAmounts: async (invoiceIds) => {
-    const invoices = await Invoice.find({ _id: { $in: invoiceIds } });
-    const total = invoices.reduce((sum, inv) => sum + (inv.totalPaid || 0), 0);
-    return { handlingTotal: total, campaignTotal: 0, domainTotal: 0, otherTotal: 0, gstTotal: 0, grandTotal: total };
+    const Transaction = require("../transactions/transaction.model");
+    const transactions = await Transaction.find({ invoiceId: { $in: invoiceIds } });
+    const collected = {};
+    const pending = {};
+    transactions.forEach(tx => {
+      const invId = tx.invoiceId.toString();
+      if (tx.status === 'Verified') {
+        collected[invId] = (collected[invId] || 0) + tx.amount;
+      } else if (tx.status === 'Pending') {
+        pending[invId] = (pending[invId] || 0) + tx.amount;
+      }
+    });
+    return { collected, pending };
   }
 };
 
@@ -811,8 +864,8 @@ const mapToPLTeam = (department, staffRole, staffTeam) => {
 const getProfitLoss = async (companyId, startDate, endDate) => {
   const Invoice = require("../invoices/invoice.model");
   const { Campaign } = require("../campaigns/campaign.model");
-  const User = require("../users/user.model");
-  const Company = require("../company/company.model");
+  const User = require("../auth/user.model");
+  const Company = require("../auth/user.model");
 
   // Get tenant company to determine if it's Ask Eva or Tunepath (for backward compatibility)
   console.log(`[P&L Calculation] Starting for company: ${companyId}`);
@@ -1062,18 +1115,7 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
     // Extract handling and campaign amounts from invoice
     let handling = extractHandling(invoice);
 
-    let campaign = 0;
-    if (
-      invoice.campaignAmount !== undefined &&
-      invoice.campaignAmount !== null &&
-      invoice.campaignAmount > 0
-    ) {
-      campaign = Number(invoice.campaignAmount) || 0;
-    } else {
-      campaign = (invoice.items || [])
-        .filter((item) => item.category === "campaign")
-        .reduce((s, item) => s + (item.taxableValue || 0), 0);
-    }
+    let campaign = invoiceService.extractCampaign(invoice);
 
     // Proportional allocation of the payment
     const transactedHandling = handling * paymentFraction;
@@ -1434,74 +1476,67 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
 
   // ========== TEAM-WISE EXPENSE ALLOCATION ==========
 
-  // Team allocation percentages (must total 100%)
-  const TEAM_ALLOCATIONS = {
-    dm_designing: 0.8, // 80% - DM Team + Designing Team
-    website_tech: 0.1, // 10% - Website & Tech Team
-    seo: 0.1, // 10% - SEO Team
-  };
+  // Initialize dynamic team expenses
+  const teamExpenses = {};
 
-  // Validate allocation totals 100%
-  const allocationTotal = Object.values(TEAM_ALLOCATIONS).reduce(
-    (sum, val) => sum + val,
-    0,
-  );
-  if (Math.abs(allocationTotal - 1.0) > 0.001) {
-    console.warn(
-      `Warning: Fixed expense allocation does not total 100%. Current total: ${allocationTotal * 100}%`,
-    );
-  }
-
-  // Initialize team expense objects
-  const teamExpenses = {
-    dm_designing: {
-      variableExpense: 0,
-      fixedExpenseAllocated: 0,
-      totalExpense: 0,
-    },
-    website_tech: {
-      variableExpense: 0,
-      fixedExpenseAllocated: 0,
-      totalExpense: 0,
-    },
-    seo: {
-      variableExpense: 0,
-      fixedExpenseAllocated: 0,
-      totalExpense: 0,
-    },
-  };
+  // Fetch all departments to map ObjectIds to readable names
+  const Department = require("../departments/department.model");
+  const allDepartments = await Department.find({}).lean();
+  const deptMap = {};
+  allDepartments.forEach(d => {
+    deptMap[d._id.toString()] = d.name;
+  });
 
   // Calculate variable expenses per team
   // Handle both expenses with staffId (populated) and without
   variableExpenses.forEach((exp) => {
-    const staffRole = exp.staffId?.role || "";
-    const staffTeam = exp.staffId?.team || "";
-    const department = exp.department || "";
+    let department = exp.department || exp.staffId?.departmentName || exp.staffId?.team || "General";
+    // Normalize string
+    let team = department.trim();
 
-    // Map to team category
-    const team = mapToPLTeam(department, staffRole, staffTeam);
-
-    if (teamExpenses[team]) {
-      teamExpenses[team].variableExpense += exp.amount || 0;
-    } else {
-      // If team mapping fails, assign to DM+Designing (default)
-      teamExpenses.dm_designing.variableExpense += exp.amount || 0;
+    // If the department string is an ObjectId, map it to the readable name
+    if (deptMap[team]) {
+      team = deptMap[team].trim();
     }
+
+    if (!teamExpenses[team]) {
+      teamExpenses[team] = {
+        variableExpense: 0,
+        fixedExpenseAllocated: 0,
+        totalExpense: 0,
+      };
+    }
+    
+    teamExpenses[team].variableExpense += exp.amount || 0;
   });
 
-  // Allocate fixed expenses to teams based on percentages
-  Object.keys(TEAM_ALLOCATIONS).forEach((team) => {
-    teamExpenses[team].fixedExpenseAllocated =
-      totalFixedExpensePool * TEAM_ALLOCATIONS[team];
-    teamExpenses[team].totalExpense =
-      teamExpenses[team].variableExpense +
-      teamExpenses[team].fixedExpenseAllocated;
+  // Ensure we have at least one team if there are no variable expenses but there are fixed expenses
+  if (Object.keys(teamExpenses).length === 0 && totalFixedExpensePool > 0) {
+    teamExpenses["General"] = { variableExpense: 0, fixedExpenseAllocated: 0, totalExpense: 0 };
+  }
+
+  // Allocate fixed expenses to teams proportionally based on variable expenses
+  const totalVariableExpensePool = Object.values(teamExpenses).reduce(
+    (sum, t) => sum + t.variableExpense,
+    0
+  );
+
+  Object.keys(teamExpenses).forEach((team) => {
+    let allocationRatio = 0;
+    if (totalVariableExpensePool > 0) {
+      allocationRatio = teamExpenses[team].variableExpense / totalVariableExpensePool;
+    } else {
+      allocationRatio = 1 / Object.keys(teamExpenses).length;
+    }
+    
+    teamExpenses[team].fixedExpenseAllocated = totalFixedExpensePool * allocationRatio;
+    teamExpenses[team].totalExpense = teamExpenses[team].variableExpense + teamExpenses[team].fixedExpenseAllocated;
   });
 
   // Calculate total operational expenses (team expenses only)
   const totalOperationalExpenses = Object.values(teamExpenses).reduce(
     (sum, team) => sum + team.totalExpense,
-    0,
+    0
   );
 
   // Campaign actual spend (cost) - separate from team expenses
@@ -1537,47 +1572,45 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
 
   // ========== TEAM-WISE REVENUE ALLOCATION ==========
 
-  // Helper function to map service name to team
+  // Helper function to dynamically map service name to an existing team/department
   const mapServiceToTeam = (serviceName) => {
-    if (!serviceName) return "dm_designing"; // Default
+    if (!serviceName) return "General";
 
     const name = (serviceName || "").toLowerCase().trim();
-
-    // Digital Marketing or Designing → dm_designing
-    if (
-      name.includes("digital marketing") ||
-      name.includes("designing") ||
-      name === "designing"
-    ) {
-      return "dm_designing";
-    }
-    // Website or Chatbot → website_tech
-    if (
-      name.includes("website") ||
-      name.includes("chatbot") ||
-      name === "website"
-    ) {
-      return "website_tech";
-    }
-    // SEO → seo
-    if (name.includes("seo") || name === "seo") {
-      return "seo";
+    
+    // First try to find an exact or partial match in the existing dynamic teams
+    for (const t of Object.keys(teamExpenses)) {
+      if (name.includes(t.toLowerCase()) || t.toLowerCase().includes(name)) {
+        return t;
+      }
     }
 
-    // Default to dm_designing
-    return "dm_designing";
+    // Keyword mapping for common services
+    if (name.includes("digital marketing") || name.includes("social media") || name.includes("design")) {
+      const marketingTeam = Object.keys(teamExpenses).find(t => t.toLowerCase().includes("marketing") || t.toLowerCase().includes("design"));
+      if (marketingTeam) return marketingTeam;
+    }
+    if (name.includes("website") || name.includes("development") || name.includes("tech") || name.includes("chatbot")) {
+      const devTeam = Object.keys(teamExpenses).find(t => t.toLowerCase().includes("web") || t.toLowerCase().includes("tech") || t.toLowerCase().includes("dev"));
+      if (devTeam) return devTeam;
+    }
+    if (name.includes("seo") || name.includes("aeo") || name.includes("geo")) {
+      const seoTeam = Object.keys(teamExpenses).find(t => t.toLowerCase().includes("seo"));
+      if (seoTeam) return seoTeam;
+    }
+
+    return "General";
   };
 
-  // Initialize team revenue (from handling amounts only)
-  const teamRevenue = {
-    dm_designing: 0,
-    website_tech: 0,
-    seo: 0,
-  };
+  // Initialize team revenue
+  const teamRevenue = {};
+  
+  // Ensure all teams in teamExpenses are in teamRevenue
+  Object.keys(teamExpenses).forEach(t => {
+    teamRevenue[t] = 0;
+  });
 
   // Allocate revenue to teams — TRANSACTION BASIS ONLY
-  // allInvoices has populated serviceId for service-name team mapping.
-  // We apply paidFraction (from collectedMap) so only transacted amounts are counted.
   allInvoices.forEach((invoice) => {
     const invoiceId = invoice._id ? invoice._id.toString() : null;
     if (!invoiceId) return;
@@ -1588,9 +1621,6 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
       grandTotal > 0 ? Math.min(verifiedAmount / grandTotal, 1) : 0;
 
     if (paidFraction === 0) return; // Nothing transacted — skip entirely
-
-    const invoiceCampaignAmount = Number(invoice.campaignAmount) || 0;
-    let dmItemsTotal = 0;
 
     // 1. If invoice has items, allocate based on service name
     if (
@@ -1607,41 +1637,42 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
         }
 
         const team = mapServiceToTeam(serviceName);
-        // Apply paidFraction to the handling item amount
         const handlingAmount = (item.taxableValue || 0) * paidFraction;
-
-        if (team === "dm_designing") {
-          dmItemsTotal += handlingAmount;
-        }
 
         if (teamRevenue[team] !== undefined) {
           teamRevenue[team] += handlingAmount;
         } else {
-          teamRevenue.dm_designing += handlingAmount;
-          dmItemsTotal += handlingAmount;
+          teamRevenue[team] = handlingAmount;
+          if (!teamExpenses[team]) {
+            teamExpenses[team] = { variableExpense: 0, fixedExpenseAllocated: 0, totalExpense: 0 };
+          }
         }
       });
     }
     // 2. Fallback for manual invoices (no items)
     else if (invoice.handlingAmount > 0) {
-      teamRevenue.dm_designing += invoice.handlingAmount * paidFraction;
+      const fallbackTeam = Object.keys(teamRevenue).length > 0 ? Object.keys(teamRevenue)[0] : "General";
+      if (teamRevenue[fallbackTeam] === undefined) {
+         teamRevenue[fallbackTeam] = 0;
+      }
+      if (!teamExpenses[fallbackTeam]) {
+         teamExpenses[fallbackTeam] = { variableExpense: 0, fixedExpenseAllocated: 0, totalExpense: 0 };
+      }
+      teamRevenue[fallbackTeam] += invoice.handlingAmount * paidFraction;
     }
   });
 
   // ========== TEAM-WISE PROFIT BREAKDOWN ==========
 
   // Calculate team-wise profit
-  // For each team: profit = handling income (revenue) - team expense
-  // Profit percentage = (profit / income) * 100
   const teamBreakdown = Object.keys(teamExpenses).map((teamKey) => {
     const team = teamExpenses[teamKey];
-    const teamIncome = teamRevenue[teamKey] || 0; // Handling amount allocated to this team
+    const teamIncome = teamRevenue[teamKey] || 0; 
 
     // Team profit = Team Income (handling revenue) - Team Expense
     const teamProfit = teamIncome - team.totalExpense;
 
     // Team profit percentage = (Team Profit / Team Income) * 100
-    // Handle zero income safely (if expenses exist but 0 revenue, it's a 100% loss)
     const teamProfitPercentage =
       teamIncome > 0
         ? (teamProfit / teamIncome) * 100
@@ -1649,7 +1680,6 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
           ? -100
           : 0;
 
-    // Expense contribution percentage based on operational expenses
     const expenseContributionPercent =
       totalOperationalExpenses > 0
         ? (team.totalExpense / totalOperationalExpenses) * 100
@@ -1657,13 +1687,8 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
 
     return {
       team: teamKey,
-      teamLabel:
-        teamKey === "dm_designing"
-          ? "DM + Designing Team"
-          : teamKey === "website_tech"
-            ? "Website & Tech Team"
-            : "SEO Team",
-      revenue: parseFloat((teamIncome || 0).toFixed(2)), // Handling amount allocated to this team
+      teamLabel: teamKey,
+      revenue: parseFloat((teamIncome || 0).toFixed(2)),
       variableExpense: parseFloat((team.variableExpense || 0).toFixed(2)),
       fixedExpenseAllocated: parseFloat(
         (team.fixedExpenseAllocated || 0).toFixed(2),
@@ -1672,8 +1697,8 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
       expenseContributionPercent: parseFloat(
         expenseContributionPercent.toFixed(2),
       ),
-      profit: parseFloat(teamProfit.toFixed(2)), // Income - Expense
-      profitPercentage: parseFloat(teamProfitPercentage.toFixed(2)), // (Profit / Income) * 100
+      profit: parseFloat(teamProfit.toFixed(2)),
+      profitPercentage: parseFloat(teamProfitPercentage.toFixed(2)),
     };
   });
 

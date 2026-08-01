@@ -322,7 +322,7 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
                       }}
                       bodyStyle={{ padding: 0 }}
                     >
-                      <div style={{ height: 160, background: template.thumbnailColor || "linear-gradient(135deg, #0ea5e9, #0369a1)", position: 'relative', overflow: 'hidden', padding: 20 }}>
+                      <div style={{ height: 160, background: template.thumbnailColor || "linear-gradient(135deg, var(--accent-secondary), var(--accent-primary))", position: 'relative', overflow: 'hidden', padding: 20 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", position: 'relative', zIndex: 2 }}>
                           <div style={{ display: "flex", alignItems: "center" }}>
                             <div style={{ width: 28, height: 28, background: "rgba(255,255,255,0.2)", borderRadius: 6, marginRight: 12, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#fff", fontSize: 14 }}>W</div>

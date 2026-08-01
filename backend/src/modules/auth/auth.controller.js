@@ -2,6 +2,41 @@ const User = require('./user.model');
 const Role = require('../roles/role.model');
 const jwt = require('jsonwebtoken');
 
+const getEffectiveTheme = async (user) => {
+  let effectiveTheme = { primaryColor: '#034EA1', secondaryColor: '#0ea5e9' };
+  try {
+    const commander = await User.findOne({ role: 'commander_admin' }).select('theme');
+    if (commander && commander.theme && commander.theme.primaryColor) {
+      effectiveTheme = commander.theme;
+    }
+    if (user.agencyId && user.agencyId.theme && user.agencyId.theme.primaryColor) {
+      effectiveTheme = user.agencyId.theme;
+    }
+    if (user.brandId && user.brandId.theme && user.brandId.theme.primaryColor) {
+      effectiveTheme = user.brandId.theme;
+    }
+    if (user.theme && user.theme.primaryColor) {
+      effectiveTheme = user.theme;
+    }
+  } catch (e) {
+    console.error('Error resolving theme:', e);
+  }
+  return effectiveTheme;
+};
+
+exports.getGlobalTheme = async (req, res, next) => {
+  try {
+    let globalTheme = { primaryColor: '#034EA1', secondaryColor: '#0ea5e9' };
+    const commander = await User.findOne({ role: 'commander_admin' }).select('theme');
+    if (commander && commander.theme && commander.theme.primaryColor) {
+      globalTheme = commander.theme;
+    }
+    res.status(200).json({ success: true, theme: globalTheme });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch global theme' });
+  }
+};
+
 exports.signin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -11,8 +46,8 @@ exports.signin = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email })
-      .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo status features');
+      .populate('agencyId', 'companyName name logo status theme')
+      .populate('brandId', 'companyName name logo status features theme');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
     }
@@ -81,6 +116,8 @@ exports.signin = async (req, res, next) => {
       features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
+    const effectiveTheme = await getEffectiveTheme(user);
+
     res.json({
       success: true,
       token,
@@ -102,7 +139,8 @@ exports.signin = async (req, res, next) => {
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions,
-        plan: planDetails
+        plan: planDetails,
+        effectiveTheme
       }
     });
   } catch (error) {
@@ -113,8 +151,8 @@ exports.signin = async (req, res, next) => {
 exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo domain contactEmail industry features');
+      .populate('agencyId', 'companyName name logo status theme')
+      .populate('brandId', 'companyName name logo domain contactEmail industry features theme');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -193,7 +231,8 @@ exports.me = async (req, res, next) => {
         packageName: user.packageName,
         createdAt: user.createdAt,
         permissions: rolePermissions,
-        plan: planDetails
+        plan: planDetails,
+        effectiveTheme
       }
     });
   } catch (error) {

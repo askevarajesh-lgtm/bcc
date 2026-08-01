@@ -33,13 +33,13 @@ const OrganicKeywordsTab = () => {
           1: { label: 'Knowledge Panel', icon: '🧠', color: '#13c2c2' },
           2: { label: 'Carousel', icon: '🎠', color: '#722ed1' },
           3: { label: 'Local Pack', icon: '📍', color: '#eb2f96' },
-          4: { label: 'Top Stories', icon: '📰', color: '#1890ff' },
+          4: { label: 'Top Stories', icon: '📰', color: 'var(--accent-primary)' },
           5: { label: 'Images', icon: '🖼️', color: '#52c41a' },
           6: { label: 'Sitelinks', icon: '🔗', color: '#fa8c16' },
           7: { label: 'Reviews', icon: '⭐', color: '#faad14' },
           9: { label: 'Video', icon: '🎥', color: '#f5222d' },
           10: { label: 'Featured Snippet', icon: '👑', color: '#a0d911' },
-          13: { label: 'Shopping', icon: '🛍️', color: '#1890ff' }
+          13: { label: 'Shopping', icon: '🛍️', color: 'var(--accent-primary)' }
         };
         const rendered = features.map(f => featureMap[f]).filter(Boolean).slice(0, 3);
         if (rendered.length === 0) return null;
@@ -98,7 +98,7 @@ const OrganicKeywordsTab = () => {
         const intents = String(val).split(',').map(Number);
         const intentMap = {
           0: { label: 'C', color: '#faad14', bg: '#fffbe6', title: 'Commercial' },
-          1: { label: 'I', color: '#1890ff', bg: '#e6f7ff', title: 'Informational' },
+          1: { label: 'I', color: 'var(--accent-primary)', bg: '#e6f7ff', title: 'Informational' },
           2: { label: 'N', color: '#722ed1', bg: '#f9f0ff', title: 'Navigational' },
           3: { label: 'T', color: '#52c41a', bg: '#f6ffed', title: 'Transactional' }
         };
@@ -135,7 +135,7 @@ const OrganicKeywordsTab = () => {
       render: val => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 60 }}>
           <span style={{ fontSize: 13, fontWeight: 500 }}>{Number(val).toFixed(2)}%</span>
-          <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="#1890ff" trailColor="#f0f0f0" style={{ margin: 0, width: '100%' }} />
+          <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="var(--accent-primary)" trailColor="#f0f0f0" style={{ margin: 0, width: '100%' }} />
         </div>
       ),
       sorter: (a, b) => Number(a.trafficPercent) - Number(b.trafficPercent)
@@ -180,7 +180,7 @@ const OrganicKeywordsTab = () => {
       align: 'center',
       render: val => (
         <Tooltip title={val}>
-          <a href={val} target="_blank" rel="noreferrer" style={{ color: '#1890ff', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: '#e6f7ff', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#bae0ff'} onMouseOut={e => e.currentTarget.style.background = '#e6f7ff'}>
+          <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: '#e6f7ff', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#bae0ff'} onMouseOut={e => e.currentTarget.style.background = '#e6f7ff'}>
             <ExternalLink size={14} />
           </a>
         </Tooltip>

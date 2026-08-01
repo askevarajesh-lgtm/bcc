@@ -105,7 +105,7 @@ const DomainOverviewTab = ({ projects }) => {
                       <Col span={12}>
                         <Card size="small" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12 }}>
                           <Statistic 
-                            title={<Space><Search size={14} color="#2563eb" /><Text strong style={{ color: '#2563eb' }}>Ranked Keywords</Text></Space>} 
+                            title={<Space><Search size={14} color="var(--accent-primary)" /><Text strong style={{ color: 'var(--accent-primary)' }}>Ranked Keywords</Text></Space>} 
                             value={metrics.count || 0} 
                             valueStyle={{ fontWeight: 700, fontSize: 24 }}
                           />

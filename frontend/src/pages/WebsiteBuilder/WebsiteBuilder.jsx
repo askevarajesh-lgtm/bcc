@@ -174,7 +174,7 @@ const WebsiteBuilder = () => {
               <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Sparkles size={22} color="var(--accent-secondary)" /> Generate with AI</Title>
               <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 500 }}>Describe the website you want. Our AI builds it in under 60 seconds — full pages, copy, layout, and images.</Text>
               <Input.TextArea rows={4} placeholder="e.g. A luxury real estate landing page for Prestige estates with hero, features, gallery, and lead form..." style={{ borderRadius: 12, marginBottom: 20, fontSize: 14, padding: 12 }} />
-              <Button type="primary" icon={<Sparkles size={18} />} onClick={() => handleTabClick('websites')} style={{ width: '100%', borderRadius: 12, background: 'var(--accent-secondary)', height: 48, marginTop: 'auto', fontWeight: 700, fontSize: 15, border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Site</Button>
+              <Button type="primary" icon={<Sparkles size={18} />} onClick={() => handleTabClick('websites')} style={{ width: '100%', borderRadius: 12, background: 'var(--accent-primary)', height: 48, marginTop: 'auto', fontWeight: 700, fontSize: 15, border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Site</Button>
             </Card>
           </motion.div>
         </Col>

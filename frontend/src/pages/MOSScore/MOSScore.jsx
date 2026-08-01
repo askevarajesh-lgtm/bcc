@@ -170,7 +170,7 @@ const MOSScore = () => {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button icon={<RefreshCw size={16} />} loading={recalculating} onClick={handleRecalculate} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Recalculate</Button>
-          <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 600, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export All Scores</Button>
+          <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export All Scores</Button>
         </div>
       </motion.div>
 
@@ -303,7 +303,7 @@ const MOSScore = () => {
                       {c.actionPlan && (
                         <Button type="default" onClick={() => handleViewReport(c)} style={{ flex: 1, borderRadius: 8, fontWeight: 700, height: 44, fontSize: 14 }}>View Report</Button>
                       )}
-                      <Button type="primary" icon={<Zap size={16} />} loading={loadingPlanClientId === c.clientId} onClick={() => handleGeneratePlan(c, c.weakestSignals)} style={{ flex: c.actionPlan ? 1 : '1 1 100%', borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 700, border: 'none', height: 44, fontSize: 14 }}>Start Action Plan</Button>
+                      <Button type="primary" icon={<Zap size={16} />} loading={loadingPlanClientId === c.clientId} onClick={() => handleGeneratePlan(c, c.weakestSignals)} style={{ flex: c.actionPlan ? 1 : '1 1 100%', borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 700, border: 'none', height: 44, fontSize: 14 }}>Start Action Plan</Button>
                     </div>
                   </div>
                 </motion.div>

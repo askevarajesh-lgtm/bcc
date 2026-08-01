@@ -97,7 +97,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, minHeight: 40, fontWeight: 500 }}>
             Generate content, layout, and images from your business brief
           </div>
-          <div style={{ background: "var(--accent-secondary)", color: "#fff", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 13, marginTop: 'auto' }}>
+          <div style={{ background: 'var(--accent-primary)', color: "#fff", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 13, marginTop: 'auto' }}>
             Home + Contact + About pages
           </div>
         </div> */}
@@ -208,7 +208,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [description, setDescription] = useState(activeWebsite.description || "");
   const [status, setStatus] = useState(activeWebsite.status || "Draft");
   const [fontFamily, setFontFamily] = useState(activeWebsite.theme?.fontFamily || "Inter");
-  const [primaryColor, setPrimaryColor] = useState(activeWebsite.theme?.primaryColor || "#3b82f6");
+  const [primaryColor, setPrimaryColor] = useState(activeWebsite.theme?.primaryColor || "var(--accent-primary)");
   const [syncingTheme, setSyncingTheme] = useState(false);
   const [chatWidgets, setChatWidgets] = useState([]);
   const [selectedChatWidgetId, setSelectedChatWidgetId] = useState(activeWebsite.chatWidgetId || "none");
@@ -1281,7 +1281,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
                 onClick={() => setIsModalOpen(true)}
                 style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
               >
-                Build with AI <Tag style={{ margin: '0 0 0 8px', background: 'var(--accent-secondary)', color: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', fontSize: 10 }}>BETA</Tag>
+                Build with AI <Tag style={{ margin: '0 0 0 8px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', fontSize: 10 }}>BETA</Tag>
               </Button> */}
               <Button 
                 size="large"

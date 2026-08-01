@@ -62,7 +62,7 @@ const OverviewTab = ({ itemVariants, onOpenBuilder }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 120 }}>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{record.delivered > 0 ? `${record.delivered} (${record.pct}%)` : "0"}</span>
           <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2 }}>
-            <div style={{ height: '100%', width: `${record.pct}%`, background: 'var(--accent-secondary)', borderRadius: 2 }} />
+            <div style={{ height: '100%', width: `${record.pct}%`, background: 'var(--accent-primary)', borderRadius: 2 }} />
           </div>
         </div>
       )

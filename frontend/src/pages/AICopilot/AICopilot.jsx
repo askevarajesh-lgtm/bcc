@@ -88,7 +88,7 @@ const AICopilot = () => {
         {/* Left Sidebar - Chat History */}
         <Col xs={24} lg={24} xl={24} xxl={5} style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 300 }}>
           <motion.div variants={itemVariants} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Button type="primary" icon={<Plus size={16}/>} block style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 44, marginBottom: 24, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New Conversation</Button>
+            <Button type="primary" icon={<Plus size={16}/>} block style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 44, marginBottom: 24, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New Conversation</Button>
             
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }}>
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 16 }}>RECENT CHATS</Text>

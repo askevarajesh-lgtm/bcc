@@ -486,7 +486,7 @@ const ClientsTab = () => {
       >
         {selectedClient && (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Button type="primary" style={{ background: 'var(--accent-secondary)', height: 48, minHeight: 48, flexShrink: 0, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <Button type="primary" style={{ background: 'var(--accent-primary)', height: 48, minHeight: 48, flexShrink: 0, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
               Open Full Dashboard <ArrowUpRight size={18} style={{ marginLeft: 8 }} />
             </Button>
             

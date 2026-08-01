@@ -170,7 +170,7 @@ const cardStyles = `
     50%       { opacity: 0.5; transform: scale(1.3); }
   }
 
-  .int-dot-configured { color: #2563eb; border: 1px solid #bfdbfe; }
+  .int-dot-configured { color: var(--accent-primary); border: 1px solid #bfdbfe; }
 
   /* ── Description ── */
   .int-desc {

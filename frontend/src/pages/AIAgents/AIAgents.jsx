@@ -383,7 +383,7 @@ const AIAgents = () => {
                   )}
 
                   {idx < 7 ? (
-                    <Button type="primary" block style={{ background: 'var(--accent-secondary)', borderRadius: 8, height: 44, fontWeight: 700, border: 'none', fontSize: 15, boxShadow: 'var(--shadow-sm)' }}>Deploy Agent</Button>
+                    <Button type="primary" block style={{ background: 'var(--accent-primary)', borderRadius: 8, height: 44, fontWeight: 700, border: 'none', fontSize: 15, boxShadow: 'var(--shadow-sm)' }}>Deploy Agent</Button>
                   ) : (
                     <Button block style={{ borderRadius: 8, height: 44, fontWeight: 600, borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Notify me when available</Button>
                   )}

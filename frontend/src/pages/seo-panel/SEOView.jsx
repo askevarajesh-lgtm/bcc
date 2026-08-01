@@ -494,7 +494,7 @@ const SEOView = () => {
                                           <FileOutlined
                                             style={{
                                               fontSize: "24px",
-                                              color: "#1890ff",
+                                              color: "var(--accent-primary)",
                                             }}
                                           />
                                           <div

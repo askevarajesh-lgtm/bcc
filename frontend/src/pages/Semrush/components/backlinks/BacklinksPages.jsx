@@ -18,7 +18,7 @@ const BacklinksPages = () => {
       render: (text) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
           <span style={{ color: '#2b2b2b', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>Not Acceptable!</span>
-          <span style={{ color: '#1890ff', fontSize: 13, wordBreak: 'break-all', marginTop: 4 }}>
+          <span style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4 }}>
             {text} <ExternalLink size={12} style={{ marginLeft: 4 }} />
           </span>
           <div style={{ marginTop: 8 }}>
@@ -33,7 +33,7 @@ const BacklinksPages = () => {
       key: 'links',
       width: 120,
       align: 'right',
-      render: (val) => <span style={{ color: '#1890ff', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
+      render: (val) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
     },
     {
       title: 'Domains',
@@ -41,7 +41,7 @@ const BacklinksPages = () => {
       key: 'domains',
       width: 120,
       align: 'right',
-      render: (val) => <span style={{ color: '#1890ff', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
+      render: (val) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
     },
     {
       title: 'External Links',

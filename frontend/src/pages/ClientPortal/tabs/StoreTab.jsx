@@ -176,7 +176,7 @@ const StoreTab = () => {
                     height: 40, 
                     borderRadius: 8, 
                     fontWeight: 700,
-                    background: 'var(--accent-secondary)',
+                    background: 'var(--accent-primary)',
                     color: '#fff',
                     border: 'none'
                   }}

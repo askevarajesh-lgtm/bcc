@@ -68,7 +68,7 @@ const BacklinkAnalyticsTab = () => {
                 title="Referring Domains" 
                 value={formatNumber(data.domains_num)} 
                 icon={<Globe size={24} />} 
-                color="#1890ff"
+                color="var(--accent-primary)"
                 delay={0.2}
               />
               <MetricCard 

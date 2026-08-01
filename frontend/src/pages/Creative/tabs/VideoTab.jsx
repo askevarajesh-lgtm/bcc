@@ -41,7 +41,7 @@ const VideoTab = ({ itemVariants }) => {
                 <Text type="secondary" style={{ fontSize: 13, marginBottom: 16, display: 'block' }}>Assigned: <strong style={{ color: 'var(--text-primary)' }}>DR</strong></Text>
 
                 <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, marginBottom: 20 }}>
-                  <div style={{ height: '100%', width: '50%', background: 'var(--accent-secondary)', borderRadius: 2 }} />
+                  <div style={{ height: '100%', width: '50%', background: 'var(--accent-primary)', borderRadius: 2 }} />
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: 12 }}>
@@ -76,7 +76,7 @@ const VideoTab = ({ itemVariants }) => {
                 </Row>
 
                 <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, marginBottom: 20 }}>
-                  <div style={{ height: '100%', width: '100%', background: 'var(--accent-secondary)', borderRadius: 2 }} />
+                  <div style={{ height: '100%', width: '100%', background: 'var(--accent-primary)', borderRadius: 2 }} />
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: 12 }}>
@@ -111,7 +111,7 @@ const VideoTab = ({ itemVariants }) => {
                 </Row>
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: 12 }}>
-                  <Button type="primary" style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-secondary)' }}>Create Brief</Button>
+                  <Button type="primary" style={{ borderRadius: 8, fontWeight: 600, background: 'var(--accent-primary)' }}>Create Brief</Button>
                 </div>
               </div>
             </Card>
@@ -158,7 +158,7 @@ const VideoTab = ({ itemVariants }) => {
               <Text type="secondary" style={{ fontSize: 11, marginBottom: 8, display: 'block' }}>Topic / key message</Text>
               <TextArea rows={4} placeholder="e.g. 30-sec reel introducing Prestige Whitefield amenities" style={{ borderRadius: 8, marginBottom: 16 }} />
               
-              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: '#0369a1', border: 'none' }} icon={<Wand2 size={16} />}>Generate Script</Button>
+              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: 'var(--accent-primary)', border: 'none' }} icon={<Wand2 size={16} />}>Generate Script</Button>
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -172,7 +172,7 @@ const VideoTab = ({ itemVariants }) => {
               <Text type="secondary" style={{ fontSize: 11, marginBottom: 8, display: 'block' }}>Video concept</Text>
               <TextArea rows={4} placeholder="e.g. Luxury apartment walkthrough — Whitefield" style={{ borderRadius: 8, marginBottom: 16 }} />
               
-              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: '#0369a1', border: 'none' }} icon={<Wand2 size={16} />}>Generate Shot List</Button>
+              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: 'var(--accent-primary)', border: 'none' }} icon={<Wand2 size={16} />}>Generate Shot List</Button>
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -186,7 +186,7 @@ const VideoTab = ({ itemVariants }) => {
               <Text type="secondary" style={{ fontSize: 11, marginBottom: 8, display: 'block' }}>Script or video transcript</Text>
               <TextArea rows={4} placeholder="Paste script or transcript..." style={{ borderRadius: 8, marginBottom: 16 }} />
               
-              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: '#0369a1', border: 'none' }} icon={<Wand2 size={16} />}>Generate Captions</Button>
+              <Button type="primary" block style={{ marginTop: 'auto', borderRadius: 8, fontWeight: 600, background: '#7dd3fc', color: 'var(--accent-primary)', border: 'none' }} icon={<Wand2 size={16} />}>Generate Captions</Button>
             </Card>
           </Col>
         </Row>

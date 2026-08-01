@@ -81,7 +81,7 @@ const ProjectWorkflowAssignment = () => {
       .map((dept) => ({
         value: dept._id,
         label: dept.name,
-        color: "#1890ff",
+        color: "var(--accent-primary)",
       }));
   }, [departments, userRole]);
 
@@ -291,7 +291,7 @@ const ProjectWorkflowAssignment = () => {
                 key={template._id}
                 size="small"
                 style={{
-                  borderLeft: `4px solid ${template.color || "#1890ff"}`,
+                  borderLeft: `4px solid ${template.color || "var(--accent-primary)"}`,
                   backgroundColor: isExpanded
                     ? isMobile
                       ? "#fafafa"
@@ -314,7 +314,7 @@ const ProjectWorkflowAssignment = () => {
                           width: 16,
                           height: 16,
                           borderRadius: 4,
-                          backgroundColor: template.color || "#1890ff",
+                          backgroundColor: template.color || "var(--accent-primary)",
                           border: "1px solid #d9d9d9",
                         }}
                       />

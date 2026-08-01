@@ -1254,13 +1254,13 @@ const pageStyles = `
   .cgpt-page-shell.theme-light .cgpt-key-tag.ant-tag {
     border-color: rgba(37, 99, 235, 0.18);
     background: rgba(37, 99, 235, 0.1);
-    color: #1d4ed8;
+    color: var(--accent-primary);
   }
 
   .cgpt-page-shell.theme-light .cgpt-avatar {
     background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
     border-color: rgba(37, 99, 235, 0.12);
-    color: #1d4ed8;
+    color: var(--accent-primary);
   }
 
   .cgpt-page-shell.theme-light .cgpt-avatar.assistant {
@@ -1269,7 +1269,7 @@ const pageStyles = `
   }
 
   .cgpt-page-shell.theme-light .cgpt-avatar.user {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary) 100%);
     color: #ffffff;
   }
 

@@ -158,7 +158,7 @@ const AIAgentConfigureDrawer = ({ open, onClose, agent }) => {
       {/* Footer */}
       <div style={{ padding: '20px 24px', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
         <Button onClick={onClose} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}>Cancel</Button>
-        <Button type="primary" onClick={onClose} style={{ borderRadius: 8, background: 'var(--accent-secondary)', color: '#fff', fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-sm)' }}>Save Configuration</Button>
+        <Button type="primary" onClick={onClose} style={{ borderRadius: 8, background: 'var(--accent-primary)', color: '#fff', fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-sm)' }}>Save Configuration</Button>
       </div>
     </Drawer>
   );

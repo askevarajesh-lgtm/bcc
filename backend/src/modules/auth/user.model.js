@@ -31,6 +31,12 @@ const UserSchema = new mongoose.Schema({
     chatgpt: { type: Boolean, default: false },
     canva: { type: Boolean, default: false }
   },
+
+  taxSettings: {
+    gstPercentage: { type: Number, default: 18 },
+    gstEnabled: { type: Boolean, default: false }
+  },
+
   
   // Relationships
   departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', default: null },
@@ -51,6 +57,12 @@ const UserSchema = new mongoose.Schema({
   plan: { type: mongoose.Schema.Types.ObjectId, ref: 'AgencyPackage', default: null },
   allowedUsers: { type: Number, default: 5 },
   mrr: { type: Number, default: 0 },
+  
+  // Theme Configuration
+  theme: {
+    primaryColor: { type: String },
+    secondaryColor: { type: String }
+  },
 
   // Brand Specific Fields
   isDirect: { type: Boolean, default: false },

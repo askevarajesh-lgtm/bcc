@@ -51,7 +51,7 @@ const DomainOverviewTab = () => {
       {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
       <div className="so-card">
         <div className="so-card-header" style={{ marginBottom: 12 }}>
-          <div className="so-badge" style={{ background: '#e6f7ff', color: '#1890ff', fontWeight: 600 }}>SEO</div>
+          <div className="so-badge" style={{ background: '#e6f7ff', color: 'var(--accent-primary)', fontWeight: 600 }}>SEO</div>
         </div>
         <div className="so-seo-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
           <div className="so-metric-block">
@@ -165,9 +165,9 @@ const DomainOverviewTab = () => {
             pagination={false}
             rowKey="keyword"
             columns={[
-              { title: 'Keyword', dataIndex: 'keyword', render: (text) => <span style={{ color: '#1890ff', fontWeight: 500 }}>{text}</span> },
+              { title: 'Keyword', dataIndex: 'keyword', render: (text) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{text}</span> },
               { title: 'Intent', dataIndex: 'intents', render: (intents) => (
-                <>{(intents || ['I']).map(i => <span key={i} className="so-intent-tag" style={{ background: i === 'I' ? '#1890ff' : i === 'N' ? '#722ed1' : i === 'C' ? '#faad14' : '#52c41a' }}>{i}</span>)}</>
+                <>{(intents || ['I']).map(i => <span key={i} className="so-intent-tag" style={{ background: i === 'I' ? 'var(--accent-primary)' : i === 'N' ? '#722ed1' : i === 'C' ? '#faad14' : '#52c41a' }}>{i}</span>)}</>
               ) },
               { title: 'Pos.', dataIndex: 'position' },
               { title: 'Volume', dataIndex: 'searchVolume', render: formatNumber },
@@ -197,7 +197,7 @@ const DomainOverviewTab = () => {
                     <div className="so-intent-dot" style={{ background: item.color }}></div> {item.intent}
                   </span>
                   <div style={{ display: 'flex', gap: 32, fontSize: 13 }}>
-                    <span style={{ color: '#1890ff', width: 40, textAlign: 'right' }}>{item.ratio}%</span>
+                    <span style={{ color: 'var(--accent-primary)', width: 40, textAlign: 'right' }}>{item.ratio}%</span>
                   </div>
                 </div>
               ))}
@@ -231,7 +231,7 @@ const DomainOverviewTab = () => {
             pagination={false}
             rowKey="domain"
             columns={[
-              { title: 'Competitor', dataIndex: 'domain', render: (text) => <span style={{ color: '#1890ff', fontWeight: 500 }}>{text} <ExternalLink size={12}/></span> },
+              { title: 'Competitor', dataIndex: 'domain', render: (text) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{text} <ExternalLink size={12}/></span> },
               { title: 'Com. Level', dataIndex: 'comLevel', render: (val) => <Progress percent={val} showInfo={false} strokeColor="#5b61f4" size="small" style={{ width: 60 }} /> },
               { title: 'Com. Keywords', dataIndex: 'commonKeywords', align: 'right', render: formatNumber },
               { title: 'SE Keywords', dataIndex: 'seKeywords', align: 'right', render: formatNumber },

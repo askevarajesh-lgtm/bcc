@@ -60,6 +60,9 @@ import ProjectDetail from './pages/projects/ProjectDetail';
 import MasterItemsList from './pages/MasterItems/MasterItemsList';
 import MasterItemForm from './pages/MasterItems/MasterItemForm';
 import ExpenseManagementPage from './pages/expenses/ExpenseManagementPage';
+import CampaignExpensesList from './pages/campaign-expenses/CampaignList';
+import CampaignExpensesForm from './pages/campaign-expenses/CampaignForm';
+import CampaignExpensesView from './pages/campaign-expenses/CampaignView';
 import ProposalsList from './pages/Proposals/ProposalsList';
 import ProposalForm from './pages/Proposals/ProposalForm';
 import InvoicesList from './pages/Invoices/InvoicesList';
@@ -68,6 +71,7 @@ import InvoiceViewPage from './pages/Invoices/InvoiceViewPage';
 import MeetingsPage from './pages/Meetings/MeetingsPage';
 import CalendarPage from './pages/Calendar/CalendarPage';
 import DeliverablesPage from './pages/Deliverables/DeliverablesPage';
+import PLDashboard from './pages/pl-analytics/PLDashboard';
 
 import Reports from './pages/Reports/Reports';
 import Teams from './pages/Teams/Teams';
@@ -379,7 +383,11 @@ const AppRoutes = () => {
           <Route path="salespipeline" element={<SalesPipeline />} />
           <Route path="accounts/transactions" element={<TransactionsPage />} />
           <Route path="accounts/expenses" element={<ExpenseManagementPage />} />
+          <Route path="accounts/campaign-expenses" element={<CampaignExpensesList />} />
+          <Route path="accounts/campaign-expenses/new" element={<CampaignExpensesForm />} />
+          <Route path="accounts/campaign-expenses/:id" element={<CampaignExpensesView />} />
           <Route path="accounts/sales-tracking" element={<SalesTrackingPageEnhanced />} />
+          <Route path="accounts/pl-analytics" element={<PLDashboard />} />
           
           {/* HRMS Routes (Agency Manager) */}
           <Route path="hrms/performance" element={<PerformancePage />} />

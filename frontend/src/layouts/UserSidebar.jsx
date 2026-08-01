@@ -109,7 +109,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
       brandLogo={user?.logo}
       brandTitle={user?.companyName || "Employee Panel"}
       brandSubtitle={user?.roleName || "M1 Platform"}
-      accent="#8b5cf6"
+      accent="var(--accent-primary)"
       accentSoft="rgba(139, 92, 246, 0.12)"
       menuItems={menuItems}
       selectedKeys={[getSelectedKey()]}

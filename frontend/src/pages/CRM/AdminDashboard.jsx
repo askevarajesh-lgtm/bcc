@@ -57,7 +57,7 @@ const AdminDashboard = ({ leads = [] }) => {
   const assignedRate = totalLeads ? Math.round((assignedLeads / totalLeads) * 100) : 0;
 
   const statusData = [
-    { name: 'New Lead', value: newLeads, color: '#3b82f6' },
+    { name: 'New Lead', value: newLeads, color: 'var(--accent-primary)' },
     { name: 'In Progress', value: activeLeads, color: '#8b5cf6' },
     { name: 'Converted', value: convertedLeads, color: '#10b981' }
   ].filter(d => d.value > 0);
@@ -119,7 +119,7 @@ const AdminDashboard = ({ leads = [] }) => {
       if (!owners[o]) {
         owners[o] = { 
           key: o, initials: o.substring(0,2).toUpperCase(), owner: o, 
-          color: o === 'Unassigned' ? '#10b981' : '#3b82f6', 
+          color: o === 'Unassigned' ? '#10b981' : 'var(--accent-primary)', 
           leads: 0, new: 0, active: 0, followup: 0, reminders: 0, contactReady: 0, converted: 0 
         };
       }
@@ -203,7 +203,7 @@ const AdminDashboard = ({ leads = [] }) => {
         {kpiCards.map((kpi, i) => {
           const gradients = [
             'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', // Vibrant Purple/Indigo
-            'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)', // Bright Blue
+            'linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-primary) 100%)', // Bright Blue
             'linear-gradient(135deg, #10b981 0%, #059669 100%)', // Emerald Green
             'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', // Amber/Orange
             'linear-gradient(135deg, #ec4899 0%, #be123c 100%)'  // Pink/Rose
@@ -255,7 +255,7 @@ const AdminDashboard = ({ leads = [] }) => {
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 24px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3b82f6' }}/> New Lead</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-primary)' }}/> New Lead</div>
                 <strong style={{ fontSize: 13 }}>{newLeads}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 24px' }}>
@@ -288,11 +288,11 @@ const AdminDashboard = ({ leads = [] }) => {
         <Col xs={24} lg={8}>
           <motion.div variants={itemVariants} style={{ height: '100%' }}>
             <Card title={<><RiseOutlined style={{marginRight: 8, color: 'var(--accent-primary)'}} /> Conversion Funnel</>} style={{ borderRadius: 16, border: '1px solid var(--border-color)', height: '100%', background: 'var(--bg-secondary)' }} headStyle={{ borderBottom: 'none', padding: '20px 24px 0', fontSize: 16, fontWeight: 800 }}>
-              <div style={{ background: '#3b82f6', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <div style={{ background: 'var(--accent-primary)', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                 <span>Total Leads</span><span>{totalLeads} (100%)</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 24 }}>
-                <div style={{ background: '#0ea5e9', color: '#fff', padding: '8px 16px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600, width: '90%' }}>
+                <div style={{ background: 'var(--accent-primary)', color: '#fff', padding: '8px 16px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600, width: '90%' }}>
                   <span>Active</span><span>{activeLeads} ({totalLeads ? Math.round((activeLeads/totalLeads)*100) : 0}%)</span>
                 </div>
                 <div style={{ background: '#8b5cf6', color: '#fff', padding: '8px 16px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600, width: '80%' }}>
@@ -332,7 +332,7 @@ const AdminDashboard = ({ leads = [] }) => {
                   <XAxis type="number" stroke="var(--text-tertiary)" fontSize={12} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis dataKey="name" type="category" stroke="var(--text-tertiary)" fontSize={12} axisLine={false} tickLine={false} />
                   <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -351,7 +351,7 @@ const AdminDashboard = ({ leads = [] }) => {
                   <XAxis dataKey="date" stroke="var(--text-tertiary)" fontSize={11} axisLine={false} tickLine={false} dy={10} />
                   <YAxis stroke="var(--text-tertiary)" fontSize={11} axisLine={false} tickLine={false} dx={-10} allowDecimals={false} />
                   <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="count" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>

@@ -83,11 +83,11 @@ const NodeWrapper = ({ children, borderColor, className = "" }) => (
 );
 
 const TriggerNode = ({ data }) => (
-  <NodeWrapper borderColor="#3b82f6" className="rf-node--trigger">
+  <NodeWrapper borderColor="var(--accent-primary)" className="rf-node--trigger">
     <Handle type="source" position={Position.Bottom} className="rf-handle" />
     <div className="rf-node-header">
-      <span className="rf-node-icon rf-node-icon--blue"><Play size={13} strokeWidth={2} color="#2563eb" /></span>
-      <span className="rf-node-badge" style={{ color: "#3b82f6" }}>TRIGGER</span>
+      <span className="rf-node-icon rf-node-icon--blue"><Play size={13} strokeWidth={2} color="var(--accent-primary)" /></span>
+      <span className="rf-node-badge" style={{ color: "var(--accent-primary)" }}>TRIGGER</span>
     </div>
     <div className="rf-node-body">
       <span className="rf-node-type-chip">Broadcast</span>
@@ -297,7 +297,7 @@ const WorkflowBuilderInner = ({ workflow, onClose }) => {
           <Button icon={<CheckCircle2 size={14} />} style={{ fontWeight: 600, borderColor: '#10b981', color: '#10b981' }}>Validate Flow</Button>
           <Button icon={<FlaskConical size={14} />} style={{ fontWeight: 600, borderColor: '#f59e0b', color: '#f59e0b' }}>Test Workflow</Button>
           <Button icon={<X size={14} />} style={{ fontWeight: 600, borderColor: '#ef4444', color: '#ef4444' }} onClick={onClose}>Cancel</Button>
-          <Button type="primary" style={{ fontWeight: 600, background: 'var(--accent-secondary)' }}>Update</Button>
+          <Button type="primary" style={{ fontWeight: 600, background: 'var(--accent-primary)' }}>Update</Button>
         </div>
       </div>
 
@@ -314,7 +314,7 @@ const WorkflowBuilderInner = ({ workflow, onClose }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {panelNodes.map(({ type, label, desc: nd, Icon: NIcon, colorClass }) => {
                   let badgeColor;
-                  if (colorClass === 'blue') badgeColor = '#3b82f6';
+                  if (colorClass === 'blue') badgeColor = 'var(--accent-primary)';
                   if (colorClass === 'green') badgeColor = '#10b981';
                   if (colorClass === 'orange') badgeColor = '#f59e0b';
                   if (colorClass === 'purple') badgeColor = '#8b5cf6';

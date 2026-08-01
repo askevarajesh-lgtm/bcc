@@ -47,7 +47,7 @@ const stringToColor = (str = "") => {
     "#6366f1",
     "#f59e0b",
     "#10b981",
-    "#3b82f6",
+    "var(--accent-primary)",
     "#ec4899",
     "#8b5cf6",
     "#14b8a6",

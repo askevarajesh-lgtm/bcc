@@ -347,7 +347,7 @@ const Companies = () => {
                   styles={{ body: { padding: 16, display: 'flex', alignItems: 'center', gap: 12 } }}
                   style={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
                 >
-                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: 10, borderRadius: 10, color: '#3b82f6', display: 'flex' }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: 10, borderRadius: 10, color: 'var(--accent-primary)', display: 'flex' }}>
                     <Star size={20} />
                   </div>
                   <div>

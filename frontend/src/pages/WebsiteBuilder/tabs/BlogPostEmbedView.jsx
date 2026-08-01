@@ -44,7 +44,7 @@ const BlogPostEmbedView = () => {
   const [postData, setPostData] = useState(null);
   const [loading, setLoading] = useState(true);
   const themeFont = blogData?.websiteTheme?.fontFamily || "Inter";
-  const themeColor = blogData?.websiteTheme?.primaryColor || "#3b82f6";
+  const themeColor = blogData?.websiteTheme?.primaryColor || "var(--accent-primary)";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@400;600;700;800;900&display=swap`;
 
   useEffect(() => {
@@ -90,8 +90,8 @@ const BlogPostEmbedView = () => {
   const hasBuiltLayout = !!postData.html;
 
   return (
-    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Inter', sans-serif` } }}>
-    <div style={{ fontFamily: `'${themeFont}', 'Inter', sans-serif`, '--site-font': `'${themeFont}', sans-serif`, '--brand-color': themeColor }}>
+    <ConfigProvider theme={{ token: { fontFamily: `'${themeFont}', 'Outfit', sans-serif` } }}>
+    <div style={{ fontFamily: `'${themeFont}', 'Outfit', sans-serif`, '--site-font': `'${themeFont}', sans-serif`, '--brand-color': themeColor }}>
       <link rel="stylesheet" href={googleFontHref} />
       {siteStylesheetUrls.map((href) => (
         <link key={href} rel="stylesheet" href={href} />

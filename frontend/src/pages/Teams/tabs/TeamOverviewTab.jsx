@@ -125,7 +125,7 @@ const TeamOverviewTab = () => {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Tag style={{ borderRadius: 16, padding: '8px 16px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600 }}>M1 Labs - 5 team members</Tag>
           <Button icon={<UserPlus size={16} />} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 40 }}>Invite Member</Button>
-          <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export</Button>
+          <Button type="primary" icon={<Download size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export</Button>
         </div>
       </motion.div>
 
@@ -240,7 +240,7 @@ const TeamOverviewTab = () => {
 
                       <div style={{ display: 'flex', gap: 12 }}>
                         <Button style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>View Profile</Button>
-                        <Button type="primary" style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, background: 'var(--accent-secondary)', border: 'none' }}>Assign Task</Button>
+                        <Button type="primary" style={{ flex: 1, borderRadius: 8, height: 40, fontWeight: 600, background: 'var(--accent-primary)', border: 'none' }}>Assign Task</Button>
                       </div>
                     </div>
 

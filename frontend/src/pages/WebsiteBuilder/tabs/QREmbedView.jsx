@@ -12,10 +12,10 @@ const QREmbedView = () => {
   const [qrUrl, setQrUrl] = useState("");
 
   const resolveColor = (color) => {
-    if (!color) return '#3b82f6';
-    if (color === 'var(--accent-primary)') return '#3b82f6';
+    if (!color) return 'var(--accent-primary)';
+    if (color === 'var(--accent-primary)') return 'var(--accent-primary)';
     if (color.startsWith('#')) return color;
-    return '#3b82f6';
+    return 'var(--accent-primary)';
   };
 
   useEffect(() => {

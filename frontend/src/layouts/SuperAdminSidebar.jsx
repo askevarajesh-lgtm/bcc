@@ -67,7 +67,7 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
       brandInitials="SA"
       brandLogo={user?.logo}
       brandTitle="M1 Platform"
-      accent="#7c3aed"
+      accent="var(--accent-primary)"
       accentSoft="rgba(124, 58, 237, 0.12)"
       menuItems={menuItems}
       selectedKeys={selectedKeys}

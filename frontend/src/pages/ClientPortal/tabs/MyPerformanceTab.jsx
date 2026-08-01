@@ -60,7 +60,7 @@ const MyPerformanceTab = () => {
 
   const donutData = [
     { name: 'Organic', value: 55, color: '#0d9488' },
-    { name: 'Paid', value: 35, color: '#3b82f6' },
+    { name: 'Paid', value: 35, color: 'var(--accent-primary)' },
     { name: 'Direct', value: 10, color: '#94a3b8' },
   ];
 
@@ -104,7 +104,7 @@ const MyPerformanceTab = () => {
             </Button>
           ))}
         </div>
-        <Button type="primary" icon={<Download size={16} />} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, height: 40 }}>
+        <Button type="primary" icon={<Download size={16} />} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40 }}>
           Download Report
         </Button>
       </motion.div>
@@ -229,7 +229,7 @@ const MyPerformanceTab = () => {
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: 'var(--text-secondary)' }} dx={-10} />
                     <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: 'var(--shadow-md)' }} />
                     <Area type="monotone" dataKey="organic" stackId="1" stroke="#0d9488" fill="#0d9488" fillOpacity={0.6} />
-                    <Area type="monotone" dataKey="paid" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+                    <Area type="monotone" dataKey="paid" stackId="1" stroke="var(--accent-primary)" fill="var(--accent-primary)" fillOpacity={0.6} />
                     <Area type="monotone" dataKey="direct" stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.6} />
                   </AreaChart>
                 </ResponsiveContainer>

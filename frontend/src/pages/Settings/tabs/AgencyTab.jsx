@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Button, Input, Form, message, Upload } from 'antd';
+import { Typography, Card, Button, Input, Form, message, Upload, ColorPicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Upload as UploadIcon } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -37,6 +38,7 @@ const PanelCard = ({ title, extra, children, accentColor }) => (
 
 const AgencyTab = () => {
   const { user, setUser } = useAuth();
+  const { updatePreviewTheme } = useTheme();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -52,12 +54,14 @@ const AgencyTab = () => {
       setFetching(true);
       const res = await api.get('/agency/settings/profile');
       if (res.data && res.data.success) {
-        const { companyName, name, email, logo } = res.data.data;
+        const { companyName, name, email, logo, theme } = res.data.data;
         form.setFieldsValue({
           companyName,
           name,
           email,
-          logo
+          logo,
+          theme_primaryColor: theme?.primaryColor || '#034EA1',
+          theme_secondaryColor: theme?.secondaryColor || '#0ea5e9'
         });
         if (logo) setLogoPreview(logo);
       }
@@ -68,15 +72,34 @@ const AgencyTab = () => {
     }
   };
 
+  const handleValuesChange = (changedValues) => {
+    if (changedValues.theme_primaryColor || changedValues.theme_secondaryColor) {
+      const primary = changedValues.theme_primaryColor ? (typeof changedValues.theme_primaryColor === 'string' ? changedValues.theme_primaryColor : changedValues.theme_primaryColor.toHexString()) : null;
+      const secondary = changedValues.theme_secondaryColor ? (typeof changedValues.theme_secondaryColor === 'string' ? changedValues.theme_secondaryColor : changedValues.theme_secondaryColor.toHexString()) : null;
+      updatePreviewTheme(primary, secondary);
+    }
+  };
+
   const onFinish = async (values) => {
     try {
       setLoading(true);
-      const res = await api.put('/agency/settings/profile', values);
+      const payload = {
+        ...values,
+        theme: {
+          primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
+          secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
+        }
+      };
+      const res = await api.put('/agency/settings/profile', payload);
       message.success('Agency profile updated successfully');
       if (res.data && res.data.data) {
         const updatedUser = { ...user, ...res.data.data };
+        if (res.data.data.theme) {
+          updatedUser.effectiveTheme = res.data.data.theme;
+        }
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event('user-updated'));
       }
       fetchProfile();
     } catch (error) {
@@ -140,6 +163,7 @@ const AgencyTab = () => {
             layout="vertical" 
             form={form} 
             onFinish={onFinish}
+            onValuesChange={handleValuesChange}
             disabled={fetching}
           >
             <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap' }}>
@@ -165,6 +189,20 @@ const AgencyTab = () => {
                 >
                   <Input style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 500 }} />
                 </Form.Item>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <Form.Item 
+                    name="theme_primaryColor" 
+                    label={<strong style={{ color: 'var(--text-secondary)' }}>Primary Color</strong>}
+                  >
+                    <ColorPicker format="hex" />
+                  </Form.Item>
+                  <Form.Item 
+                    name="theme_secondaryColor" 
+                    label={<strong style={{ color: 'var(--text-secondary)' }}>Secondary Color</strong>}
+                  >
+                    <ColorPicker format="hex" />
+                  </Form.Item>
+                </div>
               </div>
               <div style={{ flex: '1 1 300px' }}>
                 <Form.Item label={<strong style={{ color: 'var(--text-secondary)' }}>Agency Logo</strong>}>
@@ -176,7 +214,7 @@ const AgencyTab = () => {
                       <div style={{ 
                         width: 88, 
                         height: 88, 
-                        // background: 'var(--accent-secondary)', 
+                        // background: 'var(--accent-primary)', 
                         borderRadius: 12, 
                         display: 'flex', 
                         justifyContent: 'center', 
@@ -220,7 +258,7 @@ const AgencyTab = () => {
                 size="large" 
                 htmlType="submit"
                 loading={loading}
-                style={{ borderRadius: 8, background: 'var(--accent-secondary)', fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-sm)' }}
+                style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-sm)' }}
               >
                 Save Agency Profile
               </Button>

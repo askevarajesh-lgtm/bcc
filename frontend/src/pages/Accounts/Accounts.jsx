@@ -271,7 +271,7 @@ const Accounts = () => {
           <Text type="secondary">Manage your agency accounts and provision packages.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button type="primary" onClick={() => handleOpenModal()} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Agency</Button>
+          <Button type="primary" onClick={() => handleOpenModal()} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Agency</Button>
         </div>
       </motion.div>
 

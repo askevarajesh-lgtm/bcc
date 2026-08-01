@@ -20,7 +20,7 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
       boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{
-        background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+        background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary))',
         padding: '24px',
         position: 'relative',
         overflow: 'hidden'
@@ -50,12 +50,12 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
         <Title level={5} style={{ margin: '0 0 16px 0', fontWeight: 800, color: 'var(--text-primary)' }}>{title}</Title>
         
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          <Tag style={{ borderRadius: 12, border: 'none', background: active ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', color: active ? '#2563eb' : 'var(--text-tertiary)', fontWeight: 700, padding: '2px 10px', margin: 0, display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: active ? '#2563eb' : 'var(--text-tertiary)', marginRight: 6 }}></div>
+          <Tag style={{ borderRadius: 12, border: 'none', background: active ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', color: active ? 'var(--accent-primary)' : 'var(--text-tertiary)', fontWeight: 700, padding: '2px 10px', margin: 0, display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'var(--accent-primary)' : 'var(--text-tertiary)', marginRight: 6 }}></div>
             {active ? 'Active' : 'Inactive'}
           </Tag>
           {configured && (
-            <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', fontWeight: 700, padding: '2px 10px', margin: 0 }}>
+            <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 10px', margin: 0 }}>
               + Configured
             </Tag>
           )}
@@ -66,7 +66,7 @@ const IntegrationCard = ({ title, description, icon: Icon, active, configured, b
         </Text>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-          <Button onClick={onConfigure} type="primary" icon={<Settings size={14} />} style={{ background: '#1d4ed8', borderRadius: 8, fontWeight: 600, padding: '0 20px', border: 'none', height: 36 }}>
+          <Button onClick={onConfigure} type="primary" icon={<Settings size={14} />} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600, padding: '0 20px', border: 'none', height: 36 }}>
             {buttonText}
           </Button>
           <ArrowRight size={18} color="var(--text-tertiary)" />

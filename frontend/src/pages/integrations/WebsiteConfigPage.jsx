@@ -273,7 +273,7 @@ const WebsiteConfigPage = ({ integrationId: propId, onBack }) => {
 <!-- CRM Lead Form Integration -->
 <form id="tunepath-lead-form">
 \${dynamicHtmlInputs}
-  <button type="submit" style="background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+  <button type="submit" style="background: var(--accent-secondary); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
     Submit
   </button>
 </form>

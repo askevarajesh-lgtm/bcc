@@ -87,7 +87,7 @@ const BlogPostPreviewView = () => {
   const [postData, setPostData] = useState(null);
   const [loading, setLoading] = useState(true);
   const themeFont = postData?.websiteTheme?.fontFamily || "Inter";
-  const themeColor = postData?.websiteTheme?.primaryColor || "#3b82f6";
+  const themeColor = postData?.websiteTheme?.primaryColor || "var(--accent-primary)";
   const googleFontHref = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
   useEffect(() => {

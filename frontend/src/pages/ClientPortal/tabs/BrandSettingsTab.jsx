@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Typography, Tabs, Card, Form, Input, Button, Upload, Select, message, Tag, Modal, Checkbox } from 'antd';
+import { Typography, Tabs, Card, Form, Input, Button, Upload, Select, message, Tag, Modal, Checkbox, ColorPicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Upload as UploadIcon, Building, Package, Shield, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -18,13 +19,22 @@ const availableFeatures = [
 ];
 
 const BrandSettingsTab = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const { updatePreviewTheme } = useTheme();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeForm] = Form.useForm();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  const handleValuesChange = (changedValues) => {
+    if (changedValues.theme_primaryColor || changedValues.theme_secondaryColor) {
+      const primary = changedValues.theme_primaryColor ? (typeof changedValues.theme_primaryColor === 'string' ? changedValues.theme_primaryColor : changedValues.theme_primaryColor.toHexString()) : null;
+      const secondary = changedValues.theme_secondaryColor ? (typeof changedValues.theme_secondaryColor === 'string' ? changedValues.theme_secondaryColor : changedValues.theme_secondaryColor.toHexString()) : null;
+      updatePreviewTheme(primary, secondary);
+    }
+  };
 
   const handleSaveDetails = async (values) => {
     try {
@@ -39,12 +49,25 @@ const BrandSettingsTab = () => {
           companyName: values.name,
           contactEmail: values.email,
           domain: values.website,
-          industry: values.industry
+          industry: values.industry,
+          theme: {
+            primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
+            secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
+          }
         })
       });
       const data = await res.json();
       if (data.success) {
         message.success('Brand details updated successfully');
+        if (data.data) {
+          const updatedUser = { ...user, ...data.data };
+          if (data.data.theme) {
+            updatedUser.effectiveTheme = data.data.theme;
+          }
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
       } else {
         message.error(data.message || 'Failed to update brand details');
       }
@@ -102,7 +125,7 @@ const BrandSettingsTab = () => {
         bodyStyle={{ padding: 32 }}
       >
         <Title level={4} style={{ marginTop: 0, marginBottom: 24, fontWeight: 800 }}>Brand Profile</Title>
-        <Form form={form} layout="vertical" onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || user?.name || 'My Brand', email: user?.contactEmail || user?.email, website: user?.domain, industry: user?.industry }}>
+        <Form form={form} layout="vertical" onValuesChange={handleValuesChange} onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || user?.name || 'My Brand', email: user?.contactEmail || user?.email, website: user?.domain, industry: user?.industry, theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1', theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9' }}>
           <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
             <div style={{ width: 100, height: 100, borderRadius: 12, background: 'var(--bg-tertiary)', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <UploadIcon size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
@@ -137,6 +160,21 @@ const BrandSettingsTab = () => {
               <Select.Option value="other">Other</Select.Option>
             </Select>
           </Form.Item>
+
+          <div style={{ display: 'flex', gap: 16 }}>
+            <Form.Item 
+              name="theme_primaryColor" 
+              label={<span style={{ fontWeight: 600 }}>Primary Color</span>}
+            >
+              <ColorPicker format="hex" />
+            </Form.Item>
+            <Form.Item 
+              name="theme_secondaryColor" 
+              label={<span style={{ fontWeight: 600 }}>Secondary Color</span>}
+            >
+              <ColorPicker format="hex" />
+            </Form.Item>
+          </div>
 
           <Form.Item style={{ marginBottom: 0, marginTop: 32 }}>
             <Button type="primary" htmlType="submit" loading={loading} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40, padding: '0 32px' }}>

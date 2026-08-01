@@ -7,14 +7,14 @@
   --gjs-tertiary-color: #e2e8f0; /* Borders */
   --gjs-quaternary-color: #334155; /* Text */
   --gjs-font-color: #334155;
-  --gjs-font-color-active: #2563eb; /* Primary Blue Accent */
+  --gjs-font-color-active: var(--accent-primary); /* Primary Blue Accent */
   
   --gjs-main-color: #ffffff;
-  --gjs-color-active: #2563eb;
+  --gjs-color-active: var(--accent-primary);
   --gjs-color-highlight: rgba(37, 99, 235, 0.1);
   --gjs-color-warn: #f59e0b;
   
-  --gjs-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gjs-font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --gjs-font-size: 13px;
 }
 

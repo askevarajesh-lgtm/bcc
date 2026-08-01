@@ -88,7 +88,7 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
   const [settings, setSettings] = useState({
     headline: "",
     subHeadline: "",
-    accentColor: "#3b82f6",
+    accentColor: "var(--accent-primary)",
     submitButtonLabel: "Submit",
     successMessage: "Thank you — we received your submission.",
     trackingPixels: {

@@ -30,3 +30,4 @@ const createQueryHook = (endpointFn) => {
 };
 
 export const useGetInvoicesQuery = createQueryHook(() => '/invoices');
+export const useGetInvoiceByIdQuery = createQueryHook((id) => `/invoices/${id}`);

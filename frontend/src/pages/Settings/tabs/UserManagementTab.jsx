@@ -513,7 +513,7 @@ const UserManagementTab = () => {
                       prefix={<Search size={16} color="var(--text-tertiary)" />}
                       style={{ borderRadius: 10, maxWidth: 400, height: 44, fontWeight: 500 }}
                     />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setDeptModal({open: true, record: null}); deptForm.resetFields(); deptForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-secondary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setDeptModal({open: true, record: null}); deptForm.resetFields(); deptForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
                       Add Department
                     </Button>
                   </div>
@@ -610,7 +610,7 @@ const UserManagementTab = () => {
         onCancel={() => setDeptModal({ open: false, record: null })} 
         onOk={handleDeptSubmit}
         confirmLoading={submitLoading}
-        okButtonProps={{ style: { background: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
+        okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
         cancelButtonProps={{ style: { borderRadius: 8, fontWeight: 600, background: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' } }}
         className="glassmorphism-modal"
       >

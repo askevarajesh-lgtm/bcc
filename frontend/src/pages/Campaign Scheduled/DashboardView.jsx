@@ -586,7 +586,7 @@ export default function DashboardView({ posts, accounts, activeClientId }) {
 
 
 
-        .card-blue { background: #eff6ff; color: #1d4ed8; }
+        .card-blue { background: #eff6ff; color: var(--accent-primary); }
         .card-rose { background: #fff1f2; color: #e11d48; }
         .card-emerald { background: #ecfdf5; color: #059669; }
         .card-amber { background: #fffbeb; color: #d97706; }

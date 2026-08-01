@@ -21,7 +21,7 @@ const BacklinksAnchors = () => {
       key: 'links',
       width: 150,
       align: 'right',
-      render: (val) => <span style={{ color: '#1890ff', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
+      render: (val) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{Number(val).toLocaleString()}</span>
     },
     {
       title: 'Domains',

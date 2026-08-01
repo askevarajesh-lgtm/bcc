@@ -84,7 +84,7 @@ const BillingTab = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', gap: 8 }}>
           {record.status === 'Upcoming' && (
-            <Button type="primary" size="small" style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 6 }}>Pay Now</Button>
+            <Button type="primary" size="small" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 6 }}>Pay Now</Button>
           )}
           <Button type="default" size="small" icon={<Download size={12} />} style={{ fontWeight: 600, borderRadius: 6, color: 'var(--text-secondary)' }}>PDF</Button>
           {record.status === 'Paid' && (
@@ -187,7 +187,7 @@ const BillingTab = () => {
             </div>
             <Button 
               type="primary" 
-              style={{ background: 'var(--accent-secondary)', fontWeight: 800, borderRadius: 8, height: 44, padding: '0 24px', fontSize: 15 }}
+              style={{ background: 'var(--accent-primary)', fontWeight: 800, borderRadius: 8, height: 44, padding: '0 24px', fontSize: 15 }}
               onClick={() => navigate(`/client/workspace/invoices/${latestInvoice._id}/view`)}
             >
               View Invoice

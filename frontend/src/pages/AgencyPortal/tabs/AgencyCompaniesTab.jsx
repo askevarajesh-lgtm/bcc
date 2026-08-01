@@ -191,7 +191,7 @@ const AgencyCompaniesTab = () => {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Button icon={<Download size={16} />} style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Export</Button>
-          <Button type="primary" onClick={handleOpenModal} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-secondary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Company</Button>
+          <Button type="primary" onClick={handleOpenModal} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)' }}>Create Company</Button>
         </div>
       </motion.div>
 

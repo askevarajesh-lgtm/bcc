@@ -71,7 +71,7 @@ const TasksTab = () => {
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>All open tasks and deliverables across all clients</Text>
         </div>
         {canAdd && (
-          <Button type="primary" icon={<Plus size={18} />} style={{ background: 'var(--accent-secondary)', fontWeight: 700, borderRadius: 8, height: 40, padding: '0 20px', boxShadow: '2px 2px 0 var(--border-color)' }}>
+          <Button type="primary" icon={<Plus size={18} />} style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 40, padding: '0 20px', boxShadow: '2px 2px 0 var(--border-color)' }}>
             New Task
           </Button>
         )}

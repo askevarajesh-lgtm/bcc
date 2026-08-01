@@ -8,7 +8,7 @@ import { useContentModule } from '../ContentModuleContext';
 const { Title, Text } = Typography;
 
 const typeColors = {
-  blog: '#3b82f6',
+  blog: 'var(--accent-primary)',
   social: '#0d9488',
   ad: '#f59e0b',
   email: '#8b5cf6',
@@ -111,7 +111,7 @@ const CalendarViewTab = ({ itemVariants }) => {
           <Button 
             type="primary"
             onClick={handleAutoPlan}
-            style={{ background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)', border: 'none', fontWeight: 600, boxShadow: 'var(--shadow-md)' }}
+            style={{ background: 'linear-gradient(90deg, #8b5cf6, var(--accent-primary))', border: 'none', fontWeight: 600, boxShadow: 'var(--shadow-md)' }}
           >
             Auto-Plan Month
           </Button>
@@ -178,7 +178,7 @@ const CalendarViewTab = ({ itemVariants }) => {
 
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[
-              { type: 'Blog', color: '#3b82f6' },
+              { type: 'Blog', color: 'var(--accent-primary)' },
               { type: 'Social', color: '#0d9488' },
               { type: 'Ad Copy', color: '#f59e0b' },
               { type: 'Email', color: '#8b5cf6' },

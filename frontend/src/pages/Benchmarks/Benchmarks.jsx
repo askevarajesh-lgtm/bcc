@@ -320,8 +320,8 @@ const Benchmarks = () => {
                   </div>
                 )}
                 {(dashboardData.clientData.percentiles.content || 0) < 50 && (
-                  <div style={{ padding: 16, background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid #3b82f6', borderRadius: 4 }}>
-                    <Text strong style={{ color: '#3b82f6', display: 'block', marginBottom: 4 }}>Expand Content Marketing</Text>
+                  <div style={{ padding: 16, background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid var(--accent-primary)', borderRadius: 4 }}>
+                    <Text strong style={{ color: 'var(--accent-primary)', display: 'block', marginBottom: 4 }}>Expand Content Marketing</Text>
                     <Text>Content Marketing efforts need enhancement. Publishing authoritative, long-form content and distributing it across multiple channels will establish thought leadership and drive inbound traffic.</Text>
                   </div>
                 )}

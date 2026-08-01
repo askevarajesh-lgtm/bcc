@@ -217,7 +217,7 @@ const SalesPipeline = () => {
               type="primary"
               icon={<Plus size={16} />}
               onClick={() => setIsCreateOpen(true)}
-              style={{ borderRadius: 8, background: 'var(--accent-secondary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}
+              style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}
             >
               Add Sales Proposal
             </Button>
@@ -260,7 +260,7 @@ const SalesPipeline = () => {
         <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16 }}>
           {[
             { id: 'lead', title: 'NEW LEAD', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.06)' },
-            { id: 'qualified', title: 'QUALIFIED', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.06)' },
+            { id: 'qualified', title: 'QUALIFIED', color: 'var(--accent-primary)', bg: 'rgba(59, 130, 246, 0.06)' },
             { id: 'proposal', title: 'PROPOSAL SENT', color: '#0d9488', bg: 'rgba(13, 148, 136, 0.06)' },
             { id: 'negotiation', title: 'NEGOTIATION', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.06)' },
             { id: 'won', title: 'COMPLETED', color: '#10b981', bg: 'rgba(16, 185, 129, 0.06)' }
@@ -522,7 +522,7 @@ const SalesPipeline = () => {
                     type="primary"
                     loading={isAddingNote}
                     onClick={handleAddNote}
-                    style={{ height: 'auto', background: 'var(--accent-secondary)', borderRadius: 8 }}
+                    style={{ height: 'auto', background: 'var(--accent-primary)', borderRadius: 8 }}
                   >
                     Save
                   </Button>

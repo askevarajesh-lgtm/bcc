@@ -199,7 +199,7 @@ const BacklinkTab = ({ projects }) => {
               <div style={{ marginTop: 24 }}>
                 <Card size="small" style={{ background: 'var(--bg-secondary)', border: 0, borderRadius: 8, marginBottom: 12 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Domain Rank / Authority</Text>
-                  <Title level={2} style={{ margin: 0, color: '#3b82f6' }}>{backlinks.rank || 0}</Title>
+                  <Title level={2} style={{ margin: 0, color: 'var(--accent-primary)' }}>{backlinks.rank || 0}</Title>
                 </Card>
                 <Row gutter={[12, 12]}>
                   <Col span={12}>
@@ -231,7 +231,7 @@ const BacklinkTab = ({ projects }) => {
                 pagination={{ pageSize: 10 }}
                 style={{ borderTop: '1px solid var(--border-color)' }}
                 columns={[
-                  { title: 'Referring Domain', dataIndex: 'url_from', key: 'url_from', render: text => <a href={text.startsWith('http') ? text : `https://${text}`} target="_blank" rel="noreferrer" style={{ fontWeight: 500, color: '#3b82f6' }}>{text}</a> },
+                  { title: 'Referring Domain', dataIndex: 'url_from', key: 'url_from', render: text => <a href={text.startsWith('http') ? text : `https://${text}`} target="_blank" rel="noreferrer" style={{ fontWeight: 500, color: 'var(--accent-primary)' }}>{text}</a> },
                   { title: 'Domain Rank', dataIndex: 'rank', key: 'rank', render: val => <Tag color={val >= 70 ? 'success' : val >= 40 ? 'processing' : 'default'} style={{ borderRadius: 12 }}>{val || 0}</Tag> },
                   { title: 'Backlinks', dataIndex: 'backlinks', key: 'backlinks', render: val => <Text strong>{(val || 0).toLocaleString()}</Text> },
                   { title: 'Top Anchor', dataIndex: 'anchor', key: 'anchor', render: val => val ? <Tag>{val}</Tag> : '-' }
@@ -408,14 +408,14 @@ const DashboardTab = ({ projects, stats, handleDelete, handleEdit, handleCreateP
     chart: { type: 'area', toolbar: { show: false }, sparkline: { enabled: true } },
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 100] } },
-    colors: ['#3b82f6'],
+    colors: ['var(--accent-primary)'],
     tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
   };
 
   const funnelChartOptions = {
     chart: { type: 'bar', toolbar: { show: false } },
     plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, dataLabels: { position: 'bottom' } } },
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+    colors: ['var(--accent-primary)', '#10b981', '#f59e0b', '#8b5cf6'],
     dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'] } },
     xaxis: { categories: ['Impressions', 'Clicks', 'Leads', 'Conversions'] },
     yaxis: { labels: { show: false } },
@@ -425,7 +425,7 @@ const DashboardTab = ({ projects, stats, handleDelete, handleEdit, handleCreateP
   const columns = [
     { title: 'Domain URL', dataIndex: 'domain', key: 'domain', render: (text, record) => (
       <Space>
-        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--accent-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={16} color="#fff" /></div>
+        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={16} color="#fff" /></div>
         <div>
           <Text strong style={{ display: 'block' }}>{record.domain}</Text>
         </div>
@@ -465,7 +465,7 @@ const DashboardTab = ({ projects, stats, handleDelete, handleEdit, handleCreateP
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
                   <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{kpi.value}</Title>
                   <div style={{ width: 80, height: 40 }}>
-                    <ReactApexChart options={{ ...trendChartOptions, colors: [kpi.color || '#3b82f6'] }} series={kpi.series} type="area" height={40} />
+                    <ReactApexChart options={{ ...trendChartOptions, colors: [kpi.color || 'var(--accent-primary)'] }} series={kpi.series} type="area" height={40} />
                   </div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 4 }}>

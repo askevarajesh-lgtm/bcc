@@ -28,14 +28,14 @@ const TasksTab = () => {
     ],
     inProgress: [
       { id: 't4', title: 'June Instagram Content', tag: 'Social', date: 'Jun 12', assignee: 'KM', color: '#ec4899' },
-      { id: 't5', title: 'Reduce CAC on Meta', tag: 'Ads', date: 'Jun 18', assignee: 'PN', color: '#3b82f6' },
+      { id: 't5', title: 'Reduce CAC on Meta', tag: 'Ads', date: 'Jun 18', assignee: 'PN', color: 'var(--accent-primary)' },
     ],
     inReview: [
       { id: 't6', title: 'Monthly Performance Report', tag: 'Report', date: 'Jun 10', assignee: 'AS', color: 'var(--text-secondary)' },
       { id: 't7', title: 'Landing Page Revisions', tag: 'Web', date: 'Jun 08', assignee: 'KM', color: '#14b8a6' },
     ],
     done: [
-      { id: 't8', title: 'Google Ads Reactivation', tag: 'Ads', date: 'Jun 05', assignee: 'PN', color: '#3b82f6' },
+      { id: 't8', title: 'Google Ads Reactivation', tag: 'Ads', date: 'Jun 05', assignee: 'PN', color: 'var(--accent-primary)' },
       { id: 't9', title: 'Keyword Ranking Setup', tag: 'SEO', date: 'Jun 02', assignee: 'RS', color: '#f59e0b' },
       { id: 't10', title: 'Kickoff Meeting', tag: 'Strategy', date: 'Jun 01', assignee: 'AS', color: 'var(--accent-primary)' },
     ],

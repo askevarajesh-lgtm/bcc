@@ -395,7 +395,7 @@ const SEOList = () => {
             onClick={() => setViewMode(viewMode === "websites" ? "entries" : "websites")}
             style={{
               cursor: "pointer",
-              border: viewMode === "websites" ? "2px solid var(--primary-color, #1890ff)" : "1px solid #f0f0f0",
+              border: viewMode === "websites" ? "2px solid var(--primary-color, var(--accent-primary))" : "1px solid #f0f0f0",
               borderRadius: "12px",
               boxShadow: viewMode === "websites" ? "0 4px 12px rgba(24, 144, 255, 0.15)" : "0 2px 8px rgba(0, 0, 0, 0.04)",
               transition: "all 0.3s ease",
@@ -404,7 +404,7 @@ const SEOList = () => {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <Text type="secondary" style={{ fontSize: "14px", fontWeight: 500 }}>Total Websites</Text>
-              <div style={{ background: "#e6f7ff", padding: "8px", borderRadius: "8px", color: "#1890ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ background: "#e6f7ff", padding: "8px", borderRadius: "8px", color: "var(--accent-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <GlobalOutlined style={{ fontSize: "18px" }} />
               </div>
             </div>

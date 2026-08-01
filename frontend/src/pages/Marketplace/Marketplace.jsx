@@ -222,7 +222,7 @@ const Marketplace = () => {
           email: "user@example.com",
         },
         theme: {
-          color: "#2563eb",
+          color: "var(--accent-primary)",
         },
       };
 

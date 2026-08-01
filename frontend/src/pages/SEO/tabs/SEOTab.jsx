@@ -122,7 +122,7 @@ const SEOTab = ({ itemVariants, project, analytics, audits, keywords }) => {
               title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Keyword Rankings</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{totalKeywords} tracked keywords</Text></div>} 
               extra={
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
-                  <Button type="primary" icon={<Plus size={16} />} style={{ background: 'var(--accent-secondary)', borderRadius: 8, border: 'none', fontWeight: 600 }}>Add Keywords</Button>
+                  <Button type="primary" icon={<Plus size={16} />} style={{ background: 'var(--accent-primary)', borderRadius: 8, border: 'none', fontWeight: 600 }}>Add Keywords</Button>
                   <Button type="link" style={{ color: 'var(--accent-secondary)', fontWeight: 600, padding: 0 }}>View All →</Button>
                 </div>
               }

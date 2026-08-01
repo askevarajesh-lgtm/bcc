@@ -14,6 +14,7 @@ import AgencyPackagesTab from './tabs/AgencyPackagesTab';
 import DirectPackagesTab from './tabs/DirectPackagesTab';
 import ClientPackagesTab from '../AgencyPortal/tabs/ClientPackagesTab';
 import UserSettingsTab from '../UserPortal/SettingsTab';
+import TaxSettingsTab from './tabs/TaxSettingsTab';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
@@ -64,6 +65,7 @@ const SettingsPage = () => {
       case '8': return <AgencyPackagesTab />;
       case '10': return <DirectPackagesTab />;
       case '11': return <ClientPackagesTab />;
+      case '12': return <TaxSettingsTab />;
       case '9': return <UserSettingsTab />;
       default: return <UserSettingsTab />;
     }
@@ -74,6 +76,7 @@ const SettingsPage = () => {
     { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
     { key: '4', label: <strong style={{ fontWeight: 600 }}>Notifications</strong> },
     { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
+    { key: '12', label: <strong style={{ fontWeight: 600 }}>Tax Settings</strong> },
     { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
     ...(['commander_admin', 'brand_super_admin', 'brand_manager'].includes(role) ? [] : [
       { key: '11', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> }
@@ -88,7 +91,7 @@ const SettingsPage = () => {
   if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) {
     allowedKeys = allTabs.map(t => t.key);
   } else if (['agency_manager', 'brand_manager'].includes(role)) {
-    allowedKeys = ['2', '4', '7', '9', '11'];
+    allowedKeys = ['2', '4', '7', '12', '9', '11'];
   } else {
     // agency_user, brand_team_user, client, agency_client
     allowedKeys = ['4', '9'];

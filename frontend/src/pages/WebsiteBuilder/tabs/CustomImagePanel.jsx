@@ -129,7 +129,7 @@ const CustomImagePanel = ({ editor, selectedComponent, onClose, onOpenMedia }) =
         
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 24, marginBottom: -1 }}>
-          <div style={{ paddingBottom: 12, borderBottom: '2px solid #3b82f6', color: '#3b82f6', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <div style={{ paddingBottom: 12, borderBottom: '2px solid var(--accent-primary)', color: 'var(--accent-primary)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             General
           </div>
         </div>

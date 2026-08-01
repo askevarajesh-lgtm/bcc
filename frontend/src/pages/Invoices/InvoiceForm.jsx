@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message, DatePicker } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Space, Descriptions, Tag, message, DatePicker, Checkbox, Typography } from 'antd';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Typography } from 'antd';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -18,6 +17,8 @@ const InvoiceForm = () => {
   const [clients, setClients] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [taxSettings, setTaxSettings] = useState({ gstPercentage: 18, gstEnabled: false });
+  const [gstIncluded, setGstIncluded] = useState(false);
 
   const selectedClientId = Form.useWatch('clientId', form);
   const selectedProposalId = Form.useWatch('proposalId', form);
@@ -32,17 +33,33 @@ const InvoiceForm = () => {
   useEffect(() => {
     fetchClients();
     fetchProposals();
+    fetchTaxSettings();
     if (isEditing) {
       fetchInvoice();
     }
   }, [id, isEditing]);
+
+  const fetchTaxSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch('/api/agency/settings/profile', {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && data.data?.taxSettings) {
+        setTaxSettings(data.data.taxSettings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tax settings:', error);
+    }
+  };
 
   // When client changes, clear the proposal selection if it doesn't belong to the new client
   useEffect(() => {
     if (selectedClientId && selectedProposal) {
       const pClientId = selectedProposal.clientId?._id || selectedProposal.clientId;
       if (pClientId !== selectedClientId) {
-        form.setFieldsValue({ proposalId: undefined, grandTotal: undefined });
+        form.setFieldsValue({ proposalId: undefined, subtotal: undefined });
       }
     }
   }, [selectedClientId]);
@@ -50,7 +67,7 @@ const InvoiceForm = () => {
   // When proposal is selected, auto-fill the grand total
   useEffect(() => {
     if (selectedProposal) {
-      form.setFieldsValue({ grandTotal: selectedProposal.grandTotal });
+      form.setFieldsValue({ subtotal: selectedProposal.grandTotal });
     }
   }, [selectedProposal, form]);
 
@@ -71,9 +88,12 @@ const InvoiceForm = () => {
           paymentMode: invoice.paymentMode,
           dueDate: invoice.dueDate ? dayjs(invoice.dueDate) : undefined,
           invoiceDate: invoice.createdAt ? dayjs(invoice.createdAt) : dayjs(),
-          grandTotal: invoice.grandTotal,
+          subtotal: invoice.amount || 0,
           notes: invoice.notes
         });
+        if (invoice.tax > 0) {
+          setGstIncluded(true);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch invoice:', error);
@@ -125,17 +145,21 @@ const InvoiceForm = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       
+      const subtotalVal = values.subtotal || 0;
+      const taxAmount = gstIncluded && taxSettings.gstEnabled ? (subtotalVal * taxSettings.gstPercentage / 100) : 0;
+      const finalGrandTotal = subtotalVal + taxAmount;
+
       const payload = {
         clientId: values.clientId,
         proposalId: values.proposalId,
         invoiceNumber: values.invoiceNumber || undefined, // undefined allows backend to auto-generate
         paymentMode: values.paymentMode,
         dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
-        amount: values.grandTotal,
-        subtotal: values.grandTotal, 
-        tax: 0,
+        amount: subtotalVal,
+        subtotal: subtotalVal, 
+        tax: taxAmount,
         discount: 0,
-        grandTotal: values.grandTotal,
+        grandTotal: finalGrandTotal,
         notes: values.notes,
         paymentStatus: 'Pending',
         invoiceStatus: status // 'Sent' or 'Draft'
@@ -292,12 +316,69 @@ const InvoiceForm = () => {
             </div>
           ))}
 
-          <Form.Item label="Total Amount" name="grandTotal" rules={[{ required: true, message: 'Total Amount is required' }]}>
+          <Form.Item label="Subtotal" name="subtotal" rules={[{ required: true, message: 'Subtotal is required' }]}>
             <InputNumber 
               style={{ width: '100%' }} 
               prefix="₹" 
               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
             />
+          </Form.Item>
+
+          {taxSettings.gstEnabled && (
+            <div style={{ marginBottom: 24, padding: '16px 24px', border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <Checkbox checked={gstIncluded} onChange={(e) => setGstIncluded(e.target.checked)}>
+                  <span style={{ fontWeight: 600 }}>GST Included</span>
+                </Checkbox>
+              </div>
+              {gstIncluded && (
+                <div style={{ background: 'var(--bg-primary)', padding: '12px 16px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <Typography.Text strong>Tax Type: GST (CGST+SGST) ({taxSettings.gstPercentage}%)</Typography.Text>
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>Tax calculated at {taxSettings.gstPercentage}% as per proposal.</Typography.Text>
+                </div>
+              )}
+            </div>
+          )}
+
+          <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.subtotal !== currentValues.subtotal}>
+            {() => {
+              const subtotalVal = form.getFieldValue('subtotal') || 0;
+              const taxAmount = gstIncluded && taxSettings.gstEnabled ? (subtotalVal * taxSettings.gstPercentage / 100) : 0;
+              const finalGrandTotal = subtotalVal + taxAmount;
+              const cgst = taxAmount / 2;
+              const sgst = taxAmount / 2;
+
+              return (
+                <div style={{ padding: 24, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%', maxWidth: 400 }}>
+                      <span style={{ fontWeight: 600, flex: 1, textAlign: 'right' }}>Subtotal:</span>
+                      <span style={{ width: 150, textAlign: 'right' }}>₹{subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {gstIncluded && taxSettings.gstEnabled && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%', maxWidth: 400 }}>
+                          <span style={{ fontWeight: 600, flex: 1, textAlign: 'right' }}>Tax (GST (CGST+SGST) ({taxSettings.gstPercentage}%)):</span>
+                          <span style={{ width: 150, textAlign: 'right' }}>₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%', maxWidth: 400, color: 'var(--text-secondary)', fontSize: 13 }}>
+                          <span style={{ flex: 1, textAlign: 'right' }}>CGST ({taxSettings.gstPercentage / 2}%): ₹{cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | SGST ({taxSettings.gstPercentage / 2}%): ₹{sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span style={{ width: 150 }}></span>
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%', maxWidth: 400, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
+                      <span style={{ fontWeight: 800, fontSize: 16, flex: 1, textAlign: 'right' }}>Total (Invoice):</span>
+                      <span style={{ width: 150, fontWeight: 800, fontSize: 16, textAlign: 'right' }}>₹{subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%', maxWidth: 400, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
+                      <span style={{ fontWeight: 800, fontSize: 18, color: '#52c41a', flex: 1, textAlign: 'right' }}>Grand Total (Payable):</span>
+                      <span style={{ width: 150, fontWeight: 800, fontSize: 18, color: '#52c41a', textAlign: 'right' }}>₹{finalGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }}
           </Form.Item>
 
           <Form.Item label="Notes" name="notes">
