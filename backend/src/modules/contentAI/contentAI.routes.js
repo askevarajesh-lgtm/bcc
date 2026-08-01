@@ -1,48 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('./contentAI.controller');
-const { verifyToken } = require('../../middlewares/rbac.middleware');
+const contentAIController = require('./contentAI.controller');
+const authMiddleware = require('../../middlewares/authMiddleware');
 
-router.use(verifyToken);
+// All routes would typically be protected by authenticate middleware
+router.use(authMiddleware);
 
-// Same VIEW_ONLY_ROLES / blockViewOnly pattern as seoWorkspace.routes.js —
-// duplicated deliberately (not exported from a shared location today).
-const VIEW_ONLY_ROLES = ['agency_client', 'client', 'brand_manager', 'brand_super_admin', 'brand_team_user'];
-const blockViewOnly = (req, res, next) => {
-  if (VIEW_ONLY_ROLES.includes(req.user?.role)) {
-    return res.status(403).json({ success: false, error: 'Forbidden. Your role has read-only access to Content AI.' });
-  }
-  next();
-};
+router.get('/generators', contentAIController.getGenerators);
+router.get('/brand-voices', contentAIController.getBrandVoices);
+router.post('/brand-voices', contentAIController.createBrandVoice);
+router.put('/brand-voices/:id', contentAIController.updateBrandVoice);
+router.delete('/brand-voices/:id', contentAIController.deleteBrandVoice);
 
-router.get('/generators', controller.listGenerators);
+router.get('/templates', contentAIController.getTemplates);
+router.post('/templates', contentAIController.createTemplate);
+router.put('/templates/:id', contentAIController.updateTemplate);
+router.delete('/templates/:id', contentAIController.deleteTemplate);
 
-router.route('/brand-voices')
-  .get(controller.listBrandVoices)
-  .post(blockViewOnly, controller.createBrandVoice);
-router.put('/brand-voices/:id', blockViewOnly, controller.updateBrandVoice);
-router.delete('/brand-voices/:id', blockViewOnly, controller.deleteBrandVoice);
+router.post('/pieces/generate', contentAIController.generateContent);
+router.post('/pieces/:id/regenerate', contentAIController.regenerateContent);
+router.get('/pieces', contentAIController.getContentPieces);
+router.get('/pieces/:id', contentAIController.getPieceById);
+router.get('/pieces/:pieceId/versions', contentAIController.getPieceVersions);
+router.post('/pieces/:id/restore/:versionId', contentAIController.restoreVersion);
 
-router.route('/templates')
-  .get(controller.listTemplates)
-  .post(blockViewOnly, controller.createTemplate);
-router.put('/templates/:id', blockViewOnly, controller.updateTemplate);
-router.delete('/templates/:id', blockViewOnly, controller.deleteTemplate);
+router.put('/pieces/:id/submit-review', contentAIController.submitForReview);
+router.put('/pieces/:id/approve', contentAIController.approveContent);
+router.put('/pieces/:id/reject', contentAIController.rejectContent);
+router.post('/pieces/:id/publish', contentAIController.publishContent);
 
-router.route('/pieces')
-  .get(controller.listContentPieces);
-router.post('/pieces/generate', blockViewOnly, controller.generateContent);
-router.post('/pieces/:id/regenerate', blockViewOnly, controller.regenerateContent);
-router.get('/pieces/:id', controller.getContentPiece);
-router.get('/pieces/:id/versions', controller.listVersions);
-router.post('/pieces/:id/restore/:versionId', blockViewOnly, controller.restoreVersion);
-
-router.put('/pieces/:id/submit-review', blockViewOnly, controller.submitForReview);
-router.put('/pieces/:id/approve', blockViewOnly, controller.approveContent);
-router.put('/pieces/:id/reject', blockViewOnly, controller.rejectContent);
-router.post('/pieces/:id/publish', blockViewOnly, controller.publishContent);
-
-router.get('/pieces/:id/quality-score', controller.getQualityScore);
-router.get('/quality-report', controller.getQualityReport);
+router.get('/pieces/:id/quality-score', contentAIController.getQualityScore);
+router.get('/quality-report', contentAIController.getQualityReport);
 
 module.exports = router;

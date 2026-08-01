@@ -1,151 +1,302 @@
+const contentGenerationPipeline = require('./services/contentGenerationPipeline.service');
 const ContentPiece = require('./models/contentPiece.model');
-const ContentQualityScore = require('./models/contentQualityScore.model');
+const ContentVersion = require('./models/contentVersion.model');
+const BrandVoice = require('./models/brandVoice.model');
+const ContentPromptTemplate = require('./models/contentPromptTemplate.model');
+const contentEvents = require('./events/contentEvents');
+const { GENERATORS } = require('./generators/registry');
+const contentVersioningService = require('./services/contentVersioning.service');
 
-const contentGeneration = require('./services/contentGeneration.service');
-const brandVoiceService = require('./services/brandVoice.service');
-const contentTemplateService = require('./services/contentTemplate.service');
-const contentVersioning = require('./services/contentVersioning.service');
-const contentApprovalGate = require('./services/contentApprovalGate.service');
-const publishBridge = require('./services/publishBridge');
-const { GENERATORS, GENERATOR_KEYS } = require('./generators/registry');
-
-// Same helper as seoWorkspace.controller.js#getWorkspaceId — duplicated
-// deliberately, matching that file's own pattern, since it isn't exported
-// from any shared location today.
-const getWorkspaceId = (req) => {
-  const user = req.user;
-  if (!user) return req.companyId || req.workspaceId;
-  const clientRoles = ['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'];
-  if (clientRoles.includes(user.role)) {
-    return user.brandId || user._id;
-  }
-  return user.agencyId || user._id;
+/**
+ * Standardized API Response
+ */
+const sendResponse = (res, statusCode, success, data = null, error = null) => {
+  return res.status(statusCode).json({
+    success,
+    data,
+    error
+  });
 };
 
-const handle = (res, promise) => promise
-  .then((data) => res.status(200).json({ success: true, data }))
-  .catch((error) => res.status(400).json({ success: false, error: error.message }));
-
-// --- Generator registry (read-only, for the frontend's Generate tab) ---
-exports.listGenerators = (req, res) => {
-  const generators = GENERATOR_KEYS.map((key) => ({
-    key,
-    displayName: GENERATORS[key].displayName,
-    targetTypes: GENERATORS[key].targetTypes,
-    requiredInputFields: GENERATORS[key].requiredInputFields,
-    qualityAxes: GENERATORS[key].qualityAxes
-  }));
-  res.status(200).json({ success: true, data: generators });
-};
-
-// --- Brand Voice ---
-exports.listBrandVoices = (req, res) => handle(res, brandVoiceService.list(getWorkspaceId(req)));
-exports.createBrandVoice = (req, res) => handle(res, brandVoiceService.create(getWorkspaceId(req), req.body, req.user?._id));
-exports.updateBrandVoice = (req, res) => handle(res, brandVoiceService.update(getWorkspaceId(req), req.params.id, req.body, req.user?._id));
-exports.deleteBrandVoice = (req, res) => handle(res, brandVoiceService.remove(getWorkspaceId(req), req.params.id));
-
-// --- Content Prompt Templates ---
-exports.listTemplates = (req, res) => handle(res, contentTemplateService.list(getWorkspaceId(req), req.query.generatorType));
-exports.createTemplate = (req, res) => handle(res, contentTemplateService.create(getWorkspaceId(req), req.body, req.user?._id));
-exports.updateTemplate = (req, res) => handle(res, contentTemplateService.update(getWorkspaceId(req), req.params.id, req.body));
-exports.deleteTemplate = (req, res) => handle(res, contentTemplateService.remove(getWorkspaceId(req), req.params.id));
-
-// --- Content Pieces / Generation ---
-exports.generateContent = (req, res) => handle(res, contentGeneration.generate({
-  workspaceId: getWorkspaceId(req),
-  userId: req.user?._id,
-  agencyIdForMemory: req.user?.agencyId || req.user?._id,
-  generatorType: req.body.generatorType,
-  targetType: req.body.targetType,
-  targetId: req.body.targetId || null,
-  inputs: req.body.inputs || {},
-  brandVoiceId: req.body.brandVoiceId || null,
-  promptTemplateId: req.body.promptTemplateId || null
-}));
-
-exports.regenerateContent = (req, res) => handle(res, contentGeneration.regenerate({
-  workspaceId: getWorkspaceId(req),
-  userId: req.user?._id,
-  agencyIdForMemory: req.user?.agencyId || req.user?._id,
-  contentPieceId: req.params.id,
-  generatorType: req.body.generatorType || null,
-  inputs: req.body.inputs || null,
-  brandVoiceId: req.body.brandVoiceId || null,
-  promptTemplateId: req.body.promptTemplateId || null
-}));
-
-exports.listContentPieces = async (req, res) => {
+exports.getGenerators = async (req, res) => {
   try {
-    const workspaceId = getWorkspaceId(req);
+    const generatorList = Object.values(GENERATORS).map(g => ({
+       key: g.key,
+       displayName: g.displayName,
+       targetTypes: g.targetTypes,
+       requiredInputFields: g.requiredInputFields
+    }));
+    return sendResponse(res, 200, true, generatorList);
+  } catch (error) {
+    console.error('[ContentAIController] Error fetching generators:', error);
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.getBrandVoices = async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.query.workspaceId;
+    const voices = await BrandVoice.find({ workspaceId, isDeleted: false }).lean();
+    return sendResponse(res, 200, true, voices);
+  } catch (error) {
+    console.error('[ContentAIController] Error fetching brand voices:', error);
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.createBrandVoice = async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.body?.workspaceId;
+    const { name, isDefault, audience, tone, language, style } = req.body;
+    
+    if (!name) return sendResponse(res, 400, false, null, "Name is required");
+
+    if (isDefault) {
+      // Unset other defaults if this is set to default
+      await BrandVoice.updateMany({ workspaceId }, { isDefault: false });
+    }
+
+    const newVoice = new BrandVoice({
+      workspaceId,
+      name,
+      isDefault,
+      audience,
+      tone,
+      language,
+      style,
+      createdBy: req.user?._id
+    });
+    
+    await newVoice.save();
+    return sendResponse(res, 201, true, newVoice);
+  } catch (error) {
+    console.error('[ContentAIController] Error creating brand voice:', error);
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.generateContent = async (req, res) => {
+  try {
+    // Assuming workspaceId and userId are injected by auth middleware
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.body?.workspaceId;
+    const userId = req.user?._id || req.body?.userId;
+    const { targetType, inputs = {} } = req.body;
+    const targetKeyword = req.body.targetKeyword || inputs.topic || inputs.keywords || inputs.productName;
+
+    if (!targetKeyword) {
+      return sendResponse(res, 400, false, null, "targetKeyword (or inputs.topic) is required");
+    }
+
+    // Execute the full pipeline
+    const result = await contentGenerationPipeline.executePipeline(workspaceId, userId, targetKeyword, targetType);
+
+    return sendResponse(res, 201, true, result);
+  } catch (error) {
+    console.error('[ContentAIController] Error generating content:', error);
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.getContentPieces = async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.query.workspaceId;
+    
+    // Pagination & Filtering
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const query = { workspaceId, isDeleted: false };
     if (req.query.status) query.status = req.query.status;
-    if (req.query.generatorType) query.generatorType = req.query.generatorType;
-    if (req.query.targetType) query.targetType = req.query.targetType;
 
-    const pieces = await ContentPiece.find(query).sort({ updatedAt: -1 }).limit(200).lean();
-    res.status(200).json({ success: true, data: pieces });
+    const pieces = await ContentPiece.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('currentVersionId', 'versionNumber payload qualityScore')
+      .lean();
+
+    const formattedPieces = pieces.map(p => ({
+      ...p,
+      currentVersion: p.currentVersionId,
+      currentVersionId: p.currentVersionId?._id || p.currentVersionId
+    }));
+
+    const total = await ContentPiece.countDocuments(query);
+
+    return sendResponse(res, 200, true, formattedPieces);
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error('[ContentAIController] Error fetching pieces:', error);
+    return sendResponse(res, 500, false, null, error.message);
   }
 };
 
-exports.getContentPiece = async (req, res) => {
+exports.getPieceVersions = async (req, res) => {
   try {
-    const workspaceId = getWorkspaceId(req);
-    const piece = await ContentPiece.findOne({ _id: req.params.id, workspaceId, isDeleted: false }).lean();
-    if (!piece) return res.status(404).json({ success: false, error: 'Content piece not found' });
+    const { pieceId } = req.params;
+    
+    const versions = await ContentVersion.find({ contentPieceId: pieceId })
+      .sort({ versionNumber: -1 })
+      .lean();
 
-    const currentVersion = piece.currentVersionId
-      ? await contentVersioning.getVersion(piece._id, piece.currentVersionId)
-      : null;
-
-    res.status(200).json({ success: true, data: { ...piece, currentVersion } });
+    return sendResponse(res, 200, true, { versions });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error('[ContentAIController] Error fetching versions:', error);
+    return sendResponse(res, 500, false, null, error.message);
   }
 };
 
-exports.listVersions = (req, res) => handle(res, contentVersioning.listVersions(req.params.id));
+exports.updateBrandVoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    if (updateData.isDefault) {
+      await BrandVoice.updateMany({ workspaceId: req.user?.workspaceId || req.body?.workspaceId }, { isDefault: false });
+    }
+    const updated = await BrandVoice.findByIdAndUpdate(id, updateData, { new: true });
+    return sendResponse(res, 200, true, updated);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
 
-exports.restoreVersion = (req, res) => handle(res, contentVersioning.restoreVersion(req.params.id, req.params.versionId, req.user?._id));
+exports.deleteBrandVoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await BrandVoice.findByIdAndUpdate(id, { isDeleted: true });
+    return sendResponse(res, 200, true, { success: true });
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
 
-// --- Workflow: Draft -> In Review -> Approved -> Published ---
-exports.submitForReview = (req, res) => handle(res, contentApprovalGate.submitForReview(getWorkspaceId(req), req.params.id, req.user?._id));
-exports.approveContent = (req, res) => handle(res, contentApprovalGate.approve(getWorkspaceId(req), req.params.id, req.user?._id));
-exports.rejectContent = (req, res) => handle(res, contentApprovalGate.reject(getWorkspaceId(req), req.params.id, req.user?._id, req.body.reason));
+exports.getTemplates = async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.query.workspaceId;
+    const query = { workspaceId, isDeleted: false };
+    if (req.query.generatorType) query.generatorType = req.query.generatorType;
+    const templates = await ContentPromptTemplate.find(query).lean();
+    return sendResponse(res, 200, true, templates);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.createTemplate = async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.user?.workspaceId || req.body?.workspaceId;
+    const newTemplate = new ContentPromptTemplate({ ...req.body, workspaceId, createdBy: req.user?._id });
+    await newTemplate.save();
+    return sendResponse(res, 201, true, newTemplate);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.updateTemplate = async (req, res) => {
+  try {
+    const updated = await ContentPromptTemplate.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    return sendResponse(res, 200, true, updated);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.deleteTemplate = async (req, res) => {
+  try {
+    await ContentPromptTemplate.findByIdAndUpdate(req.params.id, { isDeleted: true });
+    return sendResponse(res, 200, true, { success: true });
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.getPieceById = async (req, res) => {
+  try {
+    const piece = await ContentPiece.findById(req.params.id).populate('currentVersionId').lean();
+    if (!piece) return sendResponse(res, 404, false, null, 'Piece not found');
+    
+    piece.currentVersion = piece.currentVersionId;
+    piece.currentVersionId = piece.currentVersion?._id || piece.currentVersionId;
+    
+    return sendResponse(res, 200, true, piece);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.regenerateContent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const piece = await ContentPiece.findById(id);
+    if (!piece) return sendResponse(res, 404, false, null, 'Piece not found');
+    const result = await contentGenerationPipeline.executePipeline(piece.workspaceId, req.user?._id, piece.targetKeyword, piece.targetType, req.body.inputs);
+    return sendResponse(res, 200, true, result);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.restoreVersion = async (req, res) => {
+  try {
+    const { id, versionId } = req.params;
+    const newVersion = await contentVersioningService.restoreVersion(id, versionId, req.user?._id);
+    return sendResponse(res, 200, true, newVersion);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.submitForReview = async (req, res) => {
+  try {
+    const updated = await ContentPiece.findByIdAndUpdate(req.params.id, { status: 'In Review' }, { new: true });
+    return sendResponse(res, 200, true, updated);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.approveContent = async (req, res) => {
+  try {
+    const updated = await ContentPiece.findByIdAndUpdate(req.params.id, { status: 'Approved' }, { new: true });
+    return sendResponse(res, 200, true, updated);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
+
+exports.rejectContent = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const updated = await ContentPiece.findByIdAndUpdate(req.params.id, { status: 'Draft', rejectionReason: reason }, { new: true });
+    return sendResponse(res, 200, true, updated);
+  } catch (error) {
+    return sendResponse(res, 500, false, null, error.message);
+  }
+};
 
 exports.publishContent = async (req, res) => {
   try {
-    const workspaceId = getWorkspaceId(req);
-    const piece = await contentApprovalGate.markPublished(workspaceId, req.params.id);
-    const version = await contentVersioning.getVersion(piece._id, piece.currentVersionId);
-    const published = await publishBridge.publish(piece, version);
-    res.status(200).json({ success: true, data: { contentPiece: piece, published } });
+    const updated = await ContentPiece.findByIdAndUpdate(req.params.id, { status: 'Published' }, { new: true });
+    return sendResponse(res, 200, true, updated);
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    return sendResponse(res, 500, false, null, error.message);
   }
 };
 
-// --- Quality ---
 exports.getQualityScore = async (req, res) => {
   try {
-    const score = await ContentQualityScore.findOne({ contentPieceId: req.params.id }).sort({ createdAt: -1 }).lean();
-    res.status(200).json({ success: true, data: score });
+    const piece = await ContentPiece.findById(req.params.id).populate('currentVersionId');
+    return sendResponse(res, 200, true, { qualityScore: piece?.currentVersionId?.qualityScore || 0 });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    return sendResponse(res, 500, false, null, error.message);
   }
 };
 
 exports.getQualityReport = async (req, res) => {
   try {
-    const workspaceId = getWorkspaceId(req);
-    const query = { workspaceId };
-    if (req.query.axis && req.query.below) {
-      query[`${req.query.axis}.score`] = { $lt: Number(req.query.below) };
-    }
-    const scores = await ContentQualityScore.find(query).sort({ createdAt: -1 }).limit(200).lean();
-    res.status(200).json({ success: true, data: scores });
+    return sendResponse(res, 200, true, { report: 'WIP' });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    return sendResponse(res, 500, false, null, error.message);
   }
 };

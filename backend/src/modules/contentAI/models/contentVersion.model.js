@@ -22,11 +22,11 @@ const ContentVersionSchema = new mongoose.Schema({
   },
   payload: { type: mongoose.Schema.Types.Mixed, required: true },
   qualityScore: {
-    seo: { type: Number, default: null },
-    readability: { type: Number, default: null },
-    grammar: { type: Number, default: null },
-    conversion: { type: Number, default: null },
-    aiConfidence: { type: Number, default: null },
+    seo: { type: mongoose.Schema.Types.Mixed, default: null },
+    readability: { type: mongoose.Schema.Types.Mixed, default: null },
+    grammar: { type: mongoose.Schema.Types.Mixed, default: null },
+    conversion: { type: mongoose.Schema.Types.Mixed, default: null },
+    aiConfidence: { type: mongoose.Schema.Types.Mixed, default: null },
     overall: { type: Number, default: null }
   },
   restoredFromVersionId: { type: mongoose.Schema.Types.ObjectId, ref: 'ContentVersion', default: null }

@@ -29,6 +29,14 @@ const ContentPieceSchema = new mongoose.Schema({
 
   inputs: { type: mongoose.Schema.Types.Mixed, default: {} },
 
+  // SEO & Intelligence
+  targetKeyword: { type: String, default: null },
+  secondaryKeywords: [{ type: String }],
+  seoScore: { type: Number, default: 0 },
+  readabilityScore: { type: Number, default: 0 },
+  entityCoverage: { type: Number, default: 0 },
+  aiGenerationCount: { type: Number, default: 0 },
+  
   assignedReviewerId: { type: mongoose.Schema.Types.ObjectId, default: null },
   rejectionReason: { type: String, default: null },
   publishedAt: { type: Date, default: null },

@@ -1,50 +1,56 @@
 const ContentVersion = require('../models/contentVersion.model');
 const ContentPiece = require('../models/contentPiece.model');
+const contentEvents = require('../events/contentEvents');
 
-async function createVersion({ contentPieceId, source, payload, qualityScore, createdBy, restoredFromVersionId = null }) {
-  const lastVersion = await ContentVersion.findOne({ contentPieceId }).sort({ versionNumber: -1 }).lean();
-  const versionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+class ContentVersioningService {
+  /**
+   * Creates a new version of the content, never overwriting.
+   */
+  async createVersion(contentPieceId, userId, payload, source = 'human_edited') {
+    const piece = await ContentPiece.findById(contentPieceId);
+    if (!piece) throw new Error('Content Piece not found');
 
-  const version = await ContentVersion.create({
-    contentPieceId,
-    versionNumber,
-    createdBy: createdBy || null,
-    source,
-    payload,
-    qualityScore: qualityScore || {},
-    restoredFromVersionId
-  });
+    // Get latest version number
+    const latestVersion = await ContentVersion.findOne({ contentPieceId })
+      .sort({ versionNumber: -1 })
+      .select('versionNumber')
+      .lean();
+    
+    const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
-  await ContentPiece.findByIdAndUpdate(contentPieceId, { currentVersionId: version._id });
+    const newVersion = new ContentVersion({
+      contentPieceId,
+      versionNumber: nextVersionNumber,
+      createdBy: userId,
+      source,
+      payload,
+      qualityScore: {
+        seo: { score: piece.seoScore || 0, findings: [] },
+        readability: { score: piece.readabilityScore || 0, findings: [] }
+      }
+    });
 
-  return version;
+    await newVersion.save();
+    
+    // Update pointer on the main piece
+    piece.currentVersionId = newVersion._id;
+    await piece.save();
+
+    contentEvents.emit(contentEvents.EVENTS.VERSION_CREATED, { contentPieceId, versionId: newVersion._id });
+
+    return newVersion;
+  }
+
+  /**
+   * Restores to a previous version
+   */
+  async restoreVersion(contentPieceId, userId, targetVersionId) {
+    const targetVersion = await ContentVersion.findById(targetVersionId);
+    if (!targetVersion) throw new Error('Target version not found');
+
+    // To preserve history, restoration creates a NEW version containing the old payload
+    return this.createVersion(contentPieceId, userId, targetVersion.payload, 'restored');
+  }
 }
 
-async function listVersions(contentPieceId) {
-  return ContentVersion.find({ contentPieceId }).sort({ versionNumber: -1 }).lean();
-}
-
-async function getVersion(contentPieceId, versionId) {
-  const version = await ContentVersion.findOne({ _id: versionId, contentPieceId }).lean();
-  if (!version) throw new Error('Content version not found');
-  return version;
-}
-
-/**
- * Restoring never rewrites history — it creates a NEW version whose payload
- * is copied from the target past version, and points `currentVersionId` at
- * it. `restoredFromVersionId` keeps the provenance visible in the version list.
- */
-async function restoreVersion(contentPieceId, versionId, userId) {
-  const target = await getVersion(contentPieceId, versionId);
-  return createVersion({
-    contentPieceId,
-    source: 'restored',
-    payload: target.payload,
-    qualityScore: target.qualityScore,
-    createdBy: userId,
-    restoredFromVersionId: target._id
-  });
-}
-
-module.exports = { createVersion, listVersions, getVersion, restoreVersion };
+module.exports = new ContentVersioningService();
