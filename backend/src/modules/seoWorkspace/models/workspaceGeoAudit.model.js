@@ -21,6 +21,33 @@ const WorkspaceGeoAuditSchema = new mongoose.Schema({
 
   completedAt: { type: Date, default: null },
 
+  // --- Enterprise GEO Extensions ---
+  versions: {
+    analysisVersion: { type: String, default: '1.0' },
+    promptVersion: { type: String, default: '1.0' },
+    crawlerVersion: { type: String, default: '1.0' },
+    engineVersion: { type: String, default: '1.0' }
+  },
+  
+  overallGeoScore: { type: Number, min: 0, max: 100, default: null },
+  healthLevel: { type: String, enum: ['excellent', 'good', 'fair', 'poor'], default: 'poor' },
+  scoreBreakdown: { type: mongoose.Schema.Types.Mixed, default: {} },
+  
+  progress: {
+    stage: { type: String, enum: ['Queued', 'Crawling', 'Analyzing', 'AI Interpretation', 'Completed', 'Failed'], default: 'Queued' },
+    percent: { type: Number, default: 0 }
+  },
+  
+  performance: {
+    totalRuntimeMs: { type: Number, default: 0 },
+    pagesProcessed: { type: Number, default: 0 },
+    pagesCached: { type: Number, default: 0 }
+  },
+
+  pageAnalysisIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceGeoPageAnalysis' }],
+  technicalAnalysisId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceGeoTechnicalAnalysis', default: null },
+  entityAnalysisId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceGeoEntityAnalysis', default: null },
+  // ---------------------------------
   agent: {
     agentKey: { type: String, default: null }, // 'geo-agent'; data reference only
     summary: { type: String, default: null },

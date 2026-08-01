@@ -101,6 +101,13 @@ router.post('/projects/:projectId/geo-agent/run', blockViewOnly, workspaceContro
 router.put('/projects/:projectId/geo-agent/:auditId/approve', blockViewOnly, workspaceController.approveGeoRecommendations);
 router.put('/projects/:projectId/geo-agent/:auditId/reject', blockViewOnly, workspaceController.rejectGeoRecommendations);
 
+router.get('/projects/:projectId/geo-agent/:auditId/summary', workspaceController.getGeoAuditSummary);
+router.get('/projects/:projectId/geo-agent/:auditId/pages', workspaceController.getGeoAuditPages);
+router.get('/projects/:projectId/geo-agent/:auditId/entities', workspaceController.getGeoAuditEntities);
+router.get('/projects/:projectId/geo-agent/:auditId/technical', workspaceController.getGeoAuditTechnical);
+router.get('/projects/:projectId/geo-agent/:auditId/recommendations', workspaceController.getGeoAuditRecommendations);
+router.get('/projects/:projectId/geo-agent/trends', workspaceController.getGeoAuditTrends);
+
 router.post('/projects/:projectId/automation/run', blockViewOnly, workspaceController.runAutomationAgent);
 router.post('/projects/:projectId/automation', blockViewOnly, workspaceController.createAutomationRule);
 router.get('/projects/:projectId/automation', workspaceController.listAutomationRules);

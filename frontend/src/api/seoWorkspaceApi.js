@@ -302,6 +302,30 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/history${qs({ limit })}`, getAuthHeaders());
     return res.data;
   },
+  getGeoAuditSummary: async (projectId, auditId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/summary`, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAuditPages: async (projectId, auditId, page = 1, limit = 20) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/pages${qs({ page, limit })}`, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAuditEntities: async (projectId, auditId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/entities`, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAuditTechnical: async (projectId, auditId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/technical`, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAuditRecommendations: async (projectId, auditId, priority) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/${auditId}/recommendations${qs({ priority })}`, getAuthHeaders());
+    return res.data;
+  },
+  getGeoAuditTrends: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/geo-agent/trends`, getAuthHeaders());
+    return res.data;
+  },
 
   // --- Strategies (used by Dashboard/Approvals) ---
   getStrategies: async (projectId) => {

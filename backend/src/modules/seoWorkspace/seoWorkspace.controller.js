@@ -957,6 +957,83 @@ exports.getGeoAgentExecutionHistory = async (req, res) => {
   }
 };
 
+exports.getGeoAuditSummary = async (req, res) => {
+  try {
+    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const audit = await WorkspaceGeoAudit.findOne({ _id: req.params.auditId, projectId: req.params.projectId });
+    if (!audit) return res.status(404).json({ success: false, error: 'Audit not found' });
+    res.json({ success: true, data: audit });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getGeoAuditPages = async (req, res) => {
+  try {
+    const WorkspaceGeoPageAnalysis = require('./models/workspaceGeoPageAnalysis.model');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    
+    const pages = await WorkspaceGeoPageAnalysis.find({ auditId: req.params.auditId, projectId: req.params.projectId })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    const total = await WorkspaceGeoPageAnalysis.countDocuments({ auditId: req.params.auditId, projectId: req.params.projectId });
+    
+    res.json({ success: true, data: pages, pagination: { total, page, limit } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getGeoAuditEntities = async (req, res) => {
+  try {
+    const WorkspaceGeoEntityAnalysis = require('./models/workspaceGeoEntityAnalysis.model');
+    const data = await WorkspaceGeoEntityAnalysis.findOne({ auditId: req.params.auditId, projectId: req.params.projectId });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getGeoAuditTechnical = async (req, res) => {
+  try {
+    const WorkspaceGeoTechnicalAnalysis = require('./models/workspaceGeoTechnicalAnalysis.model');
+    const data = await WorkspaceGeoTechnicalAnalysis.findOne({ auditId: req.params.auditId, projectId: req.params.projectId });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getGeoAuditRecommendations = async (req, res) => {
+  try {
+    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const audit = await WorkspaceGeoAudit.findOne({ _id: req.params.auditId, projectId: req.params.projectId });
+    if (!audit) return res.status(404).json({ success: false, error: 'Audit not found' });
+    
+    let recs = audit.agent?.recommendations || [];
+    if (req.query.priority) {
+      recs = recs.filter(r => r.priority === req.query.priority);
+    }
+    res.json({ success: true, data: recs });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getGeoAuditTrends = async (req, res) => {
+  try {
+    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const audits = await WorkspaceGeoAudit.find({ projectId: req.params.projectId, status: 'completed' })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('createdAt overallGeoScore healthLevel scoreBreakdown agent.entityConsistencyScore');
+    res.json({ success: true, data: audits });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.runAutomationAgent = async (req, res) => {
   try {
     const { projectId } = req.params;
