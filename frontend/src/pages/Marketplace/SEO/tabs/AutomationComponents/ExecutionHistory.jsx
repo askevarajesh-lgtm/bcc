@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, message, Button, Drawer } from 'antd';
 import { RefreshCw, Search } from 'lucide-react';
-import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 
 export default function ExecutionHistory({ projectId }) {
   const [runs, setRuns] = useState([]);

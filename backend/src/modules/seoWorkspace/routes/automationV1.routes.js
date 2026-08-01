@@ -1,14 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const automationController = require('../controllers/automationV1.controller');
-// const { protect, authorize } = require('../../middlewares/auth.middleware'); // Assuming existing auth
-// Use mock auth for now to prevent breaking, but in real implementation use protect
+const authMiddleware = require('../../../middlewares/authMiddleware');
 
-router.use((req, res, next) => {
-  // Mock RBAC / Auth middleware
-  req.user = req.user || { _id: 'mock_user_id', role: 'admin' };
-  next();
-});
+router.use(authMiddleware);
 
 // CRUD & Lifecycle
 router.post('/projects/:projectId/workflows', automationController.createWorkflow);
@@ -18,6 +13,9 @@ router.put('/projects/:projectId/workflows/:id', automationController.updateWork
 router.delete('/projects/:projectId/workflows/:id', automationController.deleteWorkflow);
 
 router.post('/projects/:projectId/workflows/:id/clone', automationController.cloneWorkflow);
+router.post('/projects/:projectId/workflows/:id/export', automationController.exportWorkflow);
+router.post('/projects/:projectId/workflows/import', automationController.importWorkflow);
+router.post('/projects/:projectId/workflows/:id/rollback', automationController.rollbackWorkflow);
 router.post('/projects/:projectId/workflows/:id/publish', automationController.publishWorkflow);
 router.post('/projects/:projectId/workflows/:id/archive', automationController.archiveWorkflow);
 

@@ -119,17 +119,36 @@ class AutomationExecutionEngine {
             throw new Error(`Action module ${actionId} not found`);
           }
 
-          // Evaluate variables in config
           const resolvedConfig = this.resolveVariablesInConfig(actionConfig, context);
-          output = await actionModule.execute(resolvedConfig, context);
+          
+          // Implementation of Retry Logic
+          let attempts = 0;
+          let maxRetries = context.retryConfig?.maxRetries || 1;
+          let delayMs = context.retryConfig?.retryDelayMs || 2000;
+          let lastError = null;
+
+          while (attempts < maxRetries) {
+            try {
+              output = await actionModule.execute(resolvedConfig, context);
+              break; // Success
+            } catch (retryErr) {
+              attempts++;
+              lastError = retryErr;
+              if (attempts < maxRetries) {
+                log.status = 'Retrying';
+                log.message = `Attempt ${attempts} failed, retrying in ${delayMs}ms`;
+                await log.save();
+                await new Promise(res => setTimeout(res, delayMs));
+                if (context.retryConfig?.exponentialBackoff) delayMs *= 2;
+              }
+            }
+          }
+          if (!output && lastError) throw lastError;
 
         } else if (node.type === 'condition') {
           const conditionExp = node.data?.expression;
           const result = evaluateExpression(conditionExp, context);
           output = { result };
-          
-          // Filter outgoing edges based on condition result (e.g. true/false paths)
-          // Handled below during edge enqueueing
         }
 
         context.nodeOutputs[node.id] = output;
@@ -147,7 +166,7 @@ class AutomationExecutionEngine {
         log.durationMs = log.endTime.getTime() - log.startTime.getTime();
         await log.save();
         
-        // Node failed, we could trigger compensation here or stop execution
+        // Skip throw to allow partial failures if configured, else throw to stop
         throw err; 
       }
 

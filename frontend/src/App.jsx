@@ -92,7 +92,7 @@ import SeoBlogSEOTab from './pages/Marketplace/SEO/tabs/BlogSEOTab';
 import SeoAEOTab from './pages/Marketplace/SEO/tabs/AEOTab';
 import SeoGEOTab from './pages/Marketplace/SEO/tabs/GEOTab';
 import SeoReportsTab from './pages/Marketplace/SEO/tabs/ReportsTab';
-import SeoAutomationTab from './pages/Marketplace/SEO/tabs/Automation/AutomationTab';
+import SeoAutomationTab from './pages/Marketplace/SEO/tabs/AutomationTab';
 import SeoMonitoringTab from './pages/Marketplace/SEO/tabs/MonitoringTab';
 import SeoSettingsTab from './pages/Marketplace/SEO/tabs/SettingsTab';
 import ClientChatGPTPage from './pages/ClientChatGPTPage/ClientChatGPTPage';

@@ -482,5 +482,53 @@ export const seoWorkspaceApi = {
   getAutomationHistoryLogs: async (projectId) => {
     const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/history`, getAuthHeaders());
     return res.data;
+  },
+  createAutomationWorkflow: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows`, data, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, getAuthHeaders());
+    return res.data;
+  },
+  updateAutomationWorkflow: async (projectId, workflowId, data) => {
+    const res = await axios.put(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, data, getAuthHeaders());
+    return res.data;
+  },
+  deleteAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.delete(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, getAuthHeaders());
+    return res.data;
+  },
+  cloneAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/clone`, {}, getAuthHeaders());
+    return res.data;
+  },
+  exportAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/export`, {}, getAuthHeaders());
+    return res.data;
+  },
+  importAutomationWorkflow: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/import`, data, getAuthHeaders());
+    return res.data;
+  },
+  rollbackAutomationWorkflow: async (projectId, workflowId, versionId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/rollback`, { versionId }, getAuthHeaders());
+    return res.data;
+  },
+  publishAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/publish`, {}, getAuthHeaders());
+    return res.data;
+  },
+  archiveAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/archive`, {}, getAuthHeaders());
+    return res.data;
+  },
+  runAutomationWorkflow: async (projectId, workflowId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/run`, {}, getAuthHeaders());
+    return res.data;
+  },
+  simulateAutomationWorkflow: async (projectId, workflowId, payload) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/simulate`, payload, getAuthHeaders());
+    return res.data;
   }
 };

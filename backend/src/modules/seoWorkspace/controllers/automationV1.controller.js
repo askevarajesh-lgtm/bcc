@@ -62,16 +62,141 @@ exports.getWorkflow = async (req, res) => {
 };
 
 exports.updateWorkflow = async (req, res) => {
-  // Update draft version logic here
-  res.status(200).json({ success: true, message: 'Updated successfully' });
+  try {
+    const { id } = req.params;
+    const { name, description, category, nodes, edges, variables } = req.body;
+    const workflow = await AutomationWorkflow.findById(id);
+    if (!workflow) return res.status(404).json({ success: false, error: 'Workflow not found' });
+    
+    workflow.name = name || workflow.name;
+    workflow.description = description || workflow.description;
+    workflow.category = category || workflow.category;
+    await workflow.save();
+
+    if (nodes || edges || variables) {
+      if (workflow.status === 'Published') {
+        const lastVersion = await AutomationWorkflowVersion.findOne({ workflowId: id }).sort({ versionNumber: -1 });
+        const version = await AutomationWorkflowVersion.create({
+          workflowId: workflow._id,
+          projectId: workflow.projectId,
+          versionNumber: (lastVersion?.versionNumber || 0) + 1,
+          nodes: nodes || lastVersion.nodes,
+          edges: edges || lastVersion.edges,
+          variables: variables || lastVersion.variables,
+          createdBy: req.user._id
+        });
+        workflow.activeVersionId = version._id;
+        await workflow.save();
+      } else {
+        await AutomationWorkflowVersion.findByIdAndUpdate(workflow.activeVersionId, { nodes, edges, variables });
+      }
+    }
+    res.status(200).json({ success: true, data: workflow });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
 };
 
 exports.deleteWorkflow = async (req, res) => {
-  res.status(200).json({ success: true, message: 'Deleted successfully' });
+  try {
+    const { id } = req.params;
+    await AutomationWorkflow.findByIdAndDelete(id);
+    await AutomationWorkflowVersion.deleteMany({ workflowId: id });
+    res.status(200).json({ success: true, message: 'Deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
 };
 
 exports.cloneWorkflow = async (req, res) => {
-  res.status(201).json({ success: true, message: 'Cloned successfully' });
+  try {
+    const { id } = req.params;
+    const workflow = await AutomationWorkflow.findById(id).lean();
+    if (!workflow) return res.status(404).json({ success: false, error: 'Not found' });
+    
+    const activeVersion = await AutomationWorkflowVersion.findById(workflow.activeVersionId).lean();
+    
+    const newWorkflow = await AutomationWorkflow.create({
+      ...workflow,
+      _id: undefined,
+      name: `${workflow.name} (Clone)`,
+      status: 'Draft',
+      activeVersionId: undefined,
+      createdAt: undefined,
+      updatedAt: undefined
+    });
+
+    const newVersion = await AutomationWorkflowVersion.create({
+      ...activeVersion,
+      _id: undefined,
+      workflowId: newWorkflow._id,
+      versionNumber: 1,
+      createdAt: undefined,
+      updatedAt: undefined
+    });
+
+    newWorkflow.activeVersionId = newVersion._id;
+    await newWorkflow.save();
+
+    res.status(201).json({ success: true, data: newWorkflow });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+exports.exportWorkflow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const workflow = await AutomationWorkflow.findById(id).lean();
+    const version = await AutomationWorkflowVersion.findById(workflow.activeVersionId).lean();
+    res.status(200).json({ success: true, data: { workflow, version } });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+exports.importWorkflow = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { workflow, version } = req.body;
+    
+    const newWorkflow = await AutomationWorkflow.create({
+      ...workflow,
+      _id: undefined,
+      projectId,
+      agencyId: req.user._id,
+      status: 'Draft',
+      activeVersionId: undefined
+    });
+
+    const newVersion = await AutomationWorkflowVersion.create({
+      ...version,
+      _id: undefined,
+      workflowId: newWorkflow._id,
+      projectId,
+      versionNumber: 1
+    });
+
+    newWorkflow.activeVersionId = newVersion._id;
+    await newWorkflow.save();
+
+    res.status(201).json({ success: true, data: newWorkflow });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+exports.rollbackWorkflow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { versionId } = req.body;
+    const workflow = await AutomationWorkflow.findById(id);
+    workflow.activeVersionId = versionId;
+    await workflow.save();
+    res.status(200).json({ success: true, data: workflow });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
 };
 
 exports.publishWorkflow = async (req, res) => {

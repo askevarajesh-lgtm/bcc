@@ -30,17 +30,35 @@ class AutomationTriggerRegistry {
     return Array.from(this._triggers.values()).map(t => t.metadata ? t.metadata() : { id: t.id });
   }
 
-  /**
-   * Evaluates an incoming event against all active workflows to see which ones should fire.
-   * In a real implementation, this would query active workflows, check their trigger nodes,
-   * and call triggerModule.evaluate() on them.
-   * @param {Object} eventData
-   * @returns {Promise<Array>} Array of matched workflows to execute
-   */
   async evaluateEvent(eventData) {
-    // Phase 2 will implement full DB lookup for active workflows that match this event type.
-    // For now, this is a stub that allows the Event Bus to function.
-    return [];
+    const matchedTriggers = [];
+    const AutomationWorkflow = require('../models/automationWorkflow.model');
+    const AutomationWorkflowVersion = require('../models/automationWorkflowVersion.model');
+
+    const publishedWorkflows = await AutomationWorkflow.find({ status: 'Published' }).lean();
+    if (publishedWorkflows.length === 0) return [];
+
+    const activeVersionIds = publishedWorkflows.map(w => w.activeVersionId).filter(Boolean);
+    const versions = await AutomationWorkflowVersion.find({ _id: { $in: activeVersionIds } }).lean();
+
+    for (const version of versions) {
+      const triggerNodes = (version.nodes || []).filter(n => n.type === 'trigger');
+      for (const node of triggerNodes) {
+        const triggerImpl = this._triggers.get(node.data?.triggerId);
+        if (triggerImpl && typeof triggerImpl.evaluate === 'function') {
+          const isMatch = await triggerImpl.evaluate(eventData, node.data?.config);
+          if (isMatch) {
+            matchedTriggers.push({
+              workflowId: version.workflowId,
+              versionId: version._id,
+              metadata: { nodeId: node.id, triggerId: node.data.triggerId }
+            });
+          }
+        }
+      }
+    }
+
+    return matchedTriggers;
   }
 }
 

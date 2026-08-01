@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Table, Tag } from 'antd';
 import { CheckCircle, XCircle, Clock, Activity } from 'lucide-react';
-import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 
 export default function Dashboard({ projectId }) {
   const [metrics, setMetrics] = useState({ queuedTasks: 0, completed: 0, failed: 0, activeGlobal: 0 });

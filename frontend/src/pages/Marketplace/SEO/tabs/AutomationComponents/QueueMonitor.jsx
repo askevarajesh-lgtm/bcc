@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Progress } from 'antd';
-import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 
 export default function QueueMonitor({ projectId }) {
   const [metrics, setMetrics] = useState(null);
