@@ -143,6 +143,13 @@ router.get('/projects/:projectId/reports', workspaceController.getReports);
 router.post('/projects/:projectId/generate-report', blockViewOnly, workspaceController.generateReport);
 router.get('/projects/:projectId/reports/:reportId/download', workspaceController.downloadReport);
 
+// Enterprise Report Additions
+router.get('/projects/:projectId/reports/:reportId/preview', workspaceController.previewReport);
+router.post('/projects/:projectId/reports/:reportId/share', blockViewOnly, workspaceController.shareReport);
+router.put('/projects/:projectId/reports/:reportId/status', blockViewOnly, workspaceController.updateReportStatus);
+router.post('/projects/:projectId/reports/bulk', blockViewOnly, workspaceController.bulkReportActions);
+router.get('/projects/:projectId/reports-analytics', workspaceController.getReportAnalytics);
+
 // Dashboard & Search
 router.get('/dashboard', workspaceController.getDashboard);
 router.get('/search', workspaceController.globalSearch);

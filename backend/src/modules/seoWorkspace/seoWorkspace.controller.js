@@ -1716,21 +1716,40 @@ exports.verifyTask = async (req, res) => {
 
 exports.getReports = async (req, res) => {
   try {
-    const project = await WorkspaceProject.findOne({ _id: req.params.projectId, createdBy: req.user._id });
+    const { projectId } = req.params;
+    const { page = 1, limit = 10, search, status, type } = req.query;
+    
+    const project = await WorkspaceProject.findOne({ _id: projectId, createdBy: req.user._id });
     if (!project) {
       return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
-    const reports = await WorkspaceReport.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
-    res.json(reports);
+
+    const query = { projectId };
+    if (search) query.name = { $regex: search, $options: 'i' };
+    if (status) query.status = status;
+    if (type) query.type = type;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const reports = await WorkspaceReport.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+      
+    const total = await WorkspaceReport.countDocuments(query);
+
+    res.json({ data: reports, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
+const reportGenerationService = require('./services/reportGeneration.service');
+
 exports.generateReport = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { isScheduled, scheduleFrequency, emailRecipients } = req.body || {};
+    const { isScheduled, scheduleFrequency, emailRecipients, template = 'executive_summary' } = req.body || {};
     const workspaceId = getWorkspaceId(req);
 
     if (isScheduled && !['daily', 'weekly', 'monthly'].includes(scheduleFrequency)) {
@@ -1742,24 +1761,32 @@ exports.generateReport = async (req, res) => {
       return res.status(400).json({ error: 'Need at least 2 audits to generate a comparative report.' });
     }
 
-    const latest = audits[0].metrics;
-    const previous = audits[1].metrics;
+    const project = await WorkspaceProject.findById(projectId);
 
-    const auditDiff = {
-      diff: {
-        performance: latest.performance - previous.performance,
-        onPage: latest.onPage - previous.onPage,
-        crawlability: latest.crawlability - previous.crawlability,
-        overall: latest.overall - previous.overall
-      }
-    };
-
-    const orchestrator = new WorkspaceAgentOrchestrator();
-    const report = await orchestrator.seoReporterAgent(projectId, auditDiff, {
+    // 1. Create the initial report shell (Queued)
+    const report = new WorkspaceReport({
+      projectId,
+      agencyId: project.createdBy || project.companyId,
+      clientId: project.clientId || project.createdBy,
+      name: `SEO Report - ${new Date().toLocaleDateString()}`,
+      type: template,
+      reportTemplate: template,
+      format: 'markdown', // Since the pipeline currently outputs a markdown string to report.content
+      status: 'queued',
+      reportStatus: 'Queued',
+      createdBy: project.createdBy || project.companyId,
       isScheduled: !!isScheduled,
       scheduleFrequency: isScheduled ? scheduleFrequency : null,
-      emailRecipients: Array.isArray(emailRecipients) ? emailRecipients : []
-    }, workspaceId);
+      emailRecipients: isScheduled ? emailRecipients : []
+    });
+    
+    await report.save();
+
+    // 2. Dispatch to asynchronous pipeline (Simulated background job)
+    // Normally we would push to BullMQ: reportQueue.add('generate', { reportId: report._id })
+    // For now we just call it asynchronously without awaiting so the HTTP response returns immediately.
+    reportGenerationService.generateReportPipeline(report._id, projectId, workspaceId, audits)
+      .catch(err => console.error('Background report generation failed:', err));
 
     if (isScheduled) {
       auditLogService.record({
@@ -1768,7 +1795,8 @@ exports.generateReport = async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: report });
+    // 3. Return the queued report immediately
+    res.json({ success: true, data: report, message: 'Report generation queued successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1799,7 +1827,12 @@ exports.downloadReport = async (req, res) => {
       return res.status(400).json({ success: false, error: 'This report has no generated content to download yet.' });
     }
 
-    const meta = REPORT_FORMAT_META[report.format] || REPORT_FORMAT_META.markdown;
+    let meta = REPORT_FORMAT_META[report.format] || REPORT_FORMAT_META.markdown;
+    
+    // Safety check: if content is string but format is PDF, force markdown to prevent corrupted file error
+    if (meta.ext === 'pdf' && typeof report.content === 'string' && !report.content.startsWith('%PDF')) {
+      meta = REPORT_FORMAT_META.markdown;
+    }
     const safeName = (report.name || 'report').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'report';
     const filename = `${safeName}.${meta.ext}`;
 
@@ -1808,6 +1841,96 @@ exports.downloadReport = async (req, res) => {
     return res.status(200).send(report.content);
   } catch (error) {
     console.error('[downloadReport] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const reportShareService = require('./services/reportShare.service');
+
+exports.previewReport = async (req, res) => {
+  try {
+    const { projectId, reportId } = req.params;
+    const report = await WorkspaceReport.findOne({ _id: reportId, projectId })
+      .populate('metrics')
+      .populate('execution')
+      .populate('snapshot');
+
+    if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
+    
+    // Return structured report for rich frontend UI preview
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.shareReport = async (req, res) => {
+  try {
+    const { projectId, reportId } = req.params;
+    const { accessType, password, expiresAt } = req.body;
+    
+    const share = await reportShareService.createShareLink(reportId, projectId, req.user._id, {
+      accessType, password, expiresAt
+    });
+    
+    res.json({ success: true, data: share });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.updateReportStatus = async (req, res) => {
+  try {
+    const { projectId, reportId } = req.params;
+    const { status, approvalStatus } = req.body;
+    
+    const update = {};
+    if (status) update.status = status;
+    if (approvalStatus) {
+      update['agent.approvalStatus'] = approvalStatus;
+      if (approvalStatus === 'Approved') update['agent.approvedBy'] = req.user._id;
+    }
+
+    const report = await WorkspaceReport.findOneAndUpdate(
+      { _id: reportId, projectId },
+      { $set: update },
+      { new: true }
+    );
+    
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.bulkReportActions = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { reportIds, action } = req.body;
+
+    if (action === 'delete') {
+      await WorkspaceReport.updateMany({ _id: { $in: reportIds }, projectId }, { $set: { deletedAt: new Date(), status: 'deleted' } });
+    } else if (action === 'archive') {
+      await WorkspaceReport.updateMany({ _id: { $in: reportIds }, projectId }, { $set: { archivedAt: new Date(), reportStatus: 'Archived' } });
+    }
+
+    res.json({ success: true, message: `Bulk ${action} successful` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getReportAnalytics = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    // Example: fetch metrics from multiple reports for trend analysis
+    const reports = await WorkspaceReport.find({ projectId, status: 'completed' })
+      .populate('metrics')
+      .sort({ createdAt: 1 })
+      .limit(10);
+      
+    res.json({ success: true, data: reports });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -364,12 +364,32 @@ export const seoWorkspaceApi = {
   },
 
   // --- Reports ---
-  getReports: async (projectId) => {
-    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/reports`, getAuthHeaders());
+  getReports: async (projectId, params = {}) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/reports${qs(params)}`, getAuthHeaders());
     return res.data;
   },
   generateReport: async (projectId, data = {}) => {
     const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/generate-report`, data, getAuthHeaders());
+    return res.data;
+  },
+  previewReport: async (projectId, reportId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/reports/${reportId}/preview`, getAuthHeaders());
+    return res.data;
+  },
+  shareReport: async (projectId, reportId, data = {}) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/reports/${reportId}/share`, data, getAuthHeaders());
+    return res.data;
+  },
+  updateReportStatus: async (projectId, reportId, statusData) => {
+    const res = await axios.put(`${API_URL}/seo-workspace/projects/${projectId}/reports/${reportId}/status`, statusData, getAuthHeaders());
+    return res.data;
+  },
+  bulkReportActions: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/reports/bulk`, data, getAuthHeaders());
+    return res.data;
+  },
+  getReportAnalytics: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/reports-analytics`, getAuthHeaders());
     return res.data;
   },
   downloadReport: async (projectId, reportId) => {
