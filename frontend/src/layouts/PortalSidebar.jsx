@@ -31,10 +31,12 @@ const PortalSidebar = ({
     if (!screens.lg) setMobileMenuOpen(false);
   };
 
+  const isMobile = !screens.lg && screens.lg !== undefined;
+
   const sidebarContent = (
     <Sider
-      collapsible={Boolean(setCollapsed)}
-      collapsed={collapsed}
+      collapsible={!isMobile && Boolean(setCollapsed)}
+      collapsed={isMobile ? false : collapsed}
       onCollapse={(value) => setCollapsed?.(value)}
       trigger={null}
       width={width}

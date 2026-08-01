@@ -317,7 +317,7 @@ const IntegrationsTab = () => {
   const { data, refetch } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
   const companyIntegrations = useCompanyIntegrations();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   
   const [selectedConfig, setSelectedConfig] = useState(null);
 
@@ -458,13 +458,15 @@ const IntegrationsTab = () => {
             title="Email (SendPulse)"
             description="Send invoices, reports, and notifications via SendPulse email service"
           />
-          <IntegrationCard
-            type="website"
-            integration={websiteIntegration}
-            icon={<WebsiteIcon />}
-            title="Lead Management Integration"
-            description="Configure and manage lead integrations from Website forms and WhatsApp"
-          />
+          {(isCommanderAdmin || user?.features?.includes('crm')) && (
+            <IntegrationCard
+              type="website"
+              integration={websiteIntegration}
+              icon={<WebsiteIcon />}
+              title="Lead Management Integration"
+              description="Configure and manage lead integrations from Website forms and WhatsApp"
+            />
+          )}
           <IntegrationCard
             type="payment"
             integration={paymentIntegration}
@@ -472,7 +474,7 @@ const IntegrationsTab = () => {
             title="Payment Integration"
             description="Configure QR codes and payment links for your organization"
           />
-          {isCommanderAdmin && (
+          {(isCommanderAdmin || user?.features?.includes('hrms')) && (
             <IntegrationCard
               type="ekta"
               integration={ektaIntegration}

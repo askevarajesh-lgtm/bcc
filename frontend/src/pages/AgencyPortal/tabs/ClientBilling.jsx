@@ -71,7 +71,21 @@ const ClientBilling = ({ clientId }) => {
         <Button 
           type="text" 
           icon={<Download size={16} />} 
-          onClick={() => window.open(`/api/invoices/${record._id}/pdf?token=${localStorage.getItem('token')}`, '_blank')}
+          onClick={async () => {
+            try {
+              const res = await fetch(`/api/invoices/${record._id}/pdf`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const data = await res.json();
+              if (data.success && data.url) {
+                window.open(data.url, '_blank');
+              } else {
+                console.error('Failed to get PDF URL');
+              }
+            } catch (err) {
+              console.error('Error fetching PDF', err);
+            }
+          }}
         />
       ),
     },

@@ -260,7 +260,7 @@ exports.updateUser = async (req, res, next) => {
         
         // Preserve their system tier base role based on current user context
         if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
-          updateData.role = 'agency_manager';
+          updateData.role = 'user';
         } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
           updateData.role = 'user';
         } else {

@@ -16,14 +16,22 @@ const OverviewTab = () => {
   const [globalMos, setGlobalMos] = useState(0);
   const [matrix, setMatrix] = useState({ healthy: 0, atRisk: 0, critical: 0 });
   const [slaStats, setSlaStats] = useState({ compliance: 100, activeBreaches: 0, atRiskCount: 0 });
+  
+  // New States
+  const [projectStats, setProjectStats] = useState(null);
+  const [taskStats, setTaskStats] = useState(null);
+  const [plSummary, setPlSummary] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [mosRes, slaRes] = await Promise.all([
-          api.get('/mos/dashboard'),
-          api.get('/sla-success/dashboard-stats')
+        const [mosRes, slaRes, projRes, taskRes, plRes] = await Promise.all([
+          api.get('/mos/dashboard').catch(() => ({ data: {} })),
+          api.get('/sla-success/dashboard-stats').catch(() => ({ data: {} })),
+          api.get('/projects/summary-stats').catch(() => ({ data: {} })),
+          api.get('/tasks/today-stats').catch(() => ({ data: {} })),
+          api.get('/pl/summary').catch(() => ({ data: {} }))
         ]);
         
         const clientsData = mosRes.data?.data?.clients || [];
@@ -46,6 +54,18 @@ const OverviewTab = () => {
         
         if (slaRes.data?.data) {
           setSlaStats(slaRes.data.data);
+        }
+
+        if (projRes.data?.data?.summary) {
+          setProjectStats(projRes.data.data.summary);
+        }
+        
+        if (taskRes.data?.data) {
+          setTaskStats(taskRes.data.data);
+        }
+        
+        if (plRes.data?.data?.summary) {
+          setPlSummary(plRes.data.data.summary);
         }
         
       } catch (error) {
@@ -80,15 +100,16 @@ const OverviewTab = () => {
   };
 
   const stats = [
-    { label: 'ACTIVE CLIENTS', value: clients.length, sub: 'Current total', color: 'var(--accent-primary)', trend: 'neutral' },
-    ...(role === 'agency_manager' ? [] : [
-      { label: 'TOTAL MRR', value: '₹42.8L', sub: 'Calculated value', color: 'var(--accent-primary)', trend: 'neutral' },
-    ]),
+    { label: 'ACTIVE CLIENTS', value: clients.length, sub: 'Current total', color: 'var(--accent-primary)', trend: 'neutral', icon: <DollarSign size={16} /> },
     { label: 'SLA COMPLIANCE', value: `${slaStats.compliance}%`, sub: `${slaStats.activeBreaches} breaches`, color: slaStats.compliance >= 90 ? 'var(--accent-primary)' : 'var(--accent-danger)', trend: slaStats.compliance >= 90 ? 'up' : 'down' },
     { label: 'OPEN ESCALATIONS', value: slaStats.activeBreaches + slaStats.atRiskCount, sub: 'Needs attention', color: 'var(--accent-warning)', trend: 'neutral' },
-    { label: 'TEAM UTILISATION', value: '81%', sub: 'System average', color: 'var(--accent-primary)', trend: 'neutral' },
-    ...(role === 'agency_manager' ? [] : [
-      { label: 'COLLECTION RATE', value: '89.7%', sub: 'Avg collected', color: 'var(--accent-primary)', trend: 'neutral' },
+    { label: 'PROJECTS ACTIVE', value: projectStats?.activeProjects || 0, sub: `${projectStats?.completedProjects || 0} completed`, color: 'var(--accent-primary)', trend: 'neutral' },
+    { label: 'TASKS TODAY', value: taskStats?.dueToday || taskStats?.total || 0, sub: `${taskStats?.completedToday || 0} done today`, color: 'var(--accent-warning)', trend: 'neutral' },
+    ...(role === 'agency_manager' ? [
+        { label: 'REVENUE (YTD)', value: `₹${((plSummary?.totalRevenue || 0)/100000).toFixed(1)}L`, sub: 'P&L Analytics', color: 'var(--accent-primary)', trend: 'up' },
+    ] : [
+        { label: 'REVENUE (YTD)', value: `₹${((plSummary?.totalRevenue || 0)/100000).toFixed(1)}L`, sub: 'P&L Analytics', color: 'var(--accent-primary)', trend: 'up' },
+        { label: 'COLLECTION RATE', value: '89.7%', sub: 'Avg collected', color: 'var(--accent-primary)', trend: 'neutral' }
     ])
   ];
 
@@ -114,93 +135,10 @@ const OverviewTab = () => {
         <Tag style={{ borderRadius: 8, padding: '6px 16px', background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 700, fontSize: 13, boxShadow: '2px 2px 0 var(--border-color)' }}>{currentMonthName}</Tag>
       </motion.div>
 
-      {slaStats.activeBreaches > 0 && (
-        <motion.div variants={itemVariants}>
-          <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '2px solid rgba(245, 158, 11, 0.4)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16, boxShadow: '4px 4px 0 var(--accent-warning)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--accent-warning)' }}>
-              <AlertTriangle size={20} />
-              <span style={{ fontWeight: 800, fontSize: 15 }}>{slaStats.activeBreaches} SLA breaches need attention</span>
-            </div>
-            <Button type="primary" style={{ background: 'var(--accent-warning)', color: '#fff', fontWeight: 700, border: 'none', borderRadius: 8 }}>Review Now →</Button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* The Global Dashboard Matrix */}
-      <motion.div variants={itemVariants}>
-        <SlabCard bodyStyle={{ padding: 40 }} style={{ marginBottom: 40, border: '2px solid var(--accent-secondary)' }} shadowColor="var(--accent-secondary)">
-          <Row gutter={48}>
-            <Col xs={24} md={8} style={{ borderRight: '1px dashed var(--border-color)' }}>
-              <Text style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 24 }}>GLOBAL AGENCY MOS</Text>
-              <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 24 }}>
-                <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 8px rgba(13,148,136,0.4))' }}>
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-tertiary)" strokeWidth="4" />
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--accent-secondary)" strokeWidth="4" strokeDasharray={`${globalMos}, 100`} strokeLinecap="round" />
-                </svg>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{globalMos}</span>
-                  <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600 }}>/100</span>
-                </div>
-              </div>
-              <Tag style={{ background: getCodeColor(globalMos), border: 'none', color: '#fff', borderRadius: 6, fontWeight: 800, marginBottom: 16, padding: '4px 12px', fontSize: 13 }}>
-                {getStatusText(globalMos).toUpperCase()} STATUS
-              </Tag>
-              <Text style={{ color: 'var(--text-primary)', display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 600 }}>Avg across {clients.length} active clients</Text>
-            </Col>
-            
-            <Col xs={24} md={16}>
-              <Text style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 800, display: 'block', marginBottom: 32 }}>Client Health Breakdown Matrix</Text>
-              
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Healthy (MOS ≥ 70)</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{matrix.healthy} clients</span>
-                </div>
-                <div style={{ width: '100%', height: 12, background: 'var(--bg-tertiary)', borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <div style={{ width: `${clients.length ? (matrix.healthy / clients.length) * 100 : 0}%`, height: '100%', background: 'var(--accent-primary)', borderRadius: 6 }}></div>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>At Risk (50-69)</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{matrix.atRisk} clients</span>
-                </div>
-                <div style={{ width: '100%', height: 12, background: 'var(--bg-tertiary)', borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <div style={{ width: `${clients.length ? (matrix.atRisk / clients.length) * 100 : 0}%`, height: '100%', background: 'var(--accent-warning)', borderRadius: 6 }}></div>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Critical (&lt; 50)</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{matrix.critical} clients</span>
-                </div>
-                <div style={{ width: '100%', height: 12, background: 'var(--bg-tertiary)', borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <div style={{ width: `${clients.length ? (matrix.critical / clients.length) * 100 : 0}%`, height: '100%', background: 'var(--accent-danger)', borderRadius: 6 }}></div>
-                </div>
-              </div>
-
-              <Text style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 16 }}>GLOBAL CLIENT PORTFOLIO</Text>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {clients.map((client, idx) => {
-                  const code = (client.client || 'NA').substring(0, 2).toUpperCase();
-                  return (
-                    <div key={idx} style={{ width: 32, height: 32, borderRadius: 8, background: getCodeColor(client.overall), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800, boxShadow: `2px 2px 0 var(--border-color)` }}>
-                      {code}
-                    </div>
-                  );
-                })}
-              </div>
-            </Col>
-          </Row>
-        </SlabCard>
-      </motion.div>
-
       <motion.div variants={itemVariants}>
         <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
           {stats.map((stat, idx) => (
-            <Col xs={24} sm={12} lg={6} xl={6} xxl={6} key={idx}>
+            <Col xs={24} sm={12} lg={8} xl={8} xxl={8} key={idx}>
               <SlabCard style={{ height: '100%' }} bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, display: 'block', marginBottom: 12, color: 'var(--text-tertiary)' }}>{stat.label}</Text>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1 }}>{stat.value}</div>
@@ -277,25 +215,6 @@ const OverviewTab = () => {
           )}
         </div>
       </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Upcoming Action Items</Title>
-        <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 32, fontWeight: 500 }}>Key dates and deadlines this month</Text>
-        
-        <Row gutter={[24, 24]}>
-          {upcoming.map((item, idx) => (
-            <Col xs={24} md={8} key={idx}>
-              <SlabCard style={{ height: '100%' }} shadowColor={item.btnColor} bodyStyle={{ padding: 32, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ marginBottom: 16, background: 'var(--bg-tertiary)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-color)' }}>{item.icon}</div>
-                <Text style={{ fontWeight: 800, fontSize: 16, display: 'block', marginBottom: 12, color: 'var(--text-primary)' }}>{item.title}</Text>
-                <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 32, flex: 1, fontWeight: 500, lineHeight: 1.6 }}>{item.desc}</Text>
-                <Button style={{ background: item.btnColor, color: '#fff', borderRadius: 8, border: 'none', fontWeight: 700, width: '100%', height: 40, boxShadow: '2px 2px 0 var(--border-color)' }}>{item.btn}</Button>
-              </SlabCard>
-            </Col>
-          ))}
-        </Row>
-      </motion.div>
-
     </motion.div>
   );
 };

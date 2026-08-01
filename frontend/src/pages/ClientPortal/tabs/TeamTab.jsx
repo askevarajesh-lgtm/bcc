@@ -130,6 +130,9 @@ const TeamTab = () => {
           <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email' }]}>
             <Input placeholder="john@company.com" size="large" style={{ borderRadius: 8 }} />
           </Form.Item>
+          <Form.Item name="phone" label="Phone Number">
+            <Input placeholder="+1234567890" size="large" style={{ borderRadius: 8 }} />
+          </Form.Item>
           <Form.Item name="password" label="Password" rules={[{ required: true }]}>
             <Input.Password placeholder="Secure password" size="large" style={{ borderRadius: 8 }} />
           </Form.Item>

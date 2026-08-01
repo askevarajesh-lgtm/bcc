@@ -8,6 +8,7 @@ import TaskListView from '../../Tasks/TaskListView';
 import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
 import ClientBilling from './ClientBilling';
 import ClientActivity from './ClientActivity';
+import ClientDetailContent from './ClientDetailContent';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +35,10 @@ const ClientsTab = () => {
   const [packages, setPackages] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [clientProposals, setClientProposals] = useState([]);
+  const [clientProjects, setClientProjects] = useState([]);
+  const [clientInvoices, setClientInvoices] = useState([]);
+  const [clientDataLoading, setClientDataLoading] = useState(false);
   
   const { features: agencyFeatures } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
@@ -461,124 +466,49 @@ const ClientsTab = () => {
       {/* Client Detail Drawer */}
       <Drawer
         open={!!selectedClient}
-        onClose={() => setSelectedClient(null)}
-        width={480}
+        onClose={() => { setSelectedClient(null); setClientProposals([]); setClientProjects([]); setClientInvoices([]); }}
+        width={Math.min(window.innerWidth, 960)}
         closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
-        headerStyle={{ borderBottom: 'none', padding: '32px 32px 0 32px' }}
-        bodyStyle={{ padding: 32 }}
+        headerStyle={{ borderBottom: '1px solid var(--border-color)', padding: '24px 32px' }}
+        bodyStyle={{ padding: '24px 32px' }}
         title={selectedClient && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: getStatusColor(selectedClient.status), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: `${getStatusColor(selectedClient.status)}22`, color: getStatusColor(selectedClient.status), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, border: `2px solid ${getStatusColor(selectedClient.status)}40` }}>
               {selectedClient.code}
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedClient.name}</Title>
-              <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{selectedClient.industry}</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                <Tag style={{ margin: 0, borderRadius: 12, background: `${getStatusColor(selectedClient.status)}20`, color: getStatusColor(selectedClient.status), border: 'none', fontWeight: 700, padding: '2px 10px' }}>
-                  {selectedClient.mos} · {selectedClient.status}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>{selectedClient.industry}</Text>
+                <span style={{ color: 'var(--border-color)' }}>·</span>
+                <Tag style={{ margin: 0, borderRadius: 8, background: `${getStatusColor(selectedClient.status)}15`, color: getStatusColor(selectedClient.status), border: 'none', fontWeight: 700, fontSize: 11 }}>
+                  {selectedClient.status}
                 </Tag>
-                <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>AM: {selectedClient.am}</Text>
+                {selectedClient.packageName && <Tag style={{ margin: 0, borderRadius: 8, fontWeight: 600, fontSize: 11 }}>{selectedClient.packageName}</Tag>}
               </div>
             </div>
+            <Button type="primary" size="small" icon={<ArrowUpRight size={14} />} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700 }}>
+              Full Dashboard
+            </Button>
           </div>
         )}
       >
         {selectedClient && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Button type="primary" style={{ background: 'var(--accent-primary)', height: 48, minHeight: 48, flexShrink: 0, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-              Open Full Dashboard <ArrowUpRight size={18} style={{ marginLeft: 8 }} />
-            </Button>
-            
-            <Tabs defaultActiveKey="1" tabBarStyle={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <Tabs.TabPane tab="Summary" key="1">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 16, marginBottom: 32 }}>
-                  <Progress type="circle" percent={selectedClient.mos} strokeColor={getStatusColor(selectedClient.status)} trailColor="var(--bg-tertiary)" size={80} format={() => <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 20 }}>{selectedClient.mos}</span>} />
-                  <div>
-                    <Title level={2} style={{ margin: 0, fontWeight: 800 }}>{selectedClient.mos}</Title>
-                    <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>{selectedClient.status} · Grade A</Text>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
-                  {Object.entries(selectedClient.scores).map(([label, score]) => (
-                    <div key={label}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-tertiary)', letterSpacing: 1 }}>{label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>{score}</span>
-                      </div>
-                      <Progress percent={score} showInfo={false} strokeColor={getScoreColor(score)} trailColor="var(--bg-tertiary)" size="small" />
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-tertiary)', letterSpacing: 1, display: 'block', marginBottom: 12 }}>3 QUICKEST WINS</Text>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    <li>· Fix mobile page speed (Web +6 pts)</li>
-                    <li>· Schedule 8 GEO posts (GEO +9 pts)</li>
-                    <li>· Restart paused Meta campaigns (Ads +4 pts)</li>
-                  </ul>
-                </div>
-
-                <a style={{ color: 'var(--accent-secondary)', fontWeight: 700, fontSize: 14 }}>View Full MOS →</a>
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="Features & Access" key="2">
-                {(() => {
-                  const clientFeatures = selectedClient.features || [];
-                  const clientPackage = selectedClient.packageName || 'Custom';
-                  
-                  const enabledFeatures = allowedFeatures.filter(feat => clientFeatures.includes(feat.id));
-
-                  return (
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Package</span>
-                          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{clientPackage}</span>
-                        </div>
-                      </div>
-
-                      <Title level={5} style={{ marginBottom: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Enabled Modules</Title>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {enabledFeatures.length > 0 ? enabledFeatures.map(feat => (
-                          <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 12 }}>
-                            <div style={{ color: 'var(--accent-primary)' }}><CheckCircle size={16} /></div>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
-                            <div style={{ marginLeft: 'auto' }}>
-                              <Tag color="success" style={{ margin: 0, borderRadius: 10, fontWeight: 700 }}>Enabled</Tag>
-                            </div>
-                          </div>
-                        )) : (
-                          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
-                            No modules are currently enabled for this client.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="Tasks" key="3">
-                <div style={{ marginTop: 16 }}>
-                  <TaskListView 
-                    clientId={selectedClient?.id || selectedClient?._id} 
-                    onTaskClick={(task) => {
-                      setSelectedTask(task);
-                      setTaskDrawerVisible(true);
-                    }} 
-                  />
-                </div>
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="Billing" key="4">
-                <ClientBilling clientId={selectedClient?.id || selectedClient?._id} />
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="Activity" key="5">
-                <ClientActivity clientId={selectedClient?.id || selectedClient?._id} />
-              </Tabs.TabPane>
-            </Tabs>
-          </div>
+          <ClientDetailContent
+            selectedClient={selectedClient}
+            allowedFeatures={allowedFeatures}
+            getStatusColor={getStatusColor}
+            getScoreColor={getScoreColor}
+            clientProposals={clientProposals}
+            setClientProposals={setClientProposals}
+            clientProjects={clientProjects}
+            setClientProjects={setClientProjects}
+            clientInvoices={clientInvoices}
+            setClientInvoices={setClientInvoices}
+            clientDataLoading={clientDataLoading}
+            setClientDataLoading={setClientDataLoading}
+            onTaskClick={(task) => { setSelectedTask(task); setTaskDrawerVisible(true); }}
+          />
         )}
       </Drawer>
 
@@ -609,7 +539,7 @@ const ClientsTab = () => {
           form={form}
           layout="vertical"
           onFinish={handleCreateClient}
-          requiredMark={false}
+          requiredMark={true}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
@@ -645,9 +575,27 @@ const ClientsTab = () => {
                     name="password" 
                     label={<span style={{ fontWeight: 600 }}>Initial Password</span>} 
                     rules={[{ required: true, message: 'Please enter a password' }]}
-                    style={{ marginBottom: 0 }}
                   >
                     <Input.Password placeholder="Enter a secure password" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item 
+                    name="phone" 
+                    label={<span style={{ fontWeight: 600 }}>Phone Number</span>} 
+                    rules={[{ required: true, message: 'Please enter a phone number' }]}
+                  >
+                    <Input placeholder="e.g. +91 9876543210" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item 
+                    name="address" 
+                    label={<span style={{ fontWeight: 600 }}>Address</span>} 
+                    rules={[{ required: true, message: 'Please enter an address' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input.TextArea placeholder="e.g. 123 Main St, City, Country" size="large" rows={2} style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
               </Row>

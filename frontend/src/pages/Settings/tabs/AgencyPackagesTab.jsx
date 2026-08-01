@@ -6,6 +6,7 @@ import api from '../../../services/api';
 const { Title, Text } = Typography;
 
 const availableFeatures = [
+  { id: 'hrms', label: 'HRMS' },
   { id: 'crm', label: 'CRM & Leads' },
   { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },

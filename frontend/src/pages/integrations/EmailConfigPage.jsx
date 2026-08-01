@@ -351,8 +351,6 @@ const EmailConfigPage = ({ integrationId: propId, onBack }) => {
   const [sendTestEmail] = useSendTestEmailMutation();
   const [testEmailConnection, { isLoading: testConnectionLoading }] =
     useTestEmailConnectionMutation();
-  const { data: eventConfigsData, refetch: refetchEventConfigs } =
-    useGetEventConfigsQuery();
   const [upsertEventConfig] = useUpsertEventConfigMutation();
 
   // If id is 'new', we're creating a new integration
@@ -362,6 +360,11 @@ const EmailConfigPage = ({ integrationId: propId, onBack }) => {
       : integrationsData?.data?.integrations?.find(
           (i) => i.type === "email" && (!id || i._id === id),
         );
+
+  const { data: eventConfigsData, refetch: refetchEventConfigs } =
+    useGetEventConfigsQuery(emailIntegration?._id, {
+      skip: !emailIntegration?._id,
+    });
 
   const [configForm] = Form.useForm();
   const [testForm] = Form.useForm();
@@ -532,6 +535,7 @@ const EmailConfigPage = ({ integrationId: propId, onBack }) => {
   const handleSaveEventConfig = async (values) => {
     try {
       await upsertEventConfig({
+        integrationId: emailIntegration?._id || id,
         eventType: values.eventType,
         name:
           eventTypes.find((et) => et.value === values.eventType)?.label ||

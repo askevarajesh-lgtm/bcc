@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
     setRole(user.role);
     setFeatures(user.features || []);
     localStorage.setItem('user', JSON.stringify(user));
+    window.dispatchEvent(new Event('user-updated'));
     
     if (user.role === 'supreme_super_admin') {
       navigate('/superadmin/dashboard');
@@ -67,6 +68,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     localStorage.removeItem('original_token');
     localStorage.removeItem('original_user');
+    window.dispatchEvent(new Event('user-updated'));
     navigate('/signin');
   };
 

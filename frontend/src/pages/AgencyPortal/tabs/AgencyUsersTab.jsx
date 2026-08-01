@@ -166,6 +166,9 @@ const AgencyUsersTab = () => {
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Email Address</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
             <Input placeholder="user@agency.com" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
+            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
 
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true, message: 'Password is required' }]}>
             <Input.Password placeholder="••••••••" style={{ borderRadius: 8 }} size="large" />

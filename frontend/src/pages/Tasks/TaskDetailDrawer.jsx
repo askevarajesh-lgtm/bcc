@@ -763,8 +763,7 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
                 </Popconfirm>
               )}
               {task &&
-                isCompletedTask(task.status) &&
-                task.department === "website-designing" && (
+                isCompletedTask(task.status) && (
                   <Button
                     icon={<ReloadOutlined />}
                     onClick={() => {

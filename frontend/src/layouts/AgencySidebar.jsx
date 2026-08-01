@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
@@ -95,7 +96,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (hasAgencyFullAccess || feats.includes('clients')) {
     menuItems.push({
       key: 'clients',
-      label: collapsed ? 'CLI' : 'CLIENTS',
+      label: 'CLIENTS',
+      icon: getIcon(Users),
       children: [
         { key: '/agency/clients', icon: getIcon(Users), label: 'Accounts' },
         ...(['agency_super_admin', 'agency_manager'].includes(role) ? [
@@ -138,7 +140,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (workspaceChildren.length > 0) {
     menuItems.push({
       key: 'workspace',
-      label: collapsed ? 'WRK' : 'WORKSPACE',
+      label: 'WORKSPACE',
+      icon: getIcon(Briefcase),
       children: workspaceChildren,
     });
   }
@@ -159,7 +162,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (intelligenceChildren.length > 0) {
     menuItems.push({
       key: 'intelligence',
-      label: collapsed ? 'INT' : 'INTELLIGENCE',
+      label: 'INTELLIGENCE',
+      icon: getIcon(Zap),
       children: intelligenceChildren,
     });
   }
@@ -174,7 +178,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (opsChildren.length > 0) {
     menuItems.push({
       key: 'ops',
-      label: collapsed ? 'OPS' : 'AGENCY OPS',
+      label: 'AGENCY OPS',
+      icon: getIcon(Activity),
       children: opsChildren,
     });
   }
@@ -190,12 +195,18 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (accountsChildren.length > 0) {
     menuItems.push({
       key: 'accounts',
-      label: collapsed ? 'ACC' : 'ACCOUNTS',
+      label: 'ACCOUNTS',
+      icon: getIcon(CreditCard),
       children: accountsChildren,
     });
   }
 
   const hrmsChildren = [];
+  if (feats.includes('hrms')) {
+    hrmsChildren.push({ key: '/agency/hrms/staff', icon: getIcon(Users), label: 'Staff' });
+    hrmsChildren.push({ key: '/agency/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' });
+  }
+
   if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
     hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
     hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
@@ -208,7 +219,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (hrmsChildren.length > 0) {
     menuItems.push({
       key: 'hrms',
-      label: collapsed ? 'HRM' : 'HRMS',
+      label: 'HRMS',
+      icon: getIcon(ClipboardList),
       children: hrmsChildren,
     });
   }
@@ -227,7 +239,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (settingsChildren.length > 0) {
     menuItems.push({
       key: 'settings',
-      label: collapsed ? 'SET' : 'SETTINGS',
+      label: 'SETTINGS',
+      icon: getIcon(Settings),
       children: settingsChildren,
     });
   }

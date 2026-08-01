@@ -16,7 +16,7 @@ const MasterItemsList = () => {
 
   const isSuperAdmin = ['supreme_super_admin', 'superadmin', 'agency_super_admin'].includes(role);
   const isManagerRole = ['agency_manager', 'admin', 'brand_admin', 'brand_manager'].includes(role);
-  const permissions = user?.permissions?.['Workspace-Master Item'] || {};
+  const permissions = user?.permissions?.['General-Master Item'] || user?.permissions?.['Workspace-Master Item'] || {};
   const canCreate = isSuperAdmin || isManagerRole || permissions.Create;
   const canEdit = isSuperAdmin || isManagerRole || permissions.Edit;
   const canDelete = isSuperAdmin || isManagerRole || permissions.Delete;

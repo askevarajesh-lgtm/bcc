@@ -151,7 +151,8 @@ const TaskCardInner = ({
 }) => {
   const [mobileMoveSelectKey, setMobileMoveSelectKey] = useState(0);
 
-  const isCreator = task.createdBy && (task.createdBy._id === user?._id || task.createdBy === user?._id);
+  const isCreator = task.createdBy &&
+    ((task.createdBy._id || task.createdBy)?.toString() === user?._id?.toString());
   const canEditThisTask = canEdit && isCreator;
   const canDeleteThisTask = canDelete && isCreator;
 
@@ -184,8 +185,16 @@ const TaskCardInner = ({
     "website_coordinator",
     "digital_marketing_coordinator",
     "coordinator",
+    "agency_manager",
+    "agency_super_admin",
+    "brand_manager",
+    "brand_super_admin",
+    "supreme_super_admin",
+    "commander_admin",
   ];
   const isAdmin = adminRoles.includes(userRole);
+  // Task creator should also be able to drag (e.g., to move from Review for Correction/Redesign)
+  const canDragHandle = isAdmin || isCreator;
   const canEditTaskDetails = canEdit;
 
   // Category chip config
@@ -295,7 +304,7 @@ const TaskCardInner = ({
         />
 
         {/* Drag handle */}
-        {((!isOverdue && !isCompleted) || isAdmin) && (
+        {((!isOverdue && !isCompleted) || canDragHandle) && (
           <div
             {...listeners}
             className="drag-handle"
@@ -925,9 +934,8 @@ const TaskCardInner = ({
             </>
           )}
 
-          {/* Reopen button — only for completed Website Designing tasks */}
+          {/* Reopen button — only for completed tasks */}
           {isCompleted &&
-            task.department === "website-designing" &&
             onReopen && (
               <Tooltip title="Reopen as Correction Task">
                 <button
@@ -1056,6 +1064,12 @@ const TaskCard = ({
     "website_coordinator",
     "digital_marketing_coordinator",
     "coordinator",
+    "agency_manager",
+    "agency_super_admin",
+    "brand_manager",
+    "brand_super_admin",
+    "supreme_super_admin",
+    "commander_admin",
   ];
   const coordinatorRoles = ["digital_marketing_coordinator", "coordinator"];
   const isCoordinatorOnly = coordinatorRoles.includes(userRole);
@@ -1064,14 +1078,19 @@ const TaskCard = ({
   const isCompleted = isCompletedTask(task.status);
   const durationLabel = getTaskDurationLabel(task);
 
+  // Task creator can also drag (e.g., to send Review tasks back for Correction/Redesign)
+  const isCreator = task.createdBy &&
+    ((task.createdBy._id || task.createdBy)?.toString() === user?._id?.toString());
+  const isAdminOrCreator = adminRoles.includes(userRole) || isCreator;
+
   // Drag requires VIEW or EDIT task permission (canEdit prop = canMoveStatus from parent).
   // Edit permission controls editing task details (title, desc, etc.);
   // canMoveStatus now checks VIEW OR EDIT, so both DM (Edit) and Website (View/Read) users can drag.
   const sortableDisabled =
     !canDrag ||
     !canDragFromReviewOnly ||
-    (isOverdue && !adminRoles.includes(userRole)) ||
-    (isCompleted && !adminRoles.includes(userRole));
+    (isOverdue && !isAdminOrCreator) ||
+    (isCompleted && !isAdminOrCreator);
 
   const {
     attributes,
@@ -1139,6 +1158,12 @@ const TaskCardWithReminder = ({
     !["done", "completed", "validated", "complete"].includes(task.status);
 
   const isCompleted = isCompletedTask(task.status);
+  const allAdminRoles = [
+    "super_admin", "admin", "operations_head",
+    "website_coordinator", "digital_marketing_coordinator", "coordinator",
+    "agency_manager", "agency_super_admin", "brand_manager",
+    "brand_super_admin", "supreme_super_admin", "commander_admin",
+  ];
   const coordinatorRoles = ["digital_marketing_coordinator", "coordinator"];
   const isCoordinatorOnly = coordinatorRoles.includes(userRole);
   const canDragFromReviewOnly =
@@ -1159,12 +1184,7 @@ const TaskCardWithReminder = ({
       !canEdit ||
       !canDragFromReviewOnly ||
       (isOverdue &&
-        ![
-          "super_admin",
-          "admin",
-          "operations_head",
-          "website_coordinator",
-        ].includes(userRole)),
+        !allAdminRoles.includes(userRole)),
   });
 
   const style = {
@@ -1421,6 +1441,7 @@ const KanbanColumn = ({
                   isMobileKanbanUi={isMobileKanbanUi}
                   kanbanStatuses={kanbanStatuses}
                   onMobileMoveToColumn={onMobileMoveToColumn}
+                  user={user}
                 />
               );
             })
@@ -2106,7 +2127,15 @@ const KanbanBoard = ({
     } else if (!canAccessRejected) {
       return finalStatusIds.filter((id) => id !== "Rejected");
     }
+    return finalStatusIds;
     })();
+
+    // Forcefully allow moving back to 'to_do' or 'in_progress' from 'review'
+    if (currentStatusId === "review") {
+      if (!rawStatuses.includes("to_do")) rawStatuses.push("to_do");
+      if (!rawStatuses.includes("in_progress")) rawStatuses.push("in_progress");
+    }
+
 
     // Restrict moving backward before In Progress once the task is in progress or beyond
     const inProgressOrBeyond = [
@@ -2127,6 +2156,10 @@ const KanbanBoard = ({
       if (id === "backlog" && currentStatusId !== "backlog") {
         return false;
       }
+      
+      const isCreator = task.createdBy &&
+        ((task.createdBy._id || task.createdBy)?.toString() === user?._id?.toString());
+      const canBypassWorkflow = isCreator || kanbanIsAdmin;
       // Globally prevent moving backward before In Progress once it has started
       if (
         inProgressOrBeyond.includes(currentStatusId) &&
@@ -2206,10 +2239,11 @@ const KanbanBoard = ({
       "digital_marketing_coordinator",
       "coordinator",
       "website_coordinator",
+      "agency_manager",
+      "agency_super_admin",
     ];
     const canApproveReview = reviewApproverRoles.includes(userRole);
     const isDigitalMarketing = draggedTask.department === "digital-marketing";
-
     // 1. Mandatory In Progress move (Applies to all)
     if (
       sourceStatus === "to_do" &&
@@ -2235,28 +2269,20 @@ const KanbanBoard = ({
       return;
     }
 
-    // Debug log to trace department-based logic
-    console.log("[Kanban] initiateColumnMove:", {
-      department: draggedTask.department,
-      isDigitalMarketing,
-      targetStatusId,
-      canApproveReview,
-    });
-
     // 3. Approval permission check (Moving TO terminal status)
     if (isDigitalMarketing && (targetStatusId === "done" || targetStatusId === "complete") && !canApproveReview) {
       notifyError('move', taskId, "For Digital Marketing, only a Coordinator or Admin can mark a task as Done/Approved.");
       return;
     }
 
-    // 4. Moving FROM Review permission check (Only relevant if 'review' status exists)
+    // 4. Moving FROM Review permission check
     if (
       isDigitalMarketing &&
       sourceStatus === "review" &&
       (targetStatusId !== "done" && targetStatusId !== "complete") &&
       !canApproveReview
     ) {
-      notifyError('move', taskId, "For Digital Marketing, only a Coordinator or Admin can move tasks from the Review column.");
+      notifyError('move', taskId, "Only the task creator, Agency Manager, or Coordinator can move tasks from Review.");
       return;
     }
     const validNextStatuses = getValidNextStatuses(draggedTask, sourceStatus);
@@ -2364,6 +2390,9 @@ const KanbanBoard = ({
       "admin",
       "digital_marketing_coordinator",
       "coordinator",
+      "website_coordinator",
+      "agency_manager",
+      "agency_super_admin",
     ];
     const canApproveReview = reviewApproverRoles.includes(userRole);
     if (isTaskCompleted && !isAdmin && !canApproveReview) {
@@ -2443,7 +2472,7 @@ const KanbanBoard = ({
             (targetStatusFromTask !== "done" && targetStatusFromTask !== "complete") &&
             !canApproveReview
           ) {
-            notifyError('move', activeId, "Only Digital Marketing Coordinator or Admin can move tasks from Review.");
+            notifyError('move', activeId, "Only the task creator, Agency Manager, or Coordinator can move tasks from Review.");
             return;
           }
         setPendingStatusChange({
@@ -2925,6 +2954,7 @@ const KanbanBoard = ({
                   kanbanStatuses={statuses}
                   onMobileMoveToColumn={handleMobileMoveToColumn}
                   onReopen={handleReopenClick}
+                  user={user}
                 />
               );
             })}
@@ -3122,7 +3152,13 @@ const KanbanBoard = ({
 
       {/* Status Change Modal */}
       <Modal
-        title="Move Task to Next Status"
+        title={
+          pendingStatusChange?.sourceStatus === 'review' && pendingStatusChange?.targetStatus === 'in_progress'
+            ? '🔄 Mark as Correction'
+            : pendingStatusChange?.sourceStatus === 'review' && pendingStatusChange?.targetStatus === 'to_do'
+            ? '🎨 Send for Redesign'
+            : 'Move Task to Next Status'
+        }
         open={isStatusModalVisible}
         onCancel={handleStatusModalCancel}
         footer={null}
@@ -3178,17 +3214,61 @@ const KanbanBoard = ({
               onFinish={handleStatusModalSubmit}
               autoComplete="off"
             >
+              {/* Contextual banner for Correction (Review → In Progress) */}
+              {isReviewToInProgress && (
+                <div style={{
+                  marginBottom: 16,
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #fff3cd, #fff8e1)',
+                  border: '1px solid #ffd600',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                }}>
+                  <span style={{ fontSize: 22 }}>🔄</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#b45309', marginBottom: 4 }}>Moving to Correction</div>
+                    <div style={{ fontSize: 13, color: '#78350f' }}>
+                      This task will be moved back to <strong>In Progress</strong> and tagged as a <strong>Correction</strong>.
+                      The assigned user will continue working on it.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Contextual banner for Redesign (Review → To Do) */}
+              {isReviewToToDo && (
+                <div style={{
+                  marginBottom: 16,
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #f3e8ff, #ede9fe)',
+                  border: '1px solid #a78bfa',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                }}>
+                  <span style={{ fontSize: 22 }}>🎨</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#6d28d9', marginBottom: 4 }}>Sending for Redesign</div>
+                    <div style={{ fontSize: 13, color: '#4c1d95' }}>
+                      This task will be moved back to <strong>To Do</strong> and tagged as a <strong>Redesign</strong>.
+                      The assignee will need to restart the task from scratch.
+                    </div>
+                  </div>
+                </div>
+              )}
               {shouldShowCommand && (
                 <Form.Item
                   name="command"
-                  label="Command"
+                  label={(isReviewToInProgress || isReviewToToDo) ? "Comments/Description" : "Command"}
                   rules={[
-                    { required: true, message: "Please enter a command" },
+                    { required: true, message: (isReviewToInProgress || isReviewToToDo) ? "Please enter comments/description" : "Please enter a command" },
                   ]}
                 >
                   <Input.TextArea
                     rows={4}
-                    placeholder="Enter command or notes for this status change"
+                    placeholder={(isReviewToInProgress || isReviewToToDo) ? "Explain why the task is being sent back..." : "Enter command or notes for this status change"}
                   />
                 </Form.Item>
               )}

@@ -17,10 +17,8 @@ const { TextArea } = Input;
 const { Text } = Typography;
 
 const CORRECTION_CATEGORIES = [
-  { value: "Internal Correction", label: "Internal Correction" },
-  { value: "Client Correction", label: "Client Correction" },
-  { value: "Hosting", label: "Hosting" },
-  { value: "SEO Site Content Update", label: "SEO Site Content Update" },
+  { value: "Correction", label: "Correction" },
+  { value: "Redesign", label: "Redesign" },
 ];
 
 /**
@@ -40,7 +38,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
         correctionDetails: values.correctionDetails,
         dueDate: values.dueDate?.toISOString(),
       }).unwrap();
-      notifySuccess('reopen', task._id, `Correction task created: "Correction: ${task.title}"`);
+      notifySuccess('reopen', task._id, `Task reopened successfully`);
       form.resetFields();
       onClose();
       if (onSuccess) onSuccess();
@@ -64,7 +62,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ReloadOutlined style={{ color: "#f59e0b" }} />
-          <span>Reopen Task as Correction</span>
+          <span>Reopen Task for Correction / Redesign</span>
         </div>
       }
       footer={[
@@ -79,7 +77,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
           onClick={handleSubmit}
           style={{ background: "#f59e0b", borderColor: "#f59e0b" }}
         >
-          Create Correction Task
+          Submit Request
         </Button>,
       ]}
       destroyOnClose
@@ -91,8 +89,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
           <Text strong>{task.title}</Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            A new task will be created with the prefix{" "}
-            <Text code>Correction:</Text> and moved to the To Do stage.
+            A new task will be created with the appropriate prefix and moved to the To Do stage.
           </Text>
         </div>
       )}
@@ -100,7 +97,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="reopenCategory"
-          label="Correction Category"
+          label="Category"
           rules={[{ required: true, message: "Please select a category" }]}
         >
           <Select
@@ -119,7 +116,7 @@ const TaskReopenModal = ({ task, visible, onClose, onSuccess }) => {
 
         <Form.Item
           name="correctionDetails"
-          label="Correction Details"
+          label="Details"
           rules={[
             {
               required: true,

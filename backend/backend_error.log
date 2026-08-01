@@ -794,4 +794,8 @@ Require stack:
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
     at async model.Query._findOneAndUpdate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:3616:5)
     at async maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:65)
-    at async exports.updateUser (E:\Bcc Seo\backend\src\modules\auth\user.controller.js:269:18)\n\n
+    at async exports.updateUser (E:\Bcc Seo\backend\src\modules\auth\user.controller.js:269:18)\n\n2026-08-01T08:08:46.198Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-01T08:08:46.349Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n

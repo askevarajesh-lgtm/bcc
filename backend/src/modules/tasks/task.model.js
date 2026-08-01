@@ -86,6 +86,10 @@ const taskSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    assignedUserPhone: {
+      type: String,
+      default: null,
+    },
 
     // Audit fields
     createdBy: {

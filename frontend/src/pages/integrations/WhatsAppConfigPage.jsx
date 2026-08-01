@@ -218,9 +218,6 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
   const [createIntegration] = useCreateIntegrationMutation();
   const [sendMessage] = useSendMessageMutation();
   const [upsertEventConfig] = useUpsertEventConfigMutation();
-  const { data: eventConfigsData, refetch: refetchEventConfigs } =
-    useGetEventConfigsQuery();
-
   // If id is 'new', we're creating a new integration
   const whatsappIntegration =
     id === "new"
@@ -228,6 +225,11 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
       : integrationsData?.data?.integrations?.find(
           (i) => i.type === "whatsapp" && (!id || i._id === id),
         );
+
+  const { data: eventConfigsData, refetch: refetchEventConfigs } =
+    useGetEventConfigsQuery(whatsappIntegration?._id, {
+      skip: !whatsappIntegration?._id,
+    });
 
   const [configForm] = Form.useForm();
   const [testForm] = Form.useForm();
@@ -444,6 +446,7 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
   const handleSaveEventConfig = async (values) => {
     try {
       await upsertEventConfig({
+        integrationId: whatsappIntegration?._id || id,
         eventType: values.eventType,
         name:
           eventTypes.find((et) => et.value === values.eventType)?.label ||

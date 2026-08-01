@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const integrationService = require("./integration.service");
+const EventConfig = require("./eventConfig.model");
 const {
   sendSuccess,
   sendError,
@@ -181,6 +182,36 @@ const getPaymentIntegration = async (req, res) => {
   }
 };
 
+const getEventConfigs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const configs = await EventConfig.find({ integrationId: id, companyId: req.companyId });
+    return sendSuccess(res, "Event configurations retrieved", { configs });
+  } catch (error) {
+    return sendError(res, 500, error.message);
+  }
+};
+
+const upsertEventConfig = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { eventType, ...configData } = req.body;
+
+    const query = { integrationId: id, eventType, companyId: req.companyId };
+    const update = { ...configData, eventType };
+
+    const config = await EventConfig.findOneAndUpdate(
+      query,
+      { $set: update },
+      { new: true, upsert: true }
+    );
+
+    return sendSuccess(res, "Event configuration saved", { config });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
 module.exports = {
   getAllIntegrations,
   createIntegration,
@@ -194,4 +225,6 @@ module.exports = {
   fetchWhatsAppLeads,
   syncAllWhatsAppLeads,
   getPaymentIntegration,
+  getEventConfigs,
+  upsertEventConfig,
 };

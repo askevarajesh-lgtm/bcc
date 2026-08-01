@@ -86,7 +86,29 @@ const BillingTab = () => {
           {record.status === 'Upcoming' && (
             <Button type="primary" size="small" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 6 }}>Pay Now</Button>
           )}
-          <Button type="default" size="small" icon={<Download size={12} />} style={{ fontWeight: 600, borderRadius: 6, color: 'var(--text-secondary)' }}>PDF</Button>
+          <Button 
+            type="default" 
+            size="small" 
+            icon={<Download size={12} />} 
+            style={{ fontWeight: 600, borderRadius: 6, color: 'var(--text-secondary)' }}
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/invoices/${record.id}/pdf`, {
+                  headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                if (data.success && data.url) {
+                  window.open(data.url, '_blank');
+                } else {
+                  console.error('Failed to get PDF URL');
+                }
+              } catch (err) {
+                console.error('Error fetching PDF', err);
+              }
+            }}
+          >
+            PDF
+          </Button>
           {record.status === 'Paid' && (
             <Button type="default" size="small" style={{ fontWeight: 600, borderRadius: 6, color: 'var(--text-secondary)' }}>GST</Button>
           )}

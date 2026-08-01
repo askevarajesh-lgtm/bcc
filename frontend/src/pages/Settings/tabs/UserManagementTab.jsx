@@ -580,6 +580,9 @@ const UserManagementTab = () => {
           <Form.Item name="email" label={<strong style={{ color: 'var(--text-secondary)' }}>Email Address</strong>} rules={[{ required: true, type: 'email' }]}>
             <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
           </Form.Item>
+          <Form.Item name="phone" label={<strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>}>
+            <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+          </Form.Item>
           {!userModal.record && (
             <Form.Item name="password" label={<strong style={{ color: 'var(--text-secondary)' }}>Password</strong>} rules={[{ required: true, message: 'Please set a password' }]}>
               <Input.Password size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />

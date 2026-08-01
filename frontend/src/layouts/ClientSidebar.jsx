@@ -31,6 +31,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useFeatures } from '../contexts/FeatureContext';
@@ -252,7 +253,11 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const hrmsChildren = [];
-  if (['brand_super_admin', 'brand_manager', 'client', 'agency_client'].includes(role)) {
+  if (['brand_super_admin', 'brand_manager', 'client'].includes(role)) {
+    if (hasFeature('hrms')) {
+      hrmsChildren.push({ key: '/client/hrms/staff', icon: getIcon(Users), label: 'Staff' });
+      hrmsChildren.push({ key: '/client/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' });
+    }
     hrmsChildren.push({ key: '/client/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
     hrmsChildren.push({ key: '/client/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
   }

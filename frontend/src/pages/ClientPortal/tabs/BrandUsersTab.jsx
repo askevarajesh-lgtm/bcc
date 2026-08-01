@@ -136,6 +136,9 @@ const BrandUsersTab = () => {
           <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
             <Input type="email" placeholder="jane@brand.com" />
           </Form.Item>
+          <Form.Item name="phone" label="Phone Number">
+            <Input placeholder="+1234567890" />
+          </Form.Item>
           <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Please enter a password' }]}>
             <Input.Password placeholder="Enter a secure password" />
           </Form.Item>

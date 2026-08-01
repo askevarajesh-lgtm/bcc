@@ -19,49 +19,54 @@ const ClientActivity = ({ clientId }) => {
     try {
       setLoading(true);
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-      
-      // Fetch both Tasks and Invoices to build a timeline
-      const [tasksRes, invoicesRes] = await Promise.all([
-        fetch(`/api/tasks?companyId=${clientId}&limit=10`, { headers }),
-        fetch(`/api/invoices?clientId=${clientId}&limit=10`, { headers })
-      ]);
-      
-      const tasksData = await tasksRes.json();
-      const invoicesData = await invoicesRes.json();
-      
       let aggregated = [];
-      
-      if (tasksData.success) {
-        const tasks = tasksData.data?.tasks || tasksData.data || [];
-        tasks.forEach(t => {
-          aggregated.push({
-            id: `task-${t._id}`,
-            date: t.updatedAt || t.createdAt,
-            type: 'task',
-            title: `Task: ${t.title}`,
-            desc: `Status updated to ${t.status}`,
-            icon: <CheckCircle size={16} />
+
+      // Safely fetch tasks
+      try {
+        const tasksRes = await fetch(`/api/tasks?companyId=${clientId}&limit=10`, { headers });
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          const raw = tasksData?.data?.tasks ?? tasksData?.tasks ?? tasksData?.data;
+          const tasks = Array.isArray(raw) ? raw : [];
+          tasks.forEach(t => {
+            aggregated.push({
+              id: `task-${t._id}`,
+              date: t.updatedAt || t.createdAt,
+              type: 'task',
+              title: `Task: ${t.title}`,
+              desc: `Status: ${t.status || 'N/A'}`,
+              icon: <CheckCircle size={16} />
+            });
           });
-        });
+        }
+      } catch (e) {
+        console.warn('Could not load tasks for activity', e.message);
       }
-      
-      if (invoicesData.success) {
-        const invoices = invoicesData.data || invoicesData.invoices || [];
-        invoices.forEach(i => {
-          aggregated.push({
-            id: `inv-${i._id}`,
-            date: i.updatedAt || i.createdAt,
-            type: 'invoice',
-            title: `Invoice: ${i.invoiceNumber}`,
-            desc: `Payment status: ${i.paymentStatus}`,
-            icon: <FileText size={16} />
+
+      // Safely fetch invoices
+      try {
+        const invoicesRes = await fetch(`/api/invoices?clientId=${clientId}&limit=10`, { headers });
+        if (invoicesRes.ok) {
+          const invoicesData = await invoicesRes.json();
+          const raw = invoicesData?.data ?? invoicesData?.invoices;
+          const invoices = Array.isArray(raw) ? raw : [];
+          invoices.forEach(i => {
+            aggregated.push({
+              id: `inv-${i._id}`,
+              date: i.updatedAt || i.createdAt,
+              type: 'invoice',
+              title: `Invoice: ${i.invoiceNumber}`,
+              desc: `Payment status: ${i.paymentStatus || 'N/A'}`,
+              icon: <FileText size={16} />
+            });
           });
-        });
+        }
+      } catch (e) {
+        console.warn('Could not load invoices for activity', e.message);
       }
-      
-      // Sort by descending date
+
       aggregated.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setActivities(aggregated.slice(0, 15)); // Top 15 recent activities
+      setActivities(aggregated.slice(0, 15));
     } catch (error) {
       console.error('Failed to fetch activities', error);
     } finally {

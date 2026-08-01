@@ -45,6 +45,16 @@ router.put(
   integrationController.updateIntegration,
 );
 router.post(
+  "/:id/events",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.upsertEventConfig,
+);
+router.get(
+  "/:id/events",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.getEventConfigs,
+);
+router.post(
   "/:id/send",
   rbacMiddleware("super_admin", "admin", "supreme_super_admin", "commander_admin", "salesperson", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
   integrationController.sendMessage,

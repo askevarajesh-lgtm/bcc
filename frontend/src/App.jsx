@@ -390,6 +390,8 @@ const AppRoutes = () => {
           <Route path="accounts/pl-analytics" element={<PLDashboard />} />
           
           {/* HRMS Routes (Agency Manager) */}
+          <Route path="hrms/staff" element={<EktaHrStaffPage />} />
+          <Route path="hrms/attendance" element={<EktaHrAttendanceModulePage />} />
           <Route path="hrms/performance" element={<PerformancePage />} />
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
@@ -495,6 +497,8 @@ const AppRoutes = () => {
           <Route path="deliverables" element={<DeliverablesPage />} />
           
           {/* HRMS Routes (Brand Manager) */}
+          <Route path="hrms/staff" element={<EktaHrStaffPage />} />
+          <Route path="hrms/attendance" element={<EktaHrAttendanceModulePage />} />
           <Route path="hrms/performance" element={<PerformancePage />} />
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />

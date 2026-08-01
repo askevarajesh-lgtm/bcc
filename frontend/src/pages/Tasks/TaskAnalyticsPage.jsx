@@ -101,10 +101,11 @@ const AVATAR_COLORS = [
 
 // Map backend statuses to display groups
 const isCompleted = (status) =>
-  ["review", "completed", "validated", "approved"].includes(status);
-const isInProgress = (status) => ["in_progress", "submitted"].includes(status);
+  ["review", "completed", "validated", "approved", "done", "in_review", "reviewing"].includes(status?.toLowerCase());
+const isInProgress = (status) => 
+  ["in_progress", "submitted"].includes(status?.toLowerCase());
 const isPending = (status) =>
-  ["created", "assigned", "backlog", "to_do"].includes(status);
+  ["created", "assigned", "backlog", "to_do"].includes(status?.toLowerCase());
 
 // Each correction/redesign cycle is treated as an additional task unit.
 const getTaskWorkloadUnits = (task) =>

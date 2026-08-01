@@ -48,12 +48,17 @@ const DeliverablesTab = () => {
 
   const handleCreate = async (values) => {
     try {
+      // Find the selected asset to get its URL
+      const selectedAsset = assets.find(a => a._id === values.assetId);
+      const assetUrl = selectedAsset ? selectedAsset.url : '';
+
       const payload = {
         title: values.title,
         deliverableType: values.deliverableType,
         clientId: values.clientId,
         dueDate: values.dueDate.format('YYYY-MM-DD'),
-        description: `AI Generated Asset Link: ${values.assetUrl}`
+        description: `AI Generated Asset Link: ${assetUrl}`,
+        assetUrl: assetUrl
       };
       
       const res = await api.post('/deliverables', payload);
@@ -147,20 +152,20 @@ const DeliverablesTab = () => {
           </Form.Item>
           <Form.Item name="deliverableType" label="Asset Type" rules={[{ required: true }]}>
             <Select placeholder="Select type">
-              <Option value="Social Media">Social Media</Option>
-              <Option value="Ad Creative">Ad Creative</Option>
-              <Option value="Video">Video</Option>
-              <Option value="Web Design">Web Design</Option>
+              <Option value="social_post">Social Media</Option>
+              <Option value="ad_creative">Ad Creative</Option>
+              <Option value="video_creative">Video</Option>
+              <Option value="website_design">Web Design</Option>
             </Select>
           </Form.Item>
           <Form.Item name="dueDate" label="Due Date" rules={[{ required: true }]}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="assetUrl" label="Select AI Asset" rules={[{ required: true }]}>
+          <Form.Item name="assetId" label="Select AI Asset" rules={[{ required: true }]}>
             <Select placeholder="Choose an asset from your library">
               {assets.map(asset => (
-                <Option key={asset._id} value={asset.url}>
-                  {asset.type === 'video' ? '🎬' : '🖼️'} {asset.prompt.substring(0, 40)}...
+                <Option key={asset._id} value={asset._id}>
+                  {asset.type === 'video' ? '🎬' : '🖼️'} {asset.prompt ? asset.prompt.substring(0, 40) : 'AI Asset'}...
                 </Option>
               ))}
             </Select>

@@ -225,12 +225,12 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/ops/deliverables', icon: getIcon(FileText), label: role === 'commander_admin' ? 'Global Deliverables' : 'Deliverables' },
       ],
     },
-    ...(['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager', 'agency', 'client', 'agency_client'].includes(role) ? [
+    ...(['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager', 'agency', 'client', 'agency_client'].includes(role) && (user?.features?.includes('hrms') || role === 'commander_admin') ? [
       {
         key: 'hrms',
         label: collapsed ? 'HRM' : 'HRMS',
         children: [
-          ...(role === 'commander_admin' ? [
+          ...((user?.features?.includes('hrms') || role === 'commander_admin') ? [
             { key: '/hrms/staff', icon: getIcon(Users), label: 'Staff' },
             { key: '/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' },
           ] : []),

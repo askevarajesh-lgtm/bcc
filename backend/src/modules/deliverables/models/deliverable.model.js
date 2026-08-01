@@ -10,6 +10,10 @@ const deliverableSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  assetUrl: {
+    type: String,
+    trim: true
+  },
   deliverableType: {
     type: String,
     required: true,

@@ -226,6 +226,10 @@ const Admins = () => {
             <Input placeholder="sarah@m1platform.com" style={{ borderRadius: 8 }} />
           </Form.Item>
           
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
+            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true }]}>
             <Input.Password placeholder="Enter secure password" style={{ borderRadius: 8 }} />
           </Form.Item>

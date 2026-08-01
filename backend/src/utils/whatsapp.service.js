@@ -26,6 +26,7 @@ class WhatsAppService {
     const components = parameters.length > 0 ? [{ type: 'body', parameters }] : [];
 
     const payload = {
+      messaging_product: 'whatsapp',
       type: 'template',
       to: to.replace(/\D/g, ''),
       template: {
@@ -61,6 +62,7 @@ class WhatsAppService {
     });
 
     const payload = {
+      messaging_product: 'whatsapp',
       type: 'text',
       to: to.replace(/\D/g, ''),
       text: {

@@ -53,11 +53,11 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Workspace-Proposals')) menuItems.push({ key: '/user/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' });
   if (hasPerm('Workspace-Invoices')) menuItems.push({ key: '/user/workspace/invoices', icon: getIcon(FileText), label: 'Invoices' });
   if (hasPerm('Workspace-Projects')) menuItems.push({ key: '/user/workspace/projects', icon: getIcon(Target), label: 'Projects' });
-  if (hasPerm('Workspace-Master Item')) menuItems.push({ key: '/user/workspace/master-items', icon: getIcon(Settings), label: 'Master Item' });
+  if (hasPerm('General-Master Item') || hasPerm('Workspace-Master Item')) menuItems.push({ key: '/user/workspace/master-items', icon: getIcon(Settings), label: 'Master Item' });
   if (hasPerm('Workspace-Websites')) menuItems.push({ key: '/user/workspace/website', icon: getIcon(Globe), label: 'Websites' });
-  if (hasPerm('Workspace-Meetings')) menuItems.push({ key: '/user/workspace/meetings', icon: getIcon(MessageCircle), label: 'Meetings' });
-  if (hasPerm('Workspace-Calendar')) menuItems.push({ key: '/user/workspace/calendar', icon: getIcon(CheckSquare), label: 'Calendar' });
-  if (hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
+  if (hasPerm('Agency Ops-Meetings') || hasPerm('Workspace-Meetings')) menuItems.push({ key: '/user/workspace/meetings', icon: getIcon(MessageCircle), label: 'Meetings' });
+  if (hasPerm('Agency Ops-Calendar') || hasPerm('Workspace-Calendar')) menuItems.push({ key: '/user/workspace/calendar', icon: getIcon(CheckSquare), label: 'Calendar' });
+  if (hasPerm('Agency Ops-Deliverables') || hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
   if (hasPerm('Agency Ops-Sales Pipeline')) menuItems.push({ key: '/user/workspace/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
 
   const hrmsChildren = [];

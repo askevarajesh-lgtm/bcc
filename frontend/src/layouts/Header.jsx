@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar, Badge, Button, Dropdown, Grid, Layout, Popover, List, Typography, Spin } from 'antd';
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import {
   Bell,
   ChevronDown,
@@ -19,7 +20,7 @@ const { Header: AntHeader } = Layout;
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-const Header = () => {
+const Header = ({ collapsed, setCollapsed }) => {
   const { isDark, toggleTheme } = useTheme();
   const { role, user, logout } = useAuth();
   const { toggleMobileMenu } = useLayoutContext();
@@ -268,6 +269,16 @@ const Header = () => {
             onClick={toggleMobileMenu}
             className="app-header__icon-button"
             aria-label="Open navigation"
+          />
+        )}
+        {screens.lg && setCollapsed && (
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined style={{ fontSize: '18px' }} /> : <MenuFoldOutlined style={{ fontSize: '18px' }} />}
+            onClick={() => setCollapsed(!collapsed)}
+            className="app-header__icon-button"
+            aria-label="Toggle sidebar"
+            style={{ marginRight: 16 }}
           />
         )}
 

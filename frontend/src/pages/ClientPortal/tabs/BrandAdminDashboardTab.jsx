@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CreditCard, Users, Zap, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import BubbleCard from '../../../components/BubbleCard';
+import ClientDeliverablesWidget from '../components/ClientDeliverablesWidget';
 
 const { Title, Text } = Typography;
 
@@ -92,6 +93,8 @@ const BrandAdminDashboardTab = () => {
           ))}
         </Row>
       </motion.div>
+
+      <ClientDeliverablesWidget />
 
       <motion.div variants={itemVariants}>
         <Card 

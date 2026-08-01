@@ -27,7 +27,7 @@ const UserLayout = () => {
     <Layout className="app-root-shell">
       <UserSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <Layout className="app-main-shell">
-        <Header />
+        <Header collapsed={collapsed} setCollapsed={setCollapsed} />
         <Content className="app-content">
           <div className="app-content__inner">
             <Outlet />

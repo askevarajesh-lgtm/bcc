@@ -314,6 +314,8 @@ exports.impersonate = async (req, res, next) => {
       features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
+    const effectiveTheme = await getEffectiveTheme(user);
+
     res.json({
       success: true,
       token,
@@ -335,7 +337,8 @@ exports.impersonate = async (req, res, next) => {
         workspaceId: user.workspaceId,
         features: features,
         permissions: rolePermissions,
-        plan: planDetails
+        plan: planDetails,
+        effectiveTheme
       }
     });
   } catch (error) {

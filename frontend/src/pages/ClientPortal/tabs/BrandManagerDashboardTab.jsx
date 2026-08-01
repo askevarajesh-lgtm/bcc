@@ -3,6 +3,7 @@ import { Typography, Row, Col, Card, Button, List, Tag } from 'antd';
 import { motion } from 'framer-motion';
 import { CheckSquare, AlertTriangle, MessageCircle, BarChart2, Eye, CheckCircle2 } from 'lucide-react';
 import BubbleCard from '../../../components/BubbleCard';
+import ClientDeliverablesWidget from '../components/ClientDeliverablesWidget';
 
 const { Title, Text } = Typography;
 
@@ -61,6 +62,8 @@ const BrandManagerDashboardTab = () => {
               </div>
             </BubbleCard>
           </motion.div>
+
+          <ClientDeliverablesWidget />
 
           <motion.div variants={itemVariants}>
             <Row gutter={[16, 16]}>

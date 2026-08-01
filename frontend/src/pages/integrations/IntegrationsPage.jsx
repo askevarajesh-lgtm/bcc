@@ -7,6 +7,7 @@ import {
   useUpdateIntegrationMutation,
 } from "../../api/integrationApi";
 import useCompanyIntegrations from "../../hooks/useCompanyIntegrations";
+import { useAuth } from "../../contexts/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -376,6 +377,7 @@ const IntegrationsPage = () => {
   const { data, refetch } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
   const companyIntegrations = useCompanyIntegrations();
+  const { user } = useAuth();
   const integrations = data?.data?.integrations || [];
 
   const whatsappIntegration = integrations.find((i) => i.type === "whatsapp");
@@ -562,7 +564,7 @@ const IntegrationsPage = () => {
               description="Send invoices, reports, and notifications via SendPulse email service"
             />
           )}
-          {companyIntegrations.ekta && (
+          {companyIntegrations.ekta && user?.features?.includes('hrms') && (
             <IntegrationCard
               type="ekta"
               integration={ektaIntegration}

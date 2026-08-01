@@ -7,6 +7,7 @@ import api from '../../../services/api';
 import ClientIntegrationsTab from './ClientIntegrationsTab';
 
 const availableFeatures = [
+  { id: 'hrms', label: 'HRMS' },
   { id: 'crm', label: 'CRM & Leads' },
   { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },

@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography, Tabs, Button, Modal, Input, Select } from 'antd';
 import { motion } from 'framer-motion';
 import { Sparkles, Image as ImageIcon, Video, Library, Send, Key } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 import { AIStudioProvider, useAIStudio } from './context/AIStudioContext';
 import DesignWorkTab from './tabs/DesignWorkTab';
@@ -12,6 +13,7 @@ import DeliverablesTab from './tabs/DeliverablesTab';
 const { Title, Text } = Typography;
 
 const AIStudioContent = () => {
+  const { user } = useAuth();
   const { 
     activeTab, 
     setActiveTab, 
@@ -57,8 +59,13 @@ const AIStudioContent = () => {
         </span>
       ),
       children: <AssetLibraryTab />
-    },
-    {
+    }
+  ];
+
+  const clientRoles = ['client', 'agency_client', 'brand_manager', 'brand_super_admin', 'brand_team_user'];
+  
+  if (user && !clientRoles.includes(user.role)) {
+    tabItems.push({
       key: 'deliverables',
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -66,8 +73,8 @@ const AIStudioContent = () => {
         </span>
       ),
       children: <DeliverablesTab />
-    }
-  ];
+    });
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} style={{ minHeight: 'calc(100vh - 120px)' }}>

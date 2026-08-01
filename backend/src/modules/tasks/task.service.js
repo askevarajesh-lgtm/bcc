@@ -10,7 +10,65 @@ const CompanyNotificationSettings = require("./companyNotificationSettings.model
 const ClientCompany = require("../auth/user.model");
 const Company = require("../auth/user.model");
 const User = require("../auth/user.model");
-const eventConfigService = { triggerEvent: async () => {}, getEventConfig: async () => {}, getEventConfigByType: async () => null };
+const EventConfig = require("../integrations/eventConfig.model");
+const whatsappService = require("../../utils/whatsapp.service");
+const eventConfigService = { 
+  getEventConfigByType: async (eventType, companyId) => {
+    return await EventConfig.findOne({ eventType, companyId });
+  },
+  sendEventNotification: async (eventType, eventData, options) => {
+    const { phone, channels, tenantCompanyId } = options;
+    const result = {};
+    try {
+      if (channels.includes('whatsapp') && phone) {
+        const config = await EventConfig.findOne({ eventType, companyId: tenantCompanyId });
+        const whatsappIntegration = await Integration.findOne({ type: 'whatsapp', companyId: tenantCompanyId, isActive: true });
+        
+        const backendUrl = whatsappIntegration?.config?.backendUrl || process.env.WHATSAPP_API_URL || 'https://api.whatsapp.com/send'; // fallback or placeholder
+        const apiToken = whatsappIntegration?.config?.apiToken || process.env.WHATSAPP_API_KEY || 'default-token';
+        
+        if (config?.whatsappTemplate?.enabled && backendUrl) {
+          const variables = {};
+          const mapping = config.whatsappTemplate.variableMapping || config.whatsappTemplate.variables;
+          if (mapping) {
+             Object.entries(mapping).forEach(([key, val]) => {
+                variables[key] = eventData[val] || val;
+             });
+          }
+          
+          let templateName = config.whatsappTemplate.name || config.whatsappTemplate.templateId;
+          const templateObj = whatsappIntegration?.config?.templates?.find(t => t.id === templateName || t.name === templateName);
+          if (templateObj) {
+            templateName = templateObj.name;
+          }
+          
+          const fs = require('fs');
+          fs.appendFileSync('whatsapp_debug.log', `[${new Date().toISOString()}] Sending WhatsApp to ${phone}. Template: ${templateName}, Variables: ${JSON.stringify(variables)}\n`);
+          try {
+            const res = await whatsappService.sendMessage(
+              backendUrl,
+              apiToken,
+              phone,
+              templateName,
+              variables,
+              { templateName }
+            );
+            fs.appendFileSync('whatsapp_debug.log', `[${new Date().toISOString()}] Success: ${JSON.stringify(res)}\n`);
+            result.whatsapp = { success: true };
+          } catch(e) {
+            fs.appendFileSync('whatsapp_debug.log', `[${new Date().toISOString()}] Error: ${e.message}\n`);
+            result.whatsapp = { success: false, error: e.message };
+          }
+        } else {
+          result.whatsapp = { success: false, error: 'WhatsApp not configured properly' };
+        }
+      }
+    } catch (err) {
+      result.whatsapp = { success: false, error: err.message };
+    }
+    return result;
+  }
+};
 const Integration = require("../integrations/integration.model");
 const logger = require('./dummyLogger');
 const config = require('./dummyConfig');
@@ -443,11 +501,11 @@ const getAllTasks = async (
     if (userRole === 'commander_admin') {
       allowedCreatorRoles = ['commander_admin'];
     } else if (userRole === 'agency_manager') {
-      allowedCreatorRoles = ['agency_manager', 'agency_client', 'client'];
+      allowedCreatorRoles = ['agency_manager', 'agency_client', 'client', 'coordinator', 'website_coordinator', 'digital_marketing_coordinator', 'digital_marketing_manager', 'operations_head', 'admin', 'user'];
     } else if (userRole === 'agency_client' || userRole === 'client') {
       allowedCreatorRoles = ['agency_manager', 'agency_super_admin', 'client', 'agency_client'];
     } else if (userRole === 'agency_super_admin') {
-      allowedCreatorRoles = ['agency_super_admin', 'agency_manager', 'agency_client', 'client'];
+      allowedCreatorRoles = ['agency_super_admin', 'agency_manager', 'agency_client', 'client', 'coordinator', 'website_coordinator', 'digital_marketing_coordinator', 'digital_marketing_manager', 'operations_head', 'admin', 'user'];
     } else if (userRole === 'brand_manager' || userRole === 'brand_super_admin') {
       allowedCreatorRoles = [userRole, 'brand_manager', 'brand_super_admin'];
     } else {
@@ -1056,6 +1114,14 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
 
   normalizeTaskDateFields(cleanedTaskData);
 
+  // Fetch assigned user's phone number if a user is assigned
+  if (cleanedTaskData.assignedTo) {
+    const assignedUser = await User.findById(cleanedTaskData.assignedTo).select('phone');
+    if (assignedUser && assignedUser.phone) {
+      cleanedTaskData.assignedUserPhone = assignedUser.phone;
+    }
+  }
+
   const task = await Task.create({
     ...cleanedTaskData,
     tenantCompanyId,
@@ -1144,12 +1210,12 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
 
       // Check event configuration to see if WhatsApp/Email are configured at system level
       const eventConfig =
-        await eventConfigService.getEventConfigByType("task_assigned");
+        await eventConfigService.getEventConfigByType("task_assigned", tenantCompanyId);
 
       // Check WhatsApp integration availability
       const whatsappIntegration = await Integration.findOne({
         type: "whatsapp",
-        companyId: null,
+        companyId: tenantCompanyId,
         isActive: true,
       });
       const whatsappIntegrationConfigured = !!(
@@ -1169,7 +1235,7 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
         isWhatsappConfigured;
       const emailIntegration = await Integration.findOne({
         type: "email",
-        companyId: null,
+        companyId: tenantCompanyId,
         isActive: true,
       });
       const emailIntegrationConfigured = !!(
@@ -1376,9 +1442,8 @@ const reopenTask = async (
   if (!dueDate) throw new Error("Due date is required");
 
   const validCategories = [
-    "Internal Correction",
-    "Client Correction",
-    "Hosting",
+    "Correction",
+    "Redesign",
   ];
   if (!validCategories.includes(reopenCategory)) {
     throw new Error(
@@ -1390,19 +1455,15 @@ const reopenTask = async (
   const original = await Task.findOne({ _id: taskId, tenantCompanyId });
   if (!original) throw new Error("Task not found");
 
-  if (original.department !== "website_designing") {
-    throw new Error(
-      "Reopen flow is only available for Website Designing tasks",
-    );
-  }
 
-  const completedStatuses = ["completed", "validated", "done"];
+
+  const completedStatuses = ["review", "in_review", "in review", "reviewing", "completed", "validated", "done", "complete"];
   if (!completedStatuses.includes(original.status)) {
-    throw new Error("Only completed/validated tasks can be reopened");
+    throw new Error("Only completed, validated, or review tasks can be reopened");
   }
 
   // Build new task data from original
-  const newTaskTitle = `Correction: ${original.title}`;
+  const newTaskTitle = `${reopenCategory}: ${original.title}`;
 
   const newTask = await Task.create({
     tenantCompanyId,
@@ -1492,6 +1553,7 @@ const updateTask = async (
     "taskCategory",
     "requiresClientReview",
     "serviceType",
+    "assignedUserPhone",
   ];
 
   // Track old values for notifications BEFORE updating
@@ -1544,6 +1606,16 @@ const updateTask = async (
   }
 
   normalizeTaskDateFields(cleanedTaskData);
+
+  // Fetch new assigned user's phone number if assignment changed
+  if (cleanedTaskData.assignedTo !== undefined && cleanedTaskData.assignedTo !== oldAssignedTo) {
+    if (cleanedTaskData.assignedTo) {
+      const assignedUser = await User.findById(cleanedTaskData.assignedTo).select('phone');
+      cleanedTaskData.assignedUserPhone = assignedUser?.phone || null;
+    } else {
+      cleanedTaskData.assignedUserPhone = null;
+    }
+  }
 
   allowedUpdates.forEach((field) => {
     if (cleanedTaskData[field] !== undefined) {
@@ -1871,7 +1943,7 @@ const updateTask = async (
               });
             }
             const eventConfig =
-              await eventConfigService.getEventConfigByType("task_assigned");
+              await eventConfigService.getEventConfigByType("task_assigned", tenantCompanyId);
 
             // Check if integrations are configured
             const whatsappIntegration =
@@ -3698,10 +3770,11 @@ const createStatusChangeNotifications = async (
   // Check event configuration
   const eventConfig = await eventConfigService.getEventConfigByType(
     "task_status_changed",
+    tenantCompanyId
   );
   const whatsappIntegration = await Integration.findOne({
     type: "whatsapp",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const whatsappIntegrationConfigured = !!(
@@ -3719,7 +3792,7 @@ const createStatusChangeNotifications = async (
 
   const emailIntegration = await Integration.findOne({
     type: "email",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const emailIntegrationConfigured = !!(
@@ -3922,10 +3995,11 @@ const createPriorityChangeNotifications = async (
   // Check event configuration
   const eventConfig = await eventConfigService.getEventConfigByType(
     "task_priority_changed",
+    tenantCompanyId
   );
   const whatsappIntegration = await Integration.findOne({
     type: "whatsapp",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const whatsappIntegrationConfigured = !!(
@@ -3943,7 +4017,7 @@ const createPriorityChangeNotifications = async (
 
   const emailIntegration = await Integration.findOne({
     type: "email",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const emailIntegrationConfigured = !!(
@@ -4196,10 +4270,10 @@ const createCommentNotifications = async (
 
   // Check event configuration for task_comment_added
   const commentEventConfig =
-    await eventConfigService.getEventConfigByType("task_comment_added");
+    await eventConfigService.getEventConfigByType("task_comment_added", tenantCompanyId);
   const whatsappIntegration = await Integration.findOne({
     type: "whatsapp",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const whatsappIntegrationConfigured = !!(
@@ -4213,7 +4287,7 @@ const createCommentNotifications = async (
 
   const emailIntegration = await Integration.findOne({
     type: "email",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const emailIntegrationConfigured = !!(
@@ -4226,7 +4300,7 @@ const createCommentNotifications = async (
 
   // Check event configuration for task_mentioned
   const mentionedEventConfig =
-    await eventConfigService.getEventConfigByType("task_mentioned");
+    await eventConfigService.getEventConfigByType("task_mentioned", tenantCompanyId);
   const whatsappMentionedEventEnabled =
     mentionedEventConfig?.isActive &&
     mentionedEventConfig?.whatsappTemplate?.enabled &&
@@ -4491,10 +4565,10 @@ const notifyTaskCompleted = async (
 
   // Check event configuration
   const eventConfig =
-    await eventConfigService.getEventConfigByType("task_completed");
+    await eventConfigService.getEventConfigByType("task_completed", tenantCompanyId);
   const whatsappIntegration = await Integration.findOne({
     type: "whatsapp",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const whatsappIntegrationConfigured = !!(
@@ -4512,7 +4586,7 @@ const notifyTaskCompleted = async (
 
   const emailIntegration = await Integration.findOne({
     type: "email",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const emailIntegrationConfigured = !!(
@@ -4903,10 +4977,7 @@ const getNotificationSettings = async (userId, tenantCompanyId) => {
     );
   }
 
-  const tenantCompany = await Company.findById(tenantCompanyId)
-    .select("name integrations")
-    .lean();
-  const integrationConfig = resolveCompanyIntegrations(tenantCompany || {});
+  const integrationConfig = await resolveCompanyIntegrations(tenantCompanyId);
   enforceTaskNotificationChannelsByIntegration(settings, integrationConfig);
   await settings.save();
 
@@ -4918,16 +4989,13 @@ const updateNotificationSettings = async (
   tenantCompanyId,
   settingsData,
 ) => {
-  const tenantCompany = await Company.findById(tenantCompanyId)
-    .select("name integrations")
-    .lean();
-  const integrationConfig = resolveCompanyIntegrations(tenantCompany || {});
+  const integrationConfig = await resolveCompanyIntegrations(tenantCompanyId);
   enforceTaskNotificationChannelsByIntegration(settingsData, integrationConfig);
 
   const settings = await CompanyNotificationSettings.findOneAndUpdate(
     { companyId: tenantCompanyId },
     { $set: settingsData },
-    { returnDocument: 'after', upsert: true },
+    { new: true, upsert: true },
   );
 
   logger.info(
@@ -5058,12 +5126,12 @@ const sendTaskReminder = async (taskId, senderUserId, tenantCompanyId) => {
 
   // Check event configuration for task_reminder
   const eventConfig =
-    await eventConfigService.getEventConfigByType("task_reminder");
+    await eventConfigService.getEventConfigByType("task_reminder", tenantCompanyId);
 
   // Check integrations
   const whatsappIntegration = await Integration.findOne({
     type: "whatsapp",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const whatsappIntegrationConfigured = !!(
@@ -5073,7 +5141,7 @@ const sendTaskReminder = async (taskId, senderUserId, tenantCompanyId) => {
 
   const emailIntegration = await Integration.findOne({
     type: "email",
-    companyId: null,
+    companyId: tenantCompanyId,
     isActive: true,
   });
   const emailIntegrationConfigured = !!(
