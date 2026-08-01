@@ -123,9 +123,28 @@ async function collectTechnicalSignals(project) {
       retry.withRetry(() => dataForSeoService.getPageSpeed(rootUrl, 'desktop'), { retries: 1 }),
       retry.withRetry(() => dataForSeoService.getPageSpeed(rootUrl, 'mobile'), { retries: 1 })
     ]);
+    
+    const extractCWV = (res) => {
+      if (!res) return null;
+      const audits = res.audits || res.lighthouseResult?.audits;
+      const categories = res.categories || res.lighthouseResult?.categories;
+      if (!audits) return null;
+      
+      const getAudit = (key) => audits[key] ? { score: audits[key].score, displayValue: audits[key].displayValue } : null;
+      
+      return {
+        performanceScore: categories?.performance?.score || null,
+        lcp: getAudit('largest-contentful-paint'),
+        cls: getAudit('cumulative-layout-shift'),
+        tbt: getAudit('total-blocking-time'),
+        fcp: getAudit('first-contentful-paint'),
+        speedIndex: getAudit('speed-index')
+      };
+    };
+
     coreWebVitals = {
-      desktop: desktop.status === 'fulfilled' ? (desktop.value || null) : null,
-      mobile: mobile.status === 'fulfilled' ? (mobile.value || null) : null
+      desktop: desktop.status === 'fulfilled' ? extractCWV(desktop.value) : null,
+      mobile: mobile.status === 'fulfilled' ? extractCWV(mobile.value) : null
     };
     if (desktop.status === 'rejected') {
       logger.warn(TAG, `getPageSpeed(desktop) failed for ${rootUrl}: ${desktop.reason?.message}`, { projectId: project._id });
