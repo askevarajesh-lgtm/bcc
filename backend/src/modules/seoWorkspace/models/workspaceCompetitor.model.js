@@ -44,7 +44,8 @@ const WorkspaceCompetitorSchema = new mongoose.Schema({
 
   agent: {
     agentKey:   { type: String, default: null },
-    threatLevel:{ type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+    threatLevel:{ type: String, enum: ['minimal', 'low', 'medium', 'high', 'critical'], default: 'medium' },
+    confidence: { type: Number, default: 50 },
     strengths:  [{ type: String }],
     weaknesses: [{ type: String }],
     contentGaps:[{ type: String }],

@@ -3,6 +3,7 @@ const WorkspaceCompetitor = require('../models/workspaceCompetitor.model');
 const dataForSeoService = require('../../seoIntelligence/dataForSeo.service');
 const semrushService = require('../../semrush/semrush.service');
 const auditLogService = require('./auditLog.service');
+const domainNormalizationEngine = require('./domainNormalization.utils');
 
 const aiEngine = require('../../aiCore/aiEngine.service');
 const executionQueue = require('../../aiCore/executionQueue.service');
@@ -10,11 +11,13 @@ const retry = require('../../aiCore/retry.service');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 const agentLoader = require('../../aiCore/agentLoader.service');
+const AiSettings = require('../../aiStudio/models/aiSettings.model');
+const cryptoUtils = require('../../../utils/crypto');
 
 const AGENT_KEY = 'competitor-agent';
 const TAG = 'CompetitorAgent';
 
-const VALID_THREAT_LEVELS = ['low', 'medium', 'high'];
+const VALID_THREAT_LEVELS = ['minimal', 'low', 'medium', 'high', 'critical'];
 const MAX_CANDIDATES = 10;
 const MAX_SUGGESTIONS = 3;
 const BACKLINK_ENRICHMENT_LIMIT = 5;
@@ -119,7 +122,9 @@ async function generateAiCompetitorSeeds(project, workspaceId, domain) {
   const prompt = `You are the Competitor Agent. Based on general knowledge of the market, name up to 8 real, plausible organic-search competitor domains for "${project.name}" (${domain}).
 ${skillsBlock}
 ${memoryBlock}
-Respond ONLY with a JSON array of lowercase domain strings (no protocol, no paths), nothing else. No commentary, no markdown.`;
+Respond ONLY with a JSON array of objects, with each object containing exactly these fields: "domain" (lowercase string, no protocol, no paths), "reason" (short phrase justifying why they are a competitor), and "confidence" (number between 0 and 100). No commentary, no markdown.`;
+
+  logger.info(TAG, `Prompt Generated, Claude Request Sent for ${domain}`, { projectId: project._id });
 
   const raw = await aiEngine.complete({
     workspaceId,
@@ -128,23 +133,48 @@ Respond ONLY with a JSON array of lowercase domain strings (no protocol, no path
     messages: [{ role: 'user', content: prompt }],
     model: agentConfig.modelName,
     temperature: 0.5,
-    maxTokens: 300,
+    maxTokens: 800,
     jsonMode: true,
-    retryOptions: { retries: 2 }
+    retryOptions: { retries: 2, minTimeout: 1000 }
   });
 
-  let domains = [];
+  logger.info(TAG, `Claude Response Received for ${domain}`, { projectId: project._id });
+
+  let parsedDomains = [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      domains = parsed.filter((d) => typeof d === 'string' && d.trim().length > 0).slice(0, 8);
+    if (!Array.isArray(parsed)) throw new Error("Expected JSON array");
+    if (parsed.length === 0) throw new Error("Claude returned empty array");
+    
+    for (const item of parsed) {
+      if (!item || typeof item.domain !== 'string' || !item.domain.trim()) continue;
+      
+      const normalized = domainNormalizationEngine.normalizeDomain(item.domain);
+      if (!normalized) continue;
+      
+      const confidence = typeof item.confidence === 'number' && item.confidence >= 0 && item.confidence <= 100 ? item.confidence : 50;
+      
+      let threatLevel = 'medium';
+      if (confidence >= 95) threatLevel = 'critical';
+      else if (confidence >= 80) threatLevel = 'high';
+      else if (confidence >= 60) threatLevel = 'medium';
+      else if (confidence >= 40) threatLevel = 'low';
+      else threatLevel = 'minimal';
+
+      parsedDomains.push({
+        domain: normalized,
+        reason: typeof item.reason === 'string' ? item.reason.trim() : '',
+        confidence,
+        threatLevel
+      });
     }
   } catch (error) {
     logger.error(TAG, `Failed to parse AI competitor-seed JSON: ${error.message}`, { projectId: project._id });
+    throw new Error(`Claude returned invalid response: ${error.message}`);
   }
 
-  return domains.map((d) => ({
-    domain: d.trim().toLowerCase(),
+  return parsedDomains.map((d) => ({
+    domain: d.domain,
     commonKeywords: 0,
     organicKeywords: 0,
     organicTraffic: 0,
@@ -152,7 +182,10 @@ Respond ONLY with a JSON array of lowercase domain strings (no protocol, no path
     referringDomains: 0,
     backlinks: 0,
     domainRank: 0,
-    dataSource: 'ai-estimate'
+    dataSource: 'ai-estimate',
+    threatLevel: d.threatLevel,
+    rationale: d.reason,
+    confidence: d.confidence
   }));
 }
 
@@ -187,7 +220,7 @@ Respond with a JSON object of this exact shape:
   "competitors": [
     {
       "domain": "must exactly match one candidate above",
-      "threatLevel": "low | medium | high",
+      "confidence": 96,
       "strengths": ["short phrase", "..."],
       "weaknesses": ["short phrase", "..."],
       "contentGaps": ["short phrase", "..."],
@@ -195,6 +228,7 @@ Respond with a JSON object of this exact shape:
     }
   ]
 }
+Note: 'confidence' must be a number between 0 and 100 indicating how strong of a competitor they are.
 Respond ONLY with valid JSON, no markdown formatting or commentary.`;
 
   const raw = await aiEngine.complete({
@@ -206,7 +240,7 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
     temperature: 0.4,
     maxTokens: 4000,
     jsonMode: true,
-    retryOptions: { retries: 2 }
+    retryOptions: { retries: 2, minTimeout: 1000 }
   });
 
   let parsed;
@@ -217,16 +251,29 @@ Respond ONLY with valid JSON, no markdown formatting or commentary.`;
     parsed = { summary: 'Automated analysis did not return structured output; manual review recommended.', competitors: [] };
   }
 
-  const candidateMap = new Map(candidates.map((c) => [c.domain.toLowerCase(), c]));
+  const candidateMap = new Map(candidates.map((c) => [domainNormalizationEngine.normalizeDomain(c.domain), c]));
   const selected = (Array.isArray(parsed.competitors) ? parsed.competitors : [])
-    .filter((c) => c.domain && candidateMap.has(c.domain.toLowerCase()))
+    .filter((c) => {
+      if (!c.domain) return false;
+      return candidateMap.has(domainNormalizationEngine.normalizeDomain(c.domain));
+    })
     .slice(0, MAX_SUGGESTIONS)
     .map((c) => {
-      const candidate = candidateMap.get(c.domain.toLowerCase());
+      const norm = domainNormalizationEngine.normalizeDomain(c.domain);
+      const candidate = candidateMap.get(norm);
+      const confidence = typeof c.confidence === 'number' && c.confidence >= 0 && c.confidence <= 100 ? c.confidence : 50;
+      let threatLevel = 'medium';
+      if (confidence >= 95) threatLevel = 'critical';
+      else if (confidence >= 80) threatLevel = 'high';
+      else if (confidence >= 60) threatLevel = 'medium';
+      else if (confidence >= 40) threatLevel = 'low';
+      else threatLevel = 'minimal';
+
       return {
         ...candidate,
         domain: candidate.domain, // preserve original casing from the candidate, not the AI's echo
-        threatLevel: VALID_THREAT_LEVELS.includes(c.threatLevel) ? c.threatLevel : 'medium',
+        threatLevel,
+        confidence,
         strengths: Array.isArray(c.strengths) ? c.strengths.slice(0, 5).map(String) : [],
         weaknesses: Array.isArray(c.weaknesses) ? c.weaknesses.slice(0, 5).map(String) : [],
         contentGaps: Array.isArray(c.contentGaps) ? c.contentGaps.slice(0, 5).map(String) : [],
@@ -248,19 +295,44 @@ async function run(projectId, workspaceId) {
 
   const agencyId = workspaceId || project.createdBy || project.companyId;
 
+  const settings = await AiSettings.findOne({ workspaceId: agencyId });
+  if (!settings || !settings.anthropicApiKey) {
+    throw new Error('Anthropic API key is not configured. Please configure it in AI Settings.');
+  }
+  const dec = cryptoUtils.decrypt(settings.anthropicApiKey);
+  if (!dec || dec.length < 10) {
+    throw new Error('Anthropic API key is invalid or malformed. Please configure it in AI Settings.');
+  }
+
+  logger.info(TAG, `AI Settings Loaded - Anthropic Key Found for project ${projectId}`);
+
   return executionQueue.run(`competitor-agent:${projectId}`, async () => {
     const executionId = `competitorAgent:${projectId}:${Date.now()}`;
     const startedAt = Date.now();
 
     logger.logExecution({ executionId, source: 'competitorAgent', agentKey: AGENT_KEY, projectId, status: 'started' });
+    logger.info(TAG, `Competitor Discovery Started (Exec ID: ${executionId})`);
 
     try {
       const candidates = await collectCompetitorCandidates(project, agencyId);
+      logger.info(TAG, `Candidates collected: ${candidates.length}`, { projectId });
       const { summary, selected } = await analyzeCompetitors(project, candidates, agencyId);
 
       let suggestedCompetitors = [];
       if (selected.length > 0) {
-        const bulkOps = selected.map((c) => ({
+        const uniqueSelected = new Map();
+        for (const c of selected) {
+          const norm = domainNormalizationEngine.normalizeDomain(c.domain);
+          if (norm && !uniqueSelected.has(norm)) {
+             c.domain = norm;
+             uniqueSelected.set(norm, c);
+          }
+        }
+        const deduplicatedSelected = Array.from(uniqueSelected.values());
+        
+        logger.info(TAG, `Parsed Competitors: ${selected.length}, Normalized & Deduplicated: ${deduplicatedSelected.length}`);
+
+        const bulkOps = deduplicatedSelected.map((c) => ({
           updateOne: {
             filter: { projectId: project._id, domain: c.domain },
             update: {
@@ -280,21 +352,24 @@ async function run(projectId, workspaceId) {
                 'agent.strengths': c.strengths,
                 'agent.weaknesses': c.weaknesses,
                 'agent.contentGaps': c.contentGaps,
-                'agent.rationale': c.rationale
+                'agent.rationale': c.rationale,
+                'agent.confidence': c.confidence
               },
               $setOnInsert: { status: 'Suggested' }
             },
             upsert: true
           }
         }));
-        await WorkspaceCompetitor.bulkWrite(bulkOps);
+        const bulkResult = await WorkspaceCompetitor.bulkWrite(bulkOps);
+        logger.info(TAG, `Saved Competitors: Inserted ${bulkResult.upsertedCount || 0}, Updated ${bulkResult.modifiedCount || 0}`);
 
         suggestedCompetitors = await WorkspaceCompetitor.find({
           projectId: project._id,
-          domain: { $in: selected.map((c) => c.domain) }
+          domain: { $in: deduplicatedSelected.map((c) => c.domain) }
         }).lean();
       }
 
+      logger.info(TAG, `Discovery Completed`, { projectId });
       logger.logExecution({
         executionId, source: 'competitorAgent', agentKey: AGENT_KEY, projectId,
         status: 'succeeded', durationMs: Date.now() - startedAt,

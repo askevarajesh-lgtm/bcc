@@ -58,6 +58,11 @@ exports.generateRecommendations = async (req, res) => {
     const { comparisonResult } = req.body;
     const agencyId = getWorkspaceId(req);
 
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     if (!comparisonResult || !Array.isArray(comparisonResult.rows)) {
       return res.status(422).json({ success: false, message: 'comparisonResult (with rows[]) is required — pass the output of /compare' });
     }
@@ -74,6 +79,13 @@ exports.getRecommendations = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { status } = req.query;
+    const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     const query = { projectId };
     if (status) query.status = status;
     const recommendations = await Recommendation.find(query).sort({ priorityScore: -1 });
@@ -100,12 +112,18 @@ exports.generateTasks = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { recommendationIds } = req.body;
+    const agencyId = getWorkspaceId(req);
+
     if (!Array.isArray(recommendationIds) || recommendationIds.length === 0) {
       return res.status(422).json({ success: false, message: 'recommendationIds must be a non-empty array' });
     }
 
-    const project = await WorkspaceProject.findById(projectId);
-    const tasks = await seoTaskGenerator.generateTasks(recommendationIds, projectId, project?.domain);
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
+    const tasks = await seoTaskGenerator.generateTasks(recommendationIds, projectId, project.domain);
     res.status(200).json({ success: true, data: tasks });
   } catch (error) {
     console.error('[generateTasks] Error:', error.message);
@@ -116,6 +134,13 @@ exports.generateTasks = async (req, res) => {
 exports.getExecutionHistory = async (req, res) => {
   try {
     const { projectId } = req.params;
+    const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const history = await ComparisonExecutionLog.find({ projectId }).sort({ createdAt: -1 }).limit(limit);
     res.status(200).json({ success: true, data: history });
@@ -136,6 +161,13 @@ exports.getCompetitors = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { status } = req.query;
+    const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     const query = { projectId, isDeleted: false };
     if (status) query.status = status;
 
@@ -160,7 +192,9 @@ exports.getCompetitorSummary = async (req, res) => {
     const agencyId = getWorkspaceId(req);
 
     const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
-    if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
 
     const competitors = await WorkspaceCompetitor.find({
       projectId, isDeleted: false, status: { $ne: 'Rejected' }
@@ -231,6 +265,13 @@ exports.getCompetitorTrend = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { domain, days = 30 } = req.query;
+    const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     const since = new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000);
 
     const query = { projectId, capturedAt: { $gte: since } };
@@ -264,6 +305,11 @@ exports.captureSnapshot = async (req, res) => {
   try {
     const { projectId } = req.params;
     const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
 
     const competitors = await WorkspaceCompetitor.find({
       projectId, isDeleted: false, status: 'Approved'
@@ -313,6 +359,13 @@ exports.getOpportunities = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { status } = req.query;
+    const agencyId = getWorkspaceId(req);
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
+
     const result = await opportunityEngine.getOpportunities(projectId, { status });
     res.status(200).json({ success: true, data: result });
   } catch (error) {
@@ -329,6 +382,11 @@ exports.computeThreatScores = async (req, res) => {
     const { projectId } = req.params;
     const agencyId = getWorkspaceId(req);
     const { yourMetrics = {} } = req.body;
+
+    const project = await WorkspaceProject.findOne({ _id: projectId, isDeleted: false });
+    if (!project || (project.companyId.toString() !== agencyId.toString() && project.createdBy?.toString() !== agencyId.toString() && req.user._id.toString() !== project.clientId?.toString())) {
+      return res.status(404).json({ success: false, message: 'Project not found or unauthorized' });
+    }
 
     const scores = await threatIntelligence.computeAndSave(projectId, yourMetrics, {
       useAi: true,

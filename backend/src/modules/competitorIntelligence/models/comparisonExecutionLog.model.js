@@ -24,7 +24,7 @@ const ComparisonExecutionLogSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['keyword_gap', 'content_gap', 'backlink_gap', 'page_gap', 'overview'],
+    enum: ['keyword_gap', 'content_gap', 'backlink_gap', 'page_gap', 'overview', 'top_pages'],
     required: true
   },
 

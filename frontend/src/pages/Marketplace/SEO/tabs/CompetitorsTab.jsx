@@ -26,8 +26,8 @@ const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
 // ── Design tokens ────────────────────────────────────────────────────────────
-const THREAT_COLORS   = { low: '#52c41a', medium: '#faad14', high: '#f5222d' };
-const THREAT_BG       = { low: '#f6ffed', medium: '#fffbe6', high: '#fff1f0' };
+const THREAT_COLORS   = { minimal: '#d9d9d9', low: '#52c41a', medium: '#faad14', high: '#f5222d', critical: '#820014' };
+const THREAT_BG       = { minimal: '#fafafa', low: '#f6ffed', medium: '#fffbe6', high: '#fff1f0', critical: '#fff0f6' };
 const STATUS_COLORS   = { Suggested: 'gold', Approved: 'green', Rejected: 'red' };
 const BUCKET_META     = {
   quick_win:  { label: 'Quick Win',  color: '#52c41a', bg: '#f6ffed', icon: Zap,       order: 0 },
@@ -382,14 +382,18 @@ const CompetitorsTab = () => {
   // ── 1. Overview + Discovery ───────────────────────────────────────────────
   const renderOverview = () => {
     if (!summaryLoading && summary && summary.totalCompetitors === 0) {
+      const isKeyMissing = agentError && agentError.toLowerCase().includes('api key is not configured');
       return (
         <motion.div {...motionFade}>
           <EmptyState
-            icon={Swords}
-            title="No Competitors Found"
-            desc="Run the Competitor Agent to discover and analyze competitors for your project."
-            action={<Button type="primary" loading={running} onClick={runAgent}>Run Competitor Agent</Button>}
+            icon={isKeyMissing ? AlertTriangle : Swords}
+            title={isKeyMissing ? "Anthropic API key is not configured" : "No Competitors Found"}
+            desc={isKeyMissing ? "Please configure your Anthropic API Key in AI Settings to enable competitor discovery." : "Run the Competitor Agent to discover and analyze competitors for your project."}
+            action={!isKeyMissing && <Button type="primary" loading={running} onClick={runAgent}>Run Competitor Agent</Button>}
           />
+          {agentError && !isKeyMissing && (
+            <Alert type="error" showIcon message={agentError} style={{ marginTop: 16, maxWidth: 600, margin: '16px auto' }} />
+          )}
         </motion.div>
       );
     }
@@ -505,7 +509,7 @@ const CompetitorsTab = () => {
         }
         style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
       >
-        {agentError && <Alert type="error" showIcon message={agentError} style={{ marginBottom: 16 }} closable onClose={() => setAgentError(null)} />}
+        {agentError && <Alert type="error" showIcon message={agentError.includes('API key') ? 'Anthropic API key is not configured. Please configure it in AI Settings.' : agentError} style={{ marginBottom: 16 }} closable onClose={() => setAgentError(null)} />}
 
         {agentResult?.summary && (
           <div style={{
