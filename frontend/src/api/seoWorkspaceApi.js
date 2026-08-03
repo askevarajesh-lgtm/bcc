@@ -3,11 +3,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  };
+  const headers = {};
+  if (token && token !== 'null' && token !== 'undefined' && typeof token === 'string' && token.trim() !== '') {
+    headers.Authorization = `Bearer ${token.trim()}`;
+  }
+  return { headers };
 };
 
 const qs = (params = {}) => {
@@ -447,8 +447,9 @@ export const seoWorkspaceApi = {
     const res = await axios.post(`${API_URL}/seo-workspace/projects/${projectId}/automation/${ruleId}/retry`, {}, getAuthHeaders());
     return res.data;
   },
-  getAutomationHistory: async (projectId, limit) => {
-    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/automation/history${qs({ limit })}`, getAuthHeaders());
+  getAutomationHistory: async (projectId, options = {}) => {
+    const limit = typeof options === 'object' && options !== null ? options.limit : options;
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/history${qs({ limit })}`, getAuthHeaders());
     return res.data;
   },
 
@@ -563,6 +564,116 @@ export const seoWorkspaceApi = {
   },
   simulateAutomationWorkflow: async (projectId, workflowId, payload) => {
     const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/simulate`, payload, getAuthHeaders());
+    return res.data;
+  },
+  cancelAutomationExecution: async (projectId, workflowId, runId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/cancel`, { runId }, getAuthHeaders());
+    return res.data;
+  },
+  generateAiWorkflow: async (projectId, prompt) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/ai/generate`, { prompt }, getAuthHeaders());
+    return res.data;
+  },
+  optimizeAiWorkflow: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/ai/optimize`, data, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationTriggers: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/triggers`, getAuthHeaders());
+    return res.data;
+  },
+  getAutomationActions: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/actions`, getAuthHeaders());
+    return res.data;
+  },
+  replayDlq: async (projectId, taskId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/queue/dlq/replay`, { taskId }, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Secret Vault / Credentials ---
+  getCredentials: async (projectId) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/credentials`, getAuthHeaders());
+    return res.data;
+  },
+  saveCredential: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/credentials`, data, getAuthHeaders());
+    return res.data;
+  },
+  deleteCredential: async (projectId, credentialId) => {
+    const res = await axios.delete(`${API_URL}/v1/automation/projects/${projectId}/credentials/${credentialId}`, getAuthHeaders());
+    return res.data;
+  },
+  verifyCredential: async (projectId, credentialId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/credentials/${credentialId}/verify`, {}, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Calendar & Timezone Scheduler ---
+  getSchedules: async (projectId, params) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/schedules${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  saveSchedule: async (projectId, data) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/schedules`, data, getAuthHeaders());
+    return res.data;
+  },
+  toggleSchedule: async (projectId, scheduleId, enabled) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/schedules/${scheduleId}/toggle`, { enabled }, getAuthHeaders());
+    return res.data;
+  },
+  triggerScheduleNow: async (projectId, scheduleId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/schedules/${scheduleId}/trigger-now`, {}, getAuthHeaders());
+    return res.data;
+  },
+  deleteSchedule: async (projectId, scheduleId) => {
+    const res = await axios.delete(`${API_URL}/v1/automation/projects/${projectId}/schedules/${scheduleId}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Notification Center & Digests ---
+  getNotifications: async (projectId, params) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/notifications${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  markNotificationRead: async (projectId, notificationId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/notifications/${notificationId}/read`, {}, getAuthHeaders());
+    return res.data;
+  },
+  markAllNotificationsRead: async (projectId) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/notifications/read-all`, {}, getAuthHeaders());
+    return res.data;
+  },
+  deleteNotification: async (projectId, notificationId) => {
+    const res = await axios.delete(`${API_URL}/v1/automation/projects/${projectId}/notifications/${notificationId}`, getAuthHeaders());
+    return res.data;
+  },
+  generateNotificationDigest: async (projectId, digestType) => {
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/notifications/digest`, { digestType }, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Analytics Overview ---
+  getAnalyticsOverview: async (projectId, timeRange) => {
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/analytics/overview${qs({ timeRange })}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // --- Monitoring Intelligence Additions ---
+  getMonitoringHealthBreakdown: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/health-breakdown`, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringRiskAssessment: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/risk-assessment`, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringOpportunities: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/opportunities`, getAuthHeaders());
+    return res.data;
+  },
+  getMonitoringMonitors: async (projectId) => {
+    const res = await axios.get(`${API_URL}/seo-workspace/projects/${projectId}/monitoring/monitors`, getAuthHeaders());
     return res.data;
   }
 };

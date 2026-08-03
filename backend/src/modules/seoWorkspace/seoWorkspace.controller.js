@@ -123,7 +123,7 @@ exports.createProject = async (req, res) => {
   try {
     const companyId = req.user.companyId || req.user.agencyId || req.user._id;
     const { domain, siteUrl, name, clientId, projectId, targetLocations, searchEngines, languages } = req.body;
-    
+
     const projectDomain = domain || siteUrl;
     if (!projectDomain || !name) {
       return res.status(400).json({ success: false, message: 'Domain/siteUrl and name are required.' });
@@ -165,7 +165,7 @@ exports.updateSettings = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { settings } = req.body;
-    
+
     const project = await WorkspaceProject.findById(projectId);
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
@@ -819,11 +819,11 @@ exports.getAeoAuditPages = async (req, res) => {
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
       .lean();
-    
+
     const total = await WorkspaceAeoAuditPage.countDocuments(query);
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: pages,
       pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) }
     });
@@ -886,7 +886,7 @@ exports.exportAeoAudit = async (req, res) => {
     ]);
 
     let csv = 'Type,URL,Title,Priority,Category,Status\n';
-    
+
     pages.forEach(p => {
       csv += `"Page","${p.pageUrl || ''}","","","",""\n`;
     });
@@ -973,12 +973,12 @@ exports.getGeoAuditPages = async (req, res) => {
     const WorkspaceGeoPageAnalysis = require('./models/workspaceGeoPageAnalysis.model');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    
+
     const pages = await WorkspaceGeoPageAnalysis.find({ auditId: req.params.auditId, projectId: req.params.projectId })
       .skip((page - 1) * limit)
       .limit(limit);
     const total = await WorkspaceGeoPageAnalysis.countDocuments({ auditId: req.params.auditId, projectId: req.params.projectId });
-    
+
     res.json({ success: true, data: pages, pagination: { total, page, limit } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1010,7 +1010,7 @@ exports.getGeoAuditRecommendations = async (req, res) => {
     const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
     const audit = await WorkspaceGeoAudit.findOne({ _id: req.params.auditId, projectId: req.params.projectId });
     if (!audit) return res.status(404).json({ success: false, error: 'Audit not found' });
-    
+
     let recs = audit.agent?.recommendations || [];
     if (req.query.priority) {
       recs = recs.filter(r => r.priority === req.query.priority);
@@ -1154,7 +1154,7 @@ exports.getAudits = async (req, res) => {
   try {
     const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
     const projectIds = projects.map(p => p._id);
-    
+
     const query = { projectId: { $in: projectIds } };
     if (req.query.projectId) {
       if (!projectIds.some(id => id.toString() === req.query.projectId)) {
@@ -1162,7 +1162,7 @@ exports.getAudits = async (req, res) => {
       }
       query.projectId = req.query.projectId;
     }
-    
+
     const audits = await WorkspaceAudit.find(query).populate('projectId', 'name').sort({ createdAt: -1 });
     res.json(audits);
   } catch (error) {
@@ -1174,7 +1174,7 @@ exports.compareAudits = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { auditId1, auditId2 } = req.query;
-    
+
     if (!auditId1 || !auditId2) {
       return res.status(400).json({ success: false, error: 'Both auditId1 and auditId2 are required as query parameters.' });
     }
@@ -1201,7 +1201,7 @@ exports.compareAudits = async (req, res) => {
     const newerIssues = newer.agent?.findings || [];
 
     const olderIssueMap = new Map(olderIssues.map(i => [`${i.category}-${i.issue}-${i.pageUrl}`, i]));
-    
+
     const newFindings = [];
     const resolvedFindings = [];
     const remainingFindings = [];
@@ -1244,7 +1244,7 @@ exports.getKeywords = async (req, res) => {
   try {
     const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
     const projectIds = projects.map(p => p._id);
-    
+
     const query = { projectId: { $in: projectIds } };
     if (req.query.projectId) {
       if (!projectIds.some(id => id.toString() === req.query.projectId)) {
@@ -1300,7 +1300,7 @@ exports.refreshKeywords = async (req, res) => {
 
     // Pass to rank tracking service
     const rankTrackingService = require('./services/rankTracking.service');
-    
+
     // In a real enterprise system this would push to BullMQ, but here we trigger asynchronously
     rankTrackingService.trackKeywords(project, keywords).catch(e => console.error('Rank tracking background error:', e));
 
@@ -1319,7 +1319,7 @@ exports.getRankDistribution = async (req, res) => {
     if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
 
     const keywords = await WorkspaceKeyword.find({ projectId: project._id, isDeleted: false });
-    
+
     const distribution = {
       top3: 0, top10: 0, top20: 0, top50: 0, top100: 0, notRanked: 0, total: keywords.length,
       averageVisibility: 0,
@@ -1368,7 +1368,7 @@ exports.getKeywordClusters = async (req, res) => {
 
     // Identify keywords that need clustering
     const semanticClustering = require('./services/semanticClustering.service');
-    
+
     // Process mapping for semanticClustering.service
     const clusterCandidates = keywords.map(k => ({
       _id: k._id,
@@ -1395,7 +1395,7 @@ exports.getKeywordClusters = async (req, res) => {
     });
 
     if (bulkOps.length > 0) {
-       await WorkspaceKeyword.bulkWrite(bulkOps);
+      await WorkspaceKeyword.bulkWrite(bulkOps);
     }
 
     // Now format the response for the UI Dashboard
@@ -1462,7 +1462,7 @@ exports.getStrategies = async (req, res) => {
   try {
     const projects = await WorkspaceProject.find({ createdBy: req.user._id }, '_id');
     const projectIds = projects.map(p => p._id);
-    
+
     const query = { projectId: { $in: projectIds } };
     if (req.query.projectId) {
       if (!projectIds.some(id => id.toString() === req.query.projectId)) {
@@ -1482,7 +1482,7 @@ exports.generateStrategy = async (req, res) => {
   try {
     const { projectId } = req.params;
     const user = req.user;
-    
+
     let workspaceId;
     if (!user) {
       workspaceId = req.companyId || req.workspaceId;
@@ -1579,10 +1579,10 @@ exports.rejectStrategy = async (req, res) => {
 exports.publishStrategy = async (req, res) => {
   try {
     const { projectId, strategyId } = req.params;
-    
+
     const project = await WorkspaceProject.findById(projectId);
     const strategy = await WorkspaceStrategy.findById(strategyId);
-    
+
     if (!project || !strategy) throw new Error('Project or Strategy not found');
 
     if (strategy.status !== 'Approved') {
@@ -1596,7 +1596,7 @@ exports.publishStrategy = async (req, res) => {
     );
 
     const result = await wpService.publishDraft(strategy.title, strategy.content);
-    
+
     strategy.status = 'Published';
     await strategy.save();
 
@@ -1615,7 +1615,7 @@ exports.getAnalytics = async (req, res) => {
   try {
     const { projectId } = req.params;
     const project = await WorkspaceProject.findOne({ _id: projectId, createdBy: req.user._id });
-    
+
     if (!project) {
       return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
@@ -1628,9 +1628,9 @@ exports.getAnalytics = async (req, res) => {
     const gscPath = process.env.GSC_CREDENTIALS;
     const ga4Path = process.env.GA4_CREDENTIALS;
     const ga4PropertyId = process.env.GA4_PROPERTY_ID;
-    
+
     const googleService = new GoogleService(gscPath || ga4Path);
-    
+
     const [gscData, ga4Data] = await Promise.all([
       googleService.getSearchConsoleData(project.siteUrl || project.domain, startDate, endDate),
       ga4PropertyId ? googleService.getAnalyticsData(ga4PropertyId, startDate, endDate) : Promise.resolve({ sessions: 0, users: 0, conversions: 0, rows: [] })
@@ -1662,14 +1662,14 @@ exports.updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { status } = req.body;
-    
+
     let task = await WorkspaceTask.findById(taskId);
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
     const fromStatus = task.status;
     task.status = status;
     task.failureReason = null;
-    
+
     if (status === 'Approved') {
       const project = await WorkspaceProject.findById(task.projectId);
       if (project) {
@@ -1678,7 +1678,7 @@ exports.updateTaskStatus = async (req, res) => {
           project.credentials?.wpUsername || process.env.WP_USER,
           project.credentials?.wpAppPassword || process.env.WP_APP_PASSWORD
         );
-        
+
         try {
           await wpService.publishTaskUpdate(task.projectId, task.strategyId, task._id, task.taskType, task.pageUrl, task.proposedChanges);
           task.status = 'Implemented';
@@ -1689,7 +1689,7 @@ exports.updateTaskStatus = async (req, res) => {
         }
       }
     }
-    
+
     await task.save();
 
     auditLogService.record({
@@ -1718,7 +1718,7 @@ exports.getReports = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { page = 1, limit = 10, search, status, type } = req.query;
-    
+
     const project = await WorkspaceProject.findOne({ _id: projectId, createdBy: req.user._id });
     if (!project) {
       return res.status(404).json({ error: 'Project not found or unauthorized' });
@@ -1730,12 +1730,12 @@ exports.getReports = async (req, res) => {
     if (type) query.type = type;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const reports = await WorkspaceReport.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-      
+
     const total = await WorkspaceReport.countDocuments(query);
 
     res.json({ data: reports, total, page: parseInt(page), limit: parseInt(limit) });
@@ -1779,7 +1779,7 @@ exports.generateReport = async (req, res) => {
       scheduleFrequency: isScheduled ? scheduleFrequency : null,
       emailRecipients: isScheduled ? emailRecipients : []
     });
-    
+
     await report.save();
 
     // 2. Dispatch to asynchronous pipeline (Simulated background job)
@@ -1828,7 +1828,7 @@ exports.downloadReport = async (req, res) => {
     }
 
     let meta = REPORT_FORMAT_META[report.format] || REPORT_FORMAT_META.markdown;
-    
+
     // Safety check: if content is string but format is PDF, force markdown to prevent corrupted file error
     if (meta.ext === 'pdf' && typeof report.content === 'string' && !report.content.startsWith('%PDF')) {
       meta = REPORT_FORMAT_META.markdown;
@@ -1856,7 +1856,7 @@ exports.previewReport = async (req, res) => {
       .populate('snapshot');
 
     if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
-    
+
     // Return structured report for rich frontend UI preview
     res.json({ success: true, data: report });
   } catch (error) {
@@ -1868,11 +1868,11 @@ exports.shareReport = async (req, res) => {
   try {
     const { projectId, reportId } = req.params;
     const { accessType, password, expiresAt } = req.body;
-    
+
     const share = await reportShareService.createShareLink(reportId, projectId, req.user._id, {
       accessType, password, expiresAt
     });
-    
+
     res.json({ success: true, data: share });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1883,7 +1883,7 @@ exports.updateReportStatus = async (req, res) => {
   try {
     const { projectId, reportId } = req.params;
     const { status, approvalStatus } = req.body;
-    
+
     const update = {};
     if (status) update.status = status;
     if (approvalStatus) {
@@ -1896,7 +1896,7 @@ exports.updateReportStatus = async (req, res) => {
       { $set: update },
       { new: true }
     );
-    
+
     res.json({ success: true, data: report });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1928,7 +1928,7 @@ exports.getReportAnalytics = async (req, res) => {
       .populate('metrics')
       .sort({ createdAt: 1 })
       .limit(10);
-      
+
     res.json({ success: true, data: reports });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

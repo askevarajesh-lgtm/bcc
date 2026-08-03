@@ -1,7 +1,7 @@
 /**
  * alertEngine.service.js
  * Listens to the EventBus, deduplicates events, creates Alerts,
- * and triggers AI Recommendations if needed.
+ * and triggers automated AI Root Cause Analysis via aiEngine.
  */
 const WorkspaceMonitoringAlert = require('../../models/workspaceMonitoringAlert.model');
 const WorkspaceMonitoringRecommendation = require('../../models/workspaceMonitoringRecommendation.model');
@@ -9,93 +9,136 @@ const eventBus = require('../workspaceEventBus.service');
 const aiEngine = require('../../../aiCore/aiEngine.service');
 const logger = require('../../../aiCore/logger.service');
 
+const TAG = 'AlertEngine';
+
 class AlertEngineService {
   constructor() {
     this.setupListeners();
   }
 
   setupListeners() {
-    // Listen to all events generically, or specific ones. 
-    // Here we listen to the generic 'event' from WorkspaceEventBus
     eventBus.on('event', async (eventData) => {
       try {
         await this.processEvent(eventData);
       } catch (err) {
-        logger.error('AlertEngine', `Failed to process event: ${err.message}`);
+        logger.error(TAG, `Failed to process event: ${err.message}`);
       }
     });
   }
 
   async processEvent(eventData) {
-    const { projectId, source, eventType, payload } = eventData;
+    const { projectId, source, eventType, payload = {} } = eventData;
     
-    // Not all events are alerts. We only process known negative events
-    const alertableEvents = ['KeywordDropped', 'CWVFailed', 'SSLExpired', 'TrafficDropped'];
+    const alertableEvents = [
+      'KeywordDropped',
+      'OrganicTrafficAnomaly',
+      'CompetitorRankOvertake',
+      'CriticalCrawlIssuesFound',
+      'CWVDegraded',
+      'EndpointDowntime',
+      'SSLInvalid',
+      'SSLExpiryWarning',
+      'RobotsBlocksAllCrawlers',
+      'SitemapInaccessible',
+      'IndexationErrorsDetected',
+      'LowAIVisibilityAlert'
+    ];
+
     if (!alertableEvents.includes(eventType)) return;
 
-    const { entityId, entityType, severity, details, rawDropData } = payload;
+    const { entityId = eventType, entityType = 'System', severity = 'Medium', details = '', rawDropData = {} } = payload;
 
     // Deduplication check: Is there already an open alert for this entity & category?
     let alert = await WorkspaceMonitoringAlert.findOne({
       projectId,
-      entityId,
-      entityType,
       category: eventType,
       status: 'Open'
     });
 
     if (alert) {
-      // Deduplicate: increment occurrences, update lastDetected
-      alert.occurrences += 1;
+      alert.occurrences = (alert.occurrences || 1) + 1;
       alert.lastDetected = new Date();
-      alert.severity = severity || alert.severity; // Escalate if needed
+      if (severity === 'Critical' || (severity === 'High' && alert.severity !== 'Critical')) {
+        alert.severity = severity;
+      }
       await alert.save();
-      logger.debug('AlertEngine', `Deduplicated alert ${alert._id}`);
+      logger.debug(TAG, `Deduplicated alert ${alert._id}`);
       return;
     }
 
     // Create new Alert
     alert = await WorkspaceMonitoringAlert.create({
       projectId,
-      severity: severity || 'Medium',
+      severity,
       category: eventType,
       source,
       entityType,
-      entityId,
-      metadata: rawDropData
+      entityId: String(entityId),
+      metadata: { details, ...rawDropData }
     });
     
-    logger.info('AlertEngine', `Created new alert ${alert._id} for ${eventType}`);
+    logger.info(TAG, `Created new alert ${alert._id} for ${eventType}`);
 
-    // Trigger AI Analysis asynchronously (don't block)
-    this.generateAIRecommendation(alert).catch(err => {
-      logger.error('AlertEngine', `AI generation failed for alert ${alert._id}: ${err.message}`);
+    // Trigger AI Root-Cause Analysis
+    this.generateAIRecommendation(alert, details).catch(err => {
+      logger.error(TAG, `AI generation failed for alert ${alert._id}: ${err.message}`);
     });
   }
 
   /**
-   * Generates AI recommendation using the existing aiEngine
+   * Generates AI recommendation using real aiEngine
    */
-  async generateAIRecommendation(alert) {
-    // We would normally load the agent and use aiEngine.complete.
-    // For now, simulating the AI call to respect the abstraction constraints.
-    
-    // Simulate AI response based on alert category
-    const rootCause = `Potential issue with ${alert.category} on ${alert.entityType}`;
-    const recommendationText = `Review recent changes to ${alert.entityType} ${alert.entityId} and verify compliance.`;
-    
-    const recommendation = await WorkspaceMonitoringRecommendation.create({
-      projectId: alert.projectId,
-      alertId: alert._id,
-      rootCause,
-      recommendation: recommendationText,
-      priority: alert.severity,
-      generatedBy: 'ai'
-    });
-    
-    // Minimal summary on alert itself
-    alert.aiSummary = `AI: ${recommendationText}`;
-    await alert.save();
+  async generateAIRecommendation(alert, details = '') {
+    const prompt = `As an Enterprise SEO & Technical Monitoring Expert, analyze this monitoring alert and provide root cause diagnosis and high-priority remediation steps:
+
+Alert Category: ${alert.category}
+Severity: ${alert.severity}
+Entity: ${alert.entityType} (${alert.entityId})
+Details: ${details || JSON.stringify(alert.metadata || {})}
+
+Return STRICT JSON:
+{
+  "rootCause": "Clear 1-2 sentence explanation of the technical root cause",
+  "recommendation": "Step-by-step actionable remediation instructions",
+  "estimatedImpact": "High | Medium | Low",
+  "recommendedAction": "e.g. Inspect canonical tag, rollback recent deploy, contact host"
+}`;
+
+    try {
+      const response = await aiEngine.complete({
+        workspaceId: alert.projectId,
+        projectId: alert.projectId,
+        agentKey: 'monitoringAiAnalyzer',
+        messages: [{ role: 'user', content: prompt }],
+        jsonMode: true,
+        temperature: 0.2
+      });
+
+      const parsed = JSON.parse(response);
+
+      await WorkspaceMonitoringRecommendation.create({
+        projectId: alert.projectId,
+        alertId: alert._id,
+        rootCause: parsed.rootCause || `Issue with ${alert.category}`,
+        recommendation: parsed.recommendation || 'Review configuration',
+        priority: alert.severity,
+        generatedBy: 'ai',
+        metadata: { estimatedImpact: parsed.estimatedImpact, recommendedAction: parsed.recommendedAction }
+      });
+      
+      alert.aiSummary = parsed.rootCause;
+      await alert.save();
+    } catch (err) {
+      logger.warn(TAG, `AI analysis fallback used: ${err.message}`);
+      await WorkspaceMonitoringRecommendation.create({
+        projectId: alert.projectId,
+        alertId: alert._id,
+        rootCause: `Detected ${alert.category} threshold violation`,
+        recommendation: `Inspect ${alert.entityType} settings and verify server telemetry.`,
+        priority: alert.severity,
+        generatedBy: 'system'
+      });
+    }
   }
 }
 

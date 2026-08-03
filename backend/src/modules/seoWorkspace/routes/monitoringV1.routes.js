@@ -13,18 +13,23 @@ const blockViewOnly = (req, res, next) => {
   next();
 };
 
-// All routes are implicitly prefixed with /projects/:projectId/monitoring if mounted properly
-// Or, if mounted at /api/seo/workspace/v1/, the :projectId comes from the path
-
+// Overview & Scans
 router.get('/dashboard', monitoringController.getDashboardOverview);
 router.post('/scan', blockViewOnly, monitoringController.triggerScan);
 router.get('/scan/:scanId/status', monitoringController.getScanStatus);
 
+// Alerts & Recommendations
 router.get('/alerts', monitoringController.getAlerts);
 router.put('/alerts/:alertId/status', blockViewOnly, monitoringController.updateAlertStatus);
 
+// History & Intelligence
 router.get('/history', monitoringController.getHistory);
+router.get('/health-breakdown', monitoringController.getHealthBreakdown);
+router.get('/risk-assessment', monitoringController.getRiskAssessment);
+router.get('/opportunities', monitoringController.getOpportunities);
+router.get('/monitors', monitoringController.listMonitors);
 
+// Settings
 router.get('/settings', monitoringController.getSettings);
 router.put('/settings', blockViewOnly, monitoringController.updateSettings);
 

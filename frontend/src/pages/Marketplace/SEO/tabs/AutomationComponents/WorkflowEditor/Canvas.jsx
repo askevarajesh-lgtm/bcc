@@ -4,13 +4,14 @@ import {
   MiniMap,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
   addEdge,
-  useReactFlow
+  useReactFlow,
+  Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import CustomNode from './CustomNode';
+import { Button, Tooltip } from 'antd';
+import { Maximize2, LayoutGrid, RotateCcw } from 'lucide-react';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -18,22 +19,40 @@ const nodeTypes = {
 
 export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
   const reactFlowWrapper = useRef(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const onNodesChange = useCallback((changes) => {
-    // In a real setup, we use useNodesState inside the wrapper, but since we lift state up:
     setNodes((nds) => {
-      // A full implementation would apply changes via xyflow helpers.
-      // For simplicity in this shell, we just keep the reference.
-      return nds; 
+      let updated = [...nds];
+      for (const change of changes) {
+        if (change.type === 'position' && change.position) {
+          updated = updated.map(n => n.id === change.id ? { ...n, position: change.position } : n);
+        } else if (change.type === 'remove') {
+          updated = updated.filter(n => n.id !== change.id);
+        } else if (change.type === 'select') {
+          updated = updated.map(n => n.id === change.id ? { ...n, selected: change.selected } : n);
+        }
+      }
+      return updated;
     });
   }, [setNodes]);
 
   const onEdgesChange = useCallback((changes) => {
-    // Apply edge changes
-  }, []);
+    setEdges((eds) => {
+      let updated = [...eds];
+      for (const change of changes) {
+        if (change.type === 'remove') {
+          updated = updated.filter(e => e.id !== change.id);
+        }
+      }
+      return updated;
+    });
+  }, [setEdges]);
 
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
+    [setEdges]
+  );
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -44,8 +63,15 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
     (event) => {
       event.preventDefault();
 
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (typeof type === 'undefined' || !type) return;
+      const rawData = event.dataTransfer.getData('application/reactflow');
+      if (!rawData) return;
+
+      let nodePayload = {};
+      try {
+        nodePayload = JSON.parse(rawData);
+      } catch (e) {
+        nodePayload = { type: rawData, label: `${rawData} node` };
+      }
 
       const position = screenToFlowPosition({
         x: event.clientX,
@@ -53,15 +79,23 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
       });
 
       const newNode = {
-        id: `dndnode_${Date.now()}`,
+        id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         type: 'custom',
         position,
-        data: { label: `${type} node`, type, config: {} },
+        data: {
+          label: nodePayload.label || 'New Node',
+          subtitle: nodePayload.subtitle || '',
+          type: nodePayload.type || 'action',
+          subtype: nodePayload.subtype || 'generic',
+          config: {},
+          retryPolicy: { maxRetries: 3, backoffMs: 1000 }
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
+      onSelectNode(newNode);
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes, onSelectNode]
   );
 
   const onNodeClick = (_, node) => {
@@ -73,7 +107,7 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
   };
 
   return (
-    <div className="workflow-canvas" ref={reactFlowWrapper}>
+    <div className="workflow-canvas" ref={reactFlowWrapper} style={{ flex: 1, height: '100%', position: 'relative' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -86,10 +120,20 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
+        snapToGrid={true}
+        snapGrid={[15, 15]}
       >
         <Controls />
-        <MiniMap />
-        <Background variant="dots" gap={12} size={1} />
+        <MiniMap 
+          nodeStrokeWidth={3} 
+          style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}
+        />
+        <Background variant="dots" gap={16} size={1} color="#cbd5e1" />
+        <Panel position="top-right" style={{ display: 'flex', gap: 8, margin: 12 }}>
+          <Tooltip title="Fit View">
+            <Button icon={<Maximize2 size={14} />} onClick={() => fitView({ padding: 0.2 })} />
+          </Tooltip>
+        </Panel>
       </ReactFlow>
     </div>
   );

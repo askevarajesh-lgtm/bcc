@@ -1,74 +1,23 @@
 import React, { useState, Suspense, useEffect } from 'react';
-import { Tabs, Spin, Typography, message, Table, Button, Tag, Space, Popconfirm } from 'antd';
-import { Rocket, ListTree, Activity, Clock, BarChart, Settings as SettingsIcon, FileText, Zap } from 'lucide-react';
+import { Tabs, Spin, Typography, message } from 'antd';
+import { Rocket, ListTree, Activity, Clock, BarChart, Settings as SettingsIcon, FileText, Zap, ShieldCheck, Bell, Calendar } from 'lucide-react';
 
 import Dashboard from './AutomationComponents/Dashboard';
 import WorkflowsList from './AutomationComponents/WorkflowsList';
 import ExecutionHistory from './AutomationComponents/ExecutionHistory';
 import QueueMonitor from './AutomationComponents/QueueMonitor';
+import AnalyticsPanel from './AutomationComponents/panels/AnalyticsPanel';
+import SchedulerPanel from './AutomationComponents/panels/SchedulerPanel';
+import SecretVaultPanel from './AutomationComponents/panels/SecretVaultPanel';
+import NotificationCenterPanel from './AutomationComponents/panels/NotificationCenterPanel';
+import LogsPanel from './AutomationComponents/panels/LogsPanel';
+import SettingsPanel from './AutomationComponents/panels/SettingsPanel';
 import './AutomationTab.css';
-import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 
 const WorkflowEditor = React.lazy(() => import('./AutomationComponents/WorkflowEditor/WorkflowEditor'));
 const TemplatesList = React.lazy(() => import('./AutomationComponents/TemplatesList'));
 
 const { Title } = Typography;
-
-// Temporary internal components for tabs not yet fully split out
-const SettingsPanel = () => (
-  <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-    <Title level={4}>Automation Settings</Title>
-    <p>Configure global automation concurrency, webhook limits, and provider API keys here.</p>
-  </div>
-);
-
-const AnalyticsPanel = () => (
-  <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-    <Title level={4}>Automation Analytics</Title>
-    <p>View long-term execution trends, success/failure rates, and AI token usage.</p>
-  </div>
-);
-
-const LogsPanel = () => (
-  <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-    <Title level={4}>System Logs</Title>
-    <p>Raw system logs for deep debugging of Execution Engine failures and Event Bus dispatches.</p>
-  </div>
-);
-
-const LegacyAutomationsPanel = ({ projectId }) => {
-  const [rules, setRules] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const load = async () => {
-    if (!projectId) return;
-    setLoading(true);
-    try {
-      const res = await seoWorkspaceApi.getAutomationRules(projectId);
-      setRules(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      message.error(err?.response?.data?.error || 'Failed to load legacy rules');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, [projectId]);
-
-  const columns = [
-    { title: 'Type', dataIndex: 'ruleType', key: 'ruleType', render: t => <Tag color="blue">{t}</Tag> },
-    { title: 'Frequency', dataIndex: 'frequency', key: 'frequency' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: s => <Tag color={s === 'active' ? 'success' : 'default'}>{s}</Tag> }
-  ];
-
-  return (
-    <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <Title level={4}>Legacy Rules (v1)</Title>
-      <Table dataSource={rules} columns={columns} rowKey="_id" loading={loading} />
-    </div>
-  );
-};
-
 
 export default function AutomationTab({ projectId }) {
   const effectiveProjectId = projectId || '507f1f77bcf86cd799439011';
@@ -87,7 +36,7 @@ export default function AutomationTab({ projectId }) {
 
   if (activeView === 'editor') {
     return (
-      <Suspense fallback={<div style={{ padding: 50, textAlign: 'center' }}><Spin size="large" tip="Loading Workflow Builder..." /></div>}>
+      <Suspense fallback={<div style={{ padding: 50, textAlign: 'center' }}><Spin size="large" tip="Loading Visual Workflow Studio..." /></div>}>
         <WorkflowEditor projectId={effectiveProjectId} workflowId={editingWorkflowId} onClose={handleCloseEditor} />
       </Suspense>
     );
@@ -96,59 +45,69 @@ export default function AutomationTab({ projectId }) {
   const items = [
     {
       key: 'dashboard',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={16} /> Dashboard</span>,
-      children: <Dashboard projectId={effectiveProjectId} />
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Activity size={15} /> Dashboard</span>,
+      children: <Dashboard projectId={effectiveProjectId} onNavigateToEditor={handleEditWorkflow} />
     },
     {
       key: 'workflows',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ListTree size={16} /> Workflows</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ListTree size={15} /> Workflows</span>,
       children: <WorkflowsList projectId={effectiveProjectId} onEdit={handleEditWorkflow} />
     },
     {
       key: 'templates',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Rocket size={16} /> Templates</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Rocket size={15} /> Templates (15+)</span>,
       children: (
         <Suspense fallback={<Spin />}>
-          <TemplatesList projectId={effectiveProjectId} />
+          <TemplatesList projectId={effectiveProjectId} onUseTemplate={handleEditWorkflow} />
         </Suspense>
       )
     },
     {
+      key: 'scheduler',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={15} /> Scheduler</span>,
+      children: <SchedulerPanel projectId={effectiveProjectId} />
+    },
+    {
+      key: 'vault',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ShieldCheck size={15} /> Secret Vault</span>,
+      children: <SecretVaultPanel projectId={effectiveProjectId} />
+    },
+    {
+      key: 'notifications',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Bell size={15} /> Notification Hub</span>,
+      children: <NotificationCenterPanel projectId={effectiveProjectId} />
+    },
+    {
       key: 'history',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={16} /> Executions</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Clock size={15} /> Executions</span>,
       children: <ExecutionHistory projectId={effectiveProjectId} />
     },
     {
       key: 'queue',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><BarChart size={16} /> Queue</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Zap size={15} /> Priority Queue</span>,
       children: <QueueMonitor projectId={effectiveProjectId} />
     },
     {
       key: 'analytics',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><BarChart size={16} /> Analytics</span>,
-      children: <AnalyticsPanel />
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><BarChart size={15} /> Analytics</span>,
+      children: <AnalyticsPanel projectId={effectiveProjectId} />
     },
     {
       key: 'logs',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={16} /> Logs</span>,
-      children: <LogsPanel />
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={15} /> System Logs</span>,
+      children: <LogsPanel projectId={effectiveProjectId} />
     },
     {
       key: 'settings',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SettingsIcon size={16} /> Settings</span>,
-      children: <SettingsPanel />
-    },
-    {
-      key: 'legacy',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={16} /> Legacy</span>,
-      children: <LegacyAutomationsPanel projectId={effectiveProjectId} />
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><SettingsIcon size={15} /> Settings</span>,
+      children: <SettingsPanel projectId={effectiveProjectId} />
     }
   ];
 
   return (
-    <div className="automation-tab-container">
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>Enterprise Automation Engine</Title>
+    <div className="automation-tab-container" style={{ padding: '0 8px' }}>
+      <div style={{ marginBottom: 16 }}>
+        <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: -0.5 }}>Enterprise SEO Automation Platform</Title>
       </div>
       <Tabs 
         activeKey={activeView}

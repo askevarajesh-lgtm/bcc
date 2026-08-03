@@ -1,27 +1,27 @@
+const crypto = require('crypto');
+
 module.exports = {
   id: 'trigger_webhook',
-  
   metadata: () => ({
     id: 'trigger_webhook',
-    name: 'Webhook Trigger',
-    description: 'Triggers workflow on incoming HTTP webhook',
-    category: 'integration',
-    icon: 'zap'
+    name: 'Inbound Webhook',
+    description: 'Triggers workflow on HTTP POST to webhook endpoint with optional HMAC signature verification',
+    category: 'triggers',
+    icon: 'zap',
+    inputs: [],
+    outputs: ['headers', 'body', 'query', 'timestamp']
   }),
 
   validate: (config) => {
-    // Webhook configuration might define expected payload schema or secret token
-    return true;
+    return true; // Webhook configs can have optional secret verification
   },
 
-  evaluate: (eventData, config) => {
-    if (eventData.source === 'webhook') {
-      // Evaluate if the webhook path or token matches this specific trigger's config
-      if (config.webhookPath && eventData.path !== config.webhookPath) {
-        return false;
-      }
-      return true;
+  match: (config, eventPayload) => {
+    if (!config) return true;
+    if (config.secret && eventPayload.signature) {
+      const computed = crypto.createHmac('sha256', config.secret).update(JSON.stringify(eventPayload.body || {})).digest('hex');
+      return computed === eventPayload.signature;
     }
-    return false;
+    return true;
   }
 };

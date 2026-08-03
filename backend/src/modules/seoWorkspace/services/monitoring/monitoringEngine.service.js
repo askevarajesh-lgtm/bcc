@@ -1,7 +1,7 @@
 /**
  * monitoringEngine.service.js
  * Central orchestrator implementing a deterministic scan pipeline.
- * Uses `executionQueue` for concurrency, locking, retries.
+ * Runs all 11 enterprise monitoring plugins with health score updates.
  */
 const WorkspaceMonitoringScan = require('../../models/workspaceMonitoringScan.model');
 const WorkspaceProject = require('../../models/workspaceProject.model');
@@ -10,10 +10,31 @@ const registry = require('./MonitoringRegistry');
 const eventBus = require('../workspaceEventBus.service');
 const logger = require('../../../aiCore/logger.service');
 
-// Import and register monitors
+// Import all 11 Monitoring Plugins
 const KeywordMonitor = require('./KeywordMonitor');
+const TrafficMonitor = require('./monitors/TrafficMonitor');
+const CompetitorMonitor = require('./monitors/CompetitorMonitor');
+const CrawlMonitor = require('./monitors/CrawlMonitor');
+const CWVMonitor = require('./monitors/CWVMonitor');
+const UptimeMonitor = require('./monitors/UptimeMonitor');
+const SSLMonitor = require('./monitors/SSLMonitor');
+const RobotsMonitor = require('./monitors/RobotsMonitor');
+const SitemapMonitor = require('./monitors/SitemapMonitor');
+const IndexCoverageMonitor = require('./monitors/IndexCoverageMonitor');
+const AIVisibilityMonitor = require('./monitors/AIVisibilityMonitor');
+
+// Register all monitors
 registry.register(new KeywordMonitor());
-// Other monitors will be registered here as they are created
+registry.register(new TrafficMonitor());
+registry.register(new CompetitorMonitor());
+registry.register(new CrawlMonitor());
+registry.register(new CWVMonitor());
+registry.register(new UptimeMonitor());
+registry.register(new SSLMonitor());
+registry.register(new RobotsMonitor());
+registry.register(new SitemapMonitor());
+registry.register(new IndexCoverageMonitor());
+registry.register(new AIVisibilityMonitor());
 
 class MonitoringEngineService {
   
@@ -26,9 +47,7 @@ class MonitoringEngineService {
 
     const key = `monitoring-scan:${projectId}`;
 
-    // Check if already busy in the queue
     if (executionQueue.isBusy(key)) {
-      // Find the currently running scan ID to return to the frontend
       const activeScan = await WorkspaceMonitoringScan.findOne({
         projectId,
         status: { $in: ['Queued', 'Running', 'Paused', 'Retrying'] }
@@ -44,7 +63,6 @@ class MonitoringEngineService {
 
     const scanId = `scan-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     
-    // Create initial state
     await WorkspaceMonitoringScan.create({
       projectId,
       scanId,
@@ -52,9 +70,6 @@ class MonitoringEngineService {
       progress: 0,
     });
 
-    // Enqueue the actual scan
-    // We do NOT wait for it to finish here if it's async (like from cron).
-    // If we want to return immediately, we just return the scanId.
     executionQueue.enqueue({
       key,
       taskId: scanId,
@@ -86,7 +101,7 @@ class MonitoringEngineService {
 
     const monitors = registry.getAllMonitors();
     let progress = 0;
-    const progressStep = 100 / (monitors.length + 1); // +1 for Snapshot & Cleanup
+    const progressStep = 90 / (monitors.length || 1);
     
     let previousSnapshot = null;
     const SnapshotModel = require('../../models/workspaceMonitoringSnapshot.model');
@@ -102,44 +117,49 @@ class MonitoringEngineService {
       for (const monitor of monitors) {
         logger.info('MonitoringEngine', `Running monitor: ${monitor.name}`);
         
-        const result = await monitor.runLifecycle(pipelineContext);
-        
-        normalizedResults[monitor.name] = result.normalizedData;
-        
-        // Aggregate events
-        allEvents.push(...result.events);
-        
-        // Aggregate health impacts
-        for (const [key, value] of Object.entries(result.healthImpact || {})) {
-          overallHealthImpact[key] = (overallHealthImpact[key] || 0) + value;
+        try {
+          const result = await monitor.runLifecycle(pipelineContext);
+          normalizedResults[monitor.name] = result.normalizedData;
+          
+          if (Array.isArray(result.events)) {
+            allEvents.push(...result.events);
+          }
+          
+          for (const [key, value] of Object.entries(result.healthImpact || {})) {
+            overallHealthImpact[key] = (overallHealthImpact[key] || 0) + value;
+          }
+        } catch (err) {
+          logger.error('MonitoringEngine', `Monitor ${monitor.name} encountered error: ${err.message}`);
         }
 
         progress += progressStep;
         await WorkspaceMonitoringScan.updateOne({ scanId }, { $set: { progress: Math.min(Math.round(progress), 90) } });
       }
 
-      // Dispatch all generated events to the EventBus
+      // Dispatch all generated events to EventBus
       for (const event of allEvents) {
-        eventBus.dispatch(event);
+        try {
+          eventBus.dispatch(event);
+        } catch (e) {
+          logger.warn('MonitoringEngine', `Event dispatch error: ${e.message}`);
+        }
       }
       
-      // The EventBus triggers alert generation and other listeners asynchronously.
-      // Now trigger the SnapshotBuilder to create the final read-model snapshot.
+      // Build final Snapshot
       const snapshotBuilder = require('./snapshotBuilder.service');
       await snapshotBuilder.buildSnapshot(projectId, normalizedResults, overallHealthImpact);
 
-      // Finish
       await WorkspaceMonitoringScan.updateOne({ scanId }, { 
         $set: { 
           status: 'Completed', 
           progress: 100, 
           finishedAt: new Date(),
           durationMs: Date.now() - scan.startedAt.getTime(),
-          resultsSummary: { eventsFired: allEvents.length }
+          resultsSummary: { eventsFired: allEvents.length, monitorsExecuted: monitors.length }
         } 
       });
 
-      return { status: 'Completed' };
+      return { status: 'Completed', eventsCount: allEvents.length };
       
     } catch (error) {
       await WorkspaceMonitoringScan.updateOne({ scanId }, { 

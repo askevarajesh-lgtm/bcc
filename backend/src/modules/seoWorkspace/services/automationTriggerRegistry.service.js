@@ -9,15 +9,19 @@ class AutomationTriggerRegistry {
   /**
    * Register a new trigger module
    * @param {Object} triggerModule - The trigger implementation
-   * @param {string} triggerModule.id - Unique ID (e.g. 'rank_drop')
-   * @param {Function} triggerModule.metadata - Returns trigger metadata
-   * @param {Function} triggerModule.validate - Validates node configuration
-   * @param {Function} triggerModule.evaluate - Evaluates if the trigger condition is met
    */
   register(triggerModule) {
-    if (!triggerModule.id || typeof triggerModule.evaluate !== 'function') {
-      throw new Error('Invalid trigger module');
+    if (!triggerModule.id) {
+      throw new Error('Invalid trigger module: missing id');
     }
+
+    // Normalize match/evaluate function
+    if (!triggerModule.evaluate && typeof triggerModule.match === 'function') {
+      triggerModule.evaluate = (eventPayload, config) => triggerModule.match(config, eventPayload);
+    } else if (!triggerModule.evaluate) {
+      triggerModule.evaluate = () => true;
+    }
+
     this._triggers.set(triggerModule.id, triggerModule);
     logger.info(TAG, `Registered trigger: ${triggerModule.id}`);
   }
@@ -35,7 +39,12 @@ class AutomationTriggerRegistry {
     const AutomationWorkflow = require('../models/automationWorkflow.model');
     const AutomationWorkflowVersion = require('../models/automationWorkflowVersion.model');
 
-    const publishedWorkflows = await AutomationWorkflow.find({ status: 'Published' }).lean();
+    const filter = { status: 'Published' };
+    if (eventData.projectId) {
+      filter.projectId = eventData.projectId;
+    }
+
+    const publishedWorkflows = await AutomationWorkflow.find(filter).lean();
     if (publishedWorkflows.length === 0) return [];
 
     const activeVersionIds = publishedWorkflows.map(w => w.activeVersionId).filter(Boolean);
@@ -44,14 +53,16 @@ class AutomationTriggerRegistry {
     for (const version of versions) {
       const triggerNodes = (version.nodes || []).filter(n => n.type === 'trigger');
       for (const node of triggerNodes) {
-        const triggerImpl = this._triggers.get(node.data?.triggerId);
+        const triggerId = node.data?.triggerId || node.data?.type || node.id;
+        const triggerImpl = this._triggers.get(triggerId);
         if (triggerImpl && typeof triggerImpl.evaluate === 'function') {
           const isMatch = await triggerImpl.evaluate(eventData, node.data?.config);
           if (isMatch) {
             matchedTriggers.push({
               workflowId: version.workflowId,
               versionId: version._id,
-              metadata: { nodeId: node.id, triggerId: node.data.triggerId }
+              projectId: version.projectId || eventData.projectId,
+              metadata: { nodeId: node.id, triggerId }
             });
           }
         }
@@ -66,5 +77,6 @@ const registry = new AutomationTriggerRegistry();
 
 module.exports = {
   AutomationTriggerRegistry,
-  getTriggerRegistry: () => registry
+  getTriggerRegistry: () => registry,
+  triggerRegistry: registry
 };

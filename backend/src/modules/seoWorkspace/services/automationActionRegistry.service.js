@@ -35,5 +35,6 @@ const registry = new AutomationActionRegistry();
 
 module.exports = {
   AutomationActionRegistry,
-  getActionRegistry: () => registry
+  getActionRegistry: () => registry,
+  actionRegistry: registry
 };

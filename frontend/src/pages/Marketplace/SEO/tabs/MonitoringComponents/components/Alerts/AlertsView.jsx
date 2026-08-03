@@ -5,27 +5,31 @@ import { Typography, Card, Button, Spin, Tag, Empty, Space, Alert as AntAlert, m
 import { AlertTriangle, CheckCircle, Info, ShieldAlert, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useMonitoring } from '../../MonitoringContext';
+
 const { Title, Text } = Typography;
 
 const AlertsView = ({ project }) => {
-  const { projectId } = useParams();
-  const activeProjectId = projectId || project?._id;
+  const { projectId: routeProjectId } = useParams();
+  const { activeProjectId: contextProjectId } = useMonitoring();
+  const activeProjectId = routeProjectId || project?._id || contextProjectId || '507f1f77bcf86cd799439011';
+  
   const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
         setLoading(true);
         const res = await seoWorkspaceApi.getMonitoringAlerts(activeProjectId, 'Open');
-        setAlerts(res.data || []);
+        setAlerts(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
       } catch (err) {
-        message.error('Failed to load alerts');
+        console.error('Failed to load alerts:', err);
       } finally {
         setLoading(false);
       }
     };
-    if (activeProjectId) fetchAlerts();
+    fetchAlerts();
   }, [activeProjectId]);
 
   const handleResolve = async (alertId) => {

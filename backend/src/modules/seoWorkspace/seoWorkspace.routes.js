@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const workspaceController = require('./seoWorkspace.controller');
+const automationController = require('./controllers/automationV1.controller');
 const { verifyToken } = require('../../middlewares/rbac.middleware');
 const uploadAttachment = require('./middlewares/uploadAttachment');
 
@@ -108,14 +109,12 @@ router.get('/projects/:projectId/geo-agent/:auditId/technical', workspaceControl
 router.get('/projects/:projectId/geo-agent/:auditId/recommendations', workspaceController.getGeoAuditRecommendations);
 router.get('/projects/:projectId/geo-agent/trends', workspaceController.getGeoAuditTrends);
 
-router.post('/projects/:projectId/automation/run', blockViewOnly, workspaceController.runAutomationAgent);
-router.post('/projects/:projectId/automation', blockViewOnly, workspaceController.createAutomationRule);
-router.get('/projects/:projectId/automation', workspaceController.listAutomationRules);
-router.put('/projects/:projectId/automation/:ruleId/approve', blockViewOnly, workspaceController.approveAutomationRule);
-router.put('/projects/:projectId/automation/:ruleId/reject', blockViewOnly, workspaceController.rejectAutomationRule);
-router.put('/projects/:projectId/automation/:ruleId/toggle', blockViewOnly, workspaceController.toggleAutomationRule);
-router.post('/projects/:projectId/automation/:ruleId/retry', blockViewOnly, workspaceController.retryAutomationRule);
-router.get('/projects/:projectId/automation/history', workspaceController.getAutomationExecutionHistory);
+router.post('/projects/:projectId/automation/run', blockViewOnly, automationController.runWorkflow);
+router.post('/projects/:projectId/automation', blockViewOnly, automationController.createWorkflow);
+router.get('/projects/:projectId/automation', automationController.listWorkflows);
+router.put('/projects/:projectId/automation/:id/approve', blockViewOnly, automationController.publishWorkflow);
+router.put('/projects/:projectId/automation/:id/reject', blockViewOnly, automationController.archiveWorkflow);
+router.get('/projects/:projectId/automation/history', automationController.getHistory);
 router.get('/projects/:projectId/geo-agent/history', workspaceController.getGeoAgentExecutionHistory);
 
 // Keywords

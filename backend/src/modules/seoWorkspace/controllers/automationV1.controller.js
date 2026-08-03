@@ -300,47 +300,75 @@ exports.validateWorkflow = async (req, res) => {
 
 exports.listTemplates = async (req, res) => {
   try {
-    let templates = await AutomationTemplate.find({ type: { $in: ['official', 'community', 'workspace'] } });
-    
+    const { seedEnterpriseTemplates } = require('../services/automationTemplatesSeeder.service');
+    let templates = await AutomationTemplate.find({});
     if (templates.length === 0) {
-      const mongoose = require('mongoose');
-      await AutomationTemplate.insertMany([
-        {
-          name: 'Weekly SEO Audit',
-          description: 'Runs a comprehensive technical SEO audit every Monday and sends a Slack report.',
-          category: 'Technical SEO',
-          author: 'BCC Official',
-          createdBy: new mongoose.Types.ObjectId(),
-          type: 'official',
-          nodes: [
-            { id: '1', type: 'trigger', data: { triggerId: 'trigger_schedule', config: { cronExpression: '0 0 * * 1' } } },
-            { id: '2', type: 'action', data: { actionId: 'ai_generate', config: { prompt: 'Summarize the audit' } } }
-          ],
-          edges: [
-            { source: '1', target: '2' }
-          ]
-        },
-        {
-          name: 'Rank Drop Alert',
-          description: 'Monitors keyword rankings and triggers an alert if top 3 positions are lost.',
-          category: 'Rank Tracking',
-          author: 'BCC Official',
-          createdBy: new mongoose.Types.ObjectId(),
-          type: 'official',
-          nodes: [
-             { id: '1', type: 'trigger', data: { triggerId: 'trigger_schedule', config: { cronExpression: '0 8 * * *' } } },
-             { id: '2', type: 'action', data: { actionId: 'send_slack', config: { message: 'Rankings dropped!' } } }
-          ],
-          edges: [
-             { source: '1', target: '2' }
-          ]
-        }
-      ]);
-      templates = await AutomationTemplate.find({ type: { $in: ['official', 'community', 'workspace'] } });
+      await seedEnterpriseTemplates();
+      templates = await AutomationTemplate.find({});
     }
 
     res.status(200).json({ success: true, data: templates });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+exports.generateAiWorkflow = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ success: false, error: 'Prompt is required' });
+
+    const aiGenerator = require('../services/automationAiGenerator.service');
+    const result = await aiGenerator.generateFromPrompt(projectId, prompt, req.user?.workspaceId);
+    res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.optimizeAiWorkflow = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { nodes, edges, variables } = req.body;
+
+    const aiGenerator = require('../services/automationAiGenerator.service');
+    const result = await aiGenerator.optimizeWorkflow(projectId, { nodes, edges, variables });
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.listTriggers = async (req, res) => {
+  try {
+    const { getTriggerRegistry } = require('../services/automationTriggerRegistry.service');
+    const triggers = getTriggerRegistry().listTriggers();
+    res.status(200).json({ success: true, data: triggers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.listActions = async (req, res) => {
+  try {
+    const { getActionRegistry } = require('../services/automationActionRegistry.service');
+    const actions = getActionRegistry().listActions();
+    res.status(200).json({ success: true, data: actions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.replayDlq = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    const dlq = queueService.getDeadLetterQueue();
+    const item = dlq.find(d => d.task.taskId === taskId);
+    if (!item) return res.status(404).json({ success: false, error: 'DLQ task not found' });
+
+    res.status(200).json({ success: true, message: `Replayed DLQ task ${taskId}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
