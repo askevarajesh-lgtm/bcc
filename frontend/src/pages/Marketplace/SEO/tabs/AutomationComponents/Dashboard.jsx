@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Table, Tag, Button, Typography, Space } from 'antd';
 import { CheckCircle, XCircle, Clock, Activity, Play, Plus, Zap, ArrowUpRight } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -9,6 +10,11 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
   const [metrics, setMetrics] = useState({ queuedTasks: 0, completed: 0, failed: 0, activeGlobal: 0, totalWorkflows: 0 });
   const [recentRuns, setRecentRuns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { isDark } = useTheme();
+
+  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const valClr  = isDark ? '#f1f5f9' : '#0f172a';
 
   useEffect(() => {
     fetchDashboardData();
@@ -92,25 +98,25 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 10, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
             <Statistic 
               title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Activity size={15} color="#3b82f6" /> Active Workers</span>} 
               value={metrics.activeGlobal || 4} 
-              valueStyle={{ fontWeight: 800, color: '#0f172a' }}
+              valueStyle={{ fontWeight: 800, color: valClr }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 10, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
             <Statistic 
               title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Clock size={15} color="#f59e0b" /> Queued Tasks</span>} 
               value={metrics.queuedTasks || 0} 
-              valueStyle={{ fontWeight: 800, color: '#0f172a' }}
+              valueStyle={{ fontWeight: 800, color: valClr }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 10, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
             <Statistic 
               title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><CheckCircle size={15} color="#10b981" /> Completed Runs</span>} 
               value={metrics.completed || 428} 
@@ -119,7 +125,7 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 10, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
             <Statistic 
               title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><XCircle size={15} color="#ef4444" /> Failed Runs</span>} 
               value={metrics.failed || 2} 
@@ -137,7 +143,7 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
           </div>
         } 
         bordered={false} 
-        style={{ borderRadius: 10, border: '1px solid #e2e8f0' }}
+        style={{ borderRadius: 10, border: cardBdr }}>
       >
         <Table 
           loading={loading}

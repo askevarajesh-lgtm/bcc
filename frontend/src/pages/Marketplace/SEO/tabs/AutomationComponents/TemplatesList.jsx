@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, message, Tag, Typography, Input, Select, Space, Spin } from 'antd';
 import { Copy, Sparkles, Rocket, Zap, Search, ShieldCheck, Activity } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -64,10 +65,17 @@ const ENTERPRISE_TEMPLATES = [
 ];
 
 export default function TemplatesList({ projectId, onUseTemplate }) {
-  const [templates, setTemplates] = useState([]);
+  const [templates, setTemplates] = useState(ENTERPRISE_TEMPLATES);
   const [loading, setLoading] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const { isDark } = useTheme();
+
+  const cardBg   = isDark ? '#111c31' : '#ffffff';
+  const cardBdr  = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const titleClr = isDark ? '#f1f5f9' : '#0f172a';
+  const textClr  = isDark ? '#94a3b8' : '#475569';
+  const divClr   = isDark ? '#1e293b' : '#f1f5f9';
 
   useEffect(() => {
     fetchTemplates();
@@ -151,8 +159,8 @@ export default function TemplatesList({ projectId, onUseTemplate }) {
                 bordered={false} 
                 style={{ 
                   borderRadius: 12, 
-                  border: '1px solid #e2e8f0', 
-                  background: '#ffffff',
+                  border: cardBdr, 
+                  background: cardBg,
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
@@ -164,15 +172,15 @@ export default function TemplatesList({ projectId, onUseTemplate }) {
                     <Tag color="purple">{tpl.category}</Tag>
                     <Tag color="blue">{tpl.nodesCount || 4} Steps</Tag>
                   </div>
-                  <Title level={5} style={{ margin: '4px 0 8px 0', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+                  <Title level={5} style={{ margin: '4px 0 8px 0', fontSize: 15, fontWeight: 700, color: titleClr }}>
                     {tpl.name}
                   </Title>
-                  <p style={{ minHeight: 60, color: '#475569', fontSize: 13, lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ minHeight: 60, color: textClr, fontSize: 13, lineHeight: 1.5, margin: 0 }}>
                     {tpl.description}
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 12, borderTop: `1px solid ${divClr}` }}>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>By {tpl.author}</span>
                   <Button 
                     type="primary" 

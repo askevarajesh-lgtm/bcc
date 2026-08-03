@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Drawer, Button, Input, Steps, Tag, Alert, Typography, Spin, Divider } from 'antd';
 import { Play, CheckCircle2, XCircle, Clock, Terminal, ChevronRight } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Text, Title } = Typography;
 
@@ -9,6 +10,11 @@ export default function SimulationDrawer({ visible, onClose, projectId, workflow
   const [running, setRunning] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
   const [mockPayload, setMockPayload] = useState('{\n  "keyword": "enterprise seo software",\n  "currentRank": 14,\n  "previousRank": 3,\n  "severity": "Critical"\n}');
+  const { isDark } = useTheme();
+  const stepBg  = isDark ? '#1e293b' : '#f8fafc';
+  const stepBdr = isDark ? '1px solid #334155' : '1px solid #e2e8f0';
+  const outBg   = isDark ? '#111c31' : '#ffffff';
+  const outClr  = isDark ? '#94a3b8' : '#475569';
 
   const handleRunSimulation = async () => {
     setRunning(true);
@@ -119,8 +125,8 @@ export default function SimulationDrawer({ visible, onClose, projectId, workflow
                     style={{
                       padding: '10px 12px',
                       borderRadius: 8,
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      background: stepBg,
+                      border: stepBdr,
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 4
@@ -136,7 +142,7 @@ export default function SimulationDrawer({ visible, onClose, projectId, workflow
                       </Tag>
                     </div>
                     {step.output && (
-                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#475569', background: '#ffffff', padding: '4px 8px', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: outClr, background: outBg, padding: '4px 8px', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                         {typeof step.output === 'object' ? JSON.stringify(step.output, null, 2) : String(step.output)}
                       </div>
                     )}

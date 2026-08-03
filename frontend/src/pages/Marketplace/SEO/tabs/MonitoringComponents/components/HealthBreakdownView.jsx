@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
 import { useMonitoring } from '../MonitoringContext';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -27,6 +28,14 @@ export default function HealthBreakdownView({ project }) {
   const [monitors, setMonitors] = useState(MONITORS_CONFIG);
   const { activeProjectId: monitoringProjectId } = useMonitoring();
   const activeProjectId = project?._id || monitoringProjectId;
+  const { isDark } = useTheme();
+
+  const cardBg   = isDark ? '#111c31' : '#ffffff';
+  const cardBdr  = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const iconBg   = isDark ? '#1e293b' : '#f8fafc';
+  const iconBdr  = isDark ? '1px solid #334155' : '1px solid #e2e8f0';
+  const titleClr = isDark ? '#f1f5f9' : '#0f172a';
+  const subClr   = isDark ? '#64748b' : '#64748b';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -42,20 +51,20 @@ export default function HealthBreakdownView({ project }) {
               bordered={false}
               style={{
                 borderRadius: 12,
-                border: '1px solid #e2e8f0',
-                background: '#ffffff',
+                border: cardBdr,
+                background: cardBg,
                 height: '100%',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
+                boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ padding: 6, borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: 6, borderRadius: 8, background: iconBg, border: iconBdr }}>
                     {m.icon}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{m.label}</div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>Category: {m.category}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: titleClr }}>{m.label}</div>
+                    <div style={{ fontSize: 11, color: subClr }}>Category: {m.category}</div>
                   </div>
                 </div>
                 <Tag color="green">{m.status}</Tag>

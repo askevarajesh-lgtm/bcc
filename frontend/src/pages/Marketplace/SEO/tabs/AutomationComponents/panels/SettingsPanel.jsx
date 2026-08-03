@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Card, Form, InputNumber, Switch, Button, Typography, message, Divider, Space } from 'antd';
 import { Settings, Save, ShieldAlert, Cpu } from 'lucide-react';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
 export default function SettingsPanel({ projectId }) {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+  const { isDark } = useTheme();
+  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
 
   const handleSave = (values) => {
     setLoading(true);
@@ -23,7 +27,7 @@ export default function SettingsPanel({ projectId }) {
         <Text type="secondary">Configure execution concurrency, retry thresholds, and worker recovery parameters</Text>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 10, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+      <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
         <Form
           form={form}
           layout="vertical"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Form, Input, Select, InputNumber, Switch, Button, Divider, Tabs, message, Tooltip, Space } from 'antd';
 import { Sliders, Key, ShieldCheck, Play, HelpCircle, Code, Plus } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -10,6 +11,13 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId, onDe
   const [credentials, setCredentials] = useState([]);
   const [activeTab, setActiveTab] = useState('config');
   const [localJsonText, setLocalJsonText] = useState('{}');
+  const { isDark } = useTheme();
+
+  const panelBg    = isDark ? '#0f172a' : '#ffffff';
+  const panelBdr   = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const titleClr   = isDark ? '#f1f5f9' : '#1e293b';
+  const subClr     = isDark ? '#64748b' : '#94a3b8';
+  const monoChip   = isDark ? { background: '#1e293b', color: '#94a3b8' } : { background: '#f1f5f9', color: '#475569' };
 
   useEffect(() => {
     if (selectedNode) {
@@ -28,10 +36,10 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId, onDe
 
   if (!selectedNode) {
     return (
-      <div className="workflow-inspector" style={{ width: 340, background: '#ffffff', borderLeft: '1px solid #e2e8f0', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#94a3b8' }}>
+      <div className="workflow-inspector" style={{ width: 340, background: panelBg, borderLeft: panelBdr, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: subClr }}>
         <Sliders size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
-        <div style={{ fontWeight: 600, fontSize: 14, color: '#64748b' }}>No Node Selected</div>
-        <div style={{ fontSize: 12, marginTop: 4 }}>Click on any node on the canvas to configure its settings, variables, and retry policies.</div>
+        <div style={{ fontWeight: 600, fontSize: 14, color: titleClr }}>No Node Selected</div>
+        <div style={{ fontSize: 12, marginTop: 4, color: subClr }}>Click on any node on the canvas to configure its settings, variables, and retry policies.</div>
       </div>
     );
   }
@@ -85,10 +93,10 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId, onDe
   const nodeType = nodeData.type || 'action';
 
   return (
-    <div className="workflow-inspector" style={{ width: 340, background: '#ffffff', borderLeft: '1px solid #e2e8f0', padding: 16, height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div className="workflow-inspector" style={{ width: 340, background: panelBg, borderLeft: panelBdr, padding: 16, height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e293b' }}>Node Inspector</Title>
-        <span style={{ fontSize: 10, fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: '#475569' }}>
+        <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: titleClr }}>Node Inspector</Title>
+        <span style={{ fontSize: 10, fontFamily: 'monospace', padding: '2px 6px', borderRadius: 4, ...monoChip }}>
           {selectedNode.id}
         </span>
       </div>

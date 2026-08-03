@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { SEOProvider, useSEO } from './context/SEOContext';
 import ProjectSelector from './components/shared/ProjectSelector';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 import DashboardTab from './tabs/DashboardTab';
 import AuditTab from './tabs/AuditTab';
@@ -55,6 +56,12 @@ const MarketplaceSEOContent = () => {
   const location = useLocation();
   const { activeProject } = useSEO();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { isDark } = useTheme();
+
+  const navBg    = isDark ? '#111c31' : undefined;
+  const navBdr   = isDark ? '1px solid #1e293b' : '1px solid var(--border-color, #e8e8e8)';
+  const tabClr   = isDark ? '#94a3b8' : 'var(--text-secondary, #595959)';
+  const cardBg   = isDark ? '#111c31' : '#ffffff';
 
   const getBasePath = () => {
     const currentPath = location.pathname.replace(/\/+$/, '');
@@ -183,10 +190,13 @@ const MarketplaceSEOContent = () => {
         style={{
           display: 'flex',
           gap: 4,
-          borderBottom: '1px solid var(--border-color, #e8e8e8)',
+          borderBottom: navBdr,
           marginBottom: 20,
           overflowX: 'auto',
-          paddingBottom: 0
+          paddingBottom: 0,
+          background: navBg,
+          borderRadius: navBg ? '8px 8px 0 0' : undefined,
+          padding: navBg ? '0 8px' : undefined
         }}
       >
         {NAV_ITEMS.map((item) => {
@@ -198,7 +208,7 @@ const MarketplaceSEOContent = () => {
               onClick={() => handleTabSelect(item.id)}
               style={{
                 padding: '10px 14px',
-                color: isActive ? 'var(--accent-primary, #1890ff)' : 'var(--text-secondary, #595959)',
+                color: isActive ? 'var(--accent-primary, #1890ff)' : tabClr,
                 borderBottom: isActive ? '3px solid var(--accent-primary, #1890ff)' : '3px solid transparent',
                 fontWeight: isActive ? 700 : 500,
                 fontSize: 13,
@@ -219,7 +229,7 @@ const MarketplaceSEOContent = () => {
 
       {/* Active Tab Panel */}
       <motion.div variants={itemVariants}>
-        <Card style={{ borderRadius: 12, boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05))' }}>
+        <Card style={{ borderRadius: 12, boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05))', background: cardBg }}>
           {renderTabContent()}
         </Card>
       </motion.div>

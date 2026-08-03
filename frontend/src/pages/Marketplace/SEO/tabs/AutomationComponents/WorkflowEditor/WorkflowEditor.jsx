@@ -12,6 +12,7 @@ import {
   CheckCircle, Globe, Zap, Settings, RefreshCw
 } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const isExistingWorkflow = workflowId && workflowId !== 'new' && workflowId !== 'temp_workflow';
@@ -22,6 +23,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', status: 'Draft', triggerType: 'event', category: 'General', description: '' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { isDark } = useTheme();
 
   // Modals & Drawers
   const [showSimulator, setShowSimulator] = useState(false);
@@ -262,9 +264,9 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
         minHeight: 650, 
         display: 'flex', 
         flexDirection: 'column', 
-        background: '#f8fafc',
+        background: isDark ? '#0b132b' : '#f8fafc',
         borderRadius: 12,
-        border: '1px solid #e2e8f0',
+        border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
         overflow: 'hidden',
         marginTop: 8
       }}
@@ -276,8 +278,8 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
           height: 60, 
           minHeight: 60,
           padding: '0 16px', 
-          background: '#ffffff', 
-          borderBottom: '1px solid #e2e8f0', 
+          background: isDark ? '#0f172a' : '#ffffff', 
+          borderBottom: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
@@ -300,7 +302,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
           ) : (
             <div 
               onClick={() => setEditingTitle(true)}
-              style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ fontWeight: 700, fontSize: 16, color: isDark ? '#f1f5f9' : '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
             >
               <span>{workflowMeta.name}</span>
               <Tag color={workflowMeta.status === 'Active' || workflowMeta.status === 'Published' ? 'green' : 'default'} style={{ margin: 0, fontSize: 11 }}>

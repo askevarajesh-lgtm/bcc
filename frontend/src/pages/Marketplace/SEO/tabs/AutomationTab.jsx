@@ -2,6 +2,7 @@ import React, { useState, Suspense, useEffect } from 'react';
 import { Tabs, Spin, Typography, message } from 'antd';
 import { Rocket, ListTree, Activity, Clock, BarChart, Settings as SettingsIcon, FileText, Zap, ShieldCheck, Bell, Calendar } from 'lucide-react';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 import Dashboard from './AutomationComponents/Dashboard';
 import WorkflowsList from './AutomationComponents/WorkflowsList';
@@ -25,6 +26,7 @@ export default function AutomationTab({ projectId: propProjectId }) {
   const effectiveProjectId = propProjectId || contextProjectId;
   const [activeView, setActiveView] = useState('dashboard');
   const [editingWorkflowId, setEditingWorkflowId] = useState(null);
+  const { isDark } = useTheme();
 
   const handleEditWorkflow = (workflowId) => {
     setEditingWorkflowId(workflowId);
@@ -107,9 +109,12 @@ export default function AutomationTab({ projectId: propProjectId }) {
   ];
 
   return (
-    <div className="automation-tab-container" style={{ padding: '0 8px' }}>
+    <div 
+      className={`automation-tab-container${isDark ? ' dark' : ''}`} 
+      style={{ padding: '0 8px', background: isDark ? '#0f172a' : undefined, color: isDark ? '#f8fafc' : undefined }}
+    >
       <div style={{ marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: -0.5 }}>Enterprise SEO Automation Platform</Title>
+        <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: -0.5, color: isDark ? '#f1f5f9' : undefined }}>Enterprise SEO Automation Platform</Title>
       </div>
       <Tabs 
         activeKey={activeView}

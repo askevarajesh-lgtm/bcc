@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, Space, message, Popconfirm, Input, Typography, Switch, Tooltip } from 'antd';
 import { Edit2, Play, Copy, Trash2, Plus, Search, CheckCircle, RefreshCw, Zap } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -9,6 +10,9 @@ export default function WorkflowsList({ projectId, onEdit }) {
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const { isDark } = useTheme();
+  const titleClr = isDark ? '#f1f5f9' : '#0f172a';
+  const subClr   = isDark ? '#64748b' : '#64748b';
 
   useEffect(() => {
     fetchWorkflows();
@@ -91,10 +95,10 @@ export default function WorkflowsList({ projectId, onEdit }) {
       key: 'name',
       render: (t, r) => (
         <div>
-          <span style={{ fontWeight: 600, color: '#0f172a', cursor: 'pointer' }} onClick={() => onEdit(r._id)}>
+          <span style={{ fontWeight: 600, color: titleClr, cursor: 'pointer' }} onClick={() => onEdit(r._id)}>
             {t}
           </span>
-          <div style={{ fontSize: 11, color: '#64748b' }}>Version: {r.version || 'v1.0'}</div>
+          <div style={{ fontSize: 11, color: subClr }}>Version: {r.version || 'v1.0'}</div>
         </div>
       )
     },

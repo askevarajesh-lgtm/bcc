@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Progress, Table, Tag, Alert, Spin } from 'antd';
 import { ShieldAlert, AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
-
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 import { useMonitoring } from '../MonitoringContext';
 
 const { Title, Text } = Typography;
@@ -21,6 +21,9 @@ export default function RiskAssessmentView({ project }) {
   
   const [riskData, setRiskData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { isDark } = useTheme();
+  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -76,7 +79,7 @@ export default function RiskAssessmentView({ project }) {
       <Spin spinning={loading}>
         <Row gutter={[16, 16]}>
           <Col xs={24} md={8}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#ffffff', height: '100%' }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: cardBdr, background: cardBg, height: '100%' }}>
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <Progress
                   type="dashboard"
@@ -84,8 +87,8 @@ export default function RiskAssessmentView({ project }) {
                   strokeColor={data.riskScore > 50 ? '#ef4444' : '#10b981'}
                   format={percent => (
                     <div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>{percent}</div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>RISK INDEX</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: isDark ? '#f1f5f9' : '#0f172a' }}>{percent}</div>
+                      <div style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b' }}>RISK INDEX</div>
                     </div>
                   )}
                 />
@@ -99,7 +102,7 @@ export default function RiskAssessmentView({ project }) {
           </Col>
 
           <Col xs={24} md={16}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#ffffff', height: '100%' }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: cardBdr, background: cardBg, height: '100%' }}>
               <Title level={5} style={{ marginBottom: 12 }}>Risk Factor Breakdown</Title>
               <Table
                 dataSource={data.factors}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, message, Button, Drawer, Typography, Space, Select, Input } from 'antd';
 import { RefreshCw, Search, CheckCircle2, XCircle, Clock, Terminal, ChevronRight } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -12,6 +13,12 @@ export default function ExecutionHistory({ projectId }) {
   const [selectedRun, setSelectedRun] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const { isDark } = useTheme();
+
+  const cardBg  = isDark ? '#111c31' : '#f8fafc';
+  const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const nodeCardBg = isDark ? '#1e293b' : '#ffffff';
+  const nodeCardBdr = isDark ? '1px solid #334155' : '1px solid #e2e8f0';
 
   useEffect(() => {
     fetchHistory();
@@ -149,7 +156,7 @@ export default function ExecutionHistory({ projectId }) {
       >
         {selectedRun && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <div style={{ padding: 12, background: cardBg, borderRadius: 8, border: cardBdr }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <Text strong>Status:</Text>
                 <Tag color={selectedRun.status === 'Succeeded' ? 'green' : 'red'}>{selectedRun.status}</Tag>
@@ -177,8 +184,8 @@ export default function ExecutionHistory({ projectId }) {
                   style={{ 
                     padding: '10px 12px', 
                     borderRadius: 8, 
-                    background: '#ffffff', 
-                    border: '1px solid #e2e8f0',
+                    background: nodeCardBg, 
+                    border: nodeCardBdr,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'

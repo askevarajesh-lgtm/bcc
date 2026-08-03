@@ -1,4 +1,5 @@
 import React, { useCallback, useRef } from 'react';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 import {
   ReactFlow,
   Controls,
@@ -21,6 +22,10 @@ const nodeTypes = {
 export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode, selectedNodeId }) {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
+  const { isDark } = useTheme();
+
+  const canvasBg  = isDark ? '#090e1a' : '#f8fafc';
+  const dotColor  = isDark ? '#1e2e4a' : '#cbd5e1';
 
   const formattedNodes = React.useMemo(() => {
     return nodes.map(n => ({
@@ -121,7 +126,7 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode,
       ref={reactFlowWrapper} 
       onDragOver={onDragOver}
       onDrop={onDrop}
-      style={{ flex: 1, height: '100%', position: 'relative', background: '#f8fafc' }}
+      style={{ flex: 1, height: '100%', position: 'relative', background: canvasBg }}
     >
       <ReactFlow
         nodes={formattedNodes}
@@ -139,7 +144,7 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode,
         snapGrid={[15, 15]}
       >
         <Controls showInteractive={false} position="bottom-left" />
-        <Background variant="dots" gap={16} size={1} color="#cbd5e1" />
+        <Background variant="dots" gap={16} size={1} color={dotColor} />
         <Panel position="top-right" style={{ display: 'flex', gap: 8, margin: 12 }}>
           <Tooltip title="Fit View">
             <Button icon={<Maximize2 size={14} />} onClick={() => fitView({ padding: 0.2 })} />

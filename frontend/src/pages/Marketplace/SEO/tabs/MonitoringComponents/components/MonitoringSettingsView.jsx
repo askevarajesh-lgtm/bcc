@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Form, Select, InputNumber, Switch, Button, Typography, message, Divider, Space, Tag } from 'antd';
 import { Settings, Save, Bell, Shield, Activity, Globe } from 'lucide-react';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -8,6 +9,9 @@ const { Option } = Select;
 export default function MonitoringSettingsView({ project }) {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+  const { isDark } = useTheme();
+  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
 
   const handleSave = (values) => {
     setLoading(true);
@@ -24,7 +28,7 @@ export default function MonitoringSettingsView({ project }) {
         <Text type="secondary">Configure automatic scan frequencies, alert trigger thresholds, and multi-channel routing</Text>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#ffffff' }}>
+      <Card bordered={false} style={{ borderRadius: 12, border: cardBdr, background: cardBg }}>
         <Form
           form={form}
           layout="vertical"

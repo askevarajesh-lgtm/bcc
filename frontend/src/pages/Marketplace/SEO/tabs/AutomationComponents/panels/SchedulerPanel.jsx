@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Tag, Switch, Modal, Form, Input, Select, Space, message, Popconfirm, Typography } from 'antd';
 import { Clock, Plus, Play, Trash2, Calendar, Globe, ListTree } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -12,6 +13,12 @@ export default function SchedulerPanel({ projectId }) {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form] = Form.useForm();
+  const { isDark } = useTheme();
+
+  const cardBg   = isDark ? '#111c31' : '#ffffff';
+  const cardBdr  = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
+  const titleClr = isDark ? '#f1f5f9' : '#0f172a';
+  const subClr   = isDark ? '#94a3b8' : '#64748b';
 
   const loadData = async () => {
     if (!projectId) return;
@@ -94,8 +101,8 @@ export default function SchedulerPanel({ projectId }) {
       key: 'name', 
       render: (text, r) => (
         <div>
-          <span style={{ fontWeight: 600, color: '#0f172a' }}>{text}</span>
-          <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontWeight: 600, color: titleClr }}>{text}</span>
+          <div style={{ fontSize: 11, color: subClr, display: 'flex', alignItems: 'center', gap: 4 }}>
             <ListTree size={11} /> {r.workflowId?.name || r.workflowName || 'Default DAG Pipeline'}
           </div>
         </div>

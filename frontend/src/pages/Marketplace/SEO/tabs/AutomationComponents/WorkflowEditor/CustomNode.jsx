@@ -5,6 +5,7 @@ import {
   Mail, Search, AlertCircle, CheckCircle2, MoreVertical, Copy, Trash2
 } from 'lucide-react';
 import { Dropdown, Tooltip, Tag } from 'antd';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const NODE_COLORS = {
   trigger: { border: '#8b5cf6', bg: '#f5f3ff', badge: '#7c3aed', icon: <Zap size={14} color="#7c3aed" /> },
@@ -23,6 +24,12 @@ export default function CustomNode({ id, data, isConnectable, selected }) {
   const isTrigger = nodeType === 'trigger';
   const isCondition = nodeType === 'condition';
   const isSwitch = nodeType === 'switch';
+  const { isDark } = useTheme();
+
+  const cardBg     = isDark ? '#111c31' : '#ffffff';
+  const labelColor = isDark ? '#f1f5f9' : '#1e293b';
+  const subColor   = isDark ? '#94a3b8' : '#64748b';
+  const divColor   = isDark ? '#1e293b' : '#e2e8f0';
 
   const menuItems = [
     { key: 'copy', label: 'Duplicate Node', icon: <Copy size={14} /> },
@@ -34,11 +41,13 @@ export default function CustomNode({ id, data, isConnectable, selected }) {
       style={{
         padding: '12px 16px',
         borderRadius: 10,
-        background: '#ffffff',
+        background: cardBg,
         border: `2px solid ${selected ? '#2563eb' : styling.border}`,
         boxShadow: selected 
-          ? '0 0 0 3px rgba(37, 99, 235, 0.25), 0 8px 16px -2px rgba(0, 0, 0, 0.1)' 
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+          ? '0 0 0 3px rgba(37, 99, 235, 0.25), 0 8px 16px -2px rgba(0, 0, 0, 0.15)' 
+          : isDark
+            ? '0 4px 12px rgba(0,0,0,0.4)'
+            : '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
         minWidth: 200,
         maxWidth: 260,
         cursor: 'pointer',
@@ -77,18 +86,18 @@ export default function CustomNode({ id, data, isConnectable, selected }) {
       </div>
 
       {/* Label & Description */}
-      <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b', marginBottom: 2, wordBreak: 'break-word' }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: labelColor, marginBottom: 2, wordBreak: 'break-word' }}>
         {data.label || 'Unnamed Node'}
       </div>
       {data.subtitle && (
-        <div style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 11, color: subColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {data.subtitle}
         </div>
       )}
 
       {/* Condition / Switch Branch Labels */}
       {isCondition ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 6, borderTop: '1px dashed #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 6, borderTop: `1px dashed ${divColor}` }}>
           <div style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: '#10b981' }}>
             True
             <Handle

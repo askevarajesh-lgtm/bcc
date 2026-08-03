@@ -5,12 +5,22 @@ import {
   Split, Repeat, Sparkles, Mail, MessageSquare, Database, FileText, 
   Layers, CheckCircle2, Globe, Cpu, Share2
 } from 'lucide-react';
+import { useTheme } from '../../../../../../contexts/ThemeContext';
 
 const { Title } = Typography;
 const { Panel } = Collapse;
 
 export default function NodePalette({ onAddNode }) {
   const [search, setSearch] = useState('');
+  const { isDark } = useTheme();
+
+  const paletteBg   = isDark ? '#0f172a' : '#ffffff';
+  const titleColor  = isDark ? '#f1f5f9' : '#1e293b';
+  const subColor    = isDark ? '#64748b' : '#64748b';
+  const cardBg      = isDark ? '#1e293b' : '#f8fafc';
+  const cardBorder  = isDark ? '#334155' : '#e2e8f0';
+  const cardColor   = isDark ? '#cbd5e1' : '#334155';
+  const borderRight = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
 
   const onDragStart = (event, nodeData) => {
     window.__draggedWorkflowNode = nodeData;
@@ -92,10 +102,10 @@ export default function NodePalette({ onAddNode }) {
   })).filter(cat => cat.nodes.length > 0);
 
   return (
-    <div className="workflow-palette" style={{ width: 280, background: '#ffffff', borderRight: '1px solid #e2e8f0', padding: 16, height: '100%', overflowY: 'auto' }}>
+    <div className="workflow-palette" style={{ width: 280, background: paletteBg, borderRight, padding: 16, height: '100%', overflowY: 'auto' }}>
       <div style={{ marginBottom: 12 }}>
-        <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e293b' }}>Node Library</Title>
-        <p style={{ margin: '2px 0 10px 0', fontSize: 12, color: '#64748b' }}>Drag onto canvas or click to add</p>
+        <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: titleColor }}>Node Library</Title>
+        <p style={{ margin: '2px 0 10px 0', fontSize: 12, color: subColor }}>Drag onto canvas or click to add</p>
         <Input.Search 
           placeholder="Search 50+ nodes..." 
           size="small" 
@@ -125,8 +135,8 @@ export default function NodePalette({ onAddNode }) {
                   style={{
                     padding: '8px 10px',
                     borderRadius: 8,
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
+                    border: `1px solid ${cardBorder}`,
+                    background: cardBg,
                     cursor: 'grab',
                     display: 'flex',
                     flexDirection: 'column',
@@ -136,11 +146,11 @@ export default function NodePalette({ onAddNode }) {
                   }}
                   className="palette-node-item"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 12, color: '#1e293b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 12, color: titleColor }}>
                     <div style={{ color: cat.color }}>{n.icon}</div>
                     <span>{n.label}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b', paddingLeft: 20 }}>
+                  <div style={{ fontSize: 11, color: subColor, paddingLeft: 20 }}>
                     {n.subtitle}
                   </div>
                 </div>
