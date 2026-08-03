@@ -19,9 +19,9 @@ const NAV_ITEMS = [
   { id: 'competitors', label: 'Competitors', icon: Swords },
   { id: 'content-ai', label: 'Content AI', icon: Sparkles },
   { id: 'technical-seo', label: 'Technical SEO', icon: Cpu },
-  { id: 'website-builder', label: 'Website Builder', icon: LayoutTemplate },
-  { id: 'store-seo', label: 'Store SEO', icon: ShoppingBag },
-  { id: 'blog-seo', label: 'Blog SEO', icon: BookOpen },
+  // { id: 'website-builder', label: 'Website Builder', icon: LayoutTemplate },
+  // { id: 'store-seo', label: 'Store SEO', icon: ShoppingBag },
+  // { id: 'blog-seo', label: 'Blog SEO', icon: BookOpen },
   { id: 'aeo', label: 'AEO', icon: MessageCircle },
   { id: 'geo', label: 'GEO', icon: Globe2 },
   { id: 'reports', label: 'Reports', icon: FileText },
@@ -48,21 +48,21 @@ const MarketplaceSEOContent = () => {
   const basePath = location.pathname.split('/marketplace/seo')[0] + '/marketplace/seo';
   const activeId = NAV_ITEMS.find((item) => location.pathname.includes(`/${item.id}`))?.id || 'dashboard';
 
-  const domainUrl = activeProject?.domain 
+  const domainUrl = activeProject?.domain
     ? (activeProject.domain.startsWith('http') ? activeProject.domain : `https://${activeProject.domain}`)
     : null;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       {/* Header & Global Project Selector Banner */}
-      <motion.div 
-        variants={itemVariants} 
-        style={{ 
-          marginBottom: 20, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          flexWrap: 'wrap', 
+      <motion.div
+        variants={itemVariants}
+        style={{
+          marginBottom: 20,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 16,
           background: 'var(--bg-secondary, #fafafa)',
           padding: '16px 20px',
@@ -105,11 +105,11 @@ const MarketplaceSEOContent = () => {
           {activeProject && (
             <Space size={8} wrap>
               {domainUrl && (
-                <Button 
+                <Button
                   size="middle"
-                  icon={<Globe size={14} />} 
-                  href={domainUrl} 
-                  target="_blank" 
+                  icon={<Globe size={14} />}
+                  href={domainUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 >
@@ -129,13 +129,13 @@ const MarketplaceSEOContent = () => {
       {/* Sub-navigation Tabs */}
       <motion.div
         variants={itemVariants}
-        style={{ 
-          display: 'flex', 
-          gap: 4, 
-          borderBottom: '1px solid var(--border-color, #e8e8e8)', 
-          marginBottom: 20, 
-          overflowX: 'auto', 
-          paddingBottom: 0 
+        style={{
+          display: 'flex',
+          gap: 4,
+          borderBottom: '1px solid var(--border-color, #e8e8e8)',
+          marginBottom: 20,
+          overflowX: 'auto',
+          paddingBottom: 0
         }}
       >
         {NAV_ITEMS.map((item) => {

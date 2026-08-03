@@ -69,17 +69,17 @@ const SignalsPanel = ({ signals }) => {
               <Col span={12}>
                 <Text strong>Desktop Performance</Text>
                 <div style={{ fontSize: 12, marginTop: 4 }}>
-                  <div>LCP: <b>{signals.coreWebVitals.desktop?.lcp || '1.8s'}</b></div>
-                  <div>CLS: <b>{signals.coreWebVitals.desktop?.cls || '0.04'}</b></div>
-                  <div>INP: <b>{signals.coreWebVitals.desktop?.inp || '85ms'}</b></div>
+                  <div>LCP: <b>{signals.coreWebVitals.desktop?.lcp?.displayValue || '1.8s'}</b></div>
+                  <div>CLS: <b>{signals.coreWebVitals.desktop?.cls?.displayValue || '0.04'}</b></div>
+                  <div>TBT: <b>{signals.coreWebVitals.desktop?.tbt?.displayValue || '85ms'}</b></div>
                 </div>
               </Col>
               <Col span={12}>
                 <Text strong>Mobile Performance</Text>
                 <div style={{ fontSize: 12, marginTop: 4 }}>
-                  <div>LCP: <b>{signals.coreWebVitals.mobile?.lcp || '2.2s'}</b></div>
-                  <div>CLS: <b>{signals.coreWebVitals.mobile?.cls || '0.06'}</b></div>
-                  <div>INP: <b>{signals.coreWebVitals.mobile?.inp || '110ms'}</b></div>
+                  <div>LCP: <b>{signals.coreWebVitals.mobile?.lcp?.displayValue || '2.2s'}</b></div>
+                  <div>CLS: <b>{signals.coreWebVitals.mobile?.cls?.displayValue || '0.06'}</b></div>
+                  <div>TBT: <b>{signals.coreWebVitals.mobile?.tbt?.displayValue || '110ms'}</b></div>
                 </div>
               </Col>
             </Row>

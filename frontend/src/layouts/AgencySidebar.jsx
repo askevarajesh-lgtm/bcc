@@ -2,34 +2,23 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
-  BookOpen,
   Briefcase,
   Calendar,
   CheckSquare,
-  ClipboardCheck,
-  Cpu,
   CreditCard,
   FileText,
-  Globe2,
-  Hash,
   HelpCircle,
   Inbox,
   LayoutDashboard,
-  LayoutGrid,
-  LayoutTemplate,
   Library,
   Megaphone,
-  MessageCircle,
   PenTool,
   PieChart,
   Search,
   Settings,
   Share2,
   Shield,
-  ShoppingBag,
-  Sparkles,
   Store,
-  Swords,
   Target,
   TrendingUp,
   Users,
@@ -43,7 +32,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, features, user } = useAuth();
-  
+
   const [slaCount, setSlaCount] = React.useState(0);
 
   React.useEffect(() => {
@@ -116,17 +105,17 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const workspaceChildren = [];
-  
+
   if (role !== 'agency_super_admin') {
     if (feats.includes('strategy')) workspaceChildren.push({ key: '/agency/strategy', icon: getIcon(Target), label: 'Strategy' });
     if (feats.includes('aistudio')) workspaceChildren.push({ key: '/agency/ai-studio', icon: getIcon(Zap), label: 'AI Studio' });
     if (feats.includes('social')) workspaceChildren.push({ key: '/agency/social-media', icon: getIcon(Share2), label: 'Social Media' });
     if (feats.includes('ads')) workspaceChildren.push({ key: '/agency/performance-ads', icon: getIcon(Megaphone), label: 'Performance Ads' });
-    
+
     if (feats.includes('crm')) {
       workspaceChildren.push({ key: '/agency/crm', icon: getIcon(Inbox), label: 'CRM & Leads' });
     }
-    
+
     // Default modules always available
     workspaceChildren.push({ key: '/agency/proposals', icon: getIcon(FileText), label: 'Proposals' });
     workspaceChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
@@ -139,28 +128,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       label: 'Marketplace',
       children: [
         { key: '/agency/marketplace', icon: getIcon(Store), label: 'Overview' },
-        {
-          key: 'agency-marketplace-seo',
-          icon: getIcon(Search),
-          label: 'SEO',
-          children: [
-            { key: '/agency/marketplace/seo/dashboard', icon: getIcon(LayoutGrid), label: 'Dashboard' },
-            { key: '/agency/marketplace/seo/audit', icon: getIcon(ClipboardCheck), label: 'Audit' },
-            { key: '/agency/marketplace/seo/keywords', icon: getIcon(Hash), label: 'Keywords' },
-            { key: '/agency/marketplace/seo/competitors', icon: getIcon(Swords), label: 'Competitors' },
-            { key: '/agency/marketplace/seo/content-ai', icon: getIcon(Sparkles), label: 'Content AI' },
-            { key: '/agency/marketplace/seo/technical-seo', icon: getIcon(Cpu), label: 'Technical SEO' },
-            { key: '/agency/marketplace/seo/website-builder', icon: getIcon(LayoutTemplate), label: 'Website Builder' },
-            { key: '/agency/marketplace/seo/store-seo', icon: getIcon(ShoppingBag), label: 'Store SEO' },
-            { key: '/agency/marketplace/seo/blog-seo', icon: getIcon(BookOpen), label: 'Blog SEO' },
-            { key: '/agency/marketplace/seo/aeo', icon: getIcon(MessageCircle), label: 'AEO' },
-            { key: '/agency/marketplace/seo/geo', icon: getIcon(Globe2), label: 'GEO' },
-            { key: '/agency/marketplace/seo/reports', icon: getIcon(FileText), label: 'Reports' },
-            { key: '/agency/marketplace/seo/automation', icon: getIcon(Zap), label: 'Automation' },
-            { key: '/agency/marketplace/seo/monitoring', icon: getIcon(Activity), label: 'Monitoring' },
-            { key: '/agency/marketplace/seo/settings', icon: getIcon(Settings), label: 'Settings' },
-          ],
-        },
+        { key: '/agency/marketplace/seo/dashboard', icon: getIcon(Search), label: 'SEO' },
       ],
     });
     if (feats.includes('seo')) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
@@ -181,7 +149,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     if (feats.includes('canva')) intelligenceChildren.push({ key: '/agency/canva', icon: getIcon(PenTool), label: 'Canva' });
     if (feats.includes('benchmark')) intelligenceChildren.push({ key: '/agency/benchmarks', icon: getIcon(Activity), label: 'Benchmark' });
   }
-  
+
   if (role === 'agency_super_admin') {
     intelligenceChildren.push({ key: '/agency/performance', icon: getIcon(TrendingUp), label: 'Performance' });
     intelligenceChildren.push({ key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' });

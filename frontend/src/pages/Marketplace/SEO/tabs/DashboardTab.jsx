@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Row, Col, Card, Statistic, Table, Tag, Empty, Skeleton, Alert, Progress, Space, Divider, Button, Segmented, Tooltip } from 'antd';
-import { 
-  LayoutGrid, Globe, ClipboardList, AlertTriangle, Activity, TrendingUp, 
+import {
+  LayoutGrid, Globe, ClipboardList, AlertTriangle, Activity, TrendingUp,
   ActivitySquare, ServerCrash, CheckCircle, BarChart2, ShieldCheck, Sparkles,
   ArrowUpRight, ArrowDownRight, Compass, MessageCircle, FileText, Swords
 } from 'lucide-react';
@@ -104,11 +104,11 @@ const DashboardTab = () => {
     { title: 'Action', dataIndex: 'action', key: 'action', render: (a) => <Tag color="blue">{a}</Tag> },
     { title: 'Entity', dataIndex: 'entityType', key: 'entityType' },
     { title: 'User', dataIndex: ['userId', 'name'], key: 'userName', render: (u) => u || 'AI Agent' },
-    { 
-      title: 'Time', 
-      dataIndex: 'createdAt', 
-      key: 'createdAt', 
-      render: (t) => t ? new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—' 
+    {
+      title: 'Time',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (t) => t ? new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'
     }
   ];
 
@@ -125,7 +125,7 @@ const DashboardTab = () => {
               {viewMode === 'project' && activeProject ? `${activeProject.name} — Command Center` : 'Workspace SEO — Portfolio Overview'}
             </Title>
             <Text type="secondary">
-              {viewMode === 'project' && activeProject 
+              {viewMode === 'project' && activeProject
                 ? `Real-time health, keyword performance, AEO/GEO scores, and crawler vitals for ${activeProject.domain}`
                 : 'Aggregated analytics and activity across all active workspace projects.'}
             </Text>
@@ -154,65 +154,65 @@ const DashboardTab = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="SEO Score" 
-                  value={data.avgSeoScore || 82} 
-                  suffix="/ 100" 
-                  prefix={<ActivitySquare size={16} />} 
-                  valueStyle={{ color: '#389e0d', fontWeight: 700 }} 
+                <Statistic
+                  title="SEO Score"
+                  value={data.avgSeoScore || 82}
+                  suffix="/ 100"
+                  prefix={<ActivitySquare size={16} />}
+                  valueStyle={{ color: '#389e0d', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="Health Index" 
-                  value={data.avgHealthScore || 85} 
-                  suffix="/ 100" 
-                  prefix={<ShieldCheck size={16} />} 
-                  valueStyle={{ color: '#096dd9', fontWeight: 700 }} 
+                <Statistic
+                  title="Health Index"
+                  value={data.avgHealthScore || 85}
+                  suffix="/ 100"
+                  prefix={<ShieldCheck size={16} />}
+                  valueStyle={{ color: '#096dd9', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="AEO Answer Score" 
-                  value={data.aeoScore || 78} 
-                  suffix="/ 100" 
-                  prefix={<MessageCircle size={16} />} 
-                  valueStyle={{ color: '#531dab', fontWeight: 700 }} 
+                <Statistic
+                  title="AEO Answer Score"
+                  value={data.aeoScore || 78}
+                  suffix="/ 100"
+                  prefix={<MessageCircle size={16} />}
+                  valueStyle={{ color: '#531dab', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="GEO Visibility" 
-                  value={data.geoScore || 84} 
-                  suffix="/ 100" 
-                  prefix={<Globe size={16} />} 
-                  valueStyle={{ color: '#d46b08', fontWeight: 700 }} 
+                <Statistic
+                  title="GEO Visibility"
+                  value={data.geoScore || 84}
+                  suffix="/ 100"
+                  prefix={<Globe size={16} />}
+                  valueStyle={{ color: '#d46b08', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fcffe6 0%, #f4ffb8 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="Tracked Keywords" 
-                  value={data.keywords?.total || 0} 
-                  prefix={<BarChart2 size={16} />} 
-                  valueStyle={{ color: '#7cb305', fontWeight: 700 }} 
+                <Statistic
+                  title="Tracked Keywords"
+                  value={data.keywords?.total || 0}
+                  prefix={<BarChart2 size={16} />}
+                  valueStyle={{ color: '#7cb305', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
               <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffd8e4 100%)', borderRadius: 8 }}>
-                <Statistic 
-                  title="Active Projects" 
-                  value={data.totalProjects || 1} 
-                  prefix={<Globe size={16} />} 
-                  valueStyle={{ color: '#c41d7f', fontWeight: 700 }} 
+                <Statistic
+                  title="Active Projects"
+                  value={data.totalProjects || 1}
+                  prefix={<Globe size={16} />}
+                  valueStyle={{ color: '#c41d7f', fontWeight: 700 }}
                 />
               </Card>
             </Col>
@@ -252,17 +252,17 @@ const DashboardTab = () => {
                 <div style={{ padding: '8px 0' }}>
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Statistic 
-                        title="Pages Crawled" 
-                        value={data.technical?.totalPagesCrawled || 0} 
-                        prefix={<Globe size={16} color="#1890ff" />} 
+                      <Statistic
+                        title="Pages Crawled"
+                        value={data.technical?.totalPagesCrawled || 0}
+                        prefix={<Globe size={16} color="#1890ff" />}
                       />
                     </Col>
                     <Col span={12}>
-                      <Statistic 
-                        title="Crawl Errors" 
-                        value={data.technical?.totalErrors || 0} 
-                        prefix={<ServerCrash size={16} color={data.technical?.totalErrors > 0 ? '#f5222d' : '#52c41a'} />} 
+                      <Statistic
+                        title="Crawl Errors"
+                        value={data.technical?.totalErrors || 0}
+                        prefix={<ServerCrash size={16} color={data.technical?.totalErrors > 0 ? '#f5222d' : '#52c41a'} />}
                         valueStyle={{ color: data.technical?.totalErrors > 0 ? '#f5222d' : '#52c41a' }}
                       />
                     </Col>
@@ -292,12 +292,12 @@ const DashboardTab = () => {
             <Col xs={24} lg={14}>
               <Card size="small" title="Recent Workspace Activity" style={{ borderRadius: 8 }}>
                 {data.recentActivity?.length > 0 ? (
-                  <Table 
-                    size="small" 
-                    columns={recentColumns} 
-                    dataSource={data.recentActivity} 
-                    rowKey="_id" 
-                    pagination={false} 
+                  <Table
+                    size="small"
+                    columns={recentColumns}
+                    dataSource={data.recentActivity}
+                    rowKey="_id"
+                    pagination={false}
                   />
                 ) : (
                   <Empty description="No recent activity logged for this scope." image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -308,39 +308,39 @@ const DashboardTab = () => {
             <Col xs={24} lg={10}>
               <Card size="small" title="Quick Intelligence Launchpad" style={{ borderRadius: 8 }}>
                 <Space direction="vertical" orientation="left" style={{ width: '100%' }} size={10}>
-                  <Button 
-                    type="primary" 
-                    block 
+                  <Button
+                    type="primary"
+                    block
                     icon={<ClipboardList size={15} />}
-                    onClick={() => navigate('/marketplace/seo/audit')}
+                    onClick={() => navigate('../audit')}
                   >
                     Run Comprehensive Audit
                   </Button>
-                  <Button 
-                    block 
+                  <Button
+                    block
                     icon={<BarChart2 size={15} />}
-                    onClick={() => navigate('/marketplace/seo/keywords')}
+                    onClick={() => navigate('../keywords')}
                   >
                     Discover & Track Keywords
                   </Button>
-                  <Button 
-                    block 
+                  <Button
+                    block
                     icon={<Swords size={15} />}
-                    onClick={() => navigate('/marketplace/seo/competitors')}
+                    onClick={() => navigate('../competitors')}
                   >
                     Benchmark Competitors
                   </Button>
-                  <Button 
-                    block 
+                  <Button
+                    block
                     icon={<MessageCircle size={15} />}
-                    onClick={() => navigate('/marketplace/seo/aeo')}
+                    onClick={() => navigate('../aeo')}
                   >
                     Audit AI Engine (AEO) Visibility
                   </Button>
-                  <Button 
-                    block 
+                  <Button
+                    block
                     icon={<FileText size={15} />}
-                    onClick={() => navigate('/marketplace/seo/reports')}
+                    onClick={() => navigate('../reports')}
                   >
                     Build Executive SEO Report
                   </Button>
