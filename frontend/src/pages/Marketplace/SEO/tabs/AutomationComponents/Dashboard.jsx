@@ -12,9 +12,9 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
   const [loading, setLoading] = useState(true);
   const { isDark } = useTheme();
 
-  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBg = isDark ? '#111c31' : '#ffffff';
   const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
-  const valClr  = isDark ? '#f1f5f9' : '#0f172a';
+  const valClr = isDark ? '#f1f5f9' : '#0f172a';
 
   useEffect(() => {
     fetchDashboardData();
@@ -86,9 +86,9 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
           <Title level={4} style={{ margin: 0 }}>Automation Health & Telemetry Dashboard</Title>
           <Text type="secondary">Live worker status, queue pressure, and real-time execution logs</Text>
         </div>
-        <Button 
-          type="primary" 
-          icon={<Plus size={14} />} 
+        <Button
+          type="primary"
+          icon={<Plus size={14} />}
           onClick={() => onNavigateToEditor && onNavigateToEditor(null)}
           style={{ background: '#2563eb' }}
         >
@@ -99,62 +99,61 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Activity size={15} color="#3b82f6" /> Active Workers</span>} 
-              value={metrics.activeGlobal || 4} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Activity size={15} color="#3b82f6" /> Active Workers</span>}
+              value={metrics.activeGlobal || 4}
               valueStyle={{ fontWeight: 800, color: valClr }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Clock size={15} color="#f59e0b" /> Queued Tasks</span>} 
-              value={metrics.queuedTasks || 0} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Clock size={15} color="#f59e0b" /> Queued Tasks</span>}
+              value={metrics.queuedTasks || 0}
               valueStyle={{ fontWeight: 800, color: valClr }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><CheckCircle size={15} color="#10b981" /> Completed Runs</span>} 
-              value={metrics.completed || 428} 
-              valueStyle={{ fontWeight: 800, color: '#10b981' }} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><CheckCircle size={15} color="#10b981" /> Completed Runs</span>}
+              value={metrics.completed || 428}
+              valueStyle={{ fontWeight: 800, color: '#10b981' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><XCircle size={15} color="#ef4444" /> Failed Runs</span>} 
-              value={metrics.failed || 2} 
-              valueStyle={{ fontWeight: 800, color: '#ef4444' }} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><XCircle size={15} color="#ef4444" /> Failed Runs</span>}
+              value={metrics.failed || 2}
+              valueStyle={{ fontWeight: 800, color: '#ef4444' }}
             />
           </Card>
         </Col>
       </Row>
-      
-      <Card 
+
+      <Card
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 700, fontSize: 14 }}>Recent Workflow Executions</span>
             <Tag color="blue">Live Feed</Tag>
           </div>
-        } 
-        bordered={false} 
+        }
+        bordered={false}
         style={{ borderRadius: 10, border: cardBdr }}>
-      >
-        <Table 
+        <Table
           loading={loading}
           dataSource={recentRuns.length > 0 ? recentRuns : [
             { _id: '1', workflowName: 'Rank Drop Sentinel', triggerType: 'Event', status: 'Succeeded', durationMs: 412, createdAt: new Date().toISOString() },
             { _id: '2', workflowName: 'Core Web Vitals Alert', triggerType: 'Schedule', status: 'Succeeded', durationMs: 620, createdAt: new Date(Date.now() - 120000).toISOString() },
             { _id: '3', workflowName: 'Robots.txt Guardian', triggerType: 'Webhook', status: 'Succeeded', durationMs: 190, createdAt: new Date(Date.now() - 300000).toISOString() }
-          ]} 
-          columns={columns} 
+          ]}
+          columns={columns}
           rowKey="_id"
-          pagination={false} 
+          pagination={false}
           size="small"
         />
       </Card>

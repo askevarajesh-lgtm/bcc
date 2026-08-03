@@ -12,9 +12,9 @@ export default function QueueMonitor({ projectId }) {
   const [actionLoading, setActionLoading] = useState(false);
   const { isDark } = useTheme();
 
-  const cardBg  = isDark ? '#111c31' : '#ffffff';
+  const cardBg = isDark ? '#111c31' : '#ffffff';
   const cardBdr = isDark ? '1px solid #1e293b' : '1px solid #e2e8f0';
-  const valClr  = isDark ? '#f1f5f9' : '#0f172a';
+  const valClr = isDark ? '#f1f5f9' : '#0f172a';
 
   useEffect(() => {
     fetchMetrics();
@@ -124,8 +124,8 @@ export default function QueueMonitor({ projectId }) {
           <Text type="secondary">Priority partitioning, dead letter queue (DLQ) recovery, and concurrency throttle</Text>
         </div>
         <Space>
-          <Button 
-            icon={data.isPaused ? <Play size={14} /> : <Pause size={14} />} 
+          <Button
+            icon={data.isPaused ? <Play size={14} /> : <Pause size={14} />}
             onClick={handlePauseResume}
             loading={actionLoading}
           >
@@ -138,9 +138,9 @@ export default function QueueMonitor({ projectId }) {
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Zap size={15} color="#3b82f6" /> Running Now</span>} 
-              value={data.runningTasks || 1} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Zap size={15} color="#3b82f6" /> Running Now</span>}
+              value={data.runningTasks || 1}
               valueStyle={{ fontWeight: 800, color: '#2563eb' }}
             />
           </Card>
@@ -148,9 +148,9 @@ export default function QueueMonitor({ projectId }) {
 
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Layers size={15} color="#f59e0b" /> Queued Tasks</span>} 
-              value={data.queuedTasks || 0} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><Layers size={15} color="#f59e0b" /> Queued Tasks</span>}
+              value={data.queuedTasks || 0}
               valueStyle={{ fontWeight: 800, color: valClr }}
             />
           </Card>
@@ -158,9 +158,9 @@ export default function QueueMonitor({ projectId }) {
 
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 10, background: cardBg, border: cardBdr }}>
-            <Statistic 
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><ShieldAlert size={15} color="#ef4444" /> Dead Letter (DLQ)</span>} 
-              value={data.deadLetterCount || 0} 
+            <Statistic
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}><ShieldAlert size={15} color="#ef4444" /> Dead Letter (DLQ)</span>}
+              value={data.deadLetterCount || 0}
               valueStyle={{ fontWeight: 800, color: data.deadLetterCount > 0 ? '#ef4444' : '#10b981' }}
             />
           </Card>
@@ -182,11 +182,10 @@ export default function QueueMonitor({ projectId }) {
       {/* Priority Partitions Table */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
-          <Card 
-            title={<span style={{ fontWeight: 700, fontSize: 14 }}>Priority Partition Queues</span>} 
-            bordered={false} 
+          <Card
+            title={<span style={{ fontWeight: 700, fontSize: 14 }}>Priority Partition Queues</span>}
+            bordered={false}
             style={{ borderRadius: 10, border: cardBdr }}>
-          >
             <Table
               dataSource={priorityData}
               rowKey="priority"
@@ -202,18 +201,18 @@ export default function QueueMonitor({ projectId }) {
         </Col>
 
         <Col xs={24} lg={8}>
-          <Card 
-            title={<span style={{ fontWeight: 700, fontSize: 14 }}>DLQ Dead Letter Actions</span>} 
-            bordered={false} 
+          <Card
+            title={<span style={{ fontWeight: 700, fontSize: 14 }}>DLQ Dead Letter Actions</span>}
+            bordered={false}
             style={{ borderRadius: 10, border: cardBdr, height: '100%' }}
           >
             <p style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
               Tasks that have exhausted all retry backoffs are held in the Dead Letter Queue for inspection and safe manual replay.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Button 
-                type="primary" 
-                icon={<RotateCcw size={14} />} 
+              <Button
+                type="primary"
+                icon={<RotateCcw size={14} />}
                 onClick={handleReplayDLQ}
                 loading={actionLoading}
                 block
