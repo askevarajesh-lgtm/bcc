@@ -1,45 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { Select, Button, Modal, Form, Input, Space, message, Empty } from 'antd';
-import { Plus } from 'lucide-react';
-import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
+import React, { useState } from 'react';
+import { Select, Button, Modal, Form, Input, Space, Empty, Tag, Tooltip } from 'antd';
+import { Plus, Globe, RefreshCw } from 'lucide-react';
+import { useSEO } from '../../context/SEOContext';
 
-const ProjectSelector = ({ value, onChange, style }) => {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
+const ProjectSelector = ({ value, onChange, style, showRefresh = true }) => {
+  const { projects, activeProjectId, selectProject, createProject, loading, refreshProjects } = useSEO();
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await seoWorkspaceApi.getProjects();
-      const list = res.data || [];
-      setProjects(list);
-      if (!value && list.length > 0) {
-        onChange(list[0]._id);
-      }
-    } catch (err) {
-      message.error('Failed to load SEO Workspace projects');
-    } finally {
-      setLoading(false);
-    }
+  const currentVal = value !== undefined ? value : activeProjectId;
+
+  const handleSelectChange = (val) => {
+    selectProject(val);
+    if (onChange) onChange(val);
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    setCreating(true);
     try {
-      const res = await seoWorkspaceApi.createProject(values);
-      message.success('Project created');
+      const values = await form.validateFields();
+      setCreating(true);
+      const newProj = await createProject(values);
       setModalOpen(false);
       form.resetFields();
-      await load();
-      if (res.data?._id) onChange(res.data._id);
+      if (onChange && newProj?._id) {
+        onChange(newProj._id);
+      }
     } catch (err) {
-      message.error(err?.response?.data?.message || 'Failed to create project');
+      // Error handled in context
     } finally {
       setCreating(false);
     }
@@ -47,33 +35,63 @@ const ProjectSelector = ({ value, onChange, style }) => {
 
   return (
     <>
-      <Space style={style}>
+      <Space style={style} wrap align="center">
         <Select
           loading={loading}
-          placeholder="Select a project"
-          style={{ minWidth: 260 }}
-          value={value}
-          onChange={onChange}
-          notFoundContent={<Empty description="No projects yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-          options={projects.map((p) => ({ value: p._id, label: `${p.name} (${p.domain})` }))}
+          placeholder="Select a Workspace Project"
+          style={{ minWidth: 280 }}
+          value={currentVal || undefined}
+          onChange={handleSelectChange}
+          showSearch
+          optionFilterProp="label"
+          notFoundContent={<Empty description="No projects found" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+          options={projects.map((p) => ({
+            value: p._id,
+            label: `${p.name} (${p.domain})`,
+            raw: p
+          }))}
         />
-        <Button icon={<Plus size={14} />} onClick={() => setModalOpen(true)}>New Project</Button>
+        <Button 
+          icon={<Plus size={14} />} 
+          onClick={() => setModalOpen(true)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        >
+          New Project
+        </Button>
+        {showRefresh && (
+          <Tooltip title="Refresh Workspace Projects">
+            <Button 
+              icon={<RefreshCw size={14} className={loading ? 'spin' : ''} />} 
+              onClick={() => refreshProjects()}
+              loading={loading} 
+            />
+          </Tooltip>
+        )}
       </Space>
 
       <Modal
-        title="New SEO Workspace Project"
+        title="Create SEO Workspace Project"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleCreate}
         confirmLoading={creating}
-        okText="Create"
+        okText="Create Project"
+        destroyOnClose
       >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Project name" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Acme Corp — Main Site" />
+        <Form form={form} layout="vertical" initialValues={{ languages: 'en' }}>
+          <Form.Item 
+            name="name" 
+            label="Project Name" 
+            rules={[{ required: true, message: 'Please enter project name' }]}
+          >
+            <Input placeholder="e.g. Acme Corp — Global Portal" />
           </Form.Item>
-          <Form.Item name="domain" label="Domain" rules={[{ required: true }]}>
-            <Input placeholder="e.g. acme.com" />
+          <Form.Item 
+            name="domain" 
+            label="Target Website Domain / URL" 
+            rules={[{ required: true, message: 'Please enter target domain' }]}
+          >
+            <Input placeholder="e.g. https://acme.com or acme.com" prefix={<Globe size={14} color="#8c8c8c" />} />
           </Form.Item>
         </Form>
       </Modal>

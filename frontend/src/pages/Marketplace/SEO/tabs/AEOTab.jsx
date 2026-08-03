@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Card, Row, Col, Progress, Tag, Space, Empty, Tooltip, Collapse, List, Tabs, Table, Button, Drawer, Alert, Badge } from 'antd';
 import { MessageCircle, PlayCircle, History, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 
@@ -320,22 +321,24 @@ const AEODashboard = ({ projectId }) => {
 };
 
 const AEOTab = () => {
-  const [projectId, setProjectId] = useState(null);
+  const { activeProjectId: projectId, activeProject } = useSEO();
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
         <MessageCircle size={28} />
         <div>
-          <Title level={4} style={{ margin: 0 }}>AEO Dashboard</Title>
+          <Title level={4} style={{ margin: 0 }}>
+            {activeProject ? `${activeProject.name} — AEO Dashboard` : 'AEO Dashboard'}
+          </Title>
           <Text type="secondary">Answer Engine Optimization — Measure Readiness for AI Overviews, ChatGPT, Gemini</Text>
         </div>
       </div>
 
-      <ProjectSelector value={projectId} onChange={setProjectId} style={{ marginBottom: 20 }} />
+      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {!projectId ? (
-        <Empty description="Select a project to view the AEO Dashboard" />
+        <Empty description="Select or create a Workspace Project to view the AEO Dashboard" />
       ) : (
         <AEODashboard projectId={projectId} />
       )}

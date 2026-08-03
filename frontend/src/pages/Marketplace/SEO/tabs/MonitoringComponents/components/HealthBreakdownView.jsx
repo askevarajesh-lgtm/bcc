@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Tag, Typography, Progress, Table, Spin, Badge } from 'antd';
-import { 
-  Activity, Globe, Search, Cpu, Clock, ShieldCheck, 
-  FileText, Share2, Eye, Sparkles, TrendingUp 
+import {
+  Activity, Globe, Search, Cpu, Clock, ShieldCheck,
+  FileText, Share2, Eye, Sparkles, TrendingUp
 } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useMonitoring } from '../MonitoringContext';
 
 const { Title, Text } = Typography;
 
@@ -24,7 +25,8 @@ const MONITORS_CONFIG = [
 
 export default function HealthBreakdownView({ project }) {
   const [monitors, setMonitors] = useState(MONITORS_CONFIG);
-  const activeProjectId = project?._id || '507f1f77bcf86cd799439011';
+  const { activeProjectId: monitoringProjectId } = useMonitoring();
+  const activeProjectId = project?._id || monitoringProjectId;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -36,11 +38,11 @@ export default function HealthBreakdownView({ project }) {
       <Row gutter={[16, 16]}>
         {monitors.map((m, idx) => (
           <Col xs={24} md={12} lg={8} key={idx}>
-            <Card 
-              bordered={false} 
-              style={{ 
-                borderRadius: 12, 
-                border: '1px solid #e2e8f0', 
+            <Card
+              bordered={false}
+              style={{
+                borderRadius: 12,
+                border: '1px solid #e2e8f0',
                 background: '#ffffff',
                 height: '100%',
                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
@@ -64,11 +66,11 @@ export default function HealthBreakdownView({ project }) {
                   <span style={{ color: '#64748b' }}>Health Index</span>
                   <strong style={{ color: '#0f172a' }}>{m.score}%</strong>
                 </div>
-                <Progress 
-                  percent={m.score} 
-                  showInfo={false} 
-                  strokeColor={m.score >= 90 ? '#10b981' : '#3b82f6'} 
-                  size="small" 
+                <Progress
+                  percent={m.score}
+                  showInfo={false}
+                  strokeColor={m.score >= 90 ? '#10b981' : '#3b82f6'}
+                  size="small"
                 />
               </div>
             </Card>

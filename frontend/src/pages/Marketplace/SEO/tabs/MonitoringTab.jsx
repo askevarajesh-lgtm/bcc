@@ -107,13 +107,7 @@ const MonitoringLayout = ({ project }) => {
         </div>
         <Space wrap>
           {!project && (
-            <ProjectSelector
-              value={activeProjectId}
-              onChange={(newId) => {
-                setProjectId(newId);
-                localStorage.setItem('seo_active_project_id', newId);
-              }}
-            />
+            <ProjectSelector showRefresh={false} />
           )}
           <Button 
             type="primary" 

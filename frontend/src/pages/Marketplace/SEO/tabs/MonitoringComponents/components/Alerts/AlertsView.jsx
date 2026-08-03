@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 const AlertsView = ({ project }) => {
   const { projectId: routeProjectId } = useParams();
   const { activeProjectId: contextProjectId } = useMonitoring();
-  const activeProjectId = routeProjectId || project?._id || contextProjectId || '507f1f77bcf86cd799439011';
+  const activeProjectId = routeProjectId || project?._id || contextProjectId;
   
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);

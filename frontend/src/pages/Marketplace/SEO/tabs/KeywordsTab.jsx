@@ -6,6 +6,7 @@ import {
 import { Hash, Sparkles, Network, TrendingUp, Search, Download, Target, Filter, RefreshCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 
@@ -33,7 +34,7 @@ const TrendSparkline = ({ data = [] }) => {
 };
 
 const KeywordsTab = () => {
-  const [projectId, setProjectId] = useState(null);
+  const { activeProjectId: projectId, activeProject } = useSEO();
   const [activeTab, setActiveTab] = useState('tracked');
   const [error, setError] = useState(null);
 
@@ -338,21 +339,25 @@ const KeywordsTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Hash size={28} />
+          <div style={{ padding: 8, background: '#f9f0ff', borderRadius: 8, color: '#722ed1' }}>
+            <Hash size={24} />
+          </div>
           <div>
-            <Title level={4} style={{ margin: 0 }}>Keyword Intelligence</Title>
-            <Text type="secondary">Enterprise keyword tracking, clustering, and competitive gaps.</Text>
+            <Title level={4} style={{ margin: 0 }}>
+              {activeProject ? `${activeProject.name} — Keyword Intelligence` : 'Keyword Intelligence'}
+            </Title>
+            <Text type="secondary">Enterprise keyword tracking, clustering, semantic clustering, and competitive gaps.</Text>
           </div>
         </div>
       </div>
 
-      <ProjectSelector value={projectId} onChange={setProjectId} style={{ marginBottom: 24 }} />
+      <ProjectSelector style={{ marginBottom: 20 }} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
       {!projectId ? (
-        <Empty description="Select a project to view keyword intelligence" />
+        <Empty description="Select or create a Workspace Project to begin keyword intelligence" />
       ) : (
         <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
           <TabPane tab={<Space><Target size={16}/> Tracked Keywords</Space>} key="tracked">

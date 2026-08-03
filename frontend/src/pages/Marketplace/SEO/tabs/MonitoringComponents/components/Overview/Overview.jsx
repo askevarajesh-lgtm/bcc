@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 
 export default function Overview({ project, onNavigateToAlerts, onNavigateToOpps }) {
   const { snapshot, loading, isScanning, triggerScan, activeProjectId: contextProjectId } = useMonitoring();
-  const activeProjectId = project?._id || contextProjectId || '507f1f77bcf86cd799439011';
+  const activeProjectId = project?._id || contextProjectId;
 
   const [healthBreakdown, setHealthBreakdown] = useState(null);
   const [riskAssessment, setRiskAssessment] = useState(null);

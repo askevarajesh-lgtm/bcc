@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, Typography, Space, message, Spin } from 'antd';
 import { Sparkles, ArrowUpRight, Zap, CheckCircle2, TrendingUp } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useMonitoring } from '../MonitoringContext';
 
 const { Title, Text } = Typography;
 
 export default function OpportunitiesView({ project }) {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(false);
-  const activeProjectId = project?._id || '507f1f77bcf86cd799439011';
+  const { activeProjectId: monitoringProjectId } = useMonitoring();
+  const activeProjectId = project?._id || monitoringProjectId;
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -58,10 +60,10 @@ export default function OpportunitiesView({ project }) {
       title: 'Action',
       key: 'action',
       render: (_, r) => (
-        <Button 
-          type="primary" 
-          size="small" 
-          icon={<Zap size={12} />} 
+        <Button
+          type="primary"
+          size="small"
+          icon={<Zap size={12} />}
           onClick={() => handleExecute(r)}
           style={{ background: '#7c3aed' }}
         >

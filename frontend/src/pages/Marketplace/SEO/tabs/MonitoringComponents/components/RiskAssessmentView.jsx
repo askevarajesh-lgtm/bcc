@@ -17,7 +17,7 @@ const DEFAULT_RISK_FACTORS = [
 
 export default function RiskAssessmentView({ project }) {
   const { activeProjectId: contextProjectId } = useMonitoring();
-  const activeProjectId = project?._id || contextProjectId || '507f1f77bcf86cd799439011';
+  const activeProjectId = project?._id || contextProjectId;
   
   const [riskData, setRiskData] = useState(null);
   const [loading, setLoading] = useState(false);

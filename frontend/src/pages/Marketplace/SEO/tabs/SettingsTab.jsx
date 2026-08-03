@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography, Form, Input, Button, Space, message, Tag, Skeleton, Alert } from 'antd';
-import { Settings, KeyRound } from 'lucide-react';
+import { Card, Typography, Form, Input, Button, Space, message, Tag, Skeleton, Alert, Row, Col, Select, Divider, Switch } from 'antd';
+import { Settings, KeyRound, Globe, Sliders, Bell, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
+import ProjectSelector from '../components/shared/ProjectSelector';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
 
-// Backed by GET/POST /seo-workspace/settings/api-key
-// (seoWorkspace.controller.js#getSettingsStatus / #saveSettings) — the only
-// workspace-level setting the backend currently exposes.
 const SettingsTab = () => {
+  const { activeProjectId, activeProject, refreshProjects } = useSEO();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [form] = Form.useForm();
+  const [savingGlobal, setSavingGlobal] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  
+  const [globalForm] = Form.useForm();
+  const [projectForm] = Form.useForm();
 
-  const load = async () => {
+  const loadGlobalSettings = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -29,60 +33,172 @@ const SettingsTab = () => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    loadGlobalSettings();
+  }, []);
 
-  const handleSave = async () => {
-    const values = await form.validateFields();
-    setSaving(true);
+  useEffect(() => {
+    if (activeProject) {
+      projectForm.setFieldsValue({
+        name: activeProject.name,
+        domain: activeProject.domain,
+        languages: activeProject.languages || 'en',
+        crawlFrequency: activeProject.settings?.crawlFrequency || 'weekly',
+        autoAudit: activeProject.settings?.autoAudit ?? true,
+        notifyOnRankChange: activeProject.settings?.notifyOnRankChange ?? true
+      });
+    }
+  }, [activeProject, projectForm]);
+
+  const handleSaveGlobal = async () => {
+    const values = await globalForm.validateFields();
+    setSavingGlobal(true);
     try {
       await seoWorkspaceApi.saveSettings({ anthropicApiKey: values.anthropicApiKey });
-      message.success('Settings saved successfully');
-      form.resetFields();
-      await load();
+      message.success('Global AI credentials updated successfully');
+      globalForm.resetFields();
+      await loadGlobalSettings();
     } catch (err) {
-      message.error(err?.response?.data?.message || 'Failed to save settings');
+      message.error(err?.response?.data?.message || 'Failed to save global settings');
     } finally {
-      setSaving(false);
+      setSavingGlobal(false);
+    }
+  };
+
+  const handleSaveProject = async () => {
+    if (!activeProjectId) return;
+    const values = await projectForm.validateFields();
+    setSavingProject(true);
+    try {
+      await seoWorkspaceApi.updateProjectSettings(activeProjectId, {
+        crawlFrequency: values.crawlFrequency,
+        autoAudit: values.autoAudit,
+        notifyOnRankChange: values.notifyOnRankChange
+      });
+      message.success('Project configuration updated');
+      refreshProjects();
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to update project configuration');
+    } finally {
+      setSavingProject(false);
     }
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Settings size={28} />
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ padding: 8, background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
+          <Settings size={24} />
+        </div>
         <div>
-          <Title level={4} style={{ margin: 0 }}>Settings</Title>
-          <Text type="secondary">Workspace-level configuration for the SEO agents.</Text>
+          <Title level={4} style={{ margin: 0 }}>SEO Settings & Configuration</Title>
+          <Text type="secondary">Manage global AI API keys and project-specific crawler thresholds.</Text>
         </div>
       </div>
 
-      {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
+      <ProjectSelector style={{ marginBottom: 20 }} />
 
-      <Card size="small" title={<Space><KeyRound size={16} /> Anthropic API Key</Space>} style={{ maxWidth: 560 }}>
-        {loading ? (
-          <Skeleton active paragraph={{ rows: 2 }} />
-        ) : (
-          <Space direction="vertical" style={{ width: '100%' }} size={16}>
-            <Space>
-              <Text>Status:</Text>
-              {status?.isAnthropicConfigured
-                ? <Tag color="green">Configured ({status.maskedAnthropicKey})</Tag>
-                : <Tag color="default">Not configured</Tag>}
-            </Space>
+      {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
-            <Form form={form} layout="vertical" onFinish={handleSave}>
-              <Form.Item
-                name="anthropicApiKey"
-                label={status?.isAnthropicConfigured ? 'Replace API key' : 'API key'}
-                rules={[{ required: !status?.isAnthropicConfigured, message: 'Enter an API key' }]}
-              >
-                <Input.Password placeholder="sk-ant-..." />
-              </Form.Item>
-              <Button type="primary" htmlType="submit" loading={saving}>Save</Button>
-            </Form>
-          </Space>
-        )}
-      </Card>
+      <Row gutter={[20, 20]}>
+        {/* Project Specific Settings */}
+        <Col xs={24} lg={12}>
+          <Card 
+            size="small" 
+            title={<Space><Globe size={16} color="#1890ff" /> Active Project Settings ({activeProject ? activeProject.name : 'No project selected'})</Space>}
+            style={{ borderRadius: 8, height: '100%' }}
+          >
+            {activeProject ? (
+              <Form form={projectForm} layout="vertical" onFinish={handleSaveProject}>
+                <Form.Item name="name" label="Project Name">
+                  <Input disabled />
+                </Form.Item>
+                <Form.Item name="domain" label="Target Domain">
+                  <Input disabled />
+                </Form.Item>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="crawlFrequency" label="Automated Crawl Schedule">
+                      <Select>
+                        <Option value="daily">Daily Crawl</Option>
+                        <Option value="weekly">Weekly Crawl</Option>
+                        <Option value="monthly">Monthly Crawl</Option>
+                        <Option value="manual">Manual Only</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="languages" label="Primary Language">
+                      <Input placeholder="en" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Divider style={{ margin: '12px 0' }} />
+                <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text strong>Auto-trigger Technical Audits</Text>
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>Run audit scans automatically on schedule</Text></div>
+                    </div>
+                    <Form.Item name="autoAudit" valuePropName="checked" noStyle>
+                      <Switch />
+                    </Form.Item>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text strong>Keyword Movement Alerts</Text>
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>Notify when tracked keywords gain/lose top 10 positions</Text></div>
+                    </div>
+                    <Form.Item name="notifyOnRankChange" valuePropName="checked" noStyle>
+                      <Switch />
+                    </Form.Item>
+                  </div>
+                </Space>
+                <Button type="primary" htmlType="submit" loading={savingProject}>Save Project Settings</Button>
+              </Form>
+            ) : (
+              <Alert message="Select or create a Workspace Project above to configure project-level crawler settings." type="info" showIcon />
+            )}
+          </Card>
+        </Col>
+
+        {/* Global AI Keys */}
+        <Col xs={24} lg={12}>
+          <Card 
+            size="small" 
+            title={<Space><KeyRound size={16} color="#722ed1" /> AI Engine Credentials</Space>}
+            style={{ borderRadius: 8, height: '100%' }}
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text strong>Anthropic Claude 3.5 Sonnet:</Text>
+                  {status?.isAnthropicConfigured
+                    ? <Tag color="green">Active ({status.maskedAnthropicKey})</Tag>
+                    : <Tag color="orange">System Default / Unset</Tag>}
+                </div>
+
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  Used across Content AI generator modules, AEO answer engine scoring, Technical SEO code remediation, and Automated Executive Reports.
+                </Text>
+
+                <Form form={globalForm} layout="vertical" onFinish={handleSaveGlobal}>
+                  <Form.Item
+                    name="anthropicApiKey"
+                    label={status?.isAnthropicConfigured ? 'Replace API Key' : 'API Key'}
+                    rules={[{ required: !status?.isAnthropicConfigured, message: 'Enter an API key' }]}
+                  >
+                    <Input.Password placeholder="sk-ant-api03-..." />
+                  </Form.Item>
+                  <Button type="primary" htmlType="submit" loading={savingGlobal}>Update AI Credentials</Button>
+                </Form>
+              </Space>
+            )}
+          </Card>
+        </Col>
+      </Row>
     </motion.div>
   );
 };

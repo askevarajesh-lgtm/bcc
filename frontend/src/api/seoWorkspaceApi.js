@@ -42,8 +42,9 @@ export const seoWorkspaceApi = {
   },
 
   // --- Dashboard / Search ---
-  getDashboard: async () => {
-    const res = await axios.get(`${API_URL}/seo-workspace/dashboard`, getAuthHeaders());
+  getDashboard: async (projectIdOrParams) => {
+    const params = typeof projectIdOrParams === 'string' ? { projectId: projectIdOrParams } : (projectIdOrParams || {});
+    const res = await axios.get(`${API_URL}/seo-workspace/dashboard${qs(params)}`, getAuthHeaders());
     return res.data;
   },
   globalSearch: async (q) => {

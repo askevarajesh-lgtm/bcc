@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Table, Select, Space, Button, Drawer, Typography, message, Popconfirm, Input, Tag, Empty } from 'antd';
 import WorkflowStatusBadge from './WorkflowStatusBadge';
 import QualityScoreCard from './QualityScoreCard';
+import { useSEO } from '../../context/SEOContext';
 import { contentAiApi } from '../../../../../api/contentAiApi';
 
 const { Text, Paragraph } = Typography;
@@ -13,6 +14,7 @@ const STATUS_OPTIONS = ['Draft', 'In Review', 'Approved', 'Rejected', 'Published
 // IS the review queue, so this isn't split into two separate components/API
 // calls for what's really one list with a filter.
 const LibraryPanel = () => {
+  const { activeProjectId } = useSEO();
   const [pieces, setPieces] = useState([]);
   const [statusFilter, setStatusFilter] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,10 @@ const LibraryPanel = () => {
   const load = async (status) => {
     setLoading(true);
     try {
-      const res = await contentAiApi.getContentPieces(status ? { status } : {});
+      const params = {};
+      if (status) params.status = status;
+      if (activeProjectId) params.projectId = activeProjectId;
+      const res = await contentAiApi.getContentPieces(params);
       setPieces(res.data || []);
     } catch (err) {
       message.error('Failed to load content pieces');
@@ -33,7 +38,7 @@ const LibraryPanel = () => {
     }
   };
 
-  useEffect(() => { load(statusFilter); }, [statusFilter]);
+  useEffect(() => { load(statusFilter); }, [statusFilter, activeProjectId]);
 
   const openDetail = async (id) => {
     setDetailLoading(true);

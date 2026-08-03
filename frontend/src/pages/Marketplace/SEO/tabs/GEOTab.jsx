@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Card, Row, Col, Progress, Tag, Space, Empty, Tooltip, Table, Spin, Badge, Alert, Statistic } from 'antd';
 import { Globe2, Info, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 import AgentFindingsCard from '../components/shared/AgentFindingsCard';
@@ -12,7 +13,7 @@ const scoreColor = (score) => (score >= 90 ? '#52c41a' : score >= 70 ? '#1890ff'
 const scoreTagColor = (score) => (score >= 90 ? 'success' : score >= 70 ? 'processing' : score >= 50 ? 'warning' : 'error');
 
 const GEOTab = () => {
-  const [projectId, setProjectId] = useState(null);
+  const { activeProjectId: projectId, activeProject } = useSEO();
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pages, setPages] = useState([]);
@@ -118,15 +119,17 @@ const GEOTab = () => {
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
         <Globe2 size={28} />
         <div>
-          <Title level={4} style={{ margin: 0 }}>GEO Enterprise Dashboard</Title>
+          <Title level={4} style={{ margin: 0 }}>
+            {activeProject ? `${activeProject.name} — GEO Dashboard` : 'GEO Enterprise Dashboard'}
+          </Title>
           <Text type="secondary">Generative Engine Optimization — deterministic evidence-based scoring and AI-enhanced recommendations.</Text>
         </div>
       </div>
 
-      <ProjectSelector value={projectId} onChange={(v) => { setProjectId(v); setDoc(null); }} style={{ marginBottom: 20 }} />
+      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {!projectId ? (
-        <Empty description="Select or create a project to run the GEO Agent" />
+        <Empty description="Select or create a Workspace Project to run the GEO Agent" />
       ) : (
         <Row gutter={[16, 16]}>
           {overallScore !== null && (

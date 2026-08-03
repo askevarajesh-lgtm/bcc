@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 import { message } from 'antd';
+import { useSEO } from '../../../../Marketplace/SEO/context/SEOContext';
 
 const MonitoringContext = createContext(null);
 
 export const MonitoringProvider = ({ children, project }) => {
-  const { projectId } = useParams();
+  // Prefer the explicit `project` prop (passed down from a parent route),
+  // otherwise fall back to the global SEO active project.
+  const { activeProjectId: globalProjectId, selectProject, projects: globalProjects } = useSEO();
+
   const [selectedProjectId, setSelectedProjectId] = useState(
-    projectId || project?._id || localStorage.getItem('seo_active_project_id') || '507f1f77bcf86cd799439011'
+    project?._id || globalProjectId || localStorage.getItem('seo_active_project_id') || null
   );
-  const [projectsList, setProjectsList] = useState([]);
   
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,27 +21,17 @@ export const MonitoringProvider = ({ children, project }) => {
   const [scanStatus, setScanStatus] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Sync if project prop or URL param changes
+  // Sync when global active project changes (tab switch, selector, etc.)
   useEffect(() => {
-    if (projectId) setSelectedProjectId(projectId);
-    else if (project?._id) setSelectedProjectId(project._id);
-  }, [projectId, project?._id]);
-
-  // Load projects list
-  useEffect(() => {
-    seoWorkspaceApi.getProjects()
-      .then(res => {
-        const list = res.data || [];
-        setProjectsList(list);
-        if (!selectedProjectId && list.length > 0) {
-          setSelectedProjectId(list[0]._id);
-        }
-      })
-      .catch(() => {});
-  }, []);
+    const incoming = project?._id || globalProjectId;
+    if (incoming && incoming !== selectedProjectId) {
+      setSelectedProjectId(incoming);
+    }
+  }, [globalProjectId, project?._id]);
 
   const fetchSnapshot = useCallback(async () => {
-    const targetId = selectedProjectId || '507f1f77bcf86cd799439011';
+    const targetId = selectedProjectId;
+    if (!targetId) return;
     try {
       setLoading(true);
       const data = await seoWorkspaceApi.getMonitoringDashboard(targetId);
@@ -58,7 +50,11 @@ export const MonitoringProvider = ({ children, project }) => {
   }, [fetchSnapshot]);
 
   const triggerScan = async () => {
-    const targetId = selectedProjectId || '507f1f77bcf86cd799439011';
+    const targetId = selectedProjectId;
+    if (!targetId) {
+      message.warning('Please select a Workspace Project before triggering a scan.');
+      return;
+    }
     try {
       setIsScanning(true);
       const res = await seoWorkspaceApi.triggerMonitoringScan(targetId);
@@ -86,7 +82,7 @@ export const MonitoringProvider = ({ children, project }) => {
   };
 
   const pollScanStatus = async (scanId) => {
-    const targetId = selectedProjectId || '507f1f77bcf86cd799439011';
+    const targetId = selectedProjectId;
     const interval = setInterval(async () => {
       try {
         const res = await seoWorkspaceApi.getMonitoringScanStatus(targetId, scanId);
@@ -108,10 +104,18 @@ export const MonitoringProvider = ({ children, project }) => {
     }, 3000);
   };
 
+  // When internal project selection changes, sync back to global context so all tabs stay in sync
+  const handleSetProjectId = (id) => {
+    setSelectedProjectId(id);
+    if (id && id !== globalProjectId) {
+      selectProject(id);
+    }
+  };
+
   const value = {
-    activeProjectId: selectedProjectId || '507f1f77bcf86cd799439011',
-    setProjectId: setSelectedProjectId,
-    projects: projectsList,
+    activeProjectId: selectedProjectId,
+    setProjectId: handleSetProjectId,
+    projects: globalProjects,
     snapshot,
     loading,
     error,
@@ -132,7 +136,7 @@ export const useMonitoring = () => {
   const context = useContext(MonitoringContext);
   if (!context) {
     return {
-      activeProjectId: '507f1f77bcf86cd799439011',
+      activeProjectId: null,
       setProjectId: () => {},
       projects: [],
       snapshot: null,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Form, Input, Button, Row, Col, Typography, message, Spin, Space, Tag } from 'antd';
 import { Sparkles } from 'lucide-react';
+import { useSEO } from '../../context/SEOContext';
 import { contentAiApi } from '../../../../../api/contentAiApi';
 import QualityScoreCard from './QualityScoreCard';
 import WorkflowStatusBadge from './WorkflowStatusBadge';
@@ -31,6 +32,7 @@ const FIELD_LABELS = {
 };
 
 const GeneratePanel = () => {
+  const { activeProjectId, activeProject } = useSEO();
   const [generators, setGenerators] = useState([]);
   const [selectedGenerator, setSelectedGenerator] = useState(null);
   const [targetType, setTargetType] = useState(null);
@@ -83,10 +85,11 @@ const GeneratePanel = () => {
         generatorType: selectedGenerator,
         targetType,
         inputs,
-        brandVoiceId: brandVoiceId || undefined
+        brandVoiceId: brandVoiceId || undefined,
+        projectId: activeProjectId || undefined
       });
       setResult(res.data);
-      message.success('Content generated');
+      message.success('Content generated successfully');
     } catch (err) {
       message.error(err?.response?.data?.error || 'Generation failed');
     } finally {

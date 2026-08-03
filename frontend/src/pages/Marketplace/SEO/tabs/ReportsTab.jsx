@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Typography, Card, Table, Button, Space, Empty, Alert, Tag, message, Switch, Select, Input, Form, Drawer, Tooltip, Dropdown, Menu } from 'antd';
 import { FileText, Download, Eye, MoreVertical, RefreshCw, Share2, Trash2, Archive } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 import ReportPreview from './components/ReportPreview'; // We will create this
@@ -25,7 +26,7 @@ const STATUS_COLORS = {
 const LEGACY_STATUS_COLORS = { pending: 'default', processing: 'gold', completed: 'green', failed: 'red' };
 
 const ReportsTab = () => {
-  const [projectId, setProjectId] = useState(null);
+  const { activeProjectId: projectId, activeProject } = useSEO();
   
   // Data state
   const [reports, setReports] = useState([]);
@@ -185,17 +186,19 @@ const ReportsTab = () => {
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
         <FileText size={28} />
         <div>
-          <Title level={4} style={{ margin: 0 }}>Enterprise Reports</Title>
-          <Text type="secondary">Generate and preview comprehensive, immutable SEO reports.</Text>
+          <Title level={4} style={{ margin: 0 }}>
+            {activeProject ? `${activeProject.name} — Enterprise Reports` : 'Enterprise Reports'}
+          </Title>
+          <Text type="secondary">Generate, schedule, and preview comprehensive, immutable SEO reports.</Text>
         </div>
       </div>
 
-      <ProjectSelector value={projectId} onChange={setProjectId} style={{ marginBottom: 20 }} />
+      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
       {!projectId ? (
-        <Empty description="Select or create a project to view reports" />
+        <Empty description="Select or create a Workspace Project to view reports" />
       ) : (
         <Card
           size="small"

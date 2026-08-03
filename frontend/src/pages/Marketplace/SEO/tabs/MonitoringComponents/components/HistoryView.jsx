@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Select, Spin, Table, Tag, Statistic } from 'antd';
 import { TrendingUp, BarChart2, CheckCircle2, Clock, Activity } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
+import { useMonitoring } from '../MonitoringContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -10,7 +11,8 @@ export default function HistoryView({ project }) {
   const [timeframe, setTimeframe] = useState('30d');
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const activeProjectId = project?._id || '507f1f77bcf86cd799439011';
+  const { activeProjectId: monitoringProjectId } = useMonitoring();
+  const activeProjectId = project?._id || monitoringProjectId;
 
   useEffect(() => {
     if (!activeProjectId) return;

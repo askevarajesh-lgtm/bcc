@@ -18,6 +18,7 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
+import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { competitorIntelligenceApi } from '../../../../api/competitorIntelligenceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
@@ -110,7 +111,7 @@ const EmptyState = ({ icon: Icon = Globe, title, desc, action }) => (
 
 // ── Main Component ───────────────────────────────────────────────────────────
 const CompetitorsTab = () => {
-  const [projectId, setProjectId] = useState(null);
+  const { activeProjectId: projectId, activeProject } = useSEO();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Agent discovery state (existing functionality)
@@ -1141,18 +1142,20 @@ const CompetitorsTab = () => {
             <Swords size={24} color="#fff" />
           </div>
           <div>
-            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>Competitor Intelligence</Title>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>
+              {activeProject ? `${activeProject.name} — Competitor Intelligence` : 'Competitor Intelligence'}
+            </Title>
             <Text type="secondary" style={{ fontSize: 13 }}>
               Enterprise-grade competitor analysis — discovery, gaps, trends, and AI insights.
             </Text>
           </div>
         </div>
-        <ProjectSelector value={projectId} onChange={(id) => { setProjectId(id); setActiveTab('overview'); }} />
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
 
       {!projectId ? (
         <EmptyState icon={Swords} title="Select a project to begin"
-          desc="Choose or create a project to access the full Competitor Intelligence suite." />
+          desc="Choose or create a Workspace Project to access the full Competitor Intelligence suite." />
       ) : (
         <Tabs
           activeKey={activeTab}

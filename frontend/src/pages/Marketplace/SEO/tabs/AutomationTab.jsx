@@ -1,6 +1,7 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { Tabs, Spin, Typography, message } from 'antd';
 import { Rocket, ListTree, Activity, Clock, BarChart, Settings as SettingsIcon, FileText, Zap, ShieldCheck, Bell, Calendar } from 'lucide-react';
+import { useSEO } from '../context/SEOContext';
 
 import Dashboard from './AutomationComponents/Dashboard';
 import WorkflowsList from './AutomationComponents/WorkflowsList';
@@ -19,8 +20,9 @@ const TemplatesList = React.lazy(() => import('./AutomationComponents/TemplatesL
 
 const { Title } = Typography;
 
-export default function AutomationTab({ projectId }) {
-  const effectiveProjectId = projectId || '507f1f77bcf86cd799439011';
+export default function AutomationTab({ projectId: propProjectId }) {
+  const { activeProjectId: contextProjectId } = useSEO();
+  const effectiveProjectId = propProjectId || contextProjectId;
   const [activeView, setActiveView] = useState('dashboard');
   const [editingWorkflowId, setEditingWorkflowId] = useState(null);
 
