@@ -17,12 +17,10 @@ const WorkspaceTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    // Kept in sync with the taskType options the orchestrator's LLM prompts
-    // (seoTechImplementerAgent, seoMonitorAgent) are allowed to return.
-    // 'Internal Linking' was previously missing here, which crashed
-    // WorkspaceTask.save()/insertMany() with a validation error any time
-    // the model actually returned that (prompt-legal) value.
-    enum: ['Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking'],
+    enum: [
+      'Update Meta Tags', 'Content Edit', 'Schema Injection', 'Create Redirect', 'Internal Linking', 'Image Optimization', 'AEO Optimization',
+      'Target New Keyword', 'Close Content Gap', 'Build Backlink', 'Close Page Gap'
+    ],
     required: true
   },
   description: {
@@ -38,11 +36,33 @@ const WorkspaceTaskSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected', 'Implemented', 'Failed'],
     default: 'Pending'
   },
-  // Additive: populated when a WordPress publish attempt fails, so the UI can
-  // show *why* instead of just a bare 'Failed' tag.
   failureReason: {
     type: String,
     default: null
+  },
+  source: { type: String, enum: ['manual', 'monitoring-agent', 'automation-agent', 'competitor-intelligence-agent'], default: 'manual' },
+  generatedFix: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  verification: {
+    status: {
+      type: String,
+      enum: ['Not Verified', 'Pending Verification', 'Verified', 'Failed', 'Inconclusive'],
+      default: 'Not Verified'
+    },
+    method: { type: String, default: null }, // which verifier function ran
+    checkedAt: { type: Date, default: null },
+    details: { type: String, default: '' }
+  },
+  agent: {
+    agentKey: { type: String, default: null }, 
+    sourceKeywordId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceKeyword', default: null },
+    dropAmount: { type: Number, default: null },
+    rationale: { type: String, default: null },
+    recommendationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Recommendation', default: null },
+    estimatedEffort: { type: String, enum: ['low', 'medium', 'high', null], default: null },
+    estimatedImpact: { type: Number, default: null }
   }
 }, { timestamps: true });
 

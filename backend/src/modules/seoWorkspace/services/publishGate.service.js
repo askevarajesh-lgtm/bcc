@@ -2,10 +2,6 @@ const WorkspaceStrategy = require('../models/workspaceStrategy.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
 
 class PublishGateService {
-  /**
-   * Validates Gate 1: Strategy Approval
-   * Prevents any implementation tasks from proceeding if the strategy is not approved.
-   */
   async checkStrategyGate(projectId, strategyId) {
     const strategy = await WorkspaceStrategy.findOne({ _id: strategyId, projectId });
     if (!strategy) {
@@ -19,10 +15,6 @@ class PublishGateService {
     return true;
   }
 
-  /**
-   * Validates Gate 2: Per-page Edit Approval
-   * Prevents specific page changes from going live unless the user has explicitly approved the exact task.
-   */
   async checkTaskGate(projectId, taskId) {
     const task = await WorkspaceTask.findOne({ _id: taskId, projectId });
     if (!task) {

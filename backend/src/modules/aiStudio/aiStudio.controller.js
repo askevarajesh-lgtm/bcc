@@ -3,10 +3,8 @@ const AiSettings = require('./models/aiSettings.model');
 const AiConversation = require('./models/aiConversation.model');
 const cryptoUtils = require('../../utils/crypto');
 const axios = require('axios'); // For making API requests if needed
+const { DEFAULT_AI_PROVIDER, DEFAULT_AI_MODEL } = require('../aiCore/config/aiDefaults');
 
-// Helper to determine the correct workspace ID for AI features.
-// Agency employees use the agency's API key.
-// Clients (brand managers, agency clients) use their own API key.
 const getAiWorkspaceId = (req) => {
   const user = req.user;
   if (!user) return req.companyId || req.workspaceId;
@@ -78,8 +76,8 @@ const getSettingsStatus = async (req, res) => {
     let isConfigured = false;
     let maskedKey = '';
     let isEnabled = true;
-    let model = 'gpt-4o-mini';
-    let aiProvider = 'openai';
+    let model = DEFAULT_AI_MODEL;
+    let aiProvider = DEFAULT_AI_PROVIDER;
 
     if (settings) {
       if (settings.isEnabled !== undefined) isEnabled = settings.isEnabled;

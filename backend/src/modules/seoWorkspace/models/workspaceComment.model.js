@@ -1,7 +1,4 @@
 const mongoose = require('mongoose');
-
-// Polymorphic comment collection so Strategies, Tasks, and Reports share one
-// model instead of three near-duplicate ones.
 const WorkspaceCommentSchema = new mongoose.Schema({
   targetType: {
     type: String,

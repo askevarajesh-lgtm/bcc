@@ -34,19 +34,13 @@ const slaRoutes = require('../modules/sla/sla.routes');
 const mosRoutes = require('../modules/mos/mos.routes');
 const benchmarkRoutes = require('../modules/benchmarking/benchmark.routes');
 const hrmsRoutes = require('../modules/hrms/hrms.routes');
-const notepadRoutes = require('../modules/notepad/notepad.routes');
-const campaignRoutes = require('../modules/campaigns/campaign.routes');
-const plRoutes = require('../modules/pl-analytics/pl.routes');
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
 const proposalRoutes = require('../modules/proposals/proposal.routes');
 const invoiceRoutes = require('../modules/invoices/invoice.routes');
-const transactionRoutes = require('../modules/transactions/transaction.routes');
 const leadRoutes = require('../modules/leads/lead.routes');
 const salesPipelineRoutes = require('../modules/salesPipeline/salesPipeline.routes');
-const salesRoutes = require('../modules/sales/sales.routes');
-const expenseRoutes = require('../modules/expenses/expense.routes');
 
 // Agency Restructure Placeholder Routes
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
@@ -55,8 +49,6 @@ const agencySettingsRoutes = require('../modules/accounts/agencySettings.routes'
 const agencyPerformanceRoutes = require('../modules/accounts/agencyPerformance.routes');
 const agencySupportRoutes = require('../modules/accounts/agencySupport.routes');
 const agencyUsersRoutes = require('../modules/accounts/agencyUsers.routes');
-const agencyOverviewRoutes = require('../modules/accounts/agencyOverview.routes');
-const clientOverviewRoutes = require('../modules/accounts/clientOverview.routes');
 const clientPackageRoutes = require('../modules/accounts/clientPackage.routes');
 const supportRoutes = require('../modules/support/support.routes');
 const strategyRoutes = require('../modules/strategy/strategy.routes');
@@ -65,7 +57,9 @@ const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const reportRoutes = require('../modules/reports/report.routes');
 const seoIntelligenceRoutes = require('../modules/seoIntelligence/seoIntelligence.routes');
 const seoWorkspaceRoutes = require('../modules/seoWorkspace/seoWorkspace.routes');
+const contentAIRoutes = require('../modules/contentAI/contentAI.routes');
 const semrushRoutes = require('../modules/semrush/semrush.routes');
+const competitorIntelligenceRoutes = require('../modules/competitorIntelligence/competitorIntelligence.routes');
 
 // Mount routes
 router.use('/health', healthRoutes);
@@ -79,8 +73,6 @@ router.use('/agency/settings', agencySettingsRoutes);
 router.use('/agency/performance', agencyPerformanceRoutes);
 router.use('/agency/support', agencySupportRoutes);
 router.use('/agency/users', agencyUsersRoutes);
-router.use('/agency/overview', agencyOverviewRoutes);
-router.use('/client/overview', clientOverviewRoutes);
 router.use('/agency-packages', agencyPackageRoutes);
 router.use('/agency/client-packages', clientPackageRoutes);
 router.use('/direct-packages', directClientPackageRoutes);
@@ -92,9 +84,15 @@ router.use('/benchmark', benchmarkRoutes);
 router.use('/reports', reportRoutes);
 router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/seo-workspace', seoWorkspaceRoutes);
+
+const automationV1Routes = require('../modules/seoWorkspace/routes/automationV1.routes');
+router.use('/v1/automation', automationV1Routes);
+router.use('/content-ai', contentAIRoutes);
 router.use('/semrush', semrushRoutes);
+router.use('/competitor-intelligence', competitorIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));
 router.use('/resources', require('../modules/resources/resources.routes'));
+router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
 router.use('/websites', websiteRoutes);
 router.use('/funnels', funnelRoutes);
 router.use('/stores', storeRoutes);
@@ -124,21 +122,13 @@ router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
 router.use('/sla-success', slaRoutes);
 router.use('/hrms', hrmsRoutes);
-router.use('/seo-panel', require('../modules/seo-panel/seo.routes'));
-router.use('/notepad', notepadRoutes);
-router.use('/campaign-expenses', campaignRoutes);
-router.use('/pl', plRoutes);
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);
 router.use('/proposals', proposalRoutes);
 router.use('/invoices', invoiceRoutes);
-router.use('/transactions', transactionRoutes);
 router.use('/leads', leadRoutes);
 router.use('/sales-pipeline', salesPipelineRoutes);
-router.use('/sales', salesRoutes);
-router.use('/expenses', expenseRoutes);
-router.use('/', require('../modules/domain-purchases/domainPurchase.routes'));
 
 // Meetings Mount
 router.use('/meetings', require('../modules/meetings/meeting.routes'));
@@ -161,4 +151,4 @@ router.use('/sidebar', require('../modules/sidebar/sidebar.routes'));
 // Marketplace Mount
 router.use('/marketplace', require('../modules/marketplace/marketplace.routes'));
 
-module.exports = router;
+module.exports = router;

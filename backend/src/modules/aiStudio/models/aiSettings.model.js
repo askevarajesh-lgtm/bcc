@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { DEFAULT_AI_PROVIDER, DEFAULT_AI_MODEL } = require('../../aiCore/config/aiDefaults');
 
 const AiSettingsSchema = new mongoose.Schema({
   workspaceId: {
@@ -22,7 +23,7 @@ const AiSettingsSchema = new mongoose.Schema({
   aiProvider: {
     type: String,
     enum: ["openai", "anthropic"],
-    default: "openai"
+    default: DEFAULT_AI_PROVIDER
   },
   isEnabled: {
     type: Boolean,
@@ -30,7 +31,7 @@ const AiSettingsSchema = new mongoose.Schema({
   },
   model: {
     type: String,
-    default: "gpt-4o-mini"
+    default: DEFAULT_AI_MODEL
   }
 }, { timestamps: true });
 

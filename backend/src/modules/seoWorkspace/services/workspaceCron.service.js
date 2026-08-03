@@ -5,10 +5,10 @@ const WorkspaceAudit = require('../models/workspaceAudit.model');
 const WorkspaceReport = require('../models/workspaceReport.model');
 const WorkspaceAgentOrchestrator = require('./workspaceAgentOrchestrator.service');
 const auditLogService = require('./auditLog.service');
-const DataForSeoService = require('../../seoIntelligence/dataForSeo.service');
+const keywordProviderChain = require('../../seoWorkspace/providers/keywordProviderChain');
+const logger = require('../../aiCore/logger.service');
 const sendpulseService = require('../../../utils/sendpulse.service');
 
-// How long each frequency's "due" window is, in milliseconds.
 const FREQUENCY_MS = {
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000,
@@ -22,79 +22,41 @@ class WorkspaceCronService {
   }
 
   start() {
-    // Run daily at midnight: 0 0 * * *
-    // We will use 0 * * * * for demo purposes (hourly)
     const dailyJob = cron.schedule('0 * * * *', async () => {
-      console.log('[WorkspaceCronService] Running Autopilot Checks...');
+      logger.info('WorkspaceCronService', 'Running Autopilot Checks...');
       try {
         const autopilotProjects = await WorkspaceProject.find({ 'settings.autopilot': true, isDeleted: false });
         
         for (const project of autopilotProjects) {
-          console.log(`[WorkspaceCronService] Checking rank drops for project: ${project.name}`);
+          logger.info('WorkspaceCronService', `Checking rank drops for project: ${project.name}`);
           const keywords = await WorkspaceKeyword.find({ projectId: project._id, isDeleted: false });
           
           if (keywords.length === 0) continue;
 
-          // Attempt to get real SERP results if DataForSEO is configured
-          let realSerpData = [];
-          if (DataForSeoService.isConfigured) {
-            try {
-              const tasks = keywords.map(kw => ({
-                keyword: kw.keyword,
-                location_code: kw.locationCode || 2840,
-                language_code: kw.languageCode || 'en'
-              }));
-              realSerpData = await DataForSeoService.getSerpResults(tasks);
-            } catch (err) {
-              console.error('[WorkspaceCronService] DataForSEO SERP check failed:', err.message);
+          const rankTrackingService = require('./rankTracking.service');
+          await rankTrackingService.trackKeywords(project, keywords);
+          
+          // Re-fetch keywords to check if we need recovery tasks based on the updated ranks
+          const updatedKeywords = await WorkspaceKeyword.find({ projectId: project._id, isDeleted: false });
+          for (const kw of updatedKeywords) {
+            let isOrganicDrop = false;
+            let isNewlyLost = false;
+
+            if (kw.ranking.trend === 'Declined' && kw.ranking.rankChange && kw.ranking.rankChange < -1) {
+              isOrganicDrop = true;
             }
-          }
-
-          for (const [index, kw] of keywords.entries()) {
-            const previousRank = kw.ranking?.currentRank || 10;
-            let currentRank = previousRank;
-
-            // If we have real SERP data, find the rank for the project's domain
-            if (realSerpData && realSerpData[index] && realSerpData[index].result && realSerpData[index].result[0]) {
-              const items = realSerpData[index].result[0].items || [];
-              const projectDomain = project.domain.replace(/^https?:\/\/(www\.)?/, '');
-              const foundItem = items.find(item => item.domain && item.domain.includes(projectDomain));
-              
-              if (foundItem) {
-                currentRank = foundItem.rank_absolute || foundItem.rank_group || currentRank;
-              } else {
-                // Not found in top 100, meaning it dropped
-                currentRank = 100;
-              }
-            } else {
-              // Simulated Fallback for demo: Randomly drop rank by 1-4 positions for 30% of keywords
-              if (Math.random() > 0.7) {
-                currentRank = previousRank + Math.floor(Math.random() * 4) + 1;
-              }
+            if (kw.ranking.trend === 'Lost Visibility') {
+              isNewlyLost = true;
             }
 
-            const drop = currentRank - previousRank;
-            
-            // Save updated rank
-            kw.ranking.previousRank = previousRank;
-            kw.ranking.currentRank = currentRank;
-            if (!kw.ranking.bestRank || currentRank < kw.ranking.bestRank) {
-                kw.ranking.bestRank = currentRank;
-            }
-            await kw.save();
-            
-            // Generate recovery task if dropped by 2 or more positions
-            if (drop >= 2) {
-              console.log(`[Alert] Workspace Keyword "${kw.keyword}" dropped by ${drop} positions (Rank ${previousRank} -> ${currentRank})! Generating recovery task...`);
+            if (isOrganicDrop || isNewlyLost) {
+              const dropMsg = isNewlyLost ? 'Dropped out of Top 100' : `Dropped from ${kw.ranking.previousRank} to ${kw.ranking.currentRank}`;
+              logger.info('WorkspaceCronService', `[ALERT] Generating recovery task for "${kw.keyword}": ${dropMsg}`);
               try {
-                await this.orchestrator.seoMonitorAgent(project, kw, drop);
+                const dropAmount = isNewlyLost ? 100 : Math.abs(kw.ranking.rankChange);
+                await this.orchestrator.seoMonitorAgent(project, kw, dropAmount);
               } catch (taskErr) {
-                if (taskErr.message && taskErr.message.includes('AI Provider API key is missing')) {
-                  // Only warn once per project or silently skip to avoid log spam
-                  console.warn(`[WorkspaceCronService] Skipping task for ${kw.keyword}: AI API key missing.`);
-                } else {
-                  console.error(`[WorkspaceCronService] Error generating task for ${kw.keyword}:`, taskErr.message);
-                }
+                logger.error('WorkspaceCronService', `Error generating task for ${kw.keyword}: ${taskErr.message}`);
               }
             }
           }
@@ -106,18 +68,37 @@ class WorkspaceCronService {
 
     this.jobs.push(dailyJob);
 
-    // Scheduled report delivery: WorkspaceReport.isScheduled/scheduleFrequency/
-    // emailRecipients were modeled from the start but nothing ever read them
-    // (Phase 4 fix). Runs hourly and checks every scheduled report definition
-    // for due-ness so daily/weekly/monthly schedules all get checked promptly
-    // without needing separate cron expressions per frequency.
     const reportSchedulerJob = cron.schedule('15 * * * *', async () => {
       console.log('[WorkspaceCronService] Checking scheduled reports...');
       await this.runDueScheduledReports();
     });
 
     this.jobs.push(reportSchedulerJob);
-    console.log('[WorkspaceCronService] Autopilot + scheduled-report jobs scheduled.');
+
+    const automationJob = cron.schedule('*/15 * * * *', async () => {
+      console.log('[WorkspaceCronService] Checking automation rules...');
+      await this.runDueAutomationRules();
+    });
+
+    this.jobs.push(automationJob);
+    console.log('[WorkspaceCronService] Autopilot + scheduled-report + automation-rule jobs scheduled.');
+  }
+
+  async runDueAutomationRules() {
+    const automationAgent = require('./automationAgent.service');
+    try {
+      const projectIds = await automationAgent.getEligibleProjectIds();
+
+      for (const projectId of projectIds) {
+        try {
+          await automationAgent.run(projectId);
+        } catch (err) {
+          console.error(`[WorkspaceCronService] Automation run failed for project ${projectId}:`, err.message);
+        }
+      }
+    } catch (error) {
+      console.error('[WorkspaceCronService] Error checking automation rules:', error);
+    }
   }
 
   async runDueScheduledReports() {
@@ -156,8 +137,6 @@ class WorkspaceCronService {
             }
           };
 
-          // The freshly generated instance is a one-off delivery, not itself
-          // a new recurring schedule — only scheduleDef keeps recurring.
           const newReport = await this.orchestrator.seoReporterAgent(scheduleDef.projectId, auditDiff, {});
 
           const project = await WorkspaceProject.findById(scheduleDef.projectId);
@@ -196,3 +175,5 @@ class WorkspaceCronService {
 }
 
 module.exports = new WorkspaceCronService();
+
+module.exports.FREQUENCY_MS = FREQUENCY_MS;

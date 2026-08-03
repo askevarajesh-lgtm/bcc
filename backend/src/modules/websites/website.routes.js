@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const websiteController = require('./website.controller');
+const websiteSeoAgentController = require('./websiteSeoAgent.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.use(authMiddleware);
@@ -20,5 +21,10 @@ router.post('/:id/pages', websiteController.addPage);
 router.post('/:websiteId/pages/:pageId/duplicate', websiteController.duplicatePage);
 router.put('/:websiteId/pages/:pageId', websiteController.updatePage);
 router.delete('/:websiteId/pages/:pageId', websiteController.deletePage);
+
+router.post('/:websiteId/pages/:pageId/seo-agent/run', websiteSeoAgentController.runWebsiteSeoAgent);
+router.put('/:websiteId/pages/:pageId/seo-agent/:runId/approve', websiteSeoAgentController.approveWebsiteSeoFindings);
+router.put('/:websiteId/pages/:pageId/seo-agent/:runId/reject', websiteSeoAgentController.rejectWebsiteSeoFindings);
+router.get('/:websiteId/pages/:pageId/seo-agent/history', websiteSeoAgentController.getWebsiteSeoExecutionHistory);
 
 module.exports = router;

@@ -1024,3 +1024,5 @@ exports.deletePage = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.buildWebsiteAuthQuery = buildWebsiteAuthQuery;

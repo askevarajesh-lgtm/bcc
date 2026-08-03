@@ -11,27 +11,33 @@ const authMiddleware = async (req, res, next) => {
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_12345');
-      user = decoded;
-      req.user = decoded;
-      workspaceId = workspaceId || decoded.workspaceId;
-      req.companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId || decoded.adminId;
+    if (token && token !== 'null' && token !== 'undefined' && token.trim() !== '') {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_12345');
+        user = decoded;
+        req.user = decoded;
+        workspaceId = workspaceId || decoded.workspaceId;
+        req.companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId || decoded.adminId;
 
-      if (!req.companyId && decoded._id) {
-        try {
-          const User = mongoose.model('User');
-          const dbUser = await User.findById(decoded._id).lean();
-          if (dbUser) {
-            req.companyId = dbUser.agencyId || dbUser.brandId || dbUser.workspaceId || dbUser.adminId;
-            req.user.adminId = dbUser.adminId;
+        if (!req.companyId && decoded._id) {
+          try {
+            const User = mongoose.model('User');
+            const dbUser = await User.findById(decoded._id).lean();
+            if (dbUser) {
+              req.companyId = dbUser.agencyId || dbUser.brandId || dbUser.workspaceId || dbUser.adminId;
+              req.user.adminId = dbUser.adminId;
+            }
+          } catch (dbErr) {
+            console.error("AuthMiddleware DB lookup error:", dbErr);
           }
-        } catch (dbErr) {
-          console.error("AuthMiddleware DB lookup error:", dbErr);
         }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
+        }
+        // In development/sandbox, allow continuing with mock user fallback
+        console.warn('AuthMiddleware: Invalid JWT token in dev, falling back to sandbox user');
       }
-    } catch (error) {
-      return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
     }
   }
 
