@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Typography, Row, Col, Card, Button, Tabs, Tag, message } from 'antd';
 import { motion } from 'framer-motion';
-import { Search, BarChart2, FileText, CheckCircle2, Edit2, Eye, EyeOff, Plus, Play, Shield, Activity, Mail, FileCheck, Video, BookOpen } from 'lucide-react';
-import SEOWorkspace from './SEOWorkspace';
+import { Search, BarChart2, FileText, CheckCircle2, Edit2, Eye, EyeOff, Plus, Play, Shield, Activity, Mail, FileCheck, Video, BookOpen, ArrowRight } from 'lucide-react';
 import Content from '../Content/Content';
 import AIStudio from '../AIStudio/AIStudio';
+import MarketplaceSEO from './SEO/MarketplaceSEO';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGetMarketplacePurchasesQuery, useInitiatePurchaseMutation, useVerifyPurchaseMutation } from '../../api/marketplaceApi';
 
@@ -12,8 +13,24 @@ const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
 const Marketplace = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { role } = useAuth();
   const isAgencyRole = ['agency_super_admin', 'agency_manager', 'agency'].includes(role);
+
+  const getActiveMarketplaceTab = () => {
+    if (location.pathname.includes('/marketplace/content')) return '2';
+    if (location.pathname.includes('/marketplace/ai-studio') || location.pathname.includes('/marketplace/aistudio')) return '3';
+    return '1';
+  };
+
+  const handleMarketplaceTabChange = (key) => {
+    const isClient = location.pathname.startsWith('/client');
+    const prefix = isClient ? '/client/marketplace' : '/agency/marketplace';
+    if (key === '1') navigate(`${prefix}/seo/dashboard`);
+    else if (key === '2') navigate(`${prefix}/content`);
+    else if (key === '3') navigate(`${prefix}/ai-studio`);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -375,14 +392,11 @@ const Marketplace = () => {
         <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Marketplace</Title>
       </motion.div>
 
-      <Tabs defaultActiveKey="1" style={{ marginTop: 16 }}>
+      <Tabs activeKey={getActiveMarketplaceTab()} onChange={handleMarketplaceTabChange} style={{ marginTop: 16 }}>
         <TabPane tab="SEO" key="1">
           <motion.div variants={itemVariants} style={{ marginBottom: 48, marginTop: 16 }}>
             {purchasedPlans.seo ? (
-              <>
-                <Title level={2} style={{ margin: '4px 0 24px 0', fontWeight: 800 }}>SEO Workspace</Title>
-                <SEOWorkspace />
-              </>
+              <MarketplaceSEO />
             ) : (
               <PricingCard 
                 title="SEO & AEO Agent" 

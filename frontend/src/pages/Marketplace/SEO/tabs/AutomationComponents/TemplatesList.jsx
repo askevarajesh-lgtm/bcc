@@ -89,20 +89,21 @@ export default function TemplatesList({ projectId, onUseTemplate }) {
   const handleUseTemplate = async (template) => {
     try {
       message.loading({ content: `Cloning "${template.name}" into workspace...`, key: 'clone_tpl' });
-      await seoWorkspaceApi.createAutomationWorkflow(projectId, {
+      const res = await seoWorkspaceApi.createAutomationWorkflow(projectId, {
         name: `${template.name} (from Template)`,
         category: template.category,
         status: 'Draft',
         nodes: [
-          { id: 't1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Trigger Event', type: 'trigger' } },
-          { id: 't2', type: 'custom', position: { x: 250, y: 200 }, data: { label: 'Action: Notify Team', type: 'action' } }
+          { id: 't1', type: 'custom', position: { x: 250, y: 50 }, data: { label: template.trigger || 'Trigger Event', type: 'trigger', subtype: 'event' } },
+          { id: 't2', type: 'custom', position: { x: 250, y: 200 }, data: { label: template.action || 'Action: Execute', type: 'action', subtype: 'task' } }
         ],
         edges: [
-          { id: 'e1', source: 't1', target: 't2', animated: true }
+          { id: 'e1', source: 't1', target: 't2', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }
         ]
       });
+      const created = res?.data || res;
       message.success({ content: 'Template installed into Workflows!', key: 'clone_tpl' });
-      if (onUseTemplate) onUseTemplate('new');
+      if (onUseTemplate) onUseTemplate(created?._id || 'new');
     } catch (err) {
       message.success({ content: 'Template loaded into editor!', key: 'clone_tpl' });
       if (onUseTemplate) onUseTemplate('new');

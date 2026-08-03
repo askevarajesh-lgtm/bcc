@@ -44,8 +44,23 @@ const GAP_TYPE_LABELS = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const fmt = (n) => (n == null ? '—' : n.toLocaleString());
-const pct = (n) => (n == null ? '—' : `${n >= 0 ? '+' : ''}${n.toLocaleString()}`);
+const fmt = (n) => (n == null ? '—' : typeof n === 'number' ? n.toLocaleString() : n);
+const formatCompact = (n) => {
+  if (n == null || n === '' || n === '—') return '—';
+  const num = typeof n === 'string' ? Number(n.replace(/,/g, '')) : Number(n);
+  if (isNaN(num)) return n;
+  if (Math.abs(num) >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+  }
+  if (Math.abs(num) >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (Math.abs(num) >= 10_000) {
+    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toLocaleString();
+};
+const pct = (n) => (n == null ? '—' : `${n >= 0 ? '+' : ''}${typeof n === 'number' ? n.toLocaleString() : n}`);
 const scoreColor = (n) => n >= 65 ? '#f5222d' : n >= 35 ? '#faad14' : '#52c41a';
 const getDomainFavicon = (domain) =>
   `https://www.google.com/s2/favicons?sz=32&domain_url=${domain}`;
@@ -67,32 +82,73 @@ const ScoreGauge = ({ value = 0, size = 48, label }) => (
 );
 
 // ── Metric Card ──────────────────────────────────────────────────────────────
-const MetricCard = ({ title, value, sub, icon: Icon, color, gradient }) => (
-  <Card
-    size="small"
-    bordered={false}
-    style={{
-      background: gradient || `linear-gradient(135deg, ${color}15 0%, ${color}08 100%)`,
-      border: `1px solid ${color}30`,
-      borderRadius: 12,
-      height: '100%'
-    }}
-  >
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 10,
-        background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-      }}>
-        <Icon size={20} style={{ color }} />
+const MetricCard = ({ title, value, sub, icon: Icon, color, gradient }) => {
+  const isNumeric = value != null && value !== '' && value !== '—' && !isNaN(Number(String(value).replace(/,/g, '')));
+  const rawNum = isNumeric ? Number(String(value).replace(/,/g, '')) : null;
+  const displayVal = isNumeric && Math.abs(rawNum) >= 10000 ? formatCompact(rawNum) : (value != null ? value : '—');
+  const fullVal = isNumeric ? rawNum.toLocaleString() : value;
+
+  return (
+    <Card
+      size="small"
+      bordered={false}
+      style={{
+        background: gradient || `linear-gradient(135deg, ${color}15 0%, ${color}08 100%)`,
+        border: `1px solid ${color}30`,
+        borderRadius: 12,
+        height: '100%',
+        overflow: 'hidden'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          <Icon size={18} style={{ color }} />
+        </div>
+        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+          <div style={{
+            fontSize: 11,
+            color: 'var(--text-secondary)',
+            fontWeight: 500,
+            marginBottom: 2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }} title={title}>
+            {title}
+          </div>
+          <Tooltip title={fullVal != null ? `${title}: ${fullVal}` : undefined}>
+            <div style={{
+              fontSize: 'clamp(16px, 1.3vw, 20px)',
+              fontWeight: 800,
+              color,
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {displayVal}
+            </div>
+          </Tooltip>
+          {sub && (
+            <div style={{
+              fontSize: 10,
+              color: 'var(--text-secondary)',
+              marginTop: 2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }} title={sub}>
+              {sub}
+            </div>
+          )}
+        </div>
       </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500, marginBottom: 2 }}>{title}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{sub}</div>}
-      </div>
-    </div>
-  </Card>
-);
+    </Card>
+  );
+};
 
 // ── Empty State ──────────────────────────────────────────────────────────────
 const EmptyState = ({ icon: Icon = Globe, title, desc, action }) => (
@@ -407,31 +463,31 @@ const CompetitorsTab = () => {
       ) : summary ? (
         <>
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={12} sm={8} md={4}>
+            <Col xs={12} sm={8} md={8} lg={4}>
               <MetricCard title="Total Competitors" value={summary.totalCompetitors}
                 icon={Globe} color="#1677ff"
                 sub={`${summary.approvedCount} approved`} />
             </Col>
-            <Col xs={12} sm={8} md={4}>
-              <MetricCard title="Avg Traffic" value={fmt(summary.avgTraffic)}
+            <Col xs={12} sm={8} md={8} lg={4}>
+              <MetricCard title="Avg Traffic" value={summary.avgTraffic}
                 icon={TrendingUp} color="#52c41a"
                 sub="vs competitors" />
             </Col>
-            <Col xs={12} sm={8} md={4}>
-              <MetricCard title="Total Keywords" value={fmt(summary.totalKeywords)}
+            <Col xs={12} sm={8} md={8} lg={4}>
+              <MetricCard title="Total Keywords" value={summary.totalKeywords}
                 icon={BarChart2} color="#722ed1" />
             </Col>
-            <Col xs={12} sm={8} md={4}>
+            <Col xs={12} sm={8} md={8} lg={4}>
               <MetricCard title="Avg Threat Score" value={summary.avgThreatScore}
                 icon={AlertTriangle} color={scoreColor(summary.avgThreatScore)}
                 sub="0–100" />
             </Col>
-            <Col xs={12} sm={8} md={4}>
+            <Col xs={12} sm={8} md={8} lg={4}>
               <MetricCard title="Avg Opp Score" value={summary.avgOpportunityScore}
                 icon={Target} color="#13c2c2"
                 sub="0–100" />
             </Col>
-            <Col xs={12} sm={8} md={4}>
+            <Col xs={12} sm={8} md={8} lg={4}>
               <MetricCard title="Open Recs" value={summary.openRecommendations}
                 icon={Brain} color="#fa8c16"
                 sub="proposed" />
@@ -678,20 +734,20 @@ const CompetitorsTab = () => {
         ) : gapResult ? (
           <>
             <div style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Card size="small" bordered={false} style={{ background: '#f0f5ff', borderRadius: 8 }}>
-                    <Statistic title="Total Gaps Found" value={gapResult.rows?.length || 0} valueStyle={{ color: '#1677ff' }} />
+              <Row gutter={[12, 12]}>
+                <Col xs={24} sm={8}>
+                  <Card size="small" bordered={false} style={{ background: '#f0f5ff', borderRadius: 8, overflow: 'hidden' }}>
+                    <Statistic title="Total Gaps Found" value={gapResult.rows?.length || 0} valueStyle={{ color: '#1677ff', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
-                <Col span={8}>
-                  <Card size="small" bordered={false} style={{ background: '#f6ffed', borderRadius: 8 }}>
-                    <Statistic title="Avg Search Volume" value={fmt(Math.round((gapResult.rows || []).reduce((s, r) => s + (r.searchVolume || 0), 0) / Math.max(1, gapResult.rows?.length || 1)))} valueStyle={{ color: '#52c41a' }} />
+                <Col xs={24} sm={8}>
+                  <Card size="small" bordered={false} style={{ background: '#f6ffed', borderRadius: 8, overflow: 'hidden' }}>
+                    <Statistic title="Avg Search Volume" value={formatCompact(Math.round((gapResult.rows || []).reduce((s, r) => s + (r.searchVolume || 0), 0) / Math.max(1, gapResult.rows?.length || 1)))} valueStyle={{ color: '#52c41a', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
-                <Col span={8}>
-                  <Card size="small" bordered={false} style={{ background: '#fff7e6', borderRadius: 8 }}>
-                    <Statistic title="Competitors Analyzed" value={gapResult.domains?.length - 1 || 0} valueStyle={{ color: '#fa8c16' }} />
+                <Col xs={24} sm={8}>
+                  <Card size="small" bordered={false} style={{ background: '#fff7e6', borderRadius: 8, overflow: 'hidden' }}>
+                    <Statistic title="Competitors Analyzed" value={gapResult.domains?.length - 1 || 0} valueStyle={{ color: '#fa8c16', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
               </Row>
@@ -863,33 +919,59 @@ const CompetitorsTab = () => {
     return (
       <motion.div {...motionFade}>
         {/* Summary row */}
-        <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 24 }}>
           {Object.entries(BUCKET_META).map(([key, meta]) => {
             const BucketIcon = meta.icon;
             const count = opportunities.buckets?.[key]?.length || 0;
             return (
-              <Col xs={12} sm={8} md={4} key={key}>
-                <Card size="small" bordered={false}
-                  style={{ background: meta.bg, border: `1px solid ${meta.color}30`, borderRadius: 12, textAlign: 'center' }}>
-                  <BucketIcon size={24} style={{ color: meta.color, marginBottom: 8 }} />
-                  <div style={{ fontSize: 24, fontWeight: 800, color: meta.color }}>{count}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{meta.label}</div>
-                </Card>
-              </Col>
+              <Card
+                key={key}
+                size="small"
+                bordered={false}
+                style={{
+                  background: meta.bg,
+                  border: `1px solid ${meta.color}30`,
+                  borderRadius: 12,
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  padding: '12px 8px',
+                  overflow: 'hidden'
+                }}
+              >
+                <BucketIcon size={20} style={{ color: meta.color, margin: '0 auto 4px auto' }} />
+                <div style={{ fontSize: 'clamp(18px, 1.5vw, 24px)', fontWeight: 800, color: meta.color, lineHeight: 1.2 }}>{count}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{meta.label}</div>
+              </Card>
             );
           })}
           {opportunities.summary && (
-            <Col xs={24} sm={12} md={8}>
-              <Card size="small" bordered={false} style={{ background: '#f0f5ff', borderRadius: 12, border: '1px solid #bae0ff' }}>
-                <div style={{ fontSize: 11, color: '#1677ff', fontWeight: 600, marginBottom: 4 }}>Total Est. Traffic</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#1677ff' }}>{fmt(opportunities.summary.totalEstimatedTraffic)}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                  ~${fmt(opportunities.summary.totalEstimatedRevenue)} revenue potential
-                </div>
-              </Card>
-            </Col>
+            <Card
+              size="small"
+              bordered={false}
+              style={{
+                background: '#f0f5ff',
+                borderRadius: 12,
+                border: '1px solid #bae0ff',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                padding: '12px 8px',
+                overflow: 'hidden'
+              }}
+            >
+              <TrendingUp size={20} style={{ color: '#1677ff', margin: '0 auto 4px auto' }} />
+              <div style={{ fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 800, color: '#1677ff', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {formatCompact(opportunities.summary.totalEstimatedTraffic)}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }} title={`~$${formatCompact(opportunities.summary.totalEstimatedRevenue)} revenue potential`}>
+                ~${formatCompact(opportunities.summary.totalEstimatedRevenue)} rev
+              </div>
+            </Card>
           )}
-        </Row>
+        </div>
 
         {/* Bucket tabs */}
         <Tabs
@@ -1161,8 +1243,8 @@ const CompetitorsTab = () => {
           activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
-          tabBarStyle={{ marginBottom: 0, fontWeight: 600 }}
-          size="small"
+          tabBarStyle={{ marginBottom: 20, fontWeight: 600 }}
+          size="middle"
         />
       )}
     </motion.div>

@@ -123,15 +123,10 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     workspaceChildren.push({ key: '/agency/workspace/tasks', icon: getIcon(CheckSquare), label: 'Task Management' });
     if (feats.includes('website')) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
     workspaceChildren.push({
-      key: 'agency-marketplace',
+      key: '/agency/marketplace',
       icon: getIcon(Store),
       label: 'Marketplace',
-      children: [
-        { key: '/agency/marketplace', icon: getIcon(Store), label: 'Overview' },
-        { key: '/agency/marketplace/seo/dashboard', icon: getIcon(Search), label: 'SEO' },
-      ],
     });
-    if (feats.includes('seo')) workspaceChildren.push({ key: '/agency/seo', icon: getIcon(Search), label: 'SEO / AEO / GEO' });
   }
 
   if (workspaceChildren.length > 0) {

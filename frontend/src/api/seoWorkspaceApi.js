@@ -504,79 +504,98 @@ export const seoWorkspaceApi = {
     return res.data;
   },
   getAutomationMetrics: async (projectId) => {
-    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/metrics`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/metrics`, getAuthHeaders());
     return res.data;
   },
   getAutomationQueue: async (projectId) => {
-    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/queue`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/queue`, getAuthHeaders());
     return res.data;
   },
   getAutomationWorkflows: async (projectId) => {
-    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/workflows`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/workflows`, getAuthHeaders());
     return res.data;
   },
   getAutomationHistoryLogs: async (projectId) => {
-    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/history`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/history`, getAuthHeaders());
     return res.data;
   },
   createAutomationWorkflow: async (projectId, data) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows`, data, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows`, data, getAuthHeaders());
     return res.data;
   },
   getAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.get(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}`, getAuthHeaders());
     return res.data;
   },
   updateAutomationWorkflow: async (projectId, workflowId, data) => {
-    const res = await axios.put(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, data, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.put(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}`, data, getAuthHeaders());
     return res.data;
   },
   deleteAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.delete(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}`, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.delete(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}`, getAuthHeaders());
     return res.data;
   },
   cloneAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/clone`, {}, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/clone`, {}, getAuthHeaders());
     return res.data;
   },
   exportAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/export`, {}, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/export`, {}, getAuthHeaders());
     return res.data;
   },
   importAutomationWorkflow: async (projectId, data) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/import`, data, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/import`, data, getAuthHeaders());
     return res.data;
   },
   rollbackAutomationWorkflow: async (projectId, workflowId, versionId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/rollback`, { versionId }, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/rollback`, { versionId }, getAuthHeaders());
     return res.data;
   },
   publishAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/publish`, {}, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/publish`, {}, getAuthHeaders());
     return res.data;
   },
   archiveAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/archive`, {}, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/archive`, {}, getAuthHeaders());
     return res.data;
   },
   runAutomationWorkflow: async (projectId, workflowId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/run`, {}, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/run`, {}, getAuthHeaders());
     return res.data;
   },
   simulateAutomationWorkflow: async (projectId, workflowId, payload) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/simulate`, payload, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/simulate`, payload, getAuthHeaders());
     return res.data;
   },
   cancelAutomationExecution: async (projectId, workflowId, runId) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/workflows/${workflowId}/cancel`, { runId }, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows/${workflowId}/cancel`, { runId }, getAuthHeaders());
     return res.data;
   },
   generateAiWorkflow: async (projectId, prompt) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/ai/generate`, { prompt }, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/ai/generate`, { prompt }, getAuthHeaders());
     return res.data;
   },
   optimizeAiWorkflow: async (projectId, data) => {
-    const res = await axios.post(`${API_URL}/v1/automation/projects/${projectId}/ai/optimize`, data, getAuthHeaders());
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/ai/optimize`, data, getAuthHeaders());
     return res.data;
   },
   getAutomationTriggers: async (projectId) => {

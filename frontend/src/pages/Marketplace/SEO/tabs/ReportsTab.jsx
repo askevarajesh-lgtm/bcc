@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { useSEO } from '../context/SEOContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
-import ReportPreview from './components/ReportPreview'; // We will create this
+import ReportPreview from './components/ReportPreview';
+import { generateReportPDF } from '../utils/reportPdfGenerator';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -123,17 +124,33 @@ const ReportsTab = () => {
 
   const download = async (report) => {
     try {
-      const { blob, filename } = await seoWorkspaceApi.downloadReport(projectId, report._id);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      // If we already have full report content, generate styled PDF directly
+      if (report && (report.content || report.metrics || report.executiveSummary)) {
+        generateReportPDF(report, activeProject?.name, activeProject?.domain);
+        message.success('PDF report downloaded successfully');
+        return;
+      }
+
+      // Fetch full report data if content is missing (e.g. from table row)
+      const res = await seoWorkspaceApi.previewReport(projectId, report._id);
+      const fullReport = res.data || res || report;
+      generateReportPDF(fullReport, activeProject?.name, activeProject?.domain);
+      message.success('PDF report downloaded successfully');
     } catch (err) {
-      message.error(err?.response?.data?.error || 'Failed to download report');
+      console.error('[Download PDF] Error:', err);
+      try {
+        const { blob, filename } = await seoWorkspaceApi.downloadReport(projectId, report._id);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        message.error('Failed to download report PDF');
+      }
     }
   };
 
@@ -160,8 +177,8 @@ const ReportsTab = () => {
           <Tooltip title="Preview">
             <Button size="small" type="text" icon={<Eye size={16} />} onClick={() => handlePreview(r)} />
           </Tooltip>
-          <Tooltip title="Download">
-            <Button size="small" type="text" icon={<Download size={16} />} disabled={r.status !== 'completed'} onClick={() => download(r)} />
+          <Tooltip title="Download PDF">
+            <Button size="small" type="text" icon={<Download size={16} />} disabled={(r.status || r.reportStatus || '').toLowerCase() === 'failed'} onClick={() => download(r)} />
           </Tooltip>
           <Dropdown
             menu={{

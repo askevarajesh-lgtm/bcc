@@ -13,7 +13,7 @@ const AutomationWorkflowSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['Draft', 'Published', 'Archived'],
+    enum: ['Draft', 'Published', 'Archived', 'Active', 'Paused'],
     default: 'Draft'
   },
 

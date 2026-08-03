@@ -1,14 +1,27 @@
-import React from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Typography, Card, Tag, Space, Button, Badge } from 'antd';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Typography, Card, Tag, Space, Button } from 'antd';
 import { motion } from 'framer-motion';
 import {
-  LayoutGrid, ClipboardCheck, Hash, Swords, Sparkles, Cpu, LayoutTemplate,
-  ShoppingBag, BookOpen, MessageCircle, Globe2, FileText, Zap, Activity, Settings, Search,
-  Globe, ExternalLink, ActivitySquare
+  LayoutGrid, ClipboardCheck, Hash, Swords, Sparkles, Cpu,
+  MessageCircle, Globe2, FileText, Zap, Activity, Settings, Search,
+  Globe, ExternalLink
 } from 'lucide-react';
 import { SEOProvider, useSEO } from './context/SEOContext';
 import ProjectSelector from './components/shared/ProjectSelector';
+
+import DashboardTab from './tabs/DashboardTab';
+import AuditTab from './tabs/AuditTab';
+import KeywordsTab from './tabs/KeywordsTab';
+import CompetitorsTab from './tabs/CompetitorsTab';
+import ContentAITab from './tabs/ContentAITab';
+import TechnicalSEOTab from './tabs/TechnicalSEOTab';
+import AEOTab from './tabs/AEOTab';
+import GEOTab from './tabs/GEOTab';
+import ReportsTab from './tabs/ReportsTab';
+import AutomationTab from './tabs/AutomationTab';
+import MonitoringTab from './tabs/MonitoringTab';
+import SettingsTab from './tabs/SettingsTab';
 
 const { Title, Text } = Typography;
 
@@ -19,9 +32,6 @@ const NAV_ITEMS = [
   { id: 'competitors', label: 'Competitors', icon: Swords },
   { id: 'content-ai', label: 'Content AI', icon: Sparkles },
   { id: 'technical-seo', label: 'Technical SEO', icon: Cpu },
-  // { id: 'website-builder', label: 'Website Builder', icon: LayoutTemplate },
-  // { id: 'store-seo', label: 'Store SEO', icon: ShoppingBag },
-  // { id: 'blog-seo', label: 'Blog SEO', icon: BookOpen },
   { id: 'aeo', label: 'AEO', icon: MessageCircle },
   { id: 'geo', label: 'GEO', icon: Globe2 },
   { id: 'reports', label: 'Reports', icon: FileText },
@@ -43,14 +53,55 @@ const itemVariants = {
 const MarketplaceSEOContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeProject, activeProjectId } = useSEO();
+  const { activeProject } = useSEO();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  const basePath = location.pathname.split('/marketplace/seo')[0] + '/marketplace/seo';
-  const activeId = NAV_ITEMS.find((item) => location.pathname.includes(`/${item.id}`))?.id || 'dashboard';
+  const getBasePath = () => {
+    const currentPath = location.pathname.replace(/\/+$/, '');
+    for (const item of NAV_ITEMS) {
+      if (currentPath.endsWith(`/${item.id}`)) {
+        return currentPath.slice(0, -(item.id.length + 1));
+      }
+    }
+    if (currentPath.includes('/marketplace') && !currentPath.includes('/marketplace/seo')) {
+      return `${currentPath}/seo`;
+    }
+    if (currentPath.includes('/seo')) {
+      return currentPath;
+    }
+    return `${currentPath}/seo`;
+  };
+  const basePath = getBasePath();
+  const currentPath = location.pathname.replace(/\/+$/, '');
+  const pathItem = NAV_ITEMS.find((item) => currentPath.endsWith(`/${item.id}`) || currentPath.includes(`/${item.id}/`));
+  const activeId = pathItem ? pathItem.id : activeTab;
+
+  const handleTabSelect = (itemId) => {
+    setActiveTab(itemId);
+    navigate(`${basePath}/${itemId}`);
+  };
 
   const domainUrl = activeProject?.domain
     ? (activeProject.domain.startsWith('http') ? activeProject.domain : `https://${activeProject.domain}`)
     : null;
+
+  const renderTabContent = () => {
+    switch (activeId) {
+      case 'dashboard': return <DashboardTab />;
+      case 'audit': return <AuditTab />;
+      case 'keywords': return <KeywordsTab />;
+      case 'competitors': return <CompetitorsTab />;
+      case 'content-ai': return <ContentAITab />;
+      case 'technical-seo': return <TechnicalSEOTab />;
+      case 'aeo': return <AEOTab />;
+      case 'geo': return <GEOTab />;
+      case 'reports': return <ReportsTab />;
+      case 'automation': return <AutomationTab />;
+      case 'monitoring': return <MonitoringTab />;
+      case 'settings': return <SettingsTab />;
+      default: return <DashboardTab />;
+    }
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -144,10 +195,10 @@ const MarketplaceSEOContent = () => {
           return (
             <div
               key={item.id}
-              onClick={() => navigate(`${basePath}/${item.id}`)}
+              onClick={() => handleTabSelect(item.id)}
               style={{
                 padding: '10px 14px',
-                color: isActive ? 'var(--text-primary, #1890ff)' : 'var(--text-secondary, #595959)',
+                color: isActive ? 'var(--accent-primary, #1890ff)' : 'var(--text-secondary, #595959)',
                 borderBottom: isActive ? '3px solid var(--accent-primary, #1890ff)' : '3px solid transparent',
                 fontWeight: isActive ? 700 : 500,
                 fontSize: 13,
@@ -169,7 +220,7 @@ const MarketplaceSEOContent = () => {
       {/* Active Tab Panel */}
       <motion.div variants={itemVariants}>
         <Card style={{ borderRadius: 12, boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05))' }}>
-          <Outlet />
+          {renderTabContent()}
         </Card>
       </motion.div>
     </motion.div>

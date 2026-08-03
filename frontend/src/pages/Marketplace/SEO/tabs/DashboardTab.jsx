@@ -6,7 +6,7 @@ import {
   ArrowUpRight, ArrowDownRight, Compass, MessageCircle, FileText, Swords
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { useSEO } from '../context/SEOContext';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -23,6 +23,14 @@ const INTENT_COLORS = { informational: '#1890ff', commercial: '#722ed1', transac
 
 const DashboardTab = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const goToTab = (tab) => {
+    const isClient = location.pathname.startsWith('/client');
+    const isUser = location.pathname.startsWith('/user') || location.pathname.startsWith('/workspace');
+    const prefix = isClient ? '/client/marketplace/seo' : isUser ? '/user/workspace/seo' : '/agency/marketplace/seo';
+    navigate(`${prefix}/${tab}`);
+  };
   const { activeProjectId, activeProject, projects, selectProject } = useSEO();
   const [viewMode, setViewMode] = useState('project'); // 'project' | 'portfolio'
   const [loading, setLoading] = useState(true);
@@ -312,35 +320,35 @@ const DashboardTab = () => {
                     type="primary"
                     block
                     icon={<ClipboardList size={15} />}
-                    onClick={() => navigate('../audit')}
+                    onClick={() => goToTab('audit')}
                   >
                     Run Comprehensive Audit
                   </Button>
                   <Button
                     block
                     icon={<BarChart2 size={15} />}
-                    onClick={() => navigate('../keywords')}
+                    onClick={() => goToTab('keywords')}
                   >
                     Discover & Track Keywords
                   </Button>
                   <Button
                     block
                     icon={<Swords size={15} />}
-                    onClick={() => navigate('../competitors')}
+                    onClick={() => goToTab('competitors')}
                   >
                     Benchmark Competitors
                   </Button>
                   <Button
                     block
                     icon={<MessageCircle size={15} />}
-                    onClick={() => navigate('../aeo')}
+                    onClick={() => goToTab('aeo')}
                   >
                     Audit AI Engine (AEO) Visibility
                   </Button>
                   <Button
                     block
                     icon={<FileText size={15} />}
-                    onClick={() => navigate('../reports')}
+                    onClick={() => goToTab('reports')}
                   >
                     Build Executive SEO Report
                   </Button>

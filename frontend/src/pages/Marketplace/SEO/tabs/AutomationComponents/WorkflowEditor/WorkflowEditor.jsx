@@ -14,6 +14,8 @@ import {
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
 
 export default function WorkflowEditor({ projectId, workflowId, onClose }) {
+  const isExistingWorkflow = workflowId && workflowId !== 'new' && workflowId !== 'temp_workflow';
+  const [currentWorkflowId, setCurrentWorkflowId] = useState(isExistingWorkflow ? workflowId : null);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -29,8 +31,9 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
 
   // Load workflow data if editing existing
   useEffect(() => {
-    if (workflowId) {
+    if (workflowId && workflowId !== 'new' && workflowId !== 'temp_workflow') {
       setLoading(true);
+      setCurrentWorkflowId(workflowId);
       seoWorkspaceApi.getAutomationWorkflow(projectId, workflowId)
         .then(res => {
           const wf = res?.data || res;
@@ -40,16 +43,25 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
               status: wf.status || 'Draft',
               triggerType: wf.triggerType || 'event'
             });
-            if (wf.nodes && Array.isArray(wf.nodes)) setNodes(wf.nodes);
-            if (wf.edges && Array.isArray(wf.edges)) setEdges(wf.edges);
+            const activeVer = wf.activeVersionId || {};
+            const wfNodes = wf.nodes || activeVer.nodes;
+            const wfEdges = wf.edges || activeVer.edges;
+            if (Array.isArray(wfNodes) && wfNodes.length > 0) {
+              setNodes(wfNodes);
+            }
+            if (Array.isArray(wfEdges) && wfEdges.length > 0) {
+              setEdges(wfEdges);
+            }
           }
         })
         .catch(err => {
-          message.error('Failed to load workflow details');
+          console.warn('Could not load remote workflow details, continuing in design mode:', err);
         })
         .finally(() => setLoading(false));
     } else {
       // Default starting nodes for new workflow
+      setCurrentWorkflowId(null);
+      setWorkflowMeta({ name: 'New Automation Workflow', status: 'Draft', triggerType: 'event' });
       setNodes([
         {
           id: 'node_trigger_start',
@@ -90,13 +102,13 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
         {
           id: 'node_ai_diagnosis',
           type: 'custom',
-          position: { x: 380, y: 320 },
+          position: { x: 400, y: 320 },
           data: {
             label: 'AI Root Cause Analysis',
             subtitle: 'Diagnose SERP & competitor change',
             type: 'ai_agent',
-            subtype: 'seo_root_cause',
-            config: { agentKey: 'rootCauseDiagnostician' }
+            subtype: 'ai_root_cause_analysis',
+            config: { model: 'gpt-4o' }
           }
         }
       ]);
@@ -113,22 +125,32 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
     setSaving(true);
     try {
       const payload = {
-        name: workflowMeta.name,
-        triggerType: workflowMeta.triggerType,
-        status: publish ? 'Active' : workflowMeta.status,
-        nodes,
-        edges
+        name: workflowMeta.name || 'Untitled Workflow',
+        triggerType: workflowMeta.triggerType || 'event',
+        status: publish ? 'Published' : (workflowMeta.status === 'Published' ? 'Published' : 'Draft'),
+        nodes: Array.isArray(nodes) ? nodes : [],
+        edges: Array.isArray(edges) ? edges : []
       };
 
-      if (workflowId) {
-        await seoWorkspaceApi.updateAutomationWorkflow(projectId, workflowId, payload);
+      if (currentWorkflowId && currentWorkflowId !== 'new' && currentWorkflowId !== 'temp_workflow') {
+        const res = await seoWorkspaceApi.updateAutomationWorkflow(projectId, currentWorkflowId, payload);
+        const updated = res?.data || res;
+        if (updated?._id) setCurrentWorkflowId(updated._id);
+        if (updated?.name) setWorkflowMeta(prev => ({ ...prev, name: updated.name, status: updated.status || (publish ? 'Published' : 'Draft') }));
+        message.success(publish ? 'Workflow published and active!' : 'Workflow saved successfully!');
       } else {
-        await seoWorkspaceApi.createAutomationWorkflow(projectId, payload);
+        const res = await seoWorkspaceApi.createAutomationWorkflow(projectId, payload);
+        const created = res?.data || res;
+        if (created?._id) {
+          setCurrentWorkflowId(created._id);
+        }
+        if (created?.name) setWorkflowMeta(prev => ({ ...prev, name: created.name, status: created.status || (publish ? 'Published' : 'Draft') }));
+        message.success(publish ? 'Workflow created and published!' : 'Workflow created successfully!');
       }
-
-      message.success(publish ? 'Workflow published and active!' : 'Workflow saved successfully!');
     } catch (err) {
-      message.error(err?.response?.data?.error || 'Failed to save workflow');
+      console.error('[handleSave] Error:', err);
+      const errMsg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save workflow';
+      message.error(errMsg);
     } finally {
       setSaving(false);
     }
@@ -171,10 +193,59 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
     };
   };
 
+  const handleAddNode = (nodeData) => {
+    const xOffset = 250 + (nodes.length % 5) * 40;
+    const yOffset = 100 + (nodes.length % 5) * 50;
+
+    const newNode = {
+      id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      type: 'custom',
+      position: { x: xOffset, y: yOffset },
+      data: {
+        label: nodeData.label || 'New Node',
+        subtitle: nodeData.subtitle || '',
+        type: nodeData.type || 'action',
+        subtype: nodeData.subtype || 'generic',
+        config: nodeData.config || {},
+        retryPolicy: { maxRetries: 3, backoffMs: 1000 }
+      }
+    };
+
+    setNodes((nds) => nds.concat(newNode));
+    setSelectedNode(newNode);
+    message.success(`Added "${nodeData.label}" to canvas`);
+  };
+
   return (
-    <div className="workflow-editor-container" style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div 
+      className="workflow-editor-container" 
+      style={{ 
+        height: 'calc(100vh - 170px)', 
+        minHeight: 650, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        background: '#f8fafc',
+        borderRadius: 12,
+        border: '1px solid #e2e8f0',
+        overflow: 'hidden',
+        marginTop: 8
+      }}
+    >
       {/* Studio Header Bar */}
-      <div className="workflow-editor-header" style={{ height: 56, padding: '0 16px', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div 
+        className="workflow-editor-header" 
+        style={{ 
+          height: 60, 
+          minHeight: 60,
+          padding: '0 16px', 
+          background: '#ffffff', 
+          borderBottom: '1px solid #e2e8f0', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          zIndex: 10
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button type="text" icon={<ArrowLeft size={16} />} onClick={onClose} />
           
@@ -194,7 +265,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
               style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
             >
               <span>{workflowMeta.name}</span>
-              <Tag color={workflowMeta.status === 'Active' ? 'green' : 'default'} style={{ margin: 0, fontSize: 11 }}>
+              <Tag color={workflowMeta.status === 'Active' || workflowMeta.status === 'Published' ? 'green' : 'default'} style={{ margin: 0, fontSize: 11 }}>
                 {workflowMeta.status}
               </Tag>
             </div>
@@ -253,7 +324,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
       {/* Main Studio Body: 3-column Layout */}
       <div className="workflow-editor-body" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <ReactFlowProvider>
-          <NodePalette />
+          <NodePalette onAddNode={handleAddNode} />
           
           <Canvas 
             nodes={nodes} 

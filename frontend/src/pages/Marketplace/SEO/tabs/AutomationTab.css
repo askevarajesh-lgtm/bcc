@@ -61,9 +61,33 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
+.palette-node-item {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: element;
+  cursor: grab;
+  position: relative;
+}
+
+.palette-node-item:active {
+  cursor: grabbing;
+}
+
+.palette-node-item * {
+  pointer-events: none;
+}
+
+.palette-node-item:hover {
+  border-color: #3b82f6 !important;
+  background: #f0f7ff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+}
+
 .workflow-canvas {
   flex: 1;
   position: relative;
+  height: 100%;
 }
 
 .workflow-inspector {
@@ -73,3 +97,4 @@
   padding: 16px;
   overflow-y: auto;
 }
+

@@ -1,12 +1,13 @@
 import React, { useCallback, useRef } from 'react';
 import {
   ReactFlow,
-  MiniMap,
   Controls,
   Background,
   addEdge,
   useReactFlow,
-  Panel
+  Panel,
+  applyNodeChanges,
+  applyEdgeChanges
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import CustomNode from './CustomNode';
@@ -21,33 +22,15 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
 
-  const onNodesChange = useCallback((changes) => {
-    setNodes((nds) => {
-      let updated = [...nds];
-      for (const change of changes) {
-        if (change.type === 'position' && change.position) {
-          updated = updated.map(n => n.id === change.id ? { ...n, position: change.position } : n);
-        } else if (change.type === 'remove') {
-          updated = updated.filter(n => n.id !== change.id);
-        } else if (change.type === 'select') {
-          updated = updated.map(n => n.id === change.id ? { ...n, selected: change.selected } : n);
-        }
-      }
-      return updated;
-    });
-  }, [setNodes]);
+  const onNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
 
-  const onEdgesChange = useCallback((changes) => {
-    setEdges((eds) => {
-      let updated = [...eds];
-      for (const change of changes) {
-        if (change.type === 'remove') {
-          updated = updated.filter(e => e.id !== change.id);
-        }
-      }
-      return updated;
-    });
-  }, [setEdges]);
+  const onEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [setEdges]
+  );
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
@@ -56,27 +39,45 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
+    event.stopPropagation();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
+      event.stopPropagation();
 
-      const rawData = event.dataTransfer.getData('application/reactflow');
-      if (!rawData) return;
-
-      let nodePayload = {};
-      try {
-        nodePayload = JSON.parse(rawData);
-      } catch (e) {
-        nodePayload = { type: rawData, label: `${rawData} node` };
+      let nodePayload = window.__draggedWorkflowNode;
+      if (!nodePayload) {
+        const rawData = event.dataTransfer.getData('application/reactflow') || event.dataTransfer.getData('text/plain');
+        if (rawData) {
+          try {
+            nodePayload = JSON.parse(rawData);
+          } catch (e) {
+            nodePayload = { type: 'action', label: String(rawData) };
+          }
+        }
       }
 
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+      if (!nodePayload) return;
+
+      // Convert client coordinates to flow canvas coordinates
+      let position = { x: 250, y: 150 };
+      if (reactFlowWrapper.current) {
+        const bounds = reactFlowWrapper.current.getBoundingClientRect();
+        try {
+          position = screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+        } catch (err) {
+          position = {
+            x: Math.max(20, event.clientX - bounds.left - 100),
+            y: Math.max(20, event.clientY - bounds.top - 40),
+          };
+        }
+      }
 
       const newNode = {
         id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -87,27 +88,34 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
           subtitle: nodePayload.subtitle || '',
           type: nodePayload.type || 'action',
           subtype: nodePayload.subtype || 'generic',
-          config: {},
+          config: nodePayload.config || {},
           retryPolicy: { maxRetries: 3, backoffMs: 1000 }
         },
       };
 
       setNodes((nds) => nds.concat(newNode));
-      onSelectNode(newNode);
+      if (onSelectNode) onSelectNode(newNode);
+      window.__draggedWorkflowNode = null;
     },
     [screenToFlowPosition, setNodes, onSelectNode]
   );
 
   const onNodeClick = (_, node) => {
-    onSelectNode(node);
+    if (onSelectNode) onSelectNode(node);
   };
 
   const onPaneClick = () => {
-    onSelectNode(null);
+    if (onSelectNode) onSelectNode(null);
   };
 
   return (
-    <div className="workflow-canvas" ref={reactFlowWrapper} style={{ flex: 1, height: '100%', position: 'relative' }}>
+    <div 
+      className="workflow-canvas" 
+      ref={reactFlowWrapper} 
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      style={{ flex: 1, height: '100%', position: 'relative', background: '#f8fafc' }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -123,11 +131,7 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
         snapToGrid={true}
         snapGrid={[15, 15]}
       >
-        <Controls />
-        <MiniMap 
-          nodeStrokeWidth={3} 
-          style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}
-        />
+        <Controls showInteractive={false} position="bottom-left" />
         <Background variant="dots" gap={16} size={1} color="#cbd5e1" />
         <Panel position="top-right" style={{ display: 'flex', gap: 8, margin: 12 }}>
           <Tooltip title="Fit View">

@@ -9,12 +9,19 @@ import {
 const { Title } = Typography;
 const { Panel } = Collapse;
 
-export default function NodePalette() {
+export default function NodePalette({ onAddNode }) {
   const [search, setSearch] = useState('');
 
   const onDragStart = (event, nodeData) => {
-    event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeData));
-    event.dataTransfer.effectAllowed = 'move';
+    window.__draggedWorkflowNode = nodeData;
+    const dataStr = JSON.stringify(nodeData);
+    try {
+      event.dataTransfer.setData('application/reactflow', dataStr);
+      event.dataTransfer.setData('text/plain', dataStr);
+      event.dataTransfer.effectAllowed = 'move';
+    } catch (e) {
+      console.warn('Drag dataTransfer error:', e);
+    }
   };
 
   const categories = [
@@ -88,7 +95,7 @@ export default function NodePalette() {
     <div className="workflow-palette" style={{ width: 280, background: '#ffffff', borderRight: '1px solid #e2e8f0', padding: 16, height: '100%', overflowY: 'auto' }}>
       <div style={{ marginBottom: 12 }}>
         <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e293b' }}>Node Library</Title>
-        <p style={{ margin: '2px 0 10px 0', fontSize: 12, color: '#64748b' }}>Drag and drop nodes onto the canvas</p>
+        <p style={{ margin: '2px 0 10px 0', fontSize: 12, color: '#64748b' }}>Drag onto canvas or click to add</p>
         <Input.Search 
           placeholder="Search 50+ nodes..." 
           size="small" 
@@ -114,6 +121,7 @@ export default function NodePalette() {
                   key={idx}
                   draggable
                   onDragStart={e => onDragStart(e, n)}
+                  onClick={() => onAddNode && onAddNode(n)}
                   style={{
                     padding: '8px 10px',
                     borderRadius: 8,
@@ -123,7 +131,8 @@ export default function NodePalette() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 2,
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    userSelect: 'none'
                   }}
                   className="palette-node-item"
                 >

@@ -157,34 +157,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   const workspaceChildren = [];
 
   const buildMarketplaceMenuItem = () => ({
-    key: 'client-marketplace',
+    key: '/client/marketplace',
     icon: getIcon(ShoppingCart),
     label: 'Marketplace',
-    children: [
-      { key: '/client/marketplace', icon: getIcon(ShoppingCart), label: 'Overview' },
-      {
-        key: 'client-marketplace-seo',
-        icon: getIcon(Search),
-        label: 'SEO',
-        children: [
-          { key: '/client/marketplace/seo/dashboard', icon: getIcon(LayoutGrid), label: 'Dashboard' },
-          { key: '/client/marketplace/seo/audit', icon: getIcon(ClipboardCheck), label: 'Audit' },
-          { key: '/client/marketplace/seo/keywords', icon: getIcon(Hash), label: 'Keywords' },
-          { key: '/client/marketplace/seo/competitors', icon: getIcon(Swords), label: 'Competitors' },
-          { key: '/client/marketplace/seo/content-ai', icon: getIcon(Sparkles), label: 'Content AI' },
-          { key: '/client/marketplace/seo/technical-seo', icon: getIcon(Cpu), label: 'Technical SEO' },
-          { key: '/client/marketplace/seo/website-builder', icon: getIcon(LayoutTemplate), label: 'Website Builder' },
-          { key: '/client/marketplace/seo/store-seo', icon: getIcon(ShoppingBag), label: 'Store SEO' },
-          { key: '/client/marketplace/seo/blog-seo', icon: getIcon(BookOpen), label: 'Blog SEO' },
-          { key: '/client/marketplace/seo/aeo', icon: getIcon(MessageCircle), label: 'AEO' },
-          { key: '/client/marketplace/seo/geo', icon: getIcon(Globe2), label: 'GEO' },
-          { key: '/client/marketplace/seo/reports', icon: getIcon(FileText), label: 'Reports' },
-          { key: '/client/marketplace/seo/automation', icon: getIcon(Zap), label: 'Automation' },
-          { key: '/client/marketplace/seo/monitoring', icon: getIcon(Activity), label: 'Monitoring' },
-          { key: '/client/marketplace/seo/settings', icon: getIcon(SettingsIcon), label: 'Settings' },
-        ],
-      },
-    ],
   });
 
   if (role === 'brand_super_admin') {

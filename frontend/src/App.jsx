@@ -31,7 +31,6 @@ import QREmbedView from './pages/WebsiteBuilder/tabs/QREmbedView';
 import WebsitePreviewView from './pages/WebsiteBuilder/tabs/WebsitePreviewView';
 import BlogPostPreviewView from './pages/WebsiteBuilder/tabs/BlogPostPreviewView';
 import Strategy from './pages/Strategy/Strategy';
-import SEO from './pages/SEO/SEO';
 import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
 import Semrush from './pages/Semrush/Semrush';
 import DashboardTab from './pages/Semrush/components/DashboardTab';
@@ -80,21 +79,6 @@ import AICopilot from './pages/AICopilot/AICopilot';
 import Benchmarks from './pages/Benchmarks/Benchmarks';
 import Marketplace from './pages/Marketplace/Marketplace';
 import MarketplaceSEO from './pages/Marketplace/SEO/MarketplaceSEO';
-import SeoDashboardTab from './pages/Marketplace/SEO/tabs/DashboardTab';
-import SeoAuditTab from './pages/Marketplace/SEO/tabs/AuditTab';
-import SeoKeywordsTab from './pages/Marketplace/SEO/tabs/KeywordsTab';
-import SeoCompetitorsTab from './pages/Marketplace/SEO/tabs/CompetitorsTab';
-import SeoContentAITab from './pages/Marketplace/SEO/tabs/ContentAITab';
-import SeoTechnicalSEOTab from './pages/Marketplace/SEO/tabs/TechnicalSEOTab';
-import SeoWebsiteBuilderTab from './pages/Marketplace/SEO/tabs/WebsiteBuilderTab';
-import SeoStoreSEOTab from './pages/Marketplace/SEO/tabs/StoreSEOTab';
-import SeoBlogSEOTab from './pages/Marketplace/SEO/tabs/BlogSEOTab';
-import SeoAEOTab from './pages/Marketplace/SEO/tabs/AEOTab';
-import SeoGEOTab from './pages/Marketplace/SEO/tabs/GEOTab';
-import SeoReportsTab from './pages/Marketplace/SEO/tabs/ReportsTab';
-import SeoAutomationTab from './pages/Marketplace/SEO/tabs/AutomationTab';
-import SeoMonitoringTab from './pages/Marketplace/SEO/tabs/MonitoringTab';
-import SeoSettingsTab from './pages/Marketplace/SEO/tabs/SettingsTab';
 import ClientChatGPTPage from './pages/ClientChatGPTPage/ClientChatGPTPage';
 import ClientCanvaPage from './pages/ClientCanvaPage/ClientCanvaPage';
 
@@ -195,11 +179,38 @@ const ProtectedRoute = ({ allowedRoles }) => {
   return <Outlet />;
 };
 
+const SeoRedirect = () => {
+  const { role } = useAuth();
+  const location = useLocation();
+  const sub = location.pathname.replace(/^\/seo\/?/, '') || 'dashboard';
+
+  if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
+    return <Navigate to={`/agency/marketplace/seo/${sub}`} replace />;
+  }
+  if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role)) {
+    return <Navigate to={`/client/marketplace/seo/${sub}`} replace />;
+  }
+  if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(role)) {
+    return <Navigate to={`/workspace/seo/${sub}`} replace />;
+  }
+  return <Navigate to={`/user/workspace/seo/${sub}`} replace />;
+};
+
+const AgencySeoRedirect = () => {
+  const location = useLocation();
+  const sub = location.pathname.replace(/^\/agency\/seo\/?/, '') || 'dashboard';
+  return <Navigate to={`/agency/marketplace/seo/${sub}`} replace />;
+};
+
 const AppRoutes = () => {
   const { role } = useAuth();
   
   return (
     <Routes>
+      {/* Top-level universal SEO route */}
+      <Route path="/seo" element={<SeoRedirect />} />
+      <Route path="/seo/*" element={<SeoRedirect />} />
+
       <Route path="/signin" element={role ? (
         <Navigate to={
           ['supreme_super_admin', 'superadmin'].includes(role) ? '/superadmin/dashboard' : 
@@ -245,6 +256,8 @@ const AppRoutes = () => {
           <Route path="clients/portal" element={<PortalSettings />} />
 
           <Route path="workspace/strategy" element={<Strategy />} />
+          <Route path="workspace/seo/*" element={<MarketplaceSEO />} />
+          <Route path="workspace/seo" element={<MarketplaceSEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
@@ -335,27 +348,12 @@ const AppRoutes = () => {
           {/* Agency Manager Dynamic Modules */}
           <Route path="businessintel" element={<BusinessIntel />} />
           <Route path="marketplace" element={<Marketplace />} />
-          <Route path="marketplace/seo" element={<MarketplaceSEO />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<SeoDashboardTab />} />
-            <Route path="audit" element={<SeoAuditTab />} />
-            <Route path="keywords" element={<SeoKeywordsTab />} />
-            <Route path="competitors" element={<SeoCompetitorsTab />} />
-            <Route path="content-ai" element={<SeoContentAITab />} />
-            <Route path="technical-seo" element={<SeoTechnicalSEOTab />} />
-            <Route path="website-builder" element={<SeoWebsiteBuilderTab />} />
-            <Route path="store-seo" element={<SeoStoreSEOTab />} />
-            <Route path="blog-seo" element={<SeoBlogSEOTab />} />
-            <Route path="aeo" element={<SeoAEOTab />} />
-            <Route path="geo" element={<SeoGEOTab />} />
-            <Route path="reports" element={<SeoReportsTab />} />
-            <Route path="automation" element={<SeoAutomationTab />} />
-            <Route path="monitoring" element={<SeoMonitoringTab />} />
-            <Route path="settings" element={<SeoSettingsTab />} />
-          </Route>
+          <Route path="marketplace/seo/*" element={<Marketplace />} />
+          <Route path="marketplace/*" element={<Marketplace />} />
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
-          <Route path="seo" element={<SEO />} />
+          <Route path="seo" element={<Navigate to="/agency/marketplace/seo/dashboard" replace />} />
+          <Route path="seo/*" element={<AgencySeoRedirect />} />
           <Route path="content" element={<Content />} />
           <Route path="ai-studio" element={<AIStudio />} />
           <Route path="social-media" element={<CampaignScheduledPage />} />
@@ -415,7 +413,8 @@ const AppRoutes = () => {
           )}
 
           <Route path="workspace/strategy" element={<Strategy />} />
-          <Route path="workspace/seo" element={<SEO />} />
+          <Route path="workspace/seo/*" element={<MarketplaceSEO />} />
+          <Route path="workspace/seo" element={<MarketplaceSEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
@@ -468,24 +467,8 @@ const AppRoutes = () => {
             <SettingsPage />
           } />
           <Route path="marketplace" element={<Marketplace />} />
-          <Route path="marketplace/seo" element={<MarketplaceSEO />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<SeoDashboardTab />} />
-            <Route path="audit" element={<SeoAuditTab />} />
-            <Route path="keywords" element={<SeoKeywordsTab />} />
-            <Route path="competitors" element={<SeoCompetitorsTab />} />
-            <Route path="content-ai" element={<SeoContentAITab />} />
-            <Route path="technical-seo" element={<SeoTechnicalSEOTab />} />
-            <Route path="website-builder" element={<SeoWebsiteBuilderTab />} />
-            <Route path="store-seo" element={<SeoStoreSEOTab />} />
-            <Route path="blog-seo" element={<SeoBlogSEOTab />} />
-            <Route path="aeo" element={<SeoAEOTab />} />
-            <Route path="geo" element={<SeoGEOTab />} />
-            <Route path="reports" element={<SeoReportsTab />} />
-            <Route path="automation" element={<SeoAutomationTab />} />
-            <Route path="monitoring" element={<SeoMonitoringTab />} />
-            <Route path="settings" element={<SeoSettingsTab />} />
-          </Route>
+          <Route path="marketplace/seo/*" element={<Marketplace />} />
+          <Route path="marketplace/*" element={<Marketplace />} />
           <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
           <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
           <Route path="settings/integrations" element={<PlaceholderPage title="Integrations" description="Connect third-party apps and APIs." icon={Zap} />} />
@@ -523,7 +506,8 @@ const AppRoutes = () => {
           
           {/* Dynamically Granted Modules */}
           <Route path="workspace/strategy" element={<Strategy />} />
-          <Route path="workspace/seo" element={<SEO />} />
+          <Route path="workspace/seo/*" element={<MarketplaceSEO />} />
+          <Route path="workspace/seo" element={<MarketplaceSEO />} />
           <Route path="workspace/content" element={<Content />} />
           <Route path="workspace/aistudio" element={<AIStudio />} />
           <Route path="workspace/social" element={<CampaignScheduledPage />} />
