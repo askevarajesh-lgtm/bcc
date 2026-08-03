@@ -43,6 +43,7 @@ const leadRoutes = require('../modules/leads/lead.routes');
 const salesPipelineRoutes = require('../modules/salesPipeline/salesPipeline.routes');
 
 // Agency Restructure Placeholder Routes
+const agencyOverviewRoutes = require('../modules/accounts/agencyOverview.routes');
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
 const agencyReportsRoutes = require('../modules/accounts/agencyReports.routes');
 const agencySettingsRoutes = require('../modules/accounts/agencySettings.routes');
@@ -67,6 +68,7 @@ router.use('/auth', authRoutes);
 router.use('/agencies', agencyRoutes);
 router.use('/brands', brandRoutes);
 
+router.use('/agency/overview', agencyOverviewRoutes);
 router.use('/agency/billing', agencyBillingRoutes);
 router.use('/agency/reports', agencyReportsRoutes);
 router.use('/agency/settings', agencySettingsRoutes);
@@ -92,7 +94,7 @@ router.use('/semrush', semrushRoutes);
 router.use('/competitor-intelligence', competitorIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));
 router.use('/resources', require('../modules/resources/resources.routes'));
-router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
+// router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
 router.use('/websites', websiteRoutes);
 router.use('/funnels', funnelRoutes);
 router.use('/stores', storeRoutes);
