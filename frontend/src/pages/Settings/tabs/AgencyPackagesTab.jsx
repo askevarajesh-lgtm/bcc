@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions } from 'antd';
+import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Select } from 'antd';
 import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
 
@@ -31,6 +31,7 @@ const AgencyPackagesTab = () => {
     price: '',
     users: '',
     clients: '',
+    billingInterval: 'Monthly',
     features: []
   });
 
@@ -59,6 +60,7 @@ const AgencyPackagesTab = () => {
         price: pkg.price || '',
         users: pkg.users || '',
         clients: pkg.clients || '',
+        billingInterval: pkg.billingInterval || 'Monthly',
         features: pkg.features || []
       });
     } else {
@@ -69,6 +71,7 @@ const AgencyPackagesTab = () => {
         price: '',
         users: '',
         clients: '',
+        billingInterval: 'Monthly',
         features: []
       });
     }
@@ -190,8 +193,32 @@ const AgencyPackagesTab = () => {
                   {pkg.name}
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Button type="text" size="small" icon={<Edit size={14} />} onClick={() => handleOpenModal(pkg)} style={{ color: '#666' }} />
-                  <Button type="text" danger size="small" icon={<Trash2 size={14} />} onClick={() => handleDelete(pkg._id)} />
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<Edit size={14} />} 
+                    onClick={() => {
+                      if (pkg.isAssigned) {
+                        message.error("This package has already been assigned and cannot be modified or deleted.");
+                      } else {
+                        handleOpenModal(pkg);
+                      }
+                    }} 
+                    style={{ color: '#666' }} 
+                  />
+                  <Button 
+                    type="text" 
+                    danger 
+                    size="small" 
+                    icon={<Trash2 size={14} />} 
+                    onClick={() => {
+                      if (pkg.isAssigned) {
+                        message.error("This package has already been assigned and cannot be modified or deleted.");
+                      } else {
+                        handleDelete(pkg._id);
+                      }
+                    }}
+                  />
                 </div>
               </div>
 
@@ -200,7 +227,7 @@ const AgencyPackagesTab = () => {
                   {pkg.price ? (isNaN(pkg.price) ? pkg.price : `₹${pkg.price}`) : 'Custom'}
                 </span>
                 <span style={{ fontSize: '15px', color: '#666', fontWeight: 500 }}>
-                  /month
+                  /{pkg.billingInterval === 'Yearly' ? 'year' : pkg.billingInterval === 'One Time' ? 'lifetime' : 'month'}
                 </span>
               </div>
 
@@ -302,14 +329,30 @@ const AgencyPackagesTab = () => {
               rows={2}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{ color: 'red' }}>*</span></label>
-            <Input
-              value={formData.price}
-              onChange={e => setFormData({ ...formData, price: e.target.value })}
-              placeholder="e.g., ₹5.0L/mo"
-              size="large"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{ color: 'red' }}>*</span></label>
+              <Input
+                value={formData.price}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                placeholder="e.g., ₹5.0L"
+                size="large"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Billing Interval <span style={{ color: 'red' }}>*</span></label>
+              <Select
+                value={formData.billingInterval}
+                onChange={value => setFormData({ ...formData, billingInterval: value })}
+                size="large"
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'Monthly', label: 'Monthly' },
+                  { value: 'Yearly', label: 'Yearly' },
+                  { value: 'One Time', label: 'One Time' },
+                ]}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -396,7 +439,7 @@ const AgencyPackagesTab = () => {
                 display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24
               }}>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE</Text>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE ({viewingPkg.billingInterval || 'Monthly'})</Text>
                   <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{viewingPkg.price || 'Custom'}</Text>
                 </div>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>

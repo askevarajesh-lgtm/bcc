@@ -81,7 +81,6 @@ import MOSScore from './pages/MOSScore/MOSScore';
 import Finance from './pages/Finance/Finance';
 import Profitability from './pages/Profitability/Profitability';
 import SalesPipeline from './pages/SalesPipeline/SalesPipeline';
-import BusinessIntel from './pages/BusinessIntel/BusinessIntel';
 import SettingsPage from './pages/Settings/Settings';
 import ClientSettingsTab from './pages/ClientPortal/tabs/ClientSettingsTab';
 import AIAgents from './pages/AIAgents/AIAgents';
@@ -340,7 +339,6 @@ const AppRoutes = () => {
           <Route path="support" element={<AgencySupportTab />} />
           
           {/* Agency Manager Dynamic Modules */}
-          <Route path="businessintel" element={<BusinessIntel />} />
           <Route path="marketplace" element={<Marketplace />} />
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
@@ -469,7 +467,6 @@ const AppRoutes = () => {
           <Route path="ops/finance" element={<Finance />} />
           <Route path="ops/profitability" element={<Profitability />} />
           <Route path="ops/salespipeline" element={<SalesPipeline />} />
-          <Route path="ops/businessintel" element={<BusinessIntel />} />
 
           <Route path="settings/company" element={
             role === 'brand_super_admin' ? <BrandSettingsTab /> : 

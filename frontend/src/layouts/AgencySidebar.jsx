@@ -156,7 +156,6 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   
   if (role === 'agency_super_admin') {
     intelligenceChildren.push({ key: '/agency/performance', icon: getIcon(TrendingUp), label: 'Performance' });
-    intelligenceChildren.push({ key: '/agency/reports', icon: getIcon(FileText), label: 'Reports' });
   }
 
   if (intelligenceChildren.length > 0) {
@@ -170,7 +169,6 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
 
   const opsChildren = [];
   opsChildren.push({ key: '/agency/time', icon: getIcon(Calendar), label: 'Time Tracking' });
-  opsChildren.push({ key: '/agency/businessintel', icon: getIcon(PieChart), label: 'Business Intel' });
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
   opsChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });

@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
     canva: { type: Boolean, default: false }
   },
 
+  subscriptionStartDate: { type: Date, default: null },
+  subscriptionEndDate: { type: Date, default: null },
+  billingInterval: { type: String, enum: ['Monthly', 'Yearly', 'One Time'], default: null },
+
   taxSettings: {
     gstPercentage: { type: Number, default: 18 },
     gstEnabled: { type: Boolean, default: false }

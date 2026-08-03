@@ -1,17 +1,27 @@
 import React from 'react';
 import { Typography, Row, Col, Table, Button, Tag } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, CreditCard, Landmark, Wallet, ArrowUpRight, Calendar } from 'lucide-react';
+import { Download, FileText, Calendar, CreditCard, Box, Wallet, Landmark, ArrowUpRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import BubbleCard from '../../../components/BubbleCard';
 import { useGetInvoicesQuery } from '../../../api/invoiceApi';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
+import BrandBillingTab from './BrandBillingTab';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 const BillingTab = () => {
+  const { role } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
+
+  if (role === 'brand_super_admin' || role === 'brand_manager') {
+    return <BrandBillingTab />;
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
@@ -83,8 +93,15 @@ const BillingTab = () => {
       key: 'actions', 
       render: (_, record) => (
         <div style={{ display: 'flex', gap: 8 }}>
-          {record.status === 'Upcoming' && (
-            <Button type="primary" size="small" style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 6 }}>Pay Now</Button>
+          {record.status !== 'Paid' && (
+            <Button 
+              type="primary" 
+              size="small" 
+              style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 6 }}
+              onClick={() => navigate(`/client/workspace/invoices/${record.id}/view`)}
+            >
+              Pay Now
+            </Button>
           )}
           <Button 
             type="default" 
@@ -163,28 +180,6 @@ const BillingTab = () => {
                 ) : (
                   <Text style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-secondary)' }}>No pending invoices</Text>
                 )}
-              </div>
-              <div style={{ width: 1, background: 'var(--border-color)' }} />
-              <div style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: 1, display: 'block', marginBottom: 16 }}>PAYMENT METHODS</Text>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ background: '#1a1f36', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>VISA</div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>•••• 4821</Text>
-                        <Tag style={{ background: 'rgba(13, 148, 136, 0.1)', color: 'var(--accent-secondary)', border: 'none', borderRadius: 8, fontSize: 10, fontWeight: 700, padding: '0 6px', margin: 0 }}>Primary</Tag>
-                      </div>
-                      <Text style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>HDFC - Exp 08/27</Text>
-                    </div>
-                  </div>
-                  <Button type="text" size="small" style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 600 }}>Remove</Button>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Button icon={<CreditCard size={14} />} style={{ borderRadius: 8, fontSize: 12, fontWeight: 600 }}>+ Card</Button>
-                  <Button icon={<Wallet size={14} />} style={{ borderRadius: 8, fontSize: 12, fontWeight: 600 }}>UPI Autopay</Button>
-                  <Button icon={<Landmark size={14} />} style={{ borderRadius: 8, fontSize: 12, fontWeight: 600 }}>NetBanking</Button>
-                </div>
               </div>
             </BubbleCard>
           </Col>

@@ -147,7 +147,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     {
       key: 'clients',
-      label: collapsed ? 'CLI' : 'CLIENTS',
+      label: 'CLIENTS',
+      icon: getIcon(Users),
       children: [
         ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
           { key: '/clients/accounts', icon: getIcon(Users), label: getLabel('Accounts', agenciesCount.toString()) },
@@ -160,7 +161,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     {
       key: 'workspace',
-      label: collapsed ? 'WRK' : 'WORKSPACE',
+      label: 'WORKSPACE',
+      icon: getIcon(Briefcase),
       children: [
         { key: '/workspace/strategy', icon: getIcon(Target), label: 'Strategy' },
         { key: '/workspace/content', icon: getIcon(FileText), label: 'Content' },
@@ -191,7 +193,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     {
       key: 'intelligence',
-      label: collapsed ? 'INT' : 'INTELLIGENCE',
+      label: 'INTELLIGENCE',
+      icon: getIcon(Zap),
       children: [
         { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
         ...(['commander_admin', 'supreme_super_admin', 'agency_super_admin', 'agency_manager'].includes(role) ? [
@@ -210,7 +213,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
     {
       key: 'ops',
-      label: collapsed ? 'OPS' : 'AGENCY OPS',
+      label: 'AGENCY OPS',
+      icon: getIcon(Activity),
       children: [
         // { key: '/ops/team', icon: getIcon(Users), label: getLabel('People') },
         { key: '/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
@@ -228,7 +232,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     ...(['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager', 'agency', 'client', 'agency_client'].includes(role) && (user?.features?.includes('hrms') || role === 'commander_admin') ? [
       {
         key: 'hrms',
-        label: collapsed ? 'HRM' : 'HRMS',
+        label: 'HRMS',
+        icon: getIcon(ClipboardList),
         children: [
           ...((user?.features?.includes('hrms') || role === 'commander_admin') ? [
             { key: '/hrms/staff', icon: getIcon(Users), label: 'Staff' },
@@ -242,7 +247,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     ] : []),
     {
       key: 'settings',
-      label: collapsed ? 'SET' : 'SETTINGS',
+      label: 'SETTINGS',
+      icon: getIcon(SettingsIcon),
       children: [
         { key: '/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' },
         ...(['agency_super_admin', 'agency_manager', 'client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(role) ? [{

@@ -74,6 +74,9 @@ const DeliverablesTab = () => {
     }
   };
 
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedDeliverable, setSelectedDeliverable] = useState(null);
+
   const columns = [
     {
       title: 'Item',
@@ -107,7 +110,16 @@ const DeliverablesTab = () => {
       title: 'Action',
       key: 'action',
       render: (_, record) => (
-        <Button type="link" size="small">View</Button>
+        <Button 
+          type="link" 
+          size="small"
+          onClick={() => {
+            setSelectedDeliverable(record);
+            setViewModalVisible(true);
+          }}
+        >
+          View
+        </Button>
       ),
     },
   ];
@@ -179,6 +191,66 @@ const DeliverablesTab = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="View Deliverable"
+        open={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setViewModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+      >
+        {selectedDeliverable && (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Title: </Text>
+              <Text>{selectedDeliverable.title}</Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Type: </Text>
+              <Text style={{ textTransform: 'capitalize' }}>
+                {selectedDeliverable.deliverableType ? selectedDeliverable.deliverableType.replace('_', ' ') : 'N/A'}
+              </Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Status: </Text>
+              <Tag color={selectedDeliverable.status === 'Approved' ? 'success' : (selectedDeliverable.status === 'In Review' || selectedDeliverable.status === 'Pending Approval') ? 'warning' : 'default'}>
+                {selectedDeliverable.status || 'Pending'}
+              </Tag>
+            </div>
+            {selectedDeliverable.description && (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong>Description: </Text>
+                <p style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
+                  {selectedDeliverable.assetUrl && selectedDeliverable.description.includes(selectedDeliverable.assetUrl)
+                    ? selectedDeliverable.description.replace(selectedDeliverable.assetUrl, '(Asset Attached)')
+                    : selectedDeliverable.description}
+                </p>
+              </div>
+            )}
+            {selectedDeliverable.assetUrl && (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong>Asset: </Text>
+                <div style={{ marginTop: 8 }}>
+                  {selectedDeliverable.assetUrl.startsWith('data:image') ? (
+                    <img 
+                      src={selectedDeliverable.assetUrl} 
+                      alt="Deliverable Asset" 
+                      style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #eee' }} 
+                    />
+                  ) : (
+                    <a href={selectedDeliverable.assetUrl} target="_blank" rel="noreferrer">
+                      View Asset
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

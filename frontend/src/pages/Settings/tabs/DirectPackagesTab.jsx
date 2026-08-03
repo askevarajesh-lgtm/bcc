@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions } from 'antd';
+import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Select } from 'antd';
 import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
 
@@ -30,6 +30,7 @@ const DirectPackagesTab = () => {
     description: '',
     price: '',
     users: '',
+    billingInterval: 'Monthly',
     features: []
   });
 
@@ -57,6 +58,7 @@ const DirectPackagesTab = () => {
         description: pkg.description || '',
         price: pkg.price || '',
         users: pkg.userCount || '', // API response comes with userCount
+        billingInterval: pkg.billingInterval || 'Monthly',
         features: pkg.features || []
       });
     } else {
@@ -66,6 +68,7 @@ const DirectPackagesTab = () => {
         description: '',
         price: '',
         users: '',
+        billingInterval: 'Monthly',
         features: []
       });
     }
@@ -89,6 +92,7 @@ const DirectPackagesTab = () => {
       description: formData.description,
       price: formData.price,
       userCount: Number(formData.users),
+      billingInterval: formData.billingInterval,
       features: formData.features
     };
 
@@ -202,12 +206,36 @@ const DirectPackagesTab = () => {
               </div>
               
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                PER MONTH
+                PER {pkg.billingInterval === 'Yearly' ? 'YEAR' : pkg.billingInterval === 'One Time' ? 'LIFETIME' : 'MONTH'}
               </div>
 
               <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: '4px' }}>
-                 <Button type="text" size="small" icon={<Edit size={14} color="#fff" />} onClick={() => handleOpenModal(pkg)} style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} />
-                 <Button type="text" size="small" icon={<Trash2 size={14} color="#fff" />} onClick={() => handleDelete(pkg._id)} style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} />
+                 <Button 
+                   type="text" 
+                   size="small" 
+                   icon={<Edit size={14} color="#fff" />} 
+                   onClick={() => {
+                     if (pkg.isAssigned) {
+                       message.error("This package has already been assigned and cannot be modified or deleted.");
+                     } else {
+                       handleOpenModal(pkg);
+                     }
+                   }} 
+                   style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} 
+                 />
+                 <Button 
+                   type="text" 
+                   size="small" 
+                   icon={<Trash2 size={14} color="#fff" />} 
+                   onClick={() => {
+                     if (pkg.isAssigned) {
+                       message.error("This package has already been assigned and cannot be modified or deleted.");
+                     } else {
+                       handleDelete(pkg._id);
+                     }
+                   }} 
+                   style={{ minWidth: 'auto', padding: 4, background: 'rgba(255,255,255,0.2)' }} 
+                 />
               </div>
             </div>
 
@@ -312,16 +340,32 @@ const DirectPackagesTab = () => {
               rows={2}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{color: 'red'}}>*</span></label>
-            <Input 
-              value={formData.price} 
-              onChange={e => setFormData({...formData, price: e.target.value})} 
-              placeholder="e.g., ₹5.0L/mo" 
-              size="large"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{ color: 'red' }}>*</span></label>
+              <Input
+                value={formData.price}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                placeholder="e.g., ₹5.0L"
+                size="large"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Billing Interval <span style={{ color: 'red' }}>*</span></label>
+              <Select
+                value={formData.billingInterval}
+                onChange={value => setFormData({ ...formData, billingInterval: value })}
+                size="large"
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'Monthly', label: 'Monthly' },
+                  { value: 'Yearly', label: 'Yearly' },
+                  { value: 'One Time', label: 'One Time' },
+                ]}
+              />
+            </div>
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div style={{ marginBottom: 24 }}>
               <Text style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Users - Count <span style={{color: '#ef4444'}}>*</span></Text>
@@ -392,7 +436,7 @@ const DirectPackagesTab = () => {
                 display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 
               }}>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE</Text>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>PRICE ({viewingPkg.billingInterval || 'Monthly'})</Text>
                   <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{viewingPkg.price || 'Custom'}</Text>
                 </div>
                 <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>

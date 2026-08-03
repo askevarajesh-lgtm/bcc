@@ -2,8 +2,13 @@ const AgencyPackage = require('./agencyPackage.model');
 
 exports.getPackages = async (req, res) => {
   try {
-    const packages = await AgencyPackage.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: packages.length, data: packages });
+    const packages = await AgencyPackage.find().sort({ createdAt: -1 }).lean();
+    const User = require('../auth/user.model');
+    const data = await Promise.all(packages.map(async (pkg) => {
+      const isAssigned = await User.exists({ plan: pkg._id });
+      return { ...pkg, isAssigned: !!isAssigned };
+    }));
+    res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
@@ -32,6 +37,16 @@ exports.createPackage = async (req, res) => {
 
 exports.updatePackage = async (req, res) => {
   try {
+    const User = require('../auth/user.model');
+    const isAssigned = await User.exists({ plan: req.params.id });
+    
+    if (isAssigned) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This package is already assigned to one or more organizations and cannot be edited.' 
+      });
+    }
+
     const pkg = await AgencyPackage.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     if (!pkg) {
       return res.status(404).json({ success: false, message: 'Package not found' });

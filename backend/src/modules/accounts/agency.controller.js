@@ -68,6 +68,18 @@ exports.createAgency = async (req, res, next) => {
       if (pkg) {
         packageFeatures = pkg.features || [];
         packageUsers = pkg.users || 5;
+        
+        const now = new Date();
+        req.body.subscriptionStartDate = now;
+        req.body.billingInterval = pkg.billingInterval || 'Monthly';
+        
+        if (req.body.billingInterval === 'Monthly') {
+          req.body.subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        } else if (req.body.billingInterval === 'Yearly') {
+          req.body.subscriptionEndDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+        } else {
+          req.body.subscriptionEndDate = null; // One Time
+        }
       }
     }
 
@@ -82,6 +94,9 @@ exports.createAgency = async (req, res, next) => {
       status: status || 'active',
       features: req.body.features || packageFeatures,
       allowedUsers: packageUsers,
+      subscriptionStartDate: req.body.subscriptionStartDate,
+      subscriptionEndDate: req.body.subscriptionEndDate,
+      billingInterval: req.body.billingInterval,
       createdBy: req.user ? req.user._id : undefined
     });
 
@@ -174,17 +189,110 @@ exports.getDashboardStats = async (req, res, next) => {
     const managers = await User.find({
       $or: [{ agencyId }, { _id: agencyId }],
       role: 'agency_manager'
-    }).select('name role roleName status mrr');
+    }).select('name email phone role roleName status');
 
     const teamPerformance = managers.map(m => ({
       key: m._id,
       name: m.name,
+      email: m.email,
+      phone: m.phone || 'N/A',
       role: m.roleName || 'Agency Manager',
-      clients: 0, // Not tracked yet in schema
-      mrr: `₹${((m.mrr || 0) / 100000).toFixed(1)}L`, // Just formatting
-      mos: 100, // Placeholder
-      status: m.status === 'active' ? 'Excellent' : 'Good'
+      status: m.status === 'active' ? 'Active' : 'Inactive'
     }));
+
+    // 4. Invoices Calculation
+    const Invoice = require('../invoices/invoice.model');
+    const invoices = await Invoice.find({
+      agencyId,
+      isDeleted: false
+    });
+
+    let totalInvoiceAmount = 0;
+    let totalPaidAmount = 0;
+    let pendingAmount = 0;
+
+    invoices.forEach(inv => {
+      totalInvoiceAmount += inv.grandTotal || 0;
+      totalPaidAmount += inv.totalPaid || 0;
+      pendingAmount += inv.pendingAmount || 0;
+    });
+
+    // We can define Revenue as Total Paid Amount + MRR (or just Total Paid for now)
+    const revenue = totalPaidAmount;
+
+    // 5. Chart Data (Revenue per month for the last 6 months)
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const chartDataMap = {};
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      chartDataMap[`${d.getFullYear()}-${d.getMonth()}`] = {
+        name: monthNames[d.getMonth()],
+        revenue: 0,
+        sortOrder: d.getTime()
+      };
+    }
+
+    invoices.forEach(inv => {
+      if (inv.createdAt) {
+        const d = new Date(inv.createdAt);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (chartDataMap[key] !== undefined) {
+          chartDataMap[key].revenue += inv.totalPaid || 0;
+        }
+      }
+    });
+
+    const chartData = Object.values(chartDataMap).sort((a, b) => a.sortOrder - b.sortOrder).map(item => ({
+      name: item.name,
+      revenue: item.revenue
+    }));
+
+    // 6. Recent Activities
+    const recentActivities = [];
+    
+    // Recent Clients
+    const recentClients = await User.find({
+      agencyId,
+      role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] },
+      status: 'active'
+    }).sort({ createdAt: -1 }).limit(3);
+    
+    recentClients.forEach(c => {
+      recentActivities.push({
+        id: `client_${c._id}`,
+        title: `New Client Onboarded: ${c.name || c.companyName}`,
+        time: c.createdAt ? c.createdAt.toDateString() : 'Recently',
+        type: 'client',
+        createdAt: c.createdAt
+      });
+    });
+
+    // Recent Invoices
+    const recentInvoices = invoices.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    }).slice(0, 3);
+
+    recentInvoices.forEach(inv => {
+      recentActivities.push({
+        id: `invoice_${inv._id}`,
+        title: `Invoice ${inv.invoiceNumber} Generated`,
+        time: inv.createdAt ? inv.createdAt.toDateString() : 'Recently',
+        type: 'invoice',
+        createdAt: inv.createdAt
+      });
+    });
+
+    // Sort combined activities by date
+    recentActivities.sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    const formatCurrency = (val) => `₹${val.toLocaleString('en-IN')}`;
 
     res.status(200).json({
       success: true,
@@ -193,7 +301,13 @@ exports.getDashboardStats = async (req, res, next) => {
         grossMargin: 'N/A', // Cannot be computed without costs
         activeClients: activeClientsCount,
         teamMembers: teamMembersCount,
-        teamPerformance
+        totalInvoiceAmount: formatCurrency(totalInvoiceAmount),
+        totalPaidAmount: formatCurrency(totalPaidAmount),
+        pendingAmount: formatCurrency(pendingAmount),
+        revenue: formatCurrency(revenue),
+        teamPerformance,
+        chartData,
+        recentActivities: recentActivities.slice(0, 5) // Return top 5
       }
     });
   } catch (error) {

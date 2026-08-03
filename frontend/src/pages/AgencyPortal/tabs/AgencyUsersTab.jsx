@@ -13,6 +13,9 @@ const AgencyUsersTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -74,9 +77,50 @@ const AgencyUsersTab = () => {
     }
   };
 
-  const getActionMenu = (record) => [
+  const handleEditUser = async (values) => {
+    try {
+      setSubmitLoading(true);
+      const payload = {
+        name: values.name,
+        phone: values.phone
+      };
+      if (values.password) {
+        payload.password = values.password;
+      }
+
+      const res = await api.put(`/agency/users/${editingUser._id}`, payload);
+      
+      if (res.data.success) {
+        message.success('User updated successfully');
+        setIsEditModalOpen(false);
+        editForm.resetFields();
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      message.error(err.response?.data?.message || 'Failed to update user');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleMenuClick = (e, record) => {
+    if (e.key === 'edit') {
+      setEditingUser(record);
+      editForm.setFieldsValue({
+        name: record.name,
+        email: record.email,
+        phone: record.phone
+      });
+      setIsEditModalOpen(true);
+    } else if (e.key === 'delete') {
+      handleDeleteUser(record._id);
+    }
+  };
+
+  const getActionMenu = () => [
     { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit User' },
-    { key: 'delete', icon: <Trash2 size={16} />, label: 'Delete User', danger: true, onClick: () => handleDeleteUser(record._id) },
+    { key: 'delete', icon: <Trash2 size={16} />, label: 'Delete User', danger: true },
   ];
 
   const columns = [
@@ -117,7 +161,7 @@ const AgencyUsersTab = () => {
       key: 'action',
       align: 'right',
       render: (_, record) => (
-        <Dropdown menu={{ items: getActionMenu(record) }} trigger={['click']} placement="bottomRight">
+        <Dropdown menu={{ items: getActionMenu(), onClick: (e) => handleMenuClick(e, record) }} trigger={['click']} placement="bottomRight">
           <Button type="text" icon={<MoreVertical size={16} />} />
         </Dropdown>
       )
@@ -179,6 +223,38 @@ const AgencyUsersTab = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel</Button>
             <Button type="primary" htmlType="submit" loading={submitLoading} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">Create User</Button>
+          </div>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}><Edit2 size={18} style={{ marginRight: 8, verticalAlign: '-3px' }}/> Edit User</span>}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+        className="glass-modal"
+        centered
+        width={450}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditUser} style={{ marginTop: 24 }}>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Full Name</Text>} name="name" rules={[{ required: true, message: 'Name is required' }]}>
+            <Input placeholder="Enter user's name" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+          
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Email Address</Text>} name="email">
+            <Input placeholder="user@agency.com" style={{ borderRadius: 8 }} size="large" disabled />
+          </Form.Item>
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
+            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>New Password</Text>} name="password" extra="Leave blank to keep current password">
+            <Input.Password placeholder="••••••••" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
+            <Button onClick={() => setIsEditModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }} size="large">Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={submitLoading} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }} size="large">Save Changes</Button>
           </div>
         </Form>
       </Modal>

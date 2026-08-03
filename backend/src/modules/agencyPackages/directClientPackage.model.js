@@ -6,7 +6,8 @@ const DirectClientPackageSchema = new mongoose.Schema({
   price: { type: String, default: '' },
   userCount: { type: Number, default: 5 },
   features: [{ type: String }],
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  billingInterval: { type: String, enum: ['Monthly', 'Yearly', 'One Time'], default: 'Monthly' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('DirectClientPackage', DirectClientPackageSchema);

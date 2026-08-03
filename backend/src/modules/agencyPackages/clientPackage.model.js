@@ -5,7 +5,8 @@ const ClientPackageSchema = new mongoose.Schema({
   price: { type: String, default: '' },
   description: { type: String, default: '' },
   features: [{ type: String }],
-  agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  billingInterval: { type: String, enum: ['Monthly', 'Yearly', 'One Time'], default: 'Monthly' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('ClientPackage', ClientPackageSchema);

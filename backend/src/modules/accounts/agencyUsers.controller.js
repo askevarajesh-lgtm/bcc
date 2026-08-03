@@ -110,3 +110,39 @@ exports.deleteAgencyUser = async (req, res, next) => {
     next(error);
   }
 };
+
+// Update an agency user
+exports.updateAgencyUser = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'agency_super_admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const { name, phone } = req.body;
+    let updateFields = {};
+    if (name) updateFields.name = name;
+    if (phone !== undefined) updateFields.phone = phone;
+    
+    // We only allow name and phone update for sub-users for now. 
+    // If they provided a new password, hash it and add it
+    if (req.body.password) {
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(req.body.password, salt);
+    }
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, agencyId: req.user.agencyId },
+      { $set: updateFields },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};

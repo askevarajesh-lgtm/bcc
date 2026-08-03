@@ -61,6 +61,21 @@ exports.signin = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Your account or organization has been suspended or is inactive. Please contact your Administrator for further assistance.' });
     }
 
+    const checkSubscriptionExpired = (targetUser) => {
+      if (targetUser && targetUser.subscriptionEndDate) {
+        return Date.now() > new Date(targetUser.subscriptionEndDate).getTime();
+      }
+      return false;
+    };
+
+    if (
+      checkSubscriptionExpired(user) ||
+      (user.agencyId && checkSubscriptionExpired(user.agencyId)) ||
+      (user.brandId && checkSubscriptionExpired(user.brandId))
+    ) {
+      return res.status(403).json({ success: false, error: 'Your subscription has expired. Please renew your package to continue access.' });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Invalid password' });
@@ -114,6 +129,29 @@ exports.signin = async (req, res, next) => {
 
     if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
       features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
+    const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
+    const ClientPackage = require('../agencyPackages/clientPackage.model');
+    
+    const resolveBrandPackage = async (packageName) => {
+      let pkg = await DirectClientPackage.findOne({ name: packageName });
+      if (!pkg) {
+        pkg = await ClientPackage.findOne({ name: packageName });
+      }
+      if (pkg) {
+        return { name: pkg.name, price: pkg.price, billingInterval: pkg.billingInterval, userCount: pkg.userCount, description: pkg.description, features: pkg.features };
+      }
+      return null;
+    };
+
+    if (user.role === 'brand_super_admin' && user.packageName) {
+      brandPackageDetails = await resolveBrandPackage(user.packageName);
+    } else if (user.brandId) {
+      const brandSuperAdmin = await User.findById(user.brandId._id);
+      if (brandSuperAdmin && brandSuperAdmin.packageName) {
+        brandPackageDetails = await resolveBrandPackage(brandSuperAdmin.packageName);
+      }
     }
 
     const effectiveTheme = await getEffectiveTheme(user);
@@ -170,6 +208,7 @@ exports.me = async (req, res, next) => {
     let features = user.features || [];
     let rolePermissions = {};
     let planDetails = null;
+    let brandPackageDetails = null;
     let agencyFeatures = [];
 
     if (user.agencyId) {
@@ -232,6 +271,7 @@ exports.me = async (req, res, next) => {
         createdAt: user.createdAt,
         permissions: rolePermissions,
         plan: planDetails,
+        brandPackageDetails,
         effectiveTheme
       }
     });
@@ -270,6 +310,21 @@ exports.impersonate = async (req, res, next) => {
       (user.brandId && isBlocked(user.brandId.status))
     ) {
       return res.status(403).json({ success: false, error: 'The target account or organization has been suspended or is inactive.' });
+    }
+
+    const checkSubscriptionExpired = (targetUser) => {
+      if (targetUser && targetUser.subscriptionEndDate) {
+        return Date.now() > new Date(targetUser.subscriptionEndDate).getTime();
+      }
+      return false;
+    };
+
+    if (
+      checkSubscriptionExpired(user) ||
+      (user.agencyId && checkSubscriptionExpired(user.agencyId)) ||
+      (user.brandId && checkSubscriptionExpired(user.brandId))
+    ) {
+      return res.status(403).json({ success: false, error: 'Your subscription has expired. Please renew your package to continue access.' });
     }
 
     const token = jwt.sign(
@@ -312,6 +367,31 @@ exports.impersonate = async (req, res, next) => {
 
     if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
       features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
+    const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
+    const ClientPackage = require('../agencyPackages/clientPackage.model');
+    
+    let brandPackageDetails = null;
+    
+    const resolveBrandPackageImp = async (packageName) => {
+      let pkg = await DirectClientPackage.findOne({ name: packageName });
+      if (!pkg) {
+        pkg = await ClientPackage.findOne({ name: packageName });
+      }
+      if (pkg) {
+        return { name: pkg.name, price: pkg.price, billingInterval: pkg.billingInterval, userCount: pkg.userCount, description: pkg.description, features: pkg.features };
+      }
+      return null;
+    };
+
+    if (user.role === 'brand_super_admin' && user.packageName) {
+      brandPackageDetails = await resolveBrandPackageImp(user.packageName);
+    } else if (user.brandId) {
+      const brandSuperAdmin = await User.findById(user.brandId._id);
+      if (brandSuperAdmin && brandSuperAdmin.packageName) {
+        brandPackageDetails = await resolveBrandPackageImp(brandSuperAdmin.packageName);
+      }
     }
 
     const effectiveTheme = await getEffectiveTheme(user);

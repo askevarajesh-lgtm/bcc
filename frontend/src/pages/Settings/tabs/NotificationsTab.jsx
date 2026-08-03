@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Switch, Table, Button, Tabs, message, Spin, Space, Tag } from 'antd';
+import { Typography, Switch, Table, Button, Tabs, message, Spin, Space, Tag, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bell, Settings, Mail, Smartphone, MessageSquare } from 'lucide-react';
@@ -25,6 +25,8 @@ const NotificationsTab = () => {
   // Notifications List State
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Triggers State
   const [settings, setSettings] = useState(null);
@@ -110,7 +112,12 @@ const NotificationsTab = () => {
   const notifColumns = [
     { title: 'Type', dataIndex: 'type', key: 'type', render: t => <Tag color="blue">{t?.replace(/_/g, ' ')}</Tag> },
     { title: 'Title', dataIndex: 'title', key: 'title', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
-    { title: 'Message', dataIndex: 'message', key: 'message', render: t => <Text type="secondary">{t}</Text> },
+    { 
+      title: 'Message', 
+      dataIndex: 'message', 
+      key: 'message', 
+      render: t => <Text type="secondary">{t?.length > 50 ? `${t.substring(0, 50)}...` : t}</Text> 
+    },
     { title: 'Date', dataIndex: 'createdAt', key: 'createdAt', render: d => new Date(d).toLocaleString() },
     { 
       title: 'Action', 
@@ -118,20 +125,16 @@ const NotificationsTab = () => {
       align: 'right', 
       render: (_, record) => (
         <Space>
-          {(record.type?.startsWith('sla_') || record.type?.startsWith('task_')) && (
-            <Button 
-              type="primary" 
-              size="small"
-              onClick={() => {
-                if (!record.isRead) handleMarkAsRead(record._id);
-                if (record.type.startsWith('sla_')) {
-                  navigate(role.includes('brand') || role === 'client' ? '/client/sla' : '/agency/sla');
-                }
-              }}
-            >
-              View
-            </Button>
-          )}
+          <Button 
+            type="primary" 
+            size="small"
+            onClick={() => {
+              setSelectedNotification(record);
+              setIsModalVisible(true);
+            }}
+          >
+            View
+          </Button>
           <Button 
             type="text" 
             size="small"
@@ -204,12 +207,12 @@ const NotificationsTab = () => {
       )
     },
     {
-      key: 'triggers',
-      label: (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-          <Settings size={16} /> Manage Triggers
-        </span>
-      ),
+      // key: 'triggers',
+      // label: (
+      //   <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
+      //     <Settings size={16} /> Manage Triggers
+      //   </span>
+      // ),
       children: (
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           {loadingSettings ? (
@@ -256,6 +259,43 @@ const NotificationsTab = () => {
         <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Manage notification history and system-wide triggers.</Text>
       </motion.div>
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="custom-tabs" />
+
+      <Modal
+        title={selectedNotification?.title || "Notification"}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsModalVisible(false)}>
+            Close
+          </Button>,
+          selectedNotification && !selectedNotification.isRead && (
+            <Button 
+              key="read" 
+              type="primary" 
+              onClick={() => {
+                handleMarkAsRead(selectedNotification._id);
+                setIsModalVisible(false);
+              }}
+            >
+              Read
+            </Button>
+          )
+        ].filter(Boolean)}
+      >
+        <p style={{ marginTop: 16 }}>{selectedNotification?.message}</p>
+        {selectedNotification?.type?.startsWith('sla_') && (
+          <Button 
+            type="link" 
+            style={{ padding: 0, marginTop: 16 }}
+            onClick={() => {
+              setIsModalVisible(false);
+              navigate(role.includes('brand') || role === 'client' ? '/client/sla' : '/agency/sla');
+            }}
+          >
+            Go to SLA
+          </Button>
+        )}
+      </Modal>
     </>
   );
 };

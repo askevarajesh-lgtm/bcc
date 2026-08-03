@@ -7,7 +7,8 @@ const AgencyPackageSchema = new mongoose.Schema({
   features: [{ type: String }],
   users: { type: Number },
   clients: { type: Number },
-  active: { type: Number, default: 0 }
+  active: { type: Number, default: 0 },
+  billingInterval: { type: String, enum: ['Monthly', 'Yearly', 'One Time'], default: 'Monthly' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('AgencyPackage', AgencyPackageSchema);

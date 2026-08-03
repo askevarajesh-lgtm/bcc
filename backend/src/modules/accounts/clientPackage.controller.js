@@ -8,8 +8,13 @@ exports.getPackages = async (req, res, next) => {
     const agencyId = getAgencyId(req);
     if (!agencyId) return res.status(400).json({ success: false, message: 'Agency context not found' });
 
-    const packages = await ClientPackage.find({ agencyId });
-    res.status(200).json({ success: true, data: packages });
+    const packages = await ClientPackage.find({ agencyId }).lean();
+    const User = require('../auth/user.model');
+    const data = await Promise.all(packages.map(async (pkg) => {
+      const isAssigned = await User.exists({ packageName: pkg.name, agencyId: pkg.agencyId });
+      return { ...pkg, isAssigned: !!isAssigned };
+    }));
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -36,6 +41,18 @@ exports.updatePackage = async (req, res, next) => {
   try {
     const agencyId = getAgencyId(req);
     const packageId = req.params.id;
+
+    const User = require('../auth/user.model');
+    const existingPkgForName = await ClientPackage.findOne({ _id: packageId, agencyId });
+    if (existingPkgForName) {
+      const isAssigned = await User.exists({ packageName: existingPkgForName.name, agencyId });
+      if (isAssigned) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'This package is already assigned to one or more organizations and cannot be edited.' 
+        });
+      }
+    }
 
     const updatedPackage = await ClientPackage.findOneAndUpdate(
       { _id: packageId, agencyId },

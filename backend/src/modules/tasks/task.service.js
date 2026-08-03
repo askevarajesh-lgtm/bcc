@@ -1151,12 +1151,19 @@ const createTask = async (taskData, tenantCompanyId, createdByUserId) => {
   // Dispatch system notification for task creation
   const { dispatchSystemNotification } = require('./notification.service');
   if (tenantCompanyId) {
+    let creatorName = 'System';
+    if (createdByUserId) {
+      const creator = await User.findById(createdByUserId).select('name');
+      if (creator) {
+        creatorName = creator.name;
+      }
+    }
     await dispatchSystemNotification(
       tenantCompanyId,
       'taskCreated',
       'task_created',
       'New Task Created',
-      `Task "${task.title}" has been created in ${task.department}.`,
+      `Task "${task.title}" has been created by ${creatorName}.`,
       { taskId: task._id }
     );
   }

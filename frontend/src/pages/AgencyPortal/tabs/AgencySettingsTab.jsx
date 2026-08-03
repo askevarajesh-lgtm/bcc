@@ -7,7 +7,9 @@ import api from '../../../services/api';
 import { useTheme } from '../../../contexts/ThemeContext';
 import ClientPackagesTab from './ClientPackagesTab';
 import TaxSettingsTab from '../../Settings/tabs/TaxSettingsTab';
-import { Percent } from 'lucide-react';
+import NotificationsTab from '../../Settings/tabs/NotificationsTab';
+import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
+import { Percent, Bell, Link2 } from 'lucide-react';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -367,10 +369,20 @@ const AgencySettingsTab = () => {
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Percent size={16} /> Tax Settings</span>,
       children: <TaxSettingsTab />,
     },
+    {
+      key: 'notifications',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bell size={16} /> Notifications</span>,
+      children: <NotificationsTab />,
+    },
+    {
+      key: 'integrations',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={16} /> Integrations</span>,
+      children: <IntegrationsTab />,
+    },
   ];
 
   const items = user?.role === 'agency_manager' 
-    ? baseItems.filter(item => ['account', 'client-packages', 'tax-settings'].includes(item.key))
+    ? baseItems.filter(item => ['account', 'client-packages', 'tax-settings', 'notifications'].includes(item.key))
     : baseItems;
 
   return (

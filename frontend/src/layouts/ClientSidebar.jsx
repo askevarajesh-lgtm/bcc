@@ -130,16 +130,17 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (role === 'brand_super_admin') {
     allMenuItems.push({
       key: 'clients',
-      label: collapsed ? 'CLI' : 'CLIENTS',
+      label: 'CLIENTS',
+      icon: getIcon(Users),
       children: [
-        { key: '/client/users', icon: getIcon(Users), label: 'Users' },
         { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       ],
     });
   } else if (role === 'brand_manager') {
     allMenuItems.push({
       key: 'clients',
-      label: collapsed ? 'CLI' : 'CLIENTS',
+      label: 'CLIENTS',
+      icon: getIcon(Users),
       children: [
         { key: '/client/clients/sla', icon: getIcon(Shield), label: getLabel('SLA & Success', slaCount > 0 ? slaCount.toString() : null, 'danger') },
       ],
@@ -185,20 +186,21 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (workspaceChildren.length > 0) {
     allMenuItems.push({
       key: 'workspace',
-      label: collapsed ? 'WRK' : 'WORKSPACE',
+      label: 'WORKSPACE',
+      icon: getIcon(Briefcase),
       children: workspaceChildren,
     });
   }
 
   const intelligenceChildren = [];
   if (role === 'brand_super_admin') {
-    intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
+    // intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
   } else if (role === 'brand_manager') {
     intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance', featureId: 'analytics' });
     intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
     intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
     intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
-    intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
+    // intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   } else if (role === 'agency_client') {
     // intelligenceChildren.push({ key: '/client/performance', icon: getIcon(BarChart2), label: 'Marketing Performance' });
@@ -216,7 +218,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (intelligenceChildren.length > 0) {
     allMenuItems.push({
       key: 'intelligence',
-      label: collapsed ? 'INT' : 'INTELLIGENCE',
+      label: 'INTELLIGENCE',
+      icon: getIcon(Zap),
       children: intelligenceChildren,
     });
   }
@@ -247,7 +250,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (opsChildren.length > 0) {
     allMenuItems.push({
       key: 'ops',
-      label: collapsed ? 'OPS' : 'AGENCY OPS',
+      label: 'AGENCY OPS',
+      icon: getIcon(Activity),
       children: opsChildren,
     });
   }
@@ -265,13 +269,15 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (hrmsChildren.length > 0) {
     allMenuItems.push({
       key: 'hrms',
-      label: collapsed ? 'HRM' : 'HRMS',
+      label: 'HRMS',
+      icon: getIcon(ClipboardList),
       children: hrmsChildren,
     });
   }
 
   const settingsChildren = [];
   if (role === 'brand_super_admin') {
+    settingsChildren.push({ key: '/client/users', icon: getIcon(Users), label: 'User Management' });
     settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
@@ -291,7 +297,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   if (settingsChildren.length > 0) {
     allMenuItems.push({
       key: 'settings',
-      label: collapsed ? 'SET' : 'SETTINGS',
+      label: 'SETTINGS',
+      icon: getIcon(SettingsIcon),
       children: settingsChildren,
     });
   }

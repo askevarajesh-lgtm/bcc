@@ -43,7 +43,7 @@ const cardStyles = `
     position: relative;
     height: 88px;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--primary-color) 0%, rgba(var(--primary-color-rgb), 0.8) 55%, var(--primary-color) 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   }
 
   /* decorative circle blobs on banner */

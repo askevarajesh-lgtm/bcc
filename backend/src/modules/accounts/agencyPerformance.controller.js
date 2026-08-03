@@ -3,6 +3,10 @@ const Lead = require('../leads/lead.model');
 const PerformanceAd = require('../performanceAds/performanceAds.model');
 const SlaRecord = require('../sla/sla.model');
 const Task = require('../tasks/task.model');
+const Invoice = require('../invoices/invoice.model');
+const Expense = require('../expenses/expense.model');
+const Project = require('../projects/project.model');
+const { MosScoreHistory } = require('../mos/mos.model');
 
 // Optional chaining helper to safely parse numbers
 const parseNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
@@ -15,9 +19,17 @@ exports.getAgencyPerformance = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Agency context not found' });
     }
 
+    const queryMonth = req.query.month;
+    const queryYear = req.query.year;
+
+    const now = (queryMonth && queryYear) ? new Date(parseInt(queryYear), parseInt(queryMonth), 15) : new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
     // 1. Fetch all clients under this agency
-    const clientsData = await User.find({ agencyId, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } }).select('_id companyName name isDirect');
+    const clientsData = await User.find({ agencyId, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } }).select('_id companyName name isDirect createdAt');
     const clientIds = clientsData.map(c => c._id);
+    const clientsOnboardedThisMonth = clientsData.filter(c => c.createdAt >= startOfMonth && c.createdAt <= endOfMonth).length;
 
     // 2. Fetch Team Members
     const teamData = await User.find({ agencyId, role: { $in: ['agency_manager', 'user'] } }).select('_id name');
@@ -42,41 +54,143 @@ exports.getAgencyPerformance = async (req, res, next) => {
     const breachedSlas = slas.filter(s => s.status === 'Breached').length;
     const slaCompliance = totalSlas > 0 ? Math.round(((totalSlas - breachedSlas) / totalSlas) * 100) : 100;
 
-    // MOS Aggregation (Mocked for now as MosScoreHistory integration depends on structure)
-    // Here we'll generate deterministic pseudo-random MOS based on client ID length for realism 
-    // until full Mos scoring pipeline is mapped out, but structurally correct.
-    const getDeterminMos = (idStr) => {
-      let sum = 0;
-      for (let i = 0; i < idStr.length; i++) sum += idStr.charCodeAt(i);
-      return 50 + (sum % 40); // 50-90 range
-    };
+    // Task Analytics
+    const allTasks = await Task.find({ agencyId });
+    const totalTasksThisMonth = allTasks.filter(t => t.createdAt >= startOfMonth && t.createdAt <= endOfMonth).length;
+    const completedTasksThisMonth = allTasks.filter(t => t.status === 'done' && t.updatedAt >= startOfMonth && t.updatedAt <= endOfMonth).length;
+    const pendingTasks = allTasks.filter(t => t.status !== 'done').length;
+    const overdueTasks = allTasks.filter(t => t.status !== 'done' && t.dueDate && new Date(t.dueDate) < now).length;
+    const taskCompletionRate = totalTasksThisMonth > 0 ? Math.round((completedTasksThisMonth / totalTasksThisMonth) * 100) : 100;
+
+    // Projects Analytics
+    const allProjects = await Project.find({ agencyId });
+    const completedProjects = allProjects.filter(p => p.status === 'completed').length;
+    
+    // Profit & Loss and Chart Data
+    const invoices = await Invoice.find({ agencyId, isDeleted: false });
+    // Expenses uses companyId. For agencies, companyId is typically the agencyId
+    const expenses = await Expense.find({ companyId: agencyId });
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const chartDataMap = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      chartDataMap[key] = {
+        name: monthNames[d.getMonth()],
+        revenue: 0,
+        expenses: 0,
+        clients: 0,
+        sortOrder: d.getTime()
+      };
+    }
+
+    invoices.forEach(inv => {
+      if (inv.createdAt) {
+        const d = new Date(inv.createdAt);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (chartDataMap[key]) {
+          chartDataMap[key].revenue += inv.totalPaid || 0;
+        }
+      }
+    });
+
+    expenses.forEach(exp => {
+      if (exp.date) {
+        const d = new Date(exp.date);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (chartDataMap[key]) {
+          chartDataMap[key].expenses += exp.amount || 0;
+        }
+      }
+    });
+
+    clientsData.forEach(client => {
+        if (client.createdAt) {
+            const d = new Date(client.createdAt);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (chartDataMap[key]) {
+                chartDataMap[key].clients += 1;
+            }
+        }
+    });
+
+    let currentMonthRevenue = 0;
+    let currentMonthExpenses = 0;
+    let lastMonthRevenue = 0;
+    let lastMonthExpenses = 0;
+
+    const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthKey = `${lastMonthDate.getFullYear()}-${lastMonthDate.getMonth()}`;
+
+    if (chartDataMap[currentKey]) {
+        currentMonthRevenue = chartDataMap[currentKey].revenue;
+        currentMonthExpenses = chartDataMap[currentKey].expenses;
+    }
+    if (chartDataMap[lastMonthKey]) {
+        lastMonthRevenue = chartDataMap[lastMonthKey].revenue;
+        lastMonthExpenses = chartDataMap[lastMonthKey].expenses;
+    }
+
+    const currentProfit = currentMonthRevenue - currentMonthExpenses;
+    const lastProfit = lastMonthRevenue - lastMonthExpenses;
+    const profitGrowth = lastProfit !== 0 ? (((currentProfit - lastProfit) / Math.abs(lastProfit)) * 100).toFixed(1) : (currentProfit > 0 ? 100 : 0);
+    
+    // Format profit text
+    const profitFormatted = `₹${currentProfit.toLocaleString('en-IN')}`;
+
+    const chartData = Object.values(chartDataMap).sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    // Accumulate clients for growth chart
+    let cumulativeClients = 0;
+    chartData.forEach(point => {
+        cumulativeClients += point.clients;
+        point.totalClients = cumulativeClients;
+    });
+
+    // MOS Aggregation (Real data from MosScoreHistory)
+    const mosHistories = await MosScoreHistory.find({ agencyId, clientId: { $in: clientIds } }).sort({ createdAt: -1 });
+    
+    // Group by clientId to get the latest score
+    const latestMosByClient = {};
+    mosHistories.forEach(hist => {
+      const cid = hist.clientId.toString();
+      if (!latestMosByClient[cid]) {
+        latestMosByClient[cid] = hist;
+      }
+    });
 
     let totalMos = 0;
     const clients = clientsData.map(c => {
-      const mos = getDeterminMos(c._id.toString());
+      const hist = latestMosByClient[c._id.toString()];
+      const mos = hist && hist.overallMos ? hist.overallMos : 0;
+      const signals = hist && hist.signals ? hist.signals : {
+        seo: 0, ads: 0, leads: 0, social: 0, website: 0, geo: 0
+      };
+
       totalMos += mos;
       const code = (c.companyName || c.name || 'Un').substring(0, 2).toUpperCase();
       return {
         id: c._id,
         code,
         name: c.companyName || c.name || 'Unnamed Client',
-        mos: mos,
-        seo: Math.min(100, mos + 5),
-        ads: Math.max(0, mos - 2),
-        leads: Math.min(100, mos + 8),
-        social: Math.max(0, mos - 5),
-        web: Math.min(100, mos + 3),
-        geo: Math.max(0, mos - 10),
+        mos: Math.round(mos),
+        seo: Math.round(signals.seo || 0),
+        ads: Math.round(signals.ads || 0),
+        leads: Math.round(signals.leads || 0),
+        social: Math.round(signals.social || 0),
+        web: Math.round(signals.website || 0),
+        geo: Math.round(signals.geo || 0),
       };
     }).sort((a, b) => b.mos - a.mos);
 
     const avgClientMos = clients.length > 0 ? Math.round(totalMos / clients.length) : 0;
 
     // 4. Team Performance
-    // Map tasks and SLAs to team members
     const teamTasks = await Task.aggregate([
-      { $match: { assignee: { $in: teamData.map(t => t._id) }, status: { $ne: 'done' } } },
-      { $group: { _id: '$assignee', count: { $sum: 1 } } }
+      { $match: { assignee: { $in: teamData.map(t => t._id) } } },
+      { $group: { _id: '$assignee', total: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', 'done'] }, 1, 0] } } } }
     ]);
     
     const teamSlas = await SlaRecord.aggregate([
@@ -86,7 +200,8 @@ exports.getAgencyPerformance = async (req, res, next) => {
 
     const team = teamData.map(t => {
       const taskObj = teamTasks.find(tk => tk._id.toString() === t._id.toString());
-      const tasksCount = taskObj ? taskObj.count : 0;
+      const tasksAssigned = taskObj ? taskObj.total : 0;
+      const tasksCompleted = taskObj ? taskObj.completed : 0;
       
       const slaObj = teamSlas.find(sl => sl._id.toString() === t._id.toString());
       let slaPerc = 100;
@@ -100,38 +215,31 @@ exports.getAgencyPerformance = async (req, res, next) => {
         id: t._id,
         name: t.name,
         initials,
-        clients: Math.max(1, Math.round(clients.length / teamData.length)), // approximation of client load
-        mos: avgClientMos + (Math.round(Math.random() * 10) - 5), // pseudo-variance
+        clients: 0, // Unused
+        mos: avgClientMos, // Unused
         sla: `${slaPerc}%`,
-        tasks: tasksCount,
+        tasksAssigned,
+        tasksCompleted,
         status: slaPerc >= 95 ? 'good' : (slaPerc >= 85 ? 'warning' : 'danger')
       };
-    });
-
-    // 5. Chart Data (Historical Trend Approximation for last 6 months)
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const chartData = months.map((m, i) => {
-      const point = { name: m };
-      clients.forEach(c => {
-        // slight deterministic drift over time
-        const drift = i * 2 - 5; 
-        point[c.code.toLowerCase()] = Math.max(0, Math.min(100, c.mos + drift));
-      });
-      return point;
-    });
+    }).sort((a, b) => b.tasksCompleted - a.tasksCompleted);
 
     res.status(200).json({
       success: true,
       data: {
         stats: [
-          { label: 'AVG CLIENT MOS', value: `${avgClientMos}/100`, sub: '+2 pts MoM', color: 'var(--accent-primary)', trend: 'up' },
-          { label: 'TOTAL LEADS', value: totalLeads.toLocaleString(), sub: '+5%', color: 'var(--accent-primary)', trend: 'up' },
-          { label: 'BLENDED ROAS', value: `${blendedRoas}x`, sub: '+0.2', color: 'var(--accent-primary)', trend: 'up' },
-          { label: 'SLA COMPLIANCE', value: `${slaCompliance}%`, sub: slaCompliance >= 95 ? '+1%' : '-2%', color: slaCompliance >= 95 ? 'var(--accent-primary)' : 'var(--accent-danger)', trend: slaCompliance >= 95 ? 'up' : 'down' },
+          { label: 'MONTHLY NET PROFIT', value: profitFormatted, sub: `${profitGrowth > 0 ? '+' : ''}${profitGrowth}% MoM`, color: profitGrowth >= 0 ? 'var(--accent-primary)' : 'var(--accent-danger)', trend: profitGrowth >= 0 ? 'up' : 'down' },
+          { label: 'CLIENTS ONBOARDED', value: clientsOnboardedThisMonth.toString(), sub: 'This Month', color: 'var(--accent-primary)', trend: 'neutral' },
+          { label: 'TASK COMPLETION', value: `${taskCompletionRate}%`, sub: `${completedTasksThisMonth}/${totalTasksThisMonth} Tasks`, color: taskCompletionRate >= 80 ? 'var(--accent-primary)' : 'var(--accent-warning)', trend: 'neutral' },
+          { label: 'OVERDUE TASKS', value: overdueTasks.toString(), sub: `Of ${pendingTasks} Pending`, color: overdueTasks === 0 ? 'var(--accent-primary)' : 'var(--accent-danger)', trend: overdueTasks === 0 ? 'up' : 'down' },
         ],
         clients,
         team,
-        chartData
+        chartData,
+        projectStats: {
+            total: allProjects.length,
+            completed: completedProjects
+        }
       }
     });
 

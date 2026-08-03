@@ -79,7 +79,7 @@ const UserManagementTab = () => {
         ],
         'Agency Ops': [
           'People', 'Time Tracking', 'Resources', 'Sales Pipeline', 
-          'Business Intel', 'Global Meetings', 'Global Calendar', 'Global Deliverables'
+          'Global Meetings', 'Global Calendar', 'Global Deliverables'
         ],
         'HRMS': ['Performance', 'Daily Reports', 'SEO Panel']
       };

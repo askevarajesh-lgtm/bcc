@@ -109,6 +109,27 @@ exports.createBrand = async (req, res, next) => {
       }
     }
 
+    let packageBillingInterval = 'Monthly';
+    if (packageName) {
+      if (isDirect) {
+        const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
+        const pkg = await DirectClientPackage.findOne({ name: packageName, createdBy: req.user._id });
+        if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
+      } else {
+        const ClientPackage = require('../agencyPackages/clientPackage.model');
+        const pkg = await ClientPackage.findOne({ name: packageName, agencyId: agencyId });
+        if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
+      }
+    }
+
+    const now = new Date();
+    let subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Default Monthly
+    if (packageBillingInterval === 'Yearly') {
+      subscriptionEndDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    } else if (packageBillingInterval === 'One Time') {
+      subscriptionEndDate = null;
+    }
+
     // Create the User for this brand (which IS the Brand)
     const brand = await User.create({
       name: name + ' Admin',
@@ -124,6 +145,9 @@ exports.createBrand = async (req, res, next) => {
       packageName: packageName || null,
       features: features || [],
       mrr: mrr || 0,
+      subscriptionStartDate: now,
+      subscriptionEndDate,
+      billingInterval: packageBillingInterval,
       createdBy: req.user._id
     });
 

@@ -749,119 +749,135 @@ const CalendarPage = () => {
         styles={{ body: { padding: '0 24px 24px 24px' } }}
       >
         {detailData ? (
-          <Tabs defaultActiveKey="overview" style={{ marginTop: '16px' }}>
-            <Tabs.TabPane tab="Overview" key="overview">
-              <Row gutter={16}>
-                <Col span={14}>
-                  <p><strong>Description:</strong></p>
-                  <p>{detailData.event.notes || 'No notes provided.'}</p>
+          <Tabs
+            defaultActiveKey="overview"
+            style={{ marginTop: '16px' }}
+            items={[
+              {
+                key: 'overview',
+                label: 'Overview',
+                children: (
+                  <Row gutter={16}>
+                    <Col span={14}>
+                      <p><strong>Description:</strong></p>
+                      <p>{detailData.event?.notes || 'No notes provided.'}</p>
 
-                  <p><strong>Schedule:</strong> {dayjs(detailData.event.startDateTime).format('MMMM DD, YYYY')} at {dayjs(detailData.event.startDateTime).format('h:mm a')} - {dayjs(detailData.event.endDateTime).format('h:mm a')}</p>
+                      <p><strong>Schedule:</strong> {detailData.event?.startDateTime ? dayjs(detailData.event.startDateTime).format('MMMM DD, YYYY') : 'N/A'} at {detailData.event?.startDateTime ? dayjs(detailData.event.startDateTime).format('h:mm a') : ''} - {detailData.event?.endDateTime ? dayjs(detailData.event.endDateTime).format('h:mm a') : ''}</p>
 
-                  {detailData.event.meetingLink && (
-                    <Button
-                      type="primary"
-                      icon={<LinkOutlined />}
-                      href={detailData.event.meetingLink}
-                      target="_blank"
-                      style={{ marginBottom: '16px' }}
-                    >
-                      Join Meeting Link
-                    </Button>
-                  )}
+                      {detailData.event?.meetingLink && (
+                        <Button
+                          type="primary"
+                          icon={<LinkOutlined />}
+                          href={detailData.event.meetingLink}
+                          target="_blank"
+                          style={{ marginBottom: '16px' }}
+                        >
+                          Join Meeting Link
+                        </Button>
+                      )}
 
-                  <Divider />
+                      <Divider />
 
-                  <p><strong>Host:</strong> {detailData.event.host?.name || 'N/A'}</p>
-                  <p><strong>Attendees:</strong></p>
-                  <List
-                    size="small"
-                    dataSource={detailData.event.attendees || []}
-                    renderItem={p => (
-                      <List.Item key={p._id}>
-                        <Space>
-                          <Avatar size="small" icon={<UserOutlined />} src={p.logo} />
-                          <span>{p.name} ({p.role})</span>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
-                </Col>
+                      <p><strong>Host:</strong> {detailData.event?.host?.name || 'N/A'}</p>
+                      <p><strong>Attendees:</strong></p>
+                      <List
+                        size="small"
+                        dataSource={Array.isArray(detailData.event?.attendees) ? detailData.event.attendees : []}
+                        renderItem={p => (
+                          <List.Item key={p._id}>
+                            <Space>
+                              <Avatar size="small" icon={<UserOutlined />} src={p.logo} />
+                              <span>{p.name} ({p.role})</span>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                    </Col>
 
-                <Col span={10}>
-                  <Card title="Origin Details" size="small">
-                    <p>Origin: <strong>{detailData.event.source ? detailData.event.source.toUpperCase() : 'CALENDAR'}</strong></p>
-                    {detailData.event.clientId && <p>Client: {detailData.event.clientId.companyName || detailData.event.clientId.name}</p>}
-                    {detailData.event.projectId && <p>Project: {detailData.event.projectId.name}</p>}
-                  </Card>
-                </Col>
-              </Row>
-            </Tabs.TabPane>
-
-            {detailData.event.source === 'custom' && (
-              <>
-                <Tabs.TabPane tab="Event Notes" key="notes">
-                  <List
-                    dataSource={detailData.notes}
-                    style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}
-                    renderItem={note => (
-                      <List.Item key={note._id}>
-                        <List.Item.Meta
-                          avatar={<Avatar icon={<UserOutlined />} />}
-                          title={<span>{note.createdBy?.name || 'User'} <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{dayjs(note.createdAt).format('MMM D, h:mm a')}</span></span>}
-                          description={note.content}
+                    <Col span={10}>
+                      <Card title="Origin Details" size="small">
+                        <p>Origin: <strong>{detailData.event?.source ? detailData.event.source.toUpperCase() : 'CALENDAR'}</strong></p>
+                        {detailData.event?.clientId && <p>Client: {detailData.event.clientId.companyName || detailData.event.clientId.name}</p>}
+                        {detailData.event?.projectId && <p>Project: {detailData.event.projectId.name}</p>}
+                      </Card>
+                    </Col>
+                  </Row>
+                ),
+              },
+              ...(detailData.event?.source === 'custom' ? [
+                {
+                  key: 'notes',
+                  label: 'Event Notes',
+                  children: (
+                    <>
+                      <List
+                        dataSource={Array.isArray(detailData.notes) ? detailData.notes : []}
+                        style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}
+                        renderItem={note => (
+                          <List.Item key={note._id}>
+                            <List.Item.Meta
+                              avatar={<Avatar icon={<UserOutlined />} />}
+                              title={<span>{note.createdBy?.name || 'User'} <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{dayjs(note.createdAt).format('MMM D, h:mm a')}</span></span>}
+                              description={note.content}
+                            />
+                          </List.Item>
+                        )}
+                      />
+                      <Divider />
+                      <Form.Item label="Add note / comment">
+                        <TextArea
+                          rows={3}
+                          value={noteContent}
+                          onChange={e => setNoteContent(e.target.value)}
+                          placeholder="Type details or discussions..."
                         />
-                      </List.Item>
-                    )}
-                  />
-                  <Divider />
-                  <Form.Item label="Add note / comment">
-                    <TextArea
-                      rows={3}
-                      value={noteContent}
-                      onChange={e => setNoteContent(e.target.value)}
-                      placeholder="Type details or discussions..."
-                    />
-                    <Button
-                      type="primary"
-                      style={{ marginTop: 12 }}
-                      onClick={handleAddNote}
-                      loading={isAddingNote}
-                    >
-                      Post Note
-                    </Button>
-                  </Form.Item>
-                </Tabs.TabPane>
-
-                <Tabs.TabPane tab="Attachments" key="attachments">
-                  <List
-                    dataSource={detailData.attachments}
-                    renderItem={att => (
-                      <List.Item key={att._id}>
-                        <Space>
-                          <PaperClipOutlined />
-                          <a href={att.url} target="_blank" rel="noreferrer">{att.fileName}</a>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
-                  <Divider />
-                  <h4>Link Proposal / Doc Link</h4>
-                  <Form layout="vertical">
-                    <Form.Item label="Document Name" required>
-                      <Input value={attachmentName} onChange={e => setAttachmentName(e.target.value)} placeholder="e.g. SEO Campaign Proposal" />
-                    </Form.Item>
-                    <Form.Item label="Document URL" required>
-                      <Input value={attachmentUrl} onChange={e => setAttachmentUrl(e.target.value)} placeholder="https://drive.google.com/..." />
-                    </Form.Item>
-                    <Button type="primary" onClick={handleAddAttachment}>
-                      Add Document
-                    </Button>
-                  </Form>
-                </Tabs.TabPane>
-              </>
-            )}
-          </Tabs>
+                        <Button
+                          type="primary"
+                          style={{ marginTop: 12 }}
+                          onClick={handleAddNote}
+                          loading={isAddingNote}
+                        >
+                          Post Note
+                        </Button>
+                      </Form.Item>
+                    </>
+                  ),
+                },
+                {
+                  key: 'attachments',
+                  label: 'Attachments',
+                  children: (
+                    <>
+                      <List
+                        dataSource={Array.isArray(detailData.attachments) ? detailData.attachments : []}
+                        renderItem={att => (
+                          <List.Item key={att._id}>
+                            <Space>
+                              <PaperClipOutlined />
+                              <a href={att.url} target="_blank" rel="noreferrer">{att.fileName}</a>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                      <Divider />
+                      <h4>Link Proposal / Doc Link</h4>
+                      <Form layout="vertical">
+                        <Form.Item label="Document Name" required>
+                          <Input value={attachmentName} onChange={e => setAttachmentName(e.target.value)} placeholder="e.g. SEO Campaign Proposal" />
+                        </Form.Item>
+                        <Form.Item label="Document URL" required>
+                          <Input value={attachmentUrl} onChange={e => setAttachmentUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                        </Form.Item>
+                        <Button type="primary" onClick={handleAddAttachment}>
+                          Add Document
+                        </Button>
+                      </Form>
+                    </>
+                  ),
+                },
+              ] : []),
+            ]}
+          />
         ) : (
           <div style={{ textAlign: 'center', padding: '24px' }}>Loading event metadata...</div>
         )}

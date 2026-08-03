@@ -798,4 +798,21 @@ Require stack:
     at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-01T08:08:46.349Z\nReferenceError: effectiveTheme is not defined
     at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T06:14:43.020Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T06:14:43.151Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T12:41:12.693Z\nError: Cannot find module '../accounts/clientPackage.model'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\auth\auth.controller.js
+- E:\Bcc Seo\backend\src\modules\auth\auth.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.signin (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:135:27)\n\n

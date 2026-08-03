@@ -1,81 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Button, Tag, Spin } from 'antd';
+import { Typography, Row, Col, Table, Button, Avatar, Spin, message, Tag, DatePicker, Select } from 'antd';
+import dayjs from 'dayjs';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Activity, Calendar, DollarSign, ArrowUpRight, ArrowDownRight, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Calendar, ExternalLink, TrendingUp, CheckSquare, Briefcase, Activity, DollarSign } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import SlabCard from '../../../components/SlabCard';
 import api from '../../../services/api';
+import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const { Title, Text } = Typography;
 
 const OverviewTab = () => {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
-  const [clients, setClients] = useState([]);
-  const [globalMos, setGlobalMos] = useState(0);
-  const [matrix, setMatrix] = useState({ healthy: 0, atRisk: 0, critical: 0 });
-  const [slaStats, setSlaStats] = useState({ compliance: 100, activeBreaches: 0, atRiskCount: 0 });
-  
-  // New States
-  const [projectStats, setProjectStats] = useState(null);
-  const [taskStats, setTaskStats] = useState(null);
-  const [plSummary, setPlSummary] = useState(null);
+  const [overviewData, setOverviewData] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [allClients, setAllClients] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchOverview = async () => {
       try {
         setLoading(true);
-        const [mosRes, slaRes, projRes, taskRes, plRes] = await Promise.all([
-          api.get('/mos/dashboard').catch(() => ({ data: {} })),
-          api.get('/sla-success/dashboard-stats').catch(() => ({ data: {} })),
-          api.get('/projects/summary-stats').catch(() => ({ data: {} })),
-          api.get('/tasks/today-stats').catch(() => ({ data: {} })),
-          api.get('/pl/summary').catch(() => ({ data: {} }))
-        ]);
-        
-        const clientsData = mosRes.data?.data?.clients || [];
-        setClients(clientsData);
-
-        if (clientsData.length > 0) {
-          const totalMos = clientsData.reduce((sum, c) => sum + (c.overall || 0), 0);
-          setGlobalMos(Math.round(totalMos / clientsData.length));
-          
-          let healthy = 0;
-          let atRisk = 0;
-          let critical = 0;
-          clientsData.forEach(c => {
-            if (c.overall >= 70) healthy++;
-            else if (c.overall >= 50) atRisk++;
-            else critical++;
-          });
-          setMatrix({ healthy, atRisk, critical });
+        const params = {
+          month: selectedDate.month(),
+          year: selectedDate.year()
+        };
+        if (selectedClient) {
+          params.clientId = selectedClient;
         }
+        const res = await api.get('/agency/overview', { params });
+        setOverviewData(res.data.data);
         
-        if (slaRes.data?.data) {
-          setSlaStats(slaRes.data.data);
+        // Populate master client list only once if not filtered
+        if (!selectedClient && res.data.data.clients) {
+            setAllClients(res.data.data.clients);
         }
-
-        if (projRes.data?.data?.summary) {
-          setProjectStats(projRes.data.data.summary);
-        }
-        
-        if (taskRes.data?.data) {
-          setTaskStats(taskRes.data.data);
-        }
-        
-        if (plRes.data?.data?.summary) {
-          setPlSummary(plRes.data.data.summary);
-        }
-        
       } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
+        console.error('Failed to fetch agency overview:', error);
+        message.error('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchOverview();
+  }, [selectedDate, selectedClient]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -88,9 +58,9 @@ const OverviewTab = () => {
   };
 
   const getCodeColor = (mos) => {
-    if (mos >= 70) return 'var(--accent-primary)'; // Healthy
-    if (mos >= 50) return 'var(--accent-warning)'; // At Risk
-    return 'var(--accent-danger)'; // Critical
+    if (mos >= 70) return 'var(--accent-primary)'; 
+    if (mos >= 50) return 'var(--accent-warning)'; 
+    return 'var(--accent-danger)'; 
   };
 
   const getStatusText = (mos) => {
@@ -99,103 +69,189 @@ const OverviewTab = () => {
     return 'Critical';
   };
 
-  const stats = [
-    { label: 'ACTIVE CLIENTS', value: clients.length, sub: 'Current total', color: 'var(--accent-primary)', trend: 'neutral', icon: <DollarSign size={16} /> },
-    { label: 'SLA COMPLIANCE', value: `${slaStats.compliance}%`, sub: `${slaStats.activeBreaches} breaches`, color: slaStats.compliance >= 90 ? 'var(--accent-primary)' : 'var(--accent-danger)', trend: slaStats.compliance >= 90 ? 'up' : 'down' },
-    { label: 'OPEN ESCALATIONS', value: slaStats.activeBreaches + slaStats.atRiskCount, sub: 'Needs attention', color: 'var(--accent-warning)', trend: 'neutral' },
-    { label: 'PROJECTS ACTIVE', value: projectStats?.activeProjects || 0, sub: `${projectStats?.completedProjects || 0} completed`, color: 'var(--accent-primary)', trend: 'neutral' },
-    { label: 'TASKS TODAY', value: taskStats?.dueToday || taskStats?.total || 0, sub: `${taskStats?.completedToday || 0} done today`, color: 'var(--accent-warning)', trend: 'neutral' },
-    ...(role === 'agency_manager' ? [
-        { label: 'REVENUE (YTD)', value: `₹${((plSummary?.totalRevenue || 0)/100000).toFixed(1)}L`, sub: 'P&L Analytics', color: 'var(--accent-primary)', trend: 'up' },
-    ] : [
-        { label: 'REVENUE (YTD)', value: `₹${((plSummary?.totalRevenue || 0)/100000).toFixed(1)}L`, sub: 'P&L Analytics', color: 'var(--accent-primary)', trend: 'up' },
-        { label: 'COLLECTION RATE', value: '89.7%', sub: 'Avg collected', color: 'var(--accent-primary)', trend: 'neutral' }
-    ])
-  ];
-
-  const upcoming = [
-    { icon: <Calendar size={20} color="var(--accent-secondary)" />, title: 'Quarterly Reviews Scheduled', desc: 'Ensure all MOS drop reviews are conducted this week.', btn: 'Prepare', btnColor: 'var(--accent-secondary)' },
-    { icon: <Activity size={20} color="var(--accent-warning)" />, title: 'Resolve Open Escalations', desc: `There are ${slaStats.activeBreaches} active SLA breaches.`, btn: 'View Escalations', btnColor: 'var(--accent-warning)' },
-  ];
-
-  if (loading) {
+  if (!overviewData && loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}><Spin size="large" /></div>;
   }
 
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  if (!overviewData) return null;
+
+  const { stats, revenueChartData, clients, team } = overviewData;
+  const currentMonthName = selectedDate.format('MMMM YYYY');
+
+  const kpis = [
+    { label: 'ACTIVE CLIENTS', value: stats.activeClients, sub: 'Total Managed', color: 'var(--accent-primary)', icon: <Briefcase size={20} /> },
+    { label: 'CURRENT MONTH REVENUE', value: `₹${(stats.currentMonthRevenue/100000).toFixed(1)}L`, sub: 'Collected this month', color: 'var(--accent-success)', icon: <DollarSign size={20} /> },
+    { label: 'OUTSTANDING INVOICES', value: `₹${(stats.outstandingInvoicesAmount/100000).toFixed(1)}L`, sub: `${stats.outstandingInvoicesCount} pending payments`, color: 'var(--accent-danger)', icon: <AlertTriangle size={20} /> },
+    { label: 'SLA COMPLIANCE', value: `${stats.slaCompliance}%`, sub: `${stats.breachedSlas} active breaches`, color: stats.slaCompliance >= 90 ? 'var(--accent-primary)' : 'var(--accent-warning)', icon: <Activity size={20} /> },
+    { label: 'PROJECTS', value: stats.activeProjects, sub: `${stats.completedProjects} completed`, color: 'var(--accent-info)', icon: <CheckSquare size={20} /> },
+    { label: 'TASKS COMPLETED', value: stats.completedTasksThisMonth, sub: `Out of ${stats.totalTasksThisMonth} total`, color: 'var(--accent-secondary)', icon: <TrendingUp size={20} /> },
+  ];
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" >
+    <Spin spinning={loading} tip="Updating dashboard...">
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" >
       
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 800 }}>Good morning, {user?.name?.split(' ')[0] || 'User'}.</Title>
-          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Here's {user?.companyName || 'your agency'} at a glance — {currentMonthName}.</Text>
+          <Title level={2} style={{ margin: 0, fontWeight: 800 }}>Command Center</Title>
+          <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Here's your agency performance — {currentMonthName}.</Text>
         </div>
-        <Tag style={{ borderRadius: 8, padding: '6px 16px', background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 700, fontSize: 13, boxShadow: '2px 2px 0 var(--border-color)' }}>{currentMonthName}</Tag>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Select 
+            allowClear
+            placeholder="All Clients"
+            value={selectedClient}
+            onChange={(val) => setSelectedClient(val)}
+            style={{ width: 200 }}
+            size="large"
+          >
+            {allClients.map(c => (
+              <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+            ))}
+          </Select>
+          <DatePicker 
+            picker="month" 
+            value={selectedDate} 
+            onChange={(date) => { if(date) setSelectedDate(date); }} 
+            size="large"
+            style={{ borderRadius: 8, fontWeight: 600, width: 200 }}
+            allowClear={false}
+          />
+        </div>
       </motion.div>
 
+      {/* KPI Cards */}
       <motion.div variants={itemVariants}>
         <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
-          {stats.map((stat, idx) => (
-            <Col xs={24} sm={12} lg={8} xl={8} xxl={8} key={idx}>
-              <SlabCard style={{ height: '100%' }} bodyStyle={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, display: 'block', marginBottom: 12, color: 'var(--text-tertiary)' }}>{stat.label}</Text>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1 }}>{stat.value}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  {stat.trend === 'up' && <ArrowUpRight size={16} color={stat.color} />}
-                  {stat.trend === 'down' && <ArrowDownRight size={16} color={stat.color} />}
-                  {stat.trend === 'neutral' && <AlertTriangle size={16} color={stat.color} />}
-                  <span style={{ color: stat.color, fontWeight: 700 }}>{stat.sub}</span>
+          {kpis.map((stat, idx) => (
+            <Col xs={24} sm={12} lg={8} key={idx}>
+              <div style={{
+                background: 'var(--bg-tertiary)',
+                borderRadius: 20,
+                padding: 24,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, color: 'var(--text-tertiary)' }}>{stat.label}</Text>
+                  <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 12 }}>
+                    {stat.icon}
+                  </div>
                 </div>
-              </SlabCard>
+                <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, lineHeight: 1 }}>{stat.value}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{stat.sub}</div>
+                <div style={{ position: 'absolute', bottom: -20, right: -20, opacity: 0.05, transform: 'scale(3)' }}>
+                  {stat.icon}
+                </div>
+              </div>
             </Col>
           ))}
         </Row>
       </motion.div>
 
-      {/* Massive Client List */}
+      {/* Charts Row */}
+      <motion.div variants={itemVariants} style={{ marginBottom: 48 }}>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} lg={14}>
+            <div style={{ background: 'var(--bg-tertiary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 24, height: '100%' }}>
+              <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>Month-wise Revenue (Collected vs Pending)</Title>
+              <div style={{ height: 300, width: '100%' }}>
+                <ResponsiveContainer>
+                  <ComposedChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)', fontWeight: 600 }}
+                      formatter={(value) => `₹${value.toLocaleString()}`}
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" name="Collected Revenue" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} barSize={40} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </Col>
+
+          <Col xs={24} lg={10}>
+            <div style={{ background: 'var(--bg-tertiary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 24, height: '100%', overflowY: 'auto', maxHeight: 400 }}>
+              <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>Employee Performance</Title>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {team.map((member, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Avatar style={{ backgroundColor: 'var(--text-tertiary)', fontWeight: 700 }}>{member.initials}</Avatar>
+                      <div>
+                        <Text style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>{member.name}</Text>
+                        <Text style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{member.tasksCompleted} / {member.tasksAssigned} tasks</Text>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <Text style={{ display: 'block', fontWeight: 800, color: member.status === 'good' ? 'var(--accent-primary)' : 'var(--accent-warning)' }}>
+                        {member.completionRate}%
+                      </Text>
+                      <Text style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>Completion</Text>
+                    </div>
+                  </div>
+                ))}
+                {team.length === 0 && <Text type="secondary">No team data available.</Text>}
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* Detailed Client List */}
       <motion.div variants={itemVariants} style={{ marginBottom: 64 }}>
-        <Title level={3} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Your Clients — {currentMonthName}</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 14, fontWeight: 500 }}>All {clients.length} active clients - ranked by MOS score</Text>
+        <Title level={3} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Client Health & Operations</Title>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 14, fontWeight: 500 }}>All {clients.length} active clients - ranked by overall health</Text>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {clients.sort((a,b) => (b.overall || 0) - (a.overall || 0)).map(client => {
-            const statusText = getStatusText(client.overall);
-            const statusColor = getCodeColor(client.overall);
-            const code = (client.client || 'NA').substring(0, 2).toUpperCase();
-
+          {clients.map(client => {
+            const statusText = getStatusText(client.mos);
+            const statusColor = getCodeColor(client.mos);
+            
             return (
-              <SlabCard key={client.clientId} shadowColor={statusColor} bodyStyle={{ padding: '24px 32px' }} style={{ borderLeft: `6px solid ${statusColor}` }}>
+              <SlabCard key={client.id} shadowColor={statusColor} bodyStyle={{ padding: '24px 32px' }} style={{ borderLeft: `6px solid ${statusColor}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 220 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: statusColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.2)' }}>{code}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 200 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: statusColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15 }}>{client.code}</div>
                     <div>
-                      <Text style={{ fontWeight: 800, display: 'block', color: 'var(--text-primary)', fontSize: 16, marginBottom: 4 }}>{client.client}</Text>
+                      <Text style={{ fontWeight: 800, display: 'block', color: 'var(--text-primary)', fontSize: 16, marginBottom: 2 }}>{client.name}</Text>
+                      <Tag style={{ margin: 0, background: 'transparent', border: `1px solid ${statusColor}40`, color: statusColor, fontWeight: 700 }}>MOS: {client.mos} ({statusText})</Tag>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Tag style={{ background: 'var(--bg-tertiary)', color: statusColor, border: `1px solid ${statusColor}40`, borderRadius: 8, fontWeight: 800, padding: '6px 16px', fontSize: 14 }}>
-                      {client.overall || 0} • {statusText}
-                    </Tag>
+                  <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>MONTHLY MRR</Text>
+                      <Text style={{ fontWeight: 800, fontSize: 16 }}>₹{(client.mrr/100000).toFixed(1)}L</Text>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>ACTIVE PROJECTS</Text>
+                      <Text style={{ fontWeight: 800, fontSize: 16 }}>{client.activeProjects}</Text>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     {['seo', 'ads', 'leads', 'social', 'website', 'rev', 'cx'].map((key) => {
-                      const val = client[key] || 0;
+                      const val = client.signals[key] || 0;
                       return (
-                        <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'var(--bg-tertiary)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                          <span style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>{key}</span>
-                          <span style={{ color: getCodeColor(val), fontWeight: 800, fontSize: 14 }}>{val}</span>
+                        <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <span style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: 10, fontWeight: 700 }}>{key}</span>
+                          <span style={{ color: getCodeColor(val), fontWeight: 800, fontSize: 13 }}>{Math.round(val)}</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20, minWidth: 120, justifyContent: 'flex-end' }}>
-                    <Button type="text" icon={<ExternalLink size={18} />} style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>View</Button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20, justifyContent: 'flex-end' }}>
+                    <Button type="text" icon={<ExternalLink size={18} />} style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>View Dashboard</Button>
                   </div>
 
                 </div>
@@ -215,9 +271,9 @@ const OverviewTab = () => {
           )}
         </div>
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </Spin>
   );
 };
 
 export default OverviewTab;
-

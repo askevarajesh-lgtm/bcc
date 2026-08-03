@@ -1125,6 +1125,201 @@ a {
     padding: 3px;
   }
 
+  opacity: 1;
+}
+
+.signin-input-icon {
+  color: var(--text-tertiary);
+}
+
+.signin-page .ant-input-prefix {
+  margin-inline-end: 12px;
+}
+
+.signin-page .ant-input-suffix {
+  color: var(--text-tertiary);
+}
+
+.signin-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.signin-password-toggle:hover {
+  color: var(--text-primary);
+  transform: scale(1.04);
+}
+
+.signin-submit {
+  height: 48px;
+  border: none !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #5e95ff 0%, var(--accent-primary) 55%, var(--accent-primary) 100%) !important;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 18px 34px rgba(59, 130, 246, 0.26);
+}
+
+.signin-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 38px rgba(59, 130, 246, 0.3);
+}
+
+.signin-submit:active {
+  transform: translateY(0);
+}
+
+.signin-support {
+  margin-top: 16px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.ant-card {
+  color: var(--text-primary);
+}
+
+.ant-card,
+.ant-table-wrapper,
+.ant-list,
+.ant-modal-content,
+.ant-drawer-content {
+  font-family: inherit;
+}
+
+.ant-card-bordered {
+  border-color: var(--border-color) !important;
+}
+
+.ant-card-head {
+  color: var(--text-primary) !important;
+}
+
+.ant-btn {
+  font-weight: 750;
+  box-shadow: none;
+}
+
+.ant-btn-primary {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary)) !important;
+  box-shadow: 0 14px 28px rgba(59, 130, 246, 0.18);
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-picker,
+.ant-select-selector,
+.ant-input-number {
+  border-color: var(--border-color) !important;
+  border-radius: 13px !important;
+  background: var(--bg-secondary) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-picker-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 4px var(--focus-ring) !important;
+}
+
+.ant-table {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+  border-bottom-color: var(--border-color) !important;
+  font-size: 12px;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: var(--border-color) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(59, 130, 246, 0.035) !important;
+}
+
+@media (max-width: 1300px) {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .app-header__left {
+    flex: 1 1 auto;
+    min-width: 250px;
+  }
+  
+  .app-header__actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  
+  .ant-card {
+    overflow-x: auto;
+  }
+
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .app-header {
+    height: 98px;
+    padding: 20px 24px 18px;
+  }
+
+  .app-content {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    height: 78px;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .app-header__title-block span,
+  .app-header__title-block p {
+    display: none;
+  }
+
+  .app-header__title-block h1 {
+    max-width: 44vw;
+    font-size: 18px !important;
+  }
+
+  .app-header__actions {
+    gap: 8px;
+  }
+
+  .app-header__icon-button {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 13px !important;
+  }
+
+  .app-header__user {
+    min-height: 42px;
+    padding: 3px;
+  }
+
   .app-header__avatar {
     width: 34px !important;
     height: 34px !important;
@@ -1133,4 +1328,11 @@ a {
   .app-content {
     padding: 18px 16px 28px;
   }
+}
+
+.ant-menu-submenu-popup .ant-menu-title-content {
+  display: inline-block !important;
+  opacity: 1 !important;
+  width: auto !important;
+  visibility: visible !important;
 }

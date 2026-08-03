@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Checkbox, Row, Col } from 'antd';
+import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Checkbox, Row, Col, Select } from 'antd';
 import { Plus, Edit, Trash2, Eye, Star, Briefcase, Check, Rocket, Zap } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -28,6 +28,7 @@ const ClientPackagesTab = () => {
     name: '',
     description: '',
     price: '',
+    billingInterval: 'Monthly',
     features: []
   });
 
@@ -54,6 +55,7 @@ const ClientPackagesTab = () => {
         name: pkg.name,
         description: pkg.description || '',
         price: pkg.price || '',
+        billingInterval: pkg.billingInterval || 'Monthly',
         features: pkg.features || []
       });
     } else {
@@ -62,6 +64,7 @@ const ClientPackagesTab = () => {
         name: '',
         description: '',
         price: '',
+        billingInterval: 'Monthly',
         features: []
       });
     }
@@ -178,8 +181,31 @@ const ClientPackagesTab = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                   <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--text-primary)' }}>{pkg.name}</span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <Button type="text" icon={<Edit size={18} />} onClick={() => handleOpenModal(pkg)} style={{ padding: 0, height: 'auto', marginTop: -4, color: 'var(--text-secondary)' }} />
-                    <Button type="text" danger icon={<Trash2 size={18} />} onClick={() => handleDelete(pkg._id)} style={{ padding: 0, height: 'auto', marginTop: -4 }} />
+                    <Button 
+                      type="text" 
+                      icon={<Edit size={18} />} 
+                      onClick={() => {
+                        if (pkg.isAssigned) {
+                          message.error("This package has already been assigned and cannot be modified or deleted.");
+                        } else {
+                          handleOpenModal(pkg);
+                        }
+                      }} 
+                      style={{ padding: 0, height: 'auto', marginTop: -4, color: 'var(--text-secondary)' }} 
+                    />
+                    <Button 
+                      type="text" 
+                      danger 
+                      icon={<Trash2 size={18} />} 
+                      onClick={() => {
+                        if (pkg.isAssigned) {
+                          message.error("This package has already been assigned and cannot be modified or deleted.");
+                        } else {
+                          handleDelete(pkg._id);
+                        }
+                      }} 
+                      style={{ padding: 0, height: 'auto', marginTop: -4 }} 
+                    />
                   </div>
                 </div>
 
@@ -201,7 +227,7 @@ const ClientPackagesTab = () => {
                     {pkg.price ? pkg.price.replace('/mo', '').replace('/month', '') : '$0'}
                   </span>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 500 }}>
-                    / {pkg.price?.includes('mo') || pkg.price?.includes('month') ? 'month' : 'user / month'}
+                    / {pkg.billingInterval === 'Yearly' ? 'year' : pkg.billingInterval === 'One Time' ? 'lifetime' : 'month'}
                   </span>
                 </div>
 
@@ -218,7 +244,13 @@ const ClientPackagesTab = () => {
                     fontWeight: 600,
                     marginBottom: 32
                   }}
-                  onClick={() => handleOpenModal(pkg)}
+                  onClick={() => {
+                    if (pkg.isAssigned) {
+                      message.error("This package has already been assigned and cannot be modified or deleted.");
+                    } else {
+                      handleOpenModal(pkg);
+                    }
+                  }}
                 >
                   Edit Package
                 </Button>
@@ -277,14 +309,30 @@ const ClientPackagesTab = () => {
               rows={2}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{color: 'red'}}>*</span></label>
-            <Input 
-              value={formData.price} 
-              onChange={e => setFormData({...formData, price: e.target.value})} 
-              placeholder="e.g., ₹5.0L/mo" 
-              size="large"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Price <span style={{ color: 'red' }}>*</span></label>
+              <Input
+                value={formData.price}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                placeholder="e.g., ₹5.0L"
+                size="large"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-secondary)' }}>Billing Interval <span style={{ color: 'red' }}>*</span></label>
+              <Select
+                value={formData.billingInterval}
+                onChange={value => setFormData({ ...formData, billingInterval: value })}
+                size="large"
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'Monthly', label: 'Monthly' },
+                  { value: 'Yearly', label: 'Yearly' },
+                  { value: 'One Time', label: 'One Time' },
+                ]}
+              />
+            </div>
           </div>
           
           <div style={{ marginTop: 16 }}>

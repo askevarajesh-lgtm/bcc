@@ -3,8 +3,13 @@ const DirectClientPackage = require('./directClientPackage.model');
 // Get all direct client packages
 exports.getPackages = async (req, res, next) => {
   try {
-    const packages = await DirectClientPackage.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: packages.length, data: packages });
+    const packages = await DirectClientPackage.find({ createdBy: req.user._id }).sort({ createdAt: -1 }).lean();
+    const User = require('../auth/user.model');
+    const data = await Promise.all(packages.map(async (pkg) => {
+      const isAssigned = await User.exists({ packageName: pkg.name, isDirect: true, createdBy: pkg.createdBy });
+      return { ...pkg, isAssigned: !!isAssigned };
+    }));
+    res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
     next(error);
   }
@@ -39,6 +44,18 @@ exports.createPackage = async (req, res, next) => {
 // Update a direct client package
 exports.updatePackage = async (req, res, next) => {
   try {
+    const User = require('../auth/user.model');
+    const existingPkgForName = await DirectClientPackage.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (existingPkgForName) {
+      const isAssigned = await User.exists({ packageName: existingPkgForName.name, isDirect: true, createdBy: req.user._id });
+      if (isAssigned) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'This package is already assigned to one or more organizations and cannot be edited.' 
+        });
+      }
+    }
+
     const pkg = await DirectClientPackage.findOneAndUpdate(
       { _id: req.params.id, createdBy: req.user._id },
       req.body,

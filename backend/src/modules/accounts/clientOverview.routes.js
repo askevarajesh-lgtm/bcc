@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const businessIntelController = require('./businessIntel.controller');
+const clientOverviewController = require('./clientOverview.controller');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.use(authMiddleware);
-router.get('/dashboard', businessIntelController.getDashboardData);
+
+// Endpoint for client dashboard overview stats
+router.get('/', clientOverviewController.getClientOverviewData);
 
 module.exports = router;

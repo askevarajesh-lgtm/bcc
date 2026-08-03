@@ -17,6 +17,41 @@ const getUserNotifications = async (userId, options = {}) => {
     .limit(limit)
     .skip(skip);
 
+  // Replace any raw ObjectId in messages with the actual user name
+  const objectIdRegex = /\b([a-f0-9]{24})\b/gi;
+  const idSet = new Set();
+  for (const notif of notifications) {
+    const matches = notif.message ? notif.message.match(objectIdRegex) : null;
+    if (matches) {
+      matches.forEach((id) => idSet.add(id));
+    }
+  }
+
+  // Resolve all found IDs to user names in one batch query
+  const idNameMap = {};
+  if (idSet.size > 0) {
+    const mongoose = require('mongoose');
+    const validIds = [...idSet].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length > 0) {
+      const User = require('../auth/user.model');
+      const users = await User.find({ _id: { $in: validIds } }).select('name');
+      for (const u of users) {
+        idNameMap[u._id.toString()] = u.name;
+      }
+    }
+  }
+
+  // Replace IDs in messages with resolved names
+  const resolvedNotifications = notifications.map((notif) => {
+    const obj = notif.toObject();
+    if (obj.message && Object.keys(idNameMap).length > 0) {
+      obj.message = obj.message.replace(objectIdRegex, (match) => {
+        return idNameMap[match.toLowerCase()] || match;
+      });
+    }
+    return obj;
+  });
+
   const total = await Notification.countDocuments(query);
   const unreadCount = await Notification.countDocuments({
     userId,
@@ -24,7 +59,7 @@ const getUserNotifications = async (userId, options = {}) => {
   });
 
   return {
-    notifications,
+    notifications: resolvedNotifications,
     total,
     unreadCount,
   };

@@ -1,5 +1,5 @@
-import React from "react";
-import { Typography, Row, Col, Table, Divider, Button, message } from "antd";
+import React, { useState } from "react";
+import { Typography, Row, Col, Table, Divider, Button, message, Modal, Radio, Input, Space } from "antd";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useGetPaymentIntegrationQuery } from "../../../api/integrationApi";
 
@@ -13,16 +13,57 @@ const ProfessionalInvoice = ({ invoice }) => {
   const footerTextColor = isDark ? "#c7d2e4" : "#666";
   const bodyTextColor = isDark ? "#f8fafc" : "#0b1220";
 
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [transactionId, setTransactionId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (!invoice) return null;
 
-  const companyId = invoice.agencyId?._id || invoice.adminId?._id;
+  const handlePaymentSubmit = async () => {
+    if (paymentMethod === "bank_transfer" && !transactionId.trim()) {
+      return message.error("Please enter a transaction ID.");
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/invoices/${invoice._id}/payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          paymentMode: paymentMethod === "razorpay" ? "Razorpay" : "Bank Transfer",
+          transactionId: paymentMethod === "razorpay" ? `pay_mock_${Math.random().toString(36).substring(7)}` : transactionId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Payment recorded successfully!");
+        setIsPaymentModalVisible(false);
+        // Reload page to reflect changes
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        message.error(data.message || "Failed to process payment");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("An error occurred while processing payment.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const companyId = invoice?.agencyId?._id || invoice?.agencyId || invoice?.adminId?._id || invoice?.adminId;
   const { data: paymentData } = useGetPaymentIntegrationQuery(companyId, { skip: !companyId });
   const paymentIntegration = paymentData?.data?.integration;
   const paymentConfig = paymentIntegration?.isActive ? paymentIntegration.config : null;
 
   // Derive items from masterItems if available
   const masterItems = invoice.proposalId?.masterItems || [];
-  
+
   const tableItems = [];
   masterItems.forEach(item => {
     tableItems.push({
@@ -41,7 +82,7 @@ const ProfessionalInvoice = ({ invoice }) => {
       });
     }
   });
-  
+
   const columns = [
     {
       title: "Description",
@@ -247,12 +288,12 @@ const ProfessionalInvoice = ({ invoice }) => {
               <Text strong>Mode:</Text> {invoice.paymentMode || "Bank Transfer"}
               <br />
               {invoice.transactionId && <><Text strong>Transaction ID:</Text> {invoice.transactionId}</>}
-              
-              {paymentConfig && (paymentConfig.razorpayKeyId && paymentConfig.razorpayKeySecret) && invoice.paymentStatus !== "Paid" && (
+
+              {invoice.paymentStatus !== "Paid" && (
                 <div style={{ marginTop: 16, padding: '12px', background: isDark ? '#1a2744' : '#f8f9fa', borderRadius: '8px', display: 'inline-block' }}>
                   <Text strong style={{ display: 'block', marginBottom: 8 }}>Pay Now:</Text>
-                  <Button type="primary" style={{ backgroundColor: '#3395FF', borderColor: '#3395FF' }} onClick={() => message.info('Razorpay payment flow to be implemented')}>
-                    Pay with Razorpay
+                  <Button type="primary" style={{ backgroundColor: '#3395FF', borderColor: '#3395FF' }} onClick={() => setIsPaymentModalVisible(true)}>
+                    Pay Invoice
                   </Button>
                 </div>
               )}
@@ -270,6 +311,54 @@ const ProfessionalInvoice = ({ invoice }) => {
           </Col>
         </Row>
       </div>
+
+      {/* Payment Modal */}
+      <Modal
+        title="Pay Invoice"
+        open={isPaymentModalVisible}
+        onCancel={() => setIsPaymentModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsPaymentModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" loading={isSubmitting} onClick={handlePaymentSubmit}>
+            Confirm Payment
+          </Button>
+        ]}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ fontSize: 18 }}>Amount Due: ₹{(invoice.grandTotal || 0).toLocaleString()}</Text>
+        </div>
+        
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: 'block', marginBottom: 8 }}>Select Payment Method:</Text>
+          <Radio.Group onChange={(e) => setPaymentMethod(e.target.value)} value={paymentMethod}>
+            <Space direction="vertical">
+              <Radio value="bank_transfer">Bank Transfer / Offline Payment</Radio>
+              {paymentConfig && paymentConfig.razorpayKeyId && (
+                <Radio value="razorpay">Razorpay (Online Gateway)</Radio>
+              )}
+            </Space>
+          </Radio.Group>
+        </div>
+
+        {paymentMethod === "bank_transfer" && (
+          <div style={{ marginTop: 16 }}>
+            <Text style={{ display: 'block', marginBottom: 8 }}>Please transfer the amount to the agency's bank account and enter the transaction reference number below.</Text>
+            <Input 
+              placeholder="Enter Transaction ID / Reference No." 
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+            />
+          </div>
+        )}
+
+        {paymentMethod === "razorpay" && (
+          <div style={{ marginTop: 16, padding: 12, background: 'rgba(51, 149, 255, 0.1)', borderRadius: 8 }}>
+            <Text style={{ color: '#3395FF' }}>Clicking "Confirm Payment" will securely process your payment via Razorpay. (Mocked for demonstration)</Text>
+          </div>
+        )}
+      </Modal>
 
       {/* Print Styles */}
       <style>{`

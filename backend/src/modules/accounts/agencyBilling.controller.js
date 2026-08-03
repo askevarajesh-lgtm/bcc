@@ -27,16 +27,18 @@ exports.getBillingData = async (req, res, next) => {
 
     const invoices = invoiceData.map(inv => {
       const amount = inv.grandTotal || 0;
-      totalMrrValue += amount;
+      const paid = inv.totalPaid || 0;
+      const pending = inv.pendingAmount || amount;
 
-      if (inv.paymentStatus === 'Paid') {
-        collectedValue += amount;
-      } else {
-        outstandingValue += amount;
+      totalMrrValue += amount;
+      collectedValue += paid;
+
+      if (inv.paymentStatus !== 'Paid') {
+        outstandingValue += pending;
         outstandingCount++;
         
         if (inv.dueDate && new Date(inv.dueDate) < now) {
-          overdueValue += amount;
+          overdueValue += pending;
           overdueCount++;
         }
       }

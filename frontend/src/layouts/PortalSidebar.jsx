@@ -33,6 +33,44 @@ const PortalSidebar = ({
 
   const isMobile = !screens.lg && screens.lg !== undefined;
 
+  const rootSubmenuKeys = menuItems
+    .filter(item => item && item.children)
+    .map(item => item.key);
+
+  const getParentKeyForSelected = () => {
+    for (const item of menuItems) {
+      if (item.children) {
+        const hasMatch = item.children.some(child => 
+          selectedKeys.includes(child.key) || 
+          (child.children && child.children.some(c => selectedKeys.includes(c.key)))
+        );
+        if (hasMatch) return item.key;
+      }
+    }
+    return null;
+  };
+
+  const [openKeys, setOpenKeys] = React.useState(() => {
+    const parent = getParentKeyForSelected();
+    return parent ? [parent] : [];
+  });
+
+  React.useEffect(() => {
+    const parent = getParentKeyForSelected();
+    if (parent && !openKeys.includes(parent)) {
+      setOpenKeys([parent]);
+    }
+  }, [selectedKeys]);
+
+  const handleOpenChange = (keys) => {
+    const latestOpenKey = keys.find((key) => openKeys.indexOf(key) === -1);
+    if (latestOpenKey && rootSubmenuKeys.indexOf(latestOpenKey) === -1) {
+      setOpenKeys(keys);
+    } else {
+      setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
+    }
+  };
+
   const sidebarContent = (
     <Sider
       collapsible={!isMobile && Boolean(setCollapsed)}
@@ -67,7 +105,8 @@ const PortalSidebar = ({
           <Menu
             mode="inline"
             selectedKeys={selectedKeys}
-            defaultOpenKeys={defaultOpenKeys}
+            openKeys={openKeys}
+            onOpenChange={handleOpenChange}
             items={menuItems}
             onClick={handleMenuClick}
           />
