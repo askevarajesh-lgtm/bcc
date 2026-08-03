@@ -12,7 +12,7 @@ const queueService = require('../../aiCore/executionQueue.service');
 exports.createWorkflow = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { name, description, category, nodes, edges, variables, status } = req.body;
+    const { name, description, category, nodes, edges, variables, status, triggerType } = req.body;
 
     const validProjectId = (projectId && mongoose.Types.ObjectId.isValid(projectId))
       ? projectId
@@ -26,6 +26,7 @@ exports.createWorkflow = async (req, res) => {
       name: name || 'Untitled Workflow',
       description: description || '',
       category: category || 'General',
+      triggerType: triggerType || 'event',
       status: status || 'Draft',
       createdBy: userId,
       updatedBy: userId
@@ -47,6 +48,7 @@ exports.createWorkflow = async (req, res) => {
     const wfObj = workflow.toObject();
     wfObj.nodes = version.nodes;
     wfObj.edges = version.edges;
+    wfObj.variables = version.variables;
 
     res.status(201).json({ success: true, data: wfObj });
   } catch (error) {
@@ -65,6 +67,7 @@ exports.listWorkflows = async (req, res) => {
       if (obj.activeVersionId) {
         obj.nodes = obj.activeVersionId.nodes || [];
         obj.edges = obj.activeVersionId.edges || [];
+        obj.variables = obj.activeVersionId.variables || {};
       }
       return obj;
     });
@@ -95,14 +98,14 @@ exports.getWorkflow = async (req, res) => {
           triggerType: 'event',
           nodes: [
             { id: 'n1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Keyword Rank Drop', subtitle: 'Position drops >= 3', type: 'trigger', subtype: 'keyword_rank_dropped', config: { threshold: 3 } } },
-            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Severity Condition', subtitle: 'Check if severity == Critical', type: 'condition', subtype: 'if_else' } },
-            { id: 'n3', type: 'custom', position: { x: 100, y: 320 }, data: { label: 'Send Slack Notification', subtitle: '#seo-emergency channel', type: 'action', subtype: 'send_slack_message' } },
-            { id: 'n4', type: 'custom', position: { x: 400, y: 320 }, data: { label: 'AI Root Cause Analysis', subtitle: 'Diagnose SERP & competitor change', type: 'ai_agent', subtype: 'ai_root_cause_analysis' } }
+            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Severity Condition', subtitle: 'Check if severity == Critical', type: 'condition', subtype: 'if_else', config: { expression: "trigger.payload.severity === 'Critical'" } } },
+            { id: 'n3', type: 'custom', position: { x: 100, y: 320 }, data: { label: 'Send Slack Notification', subtitle: '#seo-emergency channel', type: 'action', subtype: 'send_slack_message', config: { recipient: '#seo-emergency' } } },
+            { id: 'n4', type: 'custom', position: { x: 400, y: 320 }, data: { label: 'AI Root Cause Analysis', subtitle: 'Diagnose SERP & competitor change', type: 'ai_agent', subtype: 'ai_root_cause_analysis', config: { agentKey: 'rootCauseDiagnostician' } } }
           ],
           edges: [
-            { id: 'e1-2', source: 'n1', target: 'n2', animated: true },
-            { id: 'e2-3', source: 'n2', target: 'n3', label: 'True', animated: true },
-            { id: 'e2-4', source: 'n2', target: 'n4', label: 'False', animated: true }
+            { id: 'e1-2', source: 'n1', target: 'n2', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
+            { id: 'e2-3', source: 'n2', sourceHandle: 'true', target: 'n3', label: 'True', animated: true, style: { stroke: '#10b981', strokeWidth: 2 } },
+            { id: 'e2-4', source: 'n2', sourceHandle: 'false', target: 'n4', label: 'False', animated: true, style: { stroke: '#ef4444', strokeWidth: 2 } }
           ]
         },
         'wf_2': {
@@ -111,13 +114,13 @@ exports.getWorkflow = async (req, res) => {
           status: 'Active',
           triggerType: 'schedule',
           nodes: [
-            { id: 'n1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Cron / Schedule', subtitle: 'Every Monday at 09:00 UTC', type: 'trigger', subtype: 'schedule_cron' } },
-            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Full Site Crawl', subtitle: 'Deep crawl 1,000 pages', type: 'action', subtype: 'crawl_site' } },
-            { id: 'n3', type: 'custom', position: { x: 250, y: 320 }, data: { label: 'Generate PDF Audit Report', subtitle: 'Store in vault', type: 'action', subtype: 'generate_report' } }
+            { id: 'n1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Cron / Schedule', subtitle: 'Every Monday at 09:00 UTC', type: 'trigger', subtype: 'schedule_cron', config: { cron: '0 9 * * 1', timezone: 'UTC' } } },
+            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Full Site Crawl', subtitle: 'Deep crawl 1,000 pages', type: 'action', subtype: 'crawl_site', config: { maxPages: 1000 } } },
+            { id: 'n3', type: 'custom', position: { x: 250, y: 320 }, data: { label: 'Generate PDF Audit Report', subtitle: 'Store in vault', type: 'action', subtype: 'generate_report', config: { format: 'PDF' } } }
           ],
           edges: [
-            { id: 'e1-2', source: 'n1', target: 'n2', animated: true },
-            { id: 'e2-3', source: 'n2', target: 'n3', animated: true }
+            { id: 'e1-2', source: 'n1', target: 'n2', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
+            { id: 'e2-3', source: 'n2', target: 'n3', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }
           ]
         },
         'wf_3': {
@@ -126,11 +129,11 @@ exports.getWorkflow = async (req, res) => {
           status: 'Draft',
           triggerType: 'event',
           nodes: [
-            { id: 'n1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Core Web Vitals Failed', subtitle: 'LCP or CLS degradation', type: 'trigger', subtype: 'cwv_failed' } },
-            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Auto-Purge CDN Cache', subtitle: 'Flush stale HTML & JS assets', type: 'action', subtype: 'purge_cdn_cache' } }
+            { id: 'n1', type: 'custom', position: { x: 250, y: 50 }, data: { label: 'Core Web Vitals Failed', subtitle: 'LCP or CLS degradation', type: 'trigger', subtype: 'cwv_failed', config: { metric: 'LCP' } } },
+            { id: 'n2', type: 'custom', position: { x: 250, y: 180 }, data: { label: 'Auto-Purge CDN Cache', subtitle: 'Flush stale HTML & JS assets', type: 'action', subtype: 'purge_cdn_cache', config: { zones: ['all'] } } }
           ],
           edges: [
-            { id: 'e1-2', source: 'n1', target: 'n2', animated: true }
+            { id: 'e1-2', source: 'n1', target: 'n2', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }
           ]
         }
       };
@@ -146,7 +149,8 @@ exports.getWorkflow = async (req, res) => {
           name: 'Automation Workflow',
           status: 'Draft',
           nodes: [],
-          edges: []
+          edges: [],
+          variables: {}
         }
       });
     }
@@ -160,14 +164,14 @@ exports.getWorkflow = async (req, res) => {
     res.status(200).json({ success: true, data: wfObj });
   } catch (error) {
     console.error('[getWorkflow] Error:', error);
-    res.status(200).json({ success: true, data: { name: 'Automation Workflow', status: 'Draft', nodes: [], edges: [] } });
+    res.status(200).json({ success: true, data: { name: 'Automation Workflow', status: 'Draft', nodes: [], edges: [], variables: {} } });
   }
 };
 
 exports.updateWorkflow = async (req, res) => {
   try {
     const { id, projectId } = req.params;
-    const { name, description, category, status, nodes, edges, variables } = req.body;
+    const { name, description, category, status, triggerType, nodes, edges, variables } = req.body;
     
     let workflow = null;
     if (id && mongoose.Types.ObjectId.isValid(id)) {
@@ -186,6 +190,7 @@ exports.updateWorkflow = async (req, res) => {
         name: name || 'Custom Automation Workflow',
         description: description || '',
         category: category || 'General',
+        triggerType: triggerType || 'event',
         status: status || 'Draft',
         createdBy: userId,
         updatedBy: userId
@@ -207,6 +212,7 @@ exports.updateWorkflow = async (req, res) => {
       const wfObj = workflow.toObject();
       wfObj.nodes = version.nodes;
       wfObj.edges = version.edges;
+      wfObj.variables = version.variables;
       return res.status(200).json({ success: true, data: wfObj });
     }
     
@@ -214,6 +220,7 @@ exports.updateWorkflow = async (req, res) => {
     if (description !== undefined) workflow.description = description;
     if (category) workflow.category = category;
     if (status) workflow.status = status;
+    if (triggerType) workflow.triggerType = triggerType;
     workflow.updatedBy = userId;
     await workflow.save();
 
@@ -246,6 +253,7 @@ exports.updateWorkflow = async (req, res) => {
     if (returnObj.activeVersionId && typeof returnObj.activeVersionId === 'object') {
       returnObj.nodes = returnObj.activeVersionId.nodes || returnObj.nodes || [];
       returnObj.edges = returnObj.activeVersionId.edges || returnObj.edges || [];
+      returnObj.variables = returnObj.activeVersionId.variables || returnObj.variables || {};
     }
     res.status(200).json({ success: true, data: returnObj });
   } catch (error) {

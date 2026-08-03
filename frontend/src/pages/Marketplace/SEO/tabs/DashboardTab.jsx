@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Row, Col, Card, Statistic, Table, Tag, Empty, Skeleton, Alert, Progress, Space, Divider, Button, Segmented, Tooltip } from 'antd';
+import { Typography, Row, Col, Card, Statistic, Table, Tag, Empty, Skeleton, Alert, Progress, Space, Divider, Button, Segmented, Tooltip, message } from 'antd';
 import {
   LayoutGrid, Globe, ClipboardList, AlertTriangle, Activity, TrendingUp,
   ActivitySquare, ServerCrash, CheckCircle, BarChart2, ShieldCheck, Sparkles,
-  ArrowUpRight, ArrowDownRight, Compass, MessageCircle, FileText, Swords
+  ArrowUpRight, ArrowDownRight, Compass, MessageCircle, FileText, Swords, Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { useSEO } from '../context/SEOContext';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { generateMasterDashboardPDF } from '../utils/reportPdfGenerator';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +35,7 @@ const DashboardTab = () => {
   const { activeProjectId, activeProject, projects, selectProject } = useSEO();
   const [viewMode, setViewMode] = useState('project'); // 'project' | 'portfolio'
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
@@ -49,6 +51,78 @@ const DashboardTab = () => {
       setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to load SEO dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadMasterPdf = async () => {
+    setDownloadingPdf(true);
+    message.loading({ content: 'Gathering SEO intelligence and generating Master PDF...', key: 'master-pdf', duration: 10 });
+    try {
+      const targetId = (activeProjectId && activeProjectId !== 'undefined' && activeProjectId !== 'null') ? activeProjectId : 'default';
+      const currentProjectObj = activeProject || (Array.isArray(projects) ? projects.find(p => String(p._id) === String(activeProjectId)) : null) || { name: 'Askeva', domain: 'https://askeva.io/' };
+
+      // Parallel fetch of all SEO modules data safely
+      const [
+        auditsRes,
+        keywordsRes,
+        clustersRes,
+        competitorsRes,
+        aeoRes,
+        geoRes,
+        technicalRes,
+        contentRes,
+        schemaRes,
+        linkingRes,
+        automationRes,
+        monitoringRes,
+        strategiesRes
+      ] = await Promise.allSettled([
+        seoWorkspaceApi.getAudits(targetId),
+        seoWorkspaceApi.getKeywords({ projectId: targetId, limit: 50 }),
+        seoWorkspaceApi.getKeywordClusters(targetId),
+        seoWorkspaceApi.getCompetitorHistory(targetId, 10),
+        seoWorkspaceApi.getAeoAgentHistory(targetId, 10),
+        seoWorkspaceApi.getGeoAgentHistory(targetId, 10),
+        seoWorkspaceApi.getTechnicalSeoHistory(targetId, 10),
+        seoWorkspaceApi.getContentAgentHistory(targetId, 10),
+        seoWorkspaceApi.getSchemaAgentHistory(targetId, 10),
+        seoWorkspaceApi.getInternalLinkingHistory(targetId, 10),
+        seoWorkspaceApi.getAutomationWorkflows(targetId),
+        seoWorkspaceApi.getMonitoringDashboard(targetId),
+        seoWorkspaceApi.getStrategies(targetId)
+      ]);
+
+      const extract = (res) => {
+        if (res.status === 'fulfilled' && res.value !== undefined && res.value !== null) {
+          return res.value.data !== undefined ? res.value.data : res.value;
+        }
+        return null;
+      };
+
+      generateMasterDashboardPDF({
+        project: currentProjectObj,
+        dashboardData: data || {},
+        auditsData: extract(auditsRes),
+        keywordsData: extract(keywordsRes),
+        clustersData: extract(clustersRes),
+        competitorsData: extract(competitorsRes),
+        aeoData: extract(aeoRes),
+        geoData: extract(geoRes),
+        technicalData: extract(technicalRes),
+        contentData: extract(contentRes),
+        schemaData: extract(schemaRes),
+        linkingData: extract(linkingRes),
+        automationData: extract(automationRes),
+        monitoringData: extract(monitoringRes),
+        strategiesData: extract(strategiesRes)
+      });
+
+      message.success({ content: 'Master SEO PDF Report downloaded successfully!', key: 'master-pdf' });
+    } catch (err) {
+      console.error('Failed to generate master SEO PDF:', err);
+      message.error({ content: `Failed to generate Master SEO PDF: ${err?.message || 'Please try again.'}`, key: 'master-pdf' });
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -140,14 +214,36 @@ const DashboardTab = () => {
           </div>
         </div>
 
-        <Segmented
-          value={viewMode}
-          onChange={setViewMode}
-          options={[
-            { label: 'Selected Project View', value: 'project' },
-            { label: 'All Projects Portfolio', value: 'portfolio' }
-          ]}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <Button
+            type="primary"
+            icon={<Download size={16} />}
+            loading={downloadingPdf}
+            onClick={handleDownloadMasterPdf}
+            style={{
+              background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
+              border: 'none',
+              borderRadius: 8,
+              height: 36,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 2px 8px rgba(24, 144, 255, 0.25)'
+            }}
+          >
+            Download Full SEO Report PDF
+          </Button>
+
+          <Segmented
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              { label: 'Selected Project View', value: 'project' },
+              { label: 'All Projects Portfolio', value: 'portfolio' }
+            ]}
+          />
+        </div>
       </div>
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
@@ -351,6 +447,17 @@ const DashboardTab = () => {
                     onClick={() => goToTab('reports')}
                   >
                     Build Executive SEO Report
+                  </Button>
+                  <Button
+                    type="primary"
+                    ghost
+                    block
+                    icon={<Download size={15} />}
+                    loading={downloadingPdf}
+                    onClick={handleDownloadMasterPdf}
+                    style={{ borderColor: '#1890ff', color: '#1890ff', fontWeight: 600 }}
+                  >
+                    Export Full SEO Audit PDF
                   </Button>
                 </Space>
               </Card>

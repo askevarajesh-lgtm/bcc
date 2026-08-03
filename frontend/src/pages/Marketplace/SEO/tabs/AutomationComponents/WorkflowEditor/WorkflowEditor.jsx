@@ -18,8 +18,8 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const [currentWorkflowId, setCurrentWorkflowId] = useState(isExistingWorkflow ? workflowId : null);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', status: 'Draft', triggerType: 'event' });
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', status: 'Draft', triggerType: 'event', category: 'General', description: '' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +28,8 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
+
+  const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
   // Load workflow data if editing existing
   useEffect(() => {
@@ -41,7 +43,9 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
             setWorkflowMeta({
               name: wf.name || 'Enterprise Workflow',
               status: wf.status || 'Draft',
-              triggerType: wf.triggerType || 'event'
+              triggerType: wf.triggerType || 'event',
+              category: wf.category || 'General',
+              description: wf.description || ''
             });
             const activeVer = wf.activeVersionId || {};
             const wfNodes = wf.nodes || activeVer.nodes;
@@ -61,7 +65,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
     } else {
       // Default starting nodes for new workflow
       setCurrentWorkflowId(null);
-      setWorkflowMeta({ name: 'New Automation Workflow', status: 'Draft', triggerType: 'event' });
+      setWorkflowMeta({ name: 'New Automation Workflow', status: 'Draft', triggerType: 'event', category: 'General', description: '' });
       setNodes([
         {
           id: 'node_trigger_start',
@@ -127,26 +131,32 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
       const payload = {
         name: workflowMeta.name || 'Untitled Workflow',
         triggerType: workflowMeta.triggerType || 'event',
-        status: publish ? 'Published' : (workflowMeta.status === 'Published' ? 'Published' : 'Draft'),
+        category: workflowMeta.category || 'General',
+        description: workflowMeta.description || '',
+        status: publish ? 'Published' : (workflowMeta.status === 'Published' || workflowMeta.status === 'Active' ? 'Active' : 'Draft'),
         nodes: Array.isArray(nodes) ? nodes : [],
         edges: Array.isArray(edges) ? edges : []
       };
 
+      let res;
       if (currentWorkflowId && currentWorkflowId !== 'new' && currentWorkflowId !== 'temp_workflow') {
-        const res = await seoWorkspaceApi.updateAutomationWorkflow(projectId, currentWorkflowId, payload);
-        const updated = res?.data || res;
-        if (updated?._id) setCurrentWorkflowId(updated._id);
-        if (updated?.name) setWorkflowMeta(prev => ({ ...prev, name: updated.name, status: updated.status || (publish ? 'Published' : 'Draft') }));
-        message.success(publish ? 'Workflow published and active!' : 'Workflow saved successfully!');
+        res = await seoWorkspaceApi.updateAutomationWorkflow(projectId, currentWorkflowId, payload);
       } else {
-        const res = await seoWorkspaceApi.createAutomationWorkflow(projectId, payload);
-        const created = res?.data || res;
-        if (created?._id) {
-          setCurrentWorkflowId(created._id);
-        }
-        if (created?.name) setWorkflowMeta(prev => ({ ...prev, name: created.name, status: created.status || (publish ? 'Published' : 'Draft') }));
-        message.success(publish ? 'Workflow created and published!' : 'Workflow created successfully!');
+        res = await seoWorkspaceApi.createAutomationWorkflow(projectId, payload);
       }
+      
+      const savedData = res?.data || res;
+      if (savedData?._id) {
+        setCurrentWorkflowId(savedData._id);
+      }
+      if (savedData?.name) {
+        setWorkflowMeta(prev => ({
+          ...prev,
+          name: savedData.name,
+          status: savedData.status || (publish ? 'Published' : 'Draft')
+        }));
+      }
+      message.success(publish ? 'Workflow published and active in workspace!' : 'Workflow draft saved successfully!');
     } catch (err) {
       console.error('[handleSave] Error:', err);
       const errMsg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save workflow';
@@ -166,7 +176,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ meta: workflowMeta, nodes, edges }, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `${workflowMeta.name.toLowerCase().replace(/\s+/g, '_')}.json`);
+    downloadAnchor.setAttribute("download", `${(workflowMeta.name || 'workflow').toLowerCase().replace(/\s+/g, '_')}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -175,6 +185,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
 
   const handleImportJson = (e) => {
     const fileReader = new FileReader();
+    if (!e.target.files?.[0]) return;
     fileReader.readAsText(e.target.files[0], "UTF-8");
     fileReader.onload = (event) => {
       try {
@@ -212,8 +223,35 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
     };
 
     setNodes((nds) => nds.concat(newNode));
-    setSelectedNode(newNode);
+    setSelectedNodeId(newNode.id);
     message.success(`Added "${nodeData.label}" to canvas`);
+  };
+
+  const handleDeleteNode = (nodeId) => {
+    setNodes(nds => nds.filter(n => n.id !== nodeId));
+    setEdges(eds => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNodeId(null);
+    message.success('Node removed from workflow');
+  };
+
+  const handleDuplicateNode = (nodeToDup) => {
+    if (!nodeToDup) return;
+    const clonedId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const cloned = {
+      ...nodeToDup,
+      id: clonedId,
+      position: { 
+        x: (nodeToDup.position?.x || 200) + 30, 
+        y: (nodeToDup.position?.y || 200) + 40 
+      },
+      data: { 
+        ...nodeToDup.data, 
+        label: `${nodeToDup.data?.label || 'Node'} (Copy)` 
+      }
+    };
+    setNodes(nds => nds.concat(cloned));
+    setSelectedNodeId(clonedId);
+    message.success('Node duplicated');
   };
 
   return (
@@ -331,13 +369,16 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
             edges={edges} 
             setNodes={setNodes} 
             setEdges={setEdges}
-            onSelectNode={setSelectedNode}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={(node) => setSelectedNodeId(node?.id || null)}
           />
           
           <InspectorPanel 
             selectedNode={selectedNode}
             setNodes={setNodes}
             projectId={projectId}
+            onDeleteNode={handleDeleteNode}
+            onDuplicateNode={handleDuplicateNode}
           />
         </ReactFlowProvider>
       </div>

@@ -7,6 +7,7 @@ const AutomationWorkflowSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, default: null },
   category: { type: String, default: 'General' },
+  triggerType: { type: String, default: 'event' },
   tags: [{ type: String }],
 
   activeVersionId: { type: mongoose.Schema.Types.ObjectId, ref: 'AutomationWorkflowVersion', default: null },

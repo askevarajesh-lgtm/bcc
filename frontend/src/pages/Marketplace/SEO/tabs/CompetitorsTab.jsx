@@ -463,31 +463,31 @@ const CompetitorsTab = () => {
       ) : summary ? (
         <>
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Total Competitors" value={summary.totalCompetitors}
                 icon={Globe} color="#1677ff"
                 sub={`${summary.approvedCount} approved`} />
             </Col>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Avg Traffic" value={summary.avgTraffic}
                 icon={TrendingUp} color="#52c41a"
                 sub="vs competitors" />
             </Col>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Total Keywords" value={summary.totalKeywords}
                 icon={BarChart2} color="#722ed1" />
             </Col>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Avg Threat Score" value={summary.avgThreatScore}
                 icon={AlertTriangle} color={scoreColor(summary.avgThreatScore)}
                 sub="0–100" />
             </Col>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Avg Opp Score" value={summary.avgOpportunityScore}
                 icon={Target} color="#13c2c2"
                 sub="0–100" />
             </Col>
-            <Col xs={12} sm={8} md={8} lg={4}>
+            <Col xs={12} sm={8} md={4} lg={4}>
               <MetricCard title="Open Recs" value={summary.openRecommendations}
                 icon={Brain} color="#fa8c16"
                 sub="proposed" />
@@ -919,59 +919,64 @@ const CompetitorsTab = () => {
     return (
       <motion.div {...motionFade}>
         {/* Summary row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
           {Object.entries(BUCKET_META).map(([key, meta]) => {
             const BucketIcon = meta.icon;
             const count = opportunities.buckets?.[key]?.length || 0;
             return (
+              <Col xs={12} sm={8} md={4} lg={4} key={key}>
+                <Card
+                  size="small"
+                  bordered={false}
+                  style={{
+                    background: meta.bg,
+                    border: `1px solid ${meta.color}30`,
+                    borderRadius: 12,
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    padding: '12px 8px',
+                    height: '100%',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <BucketIcon size={20} style={{ color: meta.color, margin: '0 auto 4px auto' }} />
+                  <div style={{ fontSize: 'clamp(18px, 1.5vw, 24px)', fontWeight: 800, color: meta.color, lineHeight: 1.2 }}>{count}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{meta.label}</div>
+                </Card>
+              </Col>
+            );
+          })}
+          {opportunities.summary && (
+            <Col xs={12} sm={8} md={4} lg={4}>
               <Card
-                key={key}
                 size="small"
                 bordered={false}
                 style={{
-                  background: meta.bg,
-                  border: `1px solid ${meta.color}30`,
+                  background: '#f0f5ff',
                   borderRadius: 12,
+                  border: '1px solid #bae0ff',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
                   padding: '12px 8px',
+                  height: '100%',
                   overflow: 'hidden'
                 }}
               >
-                <BucketIcon size={20} style={{ color: meta.color, margin: '0 auto 4px auto' }} />
-                <div style={{ fontSize: 'clamp(18px, 1.5vw, 24px)', fontWeight: 800, color: meta.color, lineHeight: 1.2 }}>{count}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{meta.label}</div>
+                <TrendingUp size={20} style={{ color: '#1677ff', margin: '0 auto 4px auto' }} />
+                <div style={{ fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 800, color: '#1677ff', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {formatCompact(opportunities.summary.totalEstimatedTraffic)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }} title={`~$${formatCompact(opportunities.summary.totalEstimatedRevenue)} revenue potential`}>
+                  ~${formatCompact(opportunities.summary.totalEstimatedRevenue)} rev
+                </div>
               </Card>
-            );
-          })}
-          {opportunities.summary && (
-            <Card
-              size="small"
-              bordered={false}
-              style={{
-                background: '#f0f5ff',
-                borderRadius: 12,
-                border: '1px solid #bae0ff',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                padding: '12px 8px',
-                overflow: 'hidden'
-              }}
-            >
-              <TrendingUp size={20} style={{ color: '#1677ff', margin: '0 auto 4px auto' }} />
-              <div style={{ fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 800, color: '#1677ff', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {formatCompact(opportunities.summary.totalEstimatedTraffic)}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }} title={`~$${formatCompact(opportunities.summary.totalEstimatedRevenue)} revenue potential`}>
-                ~${formatCompact(opportunities.summary.totalEstimatedRevenue)} rev
-              </div>
-            </Card>
+            </Col>
           )}
-        </div>
+        </Row>
 
         {/* Bucket tabs */}
         <Tabs

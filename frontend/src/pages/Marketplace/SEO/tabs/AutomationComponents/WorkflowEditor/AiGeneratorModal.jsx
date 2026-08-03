@@ -23,10 +23,14 @@ export default function AiGeneratorModal({ visible, onCancel, onApplyGraph, proj
     setGenerating(true);
     try {
       const res = await seoWorkspaceApi.generateAiWorkflow(projectId, prompt);
-      const generated = res?.data || res;
+      const generated = res?.data?.workflow || res?.workflow || res?.data || res;
       
-      if (generated?.nodes && generated?.edges) {
-        onApplyGraph(generated.nodes, generated.edges, generated.name || 'AI Generated Automation');
+      const nodes = generated?.nodes || [];
+      const edges = generated?.edges || [];
+      const name = generated?.name || 'AI Generated Automation';
+
+      if (nodes.length > 0) {
+        onApplyGraph(nodes, edges, name);
         message.success('AI Workflow created and rendered on canvas!');
         onCancel();
       } else {

@@ -29,6 +29,11 @@ function initializeBuiltInNodes() {
         triggerRegistry.register(nodeModule);
       } else {
         actionRegistry.register(nodeModule);
+        if (nodeModule.id === 'run_site_audit') {
+          actionRegistry.register({ ...nodeModule, id: 'trigger_site_audit' });
+          actionRegistry.register({ ...nodeModule, id: 'action_run_site_audit' });
+          actionRegistry.register({ ...nodeModule, id: 'action_trigger_site_audit' });
+        }
       }
     } catch (err) {
       logger.error(TAG, `Failed to load node module from ${file}: ${err.message}`);

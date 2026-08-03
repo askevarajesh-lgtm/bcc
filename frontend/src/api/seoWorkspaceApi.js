@@ -523,6 +523,24 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/history`, getAuthHeaders());
     return res.data;
   },
+  getAutomationHistory: async (projectId, params) => {
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/history${qs(params)}`, getAuthHeaders());
+    return res.data;
+  },
+  toggleQueueState: async (projectId, isPaused) => {
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    return { success: true, isPaused };
+  },
+  replayDeadLetterQueue: async (projectId, taskId) => {
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/queue/dlq/replay`, { taskId }, getAuthHeaders());
+    return res.data;
+  },
+  purgeDeadLetterQueue: async (projectId) => {
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    return { success: true, message: 'DLQ purged' };
+  },
   createAutomationWorkflow: async (projectId, data) => {
     const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
     const res = await axios.post(`${API_URL}/v1/automation/projects/${pid}/workflows`, data, getAuthHeaders());

@@ -6,9 +6,17 @@ import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
+export default function InspectorPanel({ selectedNode, setNodes, projectId, onDeleteNode, onDuplicateNode }) {
   const [credentials, setCredentials] = useState([]);
   const [activeTab, setActiveTab] = useState('config');
+  const [localJsonText, setLocalJsonText] = useState('{}');
+
+  useEffect(() => {
+    if (selectedNode) {
+      const cfg = selectedNode.data?.config || {};
+      setLocalJsonText(typeof cfg === 'object' ? JSON.stringify(cfg, null, 2) : String(cfg));
+    }
+  }, [selectedNode?.id]);
 
   useEffect(() => {
     if (projectId) {
@@ -49,14 +57,16 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
     setNodes(nds =>
       nds.map(n => {
         if (n.id === selectedNode.id) {
+          const updatedConfig = {
+            ...(n.data?.config || {}),
+            [configKey]: configValue
+          };
+          setLocalJsonText(JSON.stringify(updatedConfig, null, 2));
           return {
             ...n,
             data: {
               ...n.data,
-              config: {
-                ...(n.data.config || {}),
-                [configKey]: configValue
-              }
+              config: updatedConfig
             }
           };
         }
@@ -75,16 +85,30 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
   const nodeType = nodeData.type || 'action';
 
   return (
-    <div className="workflow-inspector" style={{ width: 340, background: '#ffffff', borderLeft: '1px solid #e2e8f0', padding: 16, height: '100%', overflowY: 'auto' }}>
+    <div className="workflow-inspector" style={{ width: 340, background: '#ffffff', borderLeft: '1px solid #e2e8f0', padding: 16, height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e293b' }}>Node Inspector</Title>
         <span style={{ fontSize: 10, fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: '#475569' }}>
           {selectedNode.id}
         </span>
       </div>
-      <Text type="secondary" style={{ fontSize: 12, textTransform: 'capitalize' }}>
-        Type: {nodeType} ({nodeData.subtype || 'standard'})
-      </Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+        <Text type="secondary" style={{ fontSize: 12, textTransform: 'capitalize' }}>
+          Type: {nodeType} ({nodeData.subtype || 'standard'})
+        </Text>
+        <Space size={4}>
+          {onDuplicateNode && (
+            <Button size="small" type="text" onClick={() => onDuplicateNode(selectedNode)} title="Duplicate Node">
+              Copy
+            </Button>
+          )}
+          {onDeleteNode && (
+            <Button size="small" type="text" danger onClick={() => onDeleteNode(selectedNode.id)} title="Delete Node">
+              Delete
+            </Button>
+          )}
+        </Space>
+      </div>
 
       <Divider style={{ margin: '12px 0' }} />
 
@@ -177,22 +201,84 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
             </>
           )}
 
-          {/* Email / Slack Notification Fields */}
-          {(nodeData.subtype === 'send_email_digest' || nodeData.subtype === 'send_slack_message') && (
+          {/* Email Notification Fields */}
+          {nodeData.subtype === 'send_email_digest' && (
             <>
-              <Form.Item label="Recipient / Channel">
+              <Form.Item label="Subject Line">
+                <Input 
+                  value={config.subject || 'Site Audit Complete - {{project.name}} - {{date}}'} 
+                  onChange={e => handleConfigUpdate('subject', e.target.value)}
+                  placeholder="e.g. Site Audit Complete - {{project.name}} - {{date}}"
+                />
+              </Form.Item>
+              <Form.Item label="Recipient Email(s)">
                 <Input 
                   value={config.recipient || ''} 
                   onChange={e => handleConfigUpdate('recipient', e.target.value)}
-                  placeholder={nodeData.subtype === 'send_email_digest' ? 'seo-team@company.com' : '#seo-alerts'}
+                  placeholder="seo-team@company.com, client@example.com"
+                />
+              </Form.Item>
+              <Form.Item label="Report Attachment / Payload URL">
+                <Input 
+                  value={config.payload || config.reportUrl || '{{steps.run_site_audit.reportPdfUrl}}'} 
+                  onChange={e => handleConfigUpdate('payload', e.target.value)}
+                  placeholder="{{steps.run_site_audit.reportPdfUrl}}"
                 />
               </Form.Item>
               <Form.Item label="Message Template / Body">
                 <Input.TextArea 
-                  rows={4}
+                  rows={3}
                   value={config.template || ''} 
                   onChange={e => handleConfigUpdate('template', e.target.value)}
+                  placeholder="The latest SEO audit report is ready: {{steps.run_site_audit.reportPdfUrl}}"
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Slack Notification Fields */}
+          {nodeData.subtype === 'send_slack_message' && (
+            <>
+              <Form.Item label="Slack Channel / Webhook">
+                <Input 
+                  value={config.recipient || '#seo-alerts'} 
+                  onChange={e => handleConfigUpdate('recipient', e.target.value)}
+                  placeholder="#seo-alerts or webhook URL"
+                />
+              </Form.Item>
+              <Form.Item label="Message Template / Body">
+                <Input.TextArea 
+                  rows={3}
+                  value={config.template || 'Audit complete: {{steps.run_site_audit.reportPdfUrl}}'} 
+                  onChange={e => handleConfigUpdate('template', e.target.value)}
                   placeholder="Alert: {{trigger.payload.details}}"
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Update Workspace Data */}
+          {(nodeData.subtype === 'update_workspace_db' || nodeData.subtype === 'update_workspace_data') && (
+            <>
+              <Form.Item label="Subject / Summary Note">
+                <Input 
+                  value={config.subject || 'Site Audit Complete - {{project.name}} - {{date}}'} 
+                  onChange={e => handleConfigUpdate('subject', e.target.value)}
+                  placeholder="Site Audit Complete - {{project.name}} - {{date}}"
+                />
+              </Form.Item>
+              <Form.Item label="Target Field / Key">
+                <Input 
+                  value={config.field || 'latestAuditReport'} 
+                  onChange={e => handleConfigUpdate('field', e.target.value)}
+                  placeholder="latestAuditReport, status, score"
+                />
+              </Form.Item>
+              <Form.Item label="Payload / Value Template">
+                <Input 
+                  value={config.payload || '{{steps.run_site_audit.reportPdfUrl}}'} 
+                  onChange={e => handleConfigUpdate('payload', e.target.value)}
+                  placeholder="{{steps.run_site_audit.reportPdfUrl}}"
                 />
               </Form.Item>
             </>
@@ -223,8 +309,257 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
             </>
           )}
 
+          {/* Site Audit Specific Fields */}
+          {(nodeData.subtype === 'run_site_audit' || nodeData.subtype === 'trigger_site_audit') && (
+            <>
+              <Form.Item label="Target Domain / URL">
+                <Input 
+                  value={config.targetDomain || config.url || '{{project.domain}}'} 
+                  onChange={e => handleConfigUpdate('targetDomain', e.target.value)}
+                  placeholder="{{project.domain}} or https://example.com"
+                />
+              </Form.Item>
+              <Form.Item label="Crawl Depth">
+                <InputNumber 
+                  min={1} 
+                  max={10} 
+                  value={config.crawlDepth || 3} 
+                  onChange={v => handleConfigUpdate('crawlDepth', v)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="Max Pages to Crawl">
+                <InputNumber 
+                  min={5} 
+                  max={5000} 
+                  step={50}
+                  value={config.maxPages || 100} 
+                  onChange={v => handleConfigUpdate('maxPages', v)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="Include Core Web Vitals">
+                <Switch 
+                  checked={config.includeCoreWebVitals !== false} 
+                  onChange={c => handleConfigUpdate('includeCoreWebVitals', c)} 
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Track Keywords SERP */}
+          {nodeData.subtype === 'track_keywords_now' && (
+            <>
+              <Form.Item label="Keywords to Track (Comma separated or 'all')">
+                <Input 
+                  value={config.keywords || 'all'} 
+                  onChange={e => handleConfigUpdate('keywords', e.target.value)}
+                  placeholder="e.g. enterprise seo, keyword tool, all"
+                />
+              </Form.Item>
+              <Form.Item label="Search Engine">
+                <Select 
+                  value={config.engine || 'google'} 
+                  onChange={v => handleConfigUpdate('engine', v)}
+                >
+                  <Option value="google">Google Search</Option>
+                  <Option value="bing">Bing</Option>
+                  <Option value="yahoo">Yahoo</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item label="Country / Locale">
+                <Input 
+                  value={config.country || 'US'} 
+                  onChange={e => handleConfigUpdate('country', e.target.value)}
+                  placeholder="US, UK, IN, Global"
+                />
+              </Form.Item>
+              <Form.Item label="Device Type">
+                <Select 
+                  value={config.device || 'desktop'} 
+                  onChange={v => handleConfigUpdate('device', v)}
+                >
+                  <Option value="desktop">Desktop</Option>
+                  <Option value="mobile">Mobile</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Generate Meta Tags */}
+          {nodeData.subtype === 'generate_meta_tags' && (
+            <>
+              <Form.Item label="Target URL / Page">
+                <Input 
+                  value={config.pageUrl || '{{project.domain}}'} 
+                  onChange={e => handleConfigUpdate('pageUrl', e.target.value)}
+                  placeholder="https://example.com/blog/page-1"
+                />
+              </Form.Item>
+              <Form.Item label="Focus Keyword">
+                <Input 
+                  value={config.focusKeyword || ''} 
+                  onChange={e => handleConfigUpdate('focusKeyword', e.target.value)}
+                  placeholder="e.g. b2b marketing software"
+                />
+              </Form.Item>
+              <Form.Item label="Generation Tone">
+                <Select 
+                  value={config.tone || 'high_ctr'} 
+                  onChange={v => handleConfigUpdate('tone', v)}
+                >
+                  <Option value="high_ctr">High Click-Through Rate (CTR)</Option>
+                  <Option value="professional">Professional & Authoritative</Option>
+                  <Option value="persuasive">Persuasive / Commercial</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* GSC URL Inspect */}
+          {nodeData.subtype === 'gsc_inspect_url' && (
+            <>
+              <Form.Item label="Page URL to Inspect">
+                <Input 
+                  value={config.url || '{{project.domain}}'} 
+                  onChange={e => handleConfigUpdate('url', e.target.value)}
+                  placeholder="https://example.com/pricing"
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* GSC Submit Sitemap */}
+          {nodeData.subtype === 'gsc_submit_sitemap' && (
+            <>
+              <Form.Item label="Sitemap XML URL">
+                <Input 
+                  value={config.sitemapUrl || '{{project.domain}}/sitemap.xml'} 
+                  onChange={e => handleConfigUpdate('sitemapUrl', e.target.value)}
+                  placeholder="https://example.com/sitemap.xml"
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Create Jira Ticket / Task */}
+          {nodeData.subtype === 'create_jira_ticket' && (
+            <>
+              <Form.Item label="Project Key / Board">
+                <Input 
+                  value={config.projectKey || 'SEO'} 
+                  onChange={e => handleConfigUpdate('projectKey', e.target.value)}
+                  placeholder="SEO, DEV, PROD"
+                />
+              </Form.Item>
+              <Form.Item label="Issue Title / Summary">
+                <Input 
+                  value={config.summary || 'SEO Issue Detected: {{trigger.payload.details}}'} 
+                  onChange={e => handleConfigUpdate('summary', e.target.value)}
+                  placeholder="Issue title"
+                />
+              </Form.Item>
+              <Form.Item label="Priority">
+                <Select 
+                  value={config.priority || 'High'} 
+                  onChange={v => handleConfigUpdate('priority', v)}
+                >
+                  <Option value="Highest">Highest / Blocker</Option>
+                  <Option value="High">High</Option>
+                  <Option value="Medium">Medium</Option>
+                  <Option value="Low">Low</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Keyword Rank Drop Trigger */}
+          {nodeData.subtype === 'keyword_rank_dropped' && (
+            <>
+              <Form.Item label="Rank Drop Threshold (Positions)">
+                <InputNumber 
+                  min={1} 
+                  max={100} 
+                  value={config.threshold || 3} 
+                  onChange={v => handleConfigUpdate('threshold', v)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="Monitored Keyword Tag / Filter">
+                <Input 
+                  value={config.tag || 'all'} 
+                  onChange={e => handleConfigUpdate('tag', e.target.value)}
+                  placeholder="all, brand, priority"
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Traffic Anomaly Trigger */}
+          {nodeData.subtype === 'traffic_anomaly' && (
+            <>
+              <Form.Item label="Traffic Drop Threshold (%)">
+                <InputNumber 
+                  min={5} 
+                  max={95} 
+                  value={config.dropPercentage || 20} 
+                  onChange={v => handleConfigUpdate('dropPercentage', v)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="Comparison Window (Days)">
+                <Select 
+                  value={config.windowDays || 7} 
+                  onChange={v => handleConfigUpdate('windowDays', v)}
+                >
+                  <Option value={1}>Last 24 Hours</Option>
+                  <Option value={7}>Last 7 Days vs Prior Period</Option>
+                  <Option value={28}>Last 28 Days</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Core Web Vitals Degraded Trigger */}
+          {nodeData.subtype === 'cwv_degraded' && (
+            <>
+              <Form.Item label="Degraded Metric">
+                <Select 
+                  value={config.metric || 'LCP'} 
+                  onChange={v => handleConfigUpdate('metric', v)}
+                >
+                  <Option value="LCP">Largest Contentful Paint (LCP &gt; 2.5s)</Option>
+                  <Option value="INP">Interaction to Next Paint (INP &gt; 200ms)</Option>
+                  <Option value="CLS">Cumulative Layout Shift (CLS &gt; 0.1)</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Loop / For Each */}
+          {nodeData.subtype === 'for_each' && (
+            <>
+              <Form.Item label="Array Expression to Iterate">
+                <Input 
+                  value={config.itemsExpression || '{{trigger.payload.items}}'} 
+                  onChange={e => handleConfigUpdate('itemsExpression', e.target.value)}
+                  placeholder="{{trigger.payload.keywords}}"
+                />
+              </Form.Item>
+              <Form.Item label="Max Loop Iterations">
+                <InputNumber 
+                  min={1} 
+                  max={500} 
+                  value={config.maxIterations || 50} 
+                  onChange={v => handleConfigUpdate('maxIterations', v)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </>
+          )}
+
           {/* AI Intelligence Fields */}
-          {nodeType === 'ai_agent' && (
+          {(nodeType === 'ai_agent' || nodeData.subtype?.startsWith('ai_')) && (
             <>
               <Form.Item label="AI Model / Agent Persona">
                 <Select 
@@ -247,6 +582,30 @@ export default function InspectorPanel({ selectedNode, setNodes, projectId }) {
               </Form.Item>
             </>
           )}
+
+          {/* Universal Custom Parameters Section */}
+          <Divider style={{ margin: '14px 0 8px 0', fontSize: 11, color: '#94a3b8' }}>
+            Advanced Custom Parameters (JSON)
+          </Divider>
+          <Form.Item label="Raw Node Config (JSON)">
+            <Input.TextArea 
+              rows={4}
+              value={localJsonText}
+              onChange={e => {
+                const val = e.target.value;
+                setLocalJsonText(val);
+                try {
+                  const parsed = JSON.parse(val);
+                  handleUpdate('config', parsed);
+                } catch (err) {
+                  // Keep free typing state without error resets
+                  handleUpdate('config', { ...(nodeData.config || {}), rawText: val });
+                }
+              }}
+              placeholder='{\n  "subject": "Site Audit Complete - {{project.name}}",\n  "payload": "{{steps.run_site_audit.reportPdfUrl}}"\n}'
+              style={{ fontFamily: 'monospace', fontSize: 11 }}
+            />
+          </Form.Item>
         </Form>
       )}
 

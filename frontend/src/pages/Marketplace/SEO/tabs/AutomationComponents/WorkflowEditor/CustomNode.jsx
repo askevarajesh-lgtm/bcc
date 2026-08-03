@@ -67,15 +67,17 @@ export default function CustomNode({ id, data, isConnectable, selected }) {
           </span>
         </div>
         
-        {data.status && (
-          <Tag color={data.status === 'completed' ? 'success' : data.status === 'running' ? 'processing' : 'default'} style={{ margin: 0, fontSize: 10 }}>
-            {data.status}
-          </Tag>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {data.status && (
+            <Tag color={data.status === 'completed' ? 'success' : data.status === 'running' ? 'processing' : 'default'} style={{ margin: 0, fontSize: 10 }}>
+              {data.status}
+            </Tag>
+          )}
+        </div>
       </div>
 
       {/* Label & Description */}
-      <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b', marginBottom: 2 }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b', marginBottom: 2, wordBreak: 'break-word' }}>
         {data.label || 'Unnamed Node'}
       </div>
       {data.subtitle && (

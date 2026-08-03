@@ -106,44 +106,48 @@ export default function SimulationDrawer({ visible, onClose, projectId, workflow
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(simulationResult.executionTrace || [
-                { node: 'Trigger: Keyword Rank Drop', status: 'Passed', output: 'Evaluated true' },
-                { node: 'Condition: Severity Check', status: 'Passed', output: 'Severity is Critical' },
-                { node: 'Action: Send Slack Alert', status: 'Passed', output: 'Dispatched to #seo-alerts' }
-              ]).map((step, i) => (
-                <div 
-                  key={i} 
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
-                      {step.status === 'Passed' ? <CheckCircle2 size={14} color="#10b981" /> : <XCircle size={14} color="#ef4444" />}
-                      <span>{step.node}</span>
+              {((Array.isArray(simulationResult) ? simulationResult : (simulationResult.executionTrace || simulationResult.data || [
+                { nodeLabel: 'Trigger: Keyword Rank Drop', status: 'Success', output: { triggered: true } },
+                { nodeLabel: 'Condition: Severity Check', status: 'Success', output: { result: true, branch: 'true' } },
+                { nodeLabel: 'Action: Send Slack Alert', status: 'Success', output: { message: 'Alert sent' } }
+              ]))).map((step, i) => {
+                const isSuccess = step.status === 'Success' || step.status === 'Passed';
+                const label = step.nodeLabel || step.nodeName || step.node || `Step ${i + 1}`;
+                return (
+                  <div 
+                    key={i} 
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
+                        {isSuccess ? <CheckCircle2 size={14} color="#10b981" /> : <XCircle size={14} color="#ef4444" />}
+                        <span>{label}</span>
+                      </div>
+                      <Tag color={isSuccess ? 'green' : 'red'} style={{ margin: 0, fontSize: 10 }}>
+                        {step.status}
+                      </Tag>
                     </div>
-                    <Tag color={step.status === 'Passed' ? 'green' : 'red'} style={{ margin: 0, fontSize: 10 }}>
-                      {step.status}
-                    </Tag>
+                    {step.output && (
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#475569', background: '#ffffff', padding: '4px 8px', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                        {typeof step.output === 'object' ? JSON.stringify(step.output, null, 2) : String(step.output)}
+                      </div>
+                    )}
+                    {step.error && (
+                      <div style={{ fontSize: 11, color: '#ef4444' }}>
+                        {step.error}
+                      </div>
+                    )}
                   </div>
-                  {step.output && (
-                    <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#475569', background: '#ffffff', padding: '4px 8px', borderRadius: 4 }}>
-                      {typeof step.output === 'object' ? JSON.stringify(step.output) : step.output}
-                    </div>
-                  )}
-                  {step.error && (
-                    <div style={{ fontSize: 11, color: '#ef4444' }}>
-                      {step.error}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

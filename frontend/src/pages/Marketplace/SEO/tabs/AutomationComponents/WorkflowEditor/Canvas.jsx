@@ -18,9 +18,16 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
+export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode, selectedNodeId }) {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
+
+  const formattedNodes = React.useMemo(() => {
+    return nodes.map(n => ({
+      ...n,
+      selected: n.id === selectedNodeId
+    }));
+  }, [nodes, selectedNodeId]);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -117,7 +124,7 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode 
       style={{ flex: 1, height: '100%', position: 'relative', background: '#f8fafc' }}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={formattedNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
