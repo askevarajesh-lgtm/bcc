@@ -12,6 +12,10 @@ router.get('/projects/:id', semrushController.getProjectById);
 router.post('/projects/:id/refresh', semrushController.refreshProject);
 router.delete('/projects/:id', semrushController.deleteProject);
 
+// Position Tracking
+router.post('/projects/:id/tracking-config', semrushController.configureTracking);
+router.get('/projects/:id/position-tracking', semrushController.getPositionTracking);
+
 // Legacy Live Routes
 router.get('/domain-overview', semrushController.getDomainOverview);
 router.get('/keyword-research', semrushController.getKeywordResearch);

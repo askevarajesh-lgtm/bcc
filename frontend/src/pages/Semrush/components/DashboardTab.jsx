@@ -53,12 +53,13 @@ const DashboardTab = () => {
                   {(() => {
                     const intentCounts = { C: 0, I: 0, N: 0, T: 0 };
                     keywords.forEach(kw => {
-                      if (kw.intent !== undefined && kw.intent !== null) {
+                      if (kw.intent !== undefined && kw.intent !== null && String(kw.intent).trim() !== '') {
                         const intents = String(kw.intent).split(',').map(Number);
-                        if (intents.includes(0)) intentCounts.C++;
-                        if (intents.includes(1)) intentCounts.I++;
-                        if (intents.includes(2)) intentCounts.N++;
-                        if (intents.includes(3)) intentCounts.T++;
+                        if (intents.includes(0)) { intentCounts.C++; }
+                        else if (intents.includes(1)) { intentCounts.I++; }
+                        else if (intents.includes(2)) { intentCounts.N++; }
+                        else if (intents.includes(3)) { intentCounts.T++; }
+                        else { intentCounts.I++; }
                       }
                     });
                     const total = Math.max(1, keywords.length);

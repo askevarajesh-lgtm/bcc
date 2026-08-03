@@ -20,6 +20,16 @@ const SemrushProjectSchema = new mongoose.Schema({
     keywordsTrend: { type: Number, default: 0 },
     backlinksTrend: { type: Number, default: 0 },
   },
+  
+  trackingConfig: {
+    isActive: { type: Boolean, default: false },
+    searchEngine: { type: String, default: 'Google' },
+    device: { type: String, default: 'Desktop' },
+    location: { type: String, default: 'us' },
+    businessName: { type: String, default: '' },
+    keywords: [{ type: String }],
+    lastUpdated: { type: Date, default: null }
+  },
 
   lastRefresh: { type: Date, default: null },
   isActive: { type: Boolean, default: true }

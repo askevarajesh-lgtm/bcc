@@ -149,15 +149,21 @@ class SemrushService {
             }
 
             if (keywordsData && keywordsData.length > 0) {
+                // If we fetched the max limit and got less than 100, then we know the exact total
+                if (keywordsData.length < 100 && overviewData.length > 0) {
+                    overviewData[0]['Organic Keywords'] = keywordsData.length.toString();
+                    overviewData[0].Or = keywordsData.length.toString();
+                }
+
                 // We fetched up to 100 keywords for distribution calculation, but only store top 10 for the table
                 overviewData[0].topKeywords = keywordsData.slice(0, 10).map(k => {
                     let intentsRaw = k.Intents || k.In || '';
                     if (!intentsRaw && Math.random() > 0.5) intentsRaw = '0'; // Fallback if API fails to provide for some reason
                     
                     const intentList = [];
-                    if (intentsRaw.includes('0')) intentList.push('I');
-                    if (intentsRaw.includes('1')) intentList.push('N');
-                    if (intentsRaw.includes('2')) intentList.push('C');
+                    if (intentsRaw.includes('0')) intentList.push('C');
+                    if (intentsRaw.includes('1')) intentList.push('I');
+                    if (intentsRaw.includes('2')) intentList.push('N');
                     if (intentsRaw.includes('3')) intentList.push('T');
                     if (intentList.length === 0) intentList.push('I');
 
@@ -188,10 +194,11 @@ class SemrushService {
                     else if (pos >= 51 && pos <= 100) posCounts['51-100']++;
                     
                     const intentsRaw = k.Intents || k.In || '';
-                    if (intentsRaw.includes('0')) intentCounts.I++;
-                    if (intentsRaw.includes('1')) intentCounts.N++;
-                    if (intentsRaw.includes('2')) intentCounts.C++;
-                    if (intentsRaw.includes('3')) intentCounts.T++;
+                    if (intentsRaw.includes('0')) { intentCounts.C++; }
+                    else if (intentsRaw.includes('1')) { intentCounts.I++; }
+                    else if (intentsRaw.includes('2')) { intentCounts.N++; }
+                    else if (intentsRaw.includes('3')) { intentCounts.T++; }
+                    else { intentCounts.I++; } // Default fallback
                     
                     const features = k['SERP Features by Position'] || k.Fp || '';
                     if (features) {

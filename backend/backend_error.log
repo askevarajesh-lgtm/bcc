@@ -453,6 +453,120 @@
     at async model.Query._findOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:2773:15)
     at async maybeTracedQueryExec (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:4801:65)
     at async exports.getWebsiteDetails (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:538:21)\n\n2026-07-24T12:23:59.710Z\nundefined\n\n2026-07-24T12:25:48.012Z\nundefined\n\n2026-07-24T12:27:02.142Z\nundefined\n\n2026-07-24T12:29:01.041Z\nundefined\n\n2026-07-24T12:30:35.261Z\nundefined\n\n2026-07-24T12:32:16.719Z\nundefined\n\n2026-07-24T13:08:41.018Z\nundefined\n\n
+<<<<<<< Updated upstream
 2026-08-01T13:38:20.127Z\nTypeError: response.error is not a function
     at exports.triggerScan (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\seoWorkspace\controllers\monitoring.controller.js:37:14)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
+=======
+>>>>>>> origin/louis-v2
+2026-07-27T10:01:36.454Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:42.058Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:43.341Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:51.882Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-27T10:01:53.640Z\nSyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-07-29T10:27:50.662Z\nCastError: Cast to ObjectId failed for value "undefined" (type string) at path "_id" for model "Invoice"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n2026-07-29T10:27:50.678Z\nCastError: Cast to ObjectId failed for value "undefined" (type string) at path "_id" for model "Invoice"
+    at SchemaObjectId.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\schema\objectId.js:252:11)
+    at SchemaType.applySetters (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1373:12)
+    at SchemaType.castForQuery (E:\Bcc Seo\backend\node_modules\mongoose\lib\schemaType.js:1793:17)
+    at cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:5228:12)
+    at Query._castConditions (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2411:10)
+    at model.Query._findOne (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:2758:8)
+    at maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:83)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getInvoice (E:\Bcc Seo\backend\src\modules\invoices\invoice.controller.js:133:21)\n\n2026-07-31T04:53:16.857Z\nValidationError: Validation failed: role: `6a6304d76c45eb55a98f503e` is not a valid enum value for path `role`.
+    at model.Query.validate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4189:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query._findOneAndUpdate (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:3616:5)
+    at async maybeTracedQueryExec (E:\Bcc Seo\backend\node_modules\mongoose\lib\query.js:4801:65)
+    at async exports.updateUser (E:\Bcc Seo\backend\src\modules\auth\user.controller.js:269:18)\n\n2026-08-01T08:08:46.198Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-01T08:08:46.349Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T06:14:43.020Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T06:14:43.151Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:235:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T12:41:12.693Z\nError: Cannot find module '../accounts/clientPackage.model'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\auth\auth.controller.js
+- E:\Bcc Seo\backend\src\modules\auth\auth.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.signin (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:135:27)\n\n2026-08-03T14:07:14.045Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T14:07:14.192Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T14:07:42.980Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-03T14:07:43.119Z\nReferenceError: effectiveTheme is not defined
+    at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
+>>>>>>> Stashed changes

@@ -1,4 +1,6 @@
+
 const semrushService = require('./semrush.service');
+const trackingService = require('./semrush.tracking');
 const SemrushProject = require('./models/semrushProject.model');
 const SemrushProjectData = require('./models/semrushProjectData.model');
 
@@ -150,6 +152,82 @@ exports.deleteProject = async (req, res) => {
     res.status(200).json({ success: true, message: 'Project deleted' });
   } catch (error) {
     console.error('[Semrush Controller - deleteProject]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.configureTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { device, location, keywords } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    
+    // limit keywords to 100 max
+    const limitedKeywords = (keywords || []).slice(0, 100);
+
+    const project = await SemrushProject.findOneAndUpdate(
+      { _id: id, companyId: req.companyId },
+      { 
+        $set: {
+          trackingConfig: {
+            isActive: true,
+            searchEngine: 'Google',
+            device: device || 'Desktop',
+            location: location || 'us',
+            businessName: '',
+            keywords: limitedKeywords,
+            lastUpdated: new Date()
+          }
+        }
+      },
+      { new: true }
+    );
+    
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    
+    res.status(200).json({ success: true, message: 'Tracking configured', data: project });
+  } catch (error) {
+    console.error('[Semrush Controller - configureTracking]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getPositionTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    
+    if (!project.trackingConfig || !project.trackingConfig.isActive) {
+      return res.status(200).json({ success: true, data: { isConfigured: false } });
+    }
+    
+    const domain = project.domain;
+    const database = project.trackingConfig.location || 'us';
+    const keywords = project.trackingConfig.keywords || [];
+    
+    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords);
+    
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        isConfigured: true,
+        config: project.trackingConfig,
+        rankings: trackingData
+      }
+    });
+  } catch (error) {
+    console.error('[Semrush Controller - getPositionTracking]', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -35,7 +35,7 @@ import SeoIntelligence from './pages/SeoIntelligence/SeoIntelligence';
 import SemrushDashboard from './pages/Semrush/SemrushDashboard';
 import Semrush from './pages/Semrush/Semrush';
 import DashboardTab from './pages/Semrush/components/DashboardTab';
-import KeywordResearchTab from './pages/Semrush/components/KeywordResearchTab';
+import PositionTrackingTab from './pages/Semrush/components/PositionTrackingTab';
 import DomainOverviewTab from './pages/Semrush/components/DomainOverviewTab';
 import OrganicKeywordsTab from './pages/Semrush/components/OrganicKeywordsTab';
 import BacklinksTab from './pages/Semrush/components/BacklinksTab';
@@ -315,8 +315,8 @@ const AppRoutes = () => {
           <Route path="intelligence/semrush/:projectId" element={<Semrush />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardTab />} />
-            <Route path="keyword-research" element={<KeywordResearchTab />} />
             <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="position-tracking" element={<PositionTrackingTab />} />
             <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
             <Route path="backlinks" element={<BacklinksTab />} />
             <Route path="site-health" element={<SiteHealthTab />} />

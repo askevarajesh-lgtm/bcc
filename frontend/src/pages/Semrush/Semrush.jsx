@@ -159,7 +159,7 @@ const Semrush = () => {
               { key: 'domain-overview', label: 'Domain Overview' },
               { key: 'organic-keywords', label: 'Organic Keywords' },
               { key: 'backlinks', label: 'Backlink Analytics' },
-              { key: 'keyword-research', label: 'Keyword Research' },
+              { key: 'position-tracking', label: 'Position Tracking' },
               { key: 'site-health', label: 'Site Health' },
             ]}
           />
