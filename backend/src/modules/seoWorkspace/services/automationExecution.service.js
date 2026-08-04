@@ -49,15 +49,26 @@ class AutomationExecutionEngine {
   async executeWorkflowRun(projectId, workflowId, versionId, triggerContext = {}) {
     logger.info(TAG, `Starting enterprise workflow execution`, { projectId, workflowId, versionId });
     
-    // Create Run Record
-    const run = await AutomationExecutionRun.create({
-      projectId,
-      workflowId,
-      versionId,
-      triggerContext,
-      status: 'Running',
-      startTime: new Date()
-    });
+    // Retrieve or Create Run Record
+    let run = null;
+    if (triggerContext.runId) {
+      run = await AutomationExecutionRun.findById(triggerContext.runId);
+    }
+    if (run) {
+      run.status = 'Running';
+      run.startTime = new Date();
+      run.triggerContext = { ...run.triggerContext, ...triggerContext };
+      await run.save();
+    } else {
+      run = await AutomationExecutionRun.create({
+        projectId,
+        workflowId,
+        versionId,
+        triggerContext,
+        status: 'Running',
+        startTime: new Date()
+      });
+    }
 
     const compensationStack = [];
 
@@ -243,6 +254,37 @@ class AutomationExecutionEngine {
           context.steps[subtype] = output;
           context.steps[subtype.replace('trigger_', 'run_')] = output;
           context.steps[subtype.replace('run_', 'trigger_')] = output;
+          
+          // Map canonical friendly step aliases
+          const sub = subtype.toLowerCase();
+          if (sub.includes('site_audit')) {
+            context.steps['audit'] = output;
+          } else if (sub.includes('keyword')) {
+            context.steps['keyword'] = output;
+          } else if (sub.includes('content')) {
+            context.steps['content'] = output;
+          } else if (sub.includes('schema')) {
+            context.steps['schema'] = output;
+          } else if (sub.includes('monitoring') || sub.includes('monitor')) {
+            context.steps['monitor'] = output;
+            context.steps['monitoring'] = output;
+          } else if (sub.includes('geo')) {
+            context.steps['geo'] = output;
+          } else if (sub.includes('aeo')) {
+            context.steps['aeo'] = output;
+          } else if (sub.includes('competitor')) {
+            context.steps['competitor'] = output;
+          } else if (sub.includes('report')) {
+            context.steps['report'] = output;
+          } else if (sub.includes('internal_link') || sub.includes('generate_internal_links')) {
+            context.steps['linking'] = output;
+            context.steps['internal_linking'] = output;
+          } else if (sub.includes('image')) {
+            context.steps['image'] = output;
+          } else if (sub.includes('technical')) {
+            context.steps['technical'] = output;
+            context.steps['technical_seo'] = output;
+          }
         }
         if (node.data?.label) {
           const sanitized = node.data.label.toLowerCase().replace(/[^a-z0-9_]/g, '_');

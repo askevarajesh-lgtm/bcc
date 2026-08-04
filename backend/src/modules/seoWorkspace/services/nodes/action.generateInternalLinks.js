@@ -21,7 +21,9 @@ module.exports = {
     outputsDoc: [
       { name: 'orphanPagesFound', desc: 'Number of detected orphan pages', type: 'number' },
       { name: 'suggestionsCount', desc: 'Total proposed internal links', type: 'number' },
-      { name: 'linkGraphDensity', desc: 'Calculated link graph density index (0-100)', type: 'number' }
+      { name: 'linkGraphDensity', desc: 'Calculated link graph density index (0-100)', type: 'number' },
+      { name: 'suggestions', desc: 'Full list of suggestions containing sourceUrl, targetUrl, anchorText, reason', type: 'array' },
+      { name: 'orphanPages', desc: 'Array of detected orphan page URLs', type: 'array' }
     ]
   },
 
@@ -31,7 +33,7 @@ module.exports = {
     supportsRetry: true
   },
 
-  estimatedRuntimeMs: 4500,
+  estimatedRuntimeMs: 25000,
   estimatedCost: { apiCalls: 1, aiTokens: 250, thirdPartyCalls: 0 },
   dependencies: [],
   permissions: ['seo:links:generate'],
@@ -47,7 +49,9 @@ module.exports = {
     return {
       orphanPagesFound: { type: 'number', description: 'Orphan pages detected' },
       suggestionsCount: { type: 'number', description: 'Link suggestions count' },
-      linkGraphDensity: { type: 'number', description: 'Link graph density score' }
+      linkGraphDensity: { type: 'number', description: 'Link graph density score' },
+      suggestions: { type: 'array', description: 'List of internal link suggestions' },
+      orphanPages: { type: 'array', description: 'List of orphan page URLs' }
     };
   },
 
@@ -62,19 +66,63 @@ module.exports = {
     const project = await WorkspaceProject.findById(projectId);
     const workspaceId = project?.companyId || project?.createdBy || context.userId;
 
+    if (context.isSimulation) {
+      return {
+        success: true,
+        orphanPagesFound: 1,
+        suggestionsCount: Number(config.maxSuggestions) || 8,
+        linkGraphDensity: 84,
+        suggestions: [],
+        orphanPages: []
+      };
+    }
+
     try {
       if (project) {
         await internalLinkingAgent.run(projectId, workspaceId);
       }
     } catch (err) {
-      logger.warn(TAG, `Internal linking agent execution fallback: ${err.message}`);
+      logger.warn(TAG, `Internal linking agent execution error: ${err.message}`);
     }
+
+    const linkDoc = await WorkspaceInternalLink.findOne({ projectId }).sort({ createdAt: -1 }).lean();
+
+    if (!linkDoc) {
+      return {
+        success: false,
+        error: 'Internal linking analysis failed or no linking document found.',
+        orphanPagesFound: 0,
+        suggestionsCount: 0
+      };
+    }
+
+    const pages = linkDoc.inputs?.pages || [];
+    const orphanPages = pages.filter(p => p.isOrphan).map(p => p.url);
+    const suggestions = (linkDoc.agent?.suggestions || []).map(s => ({
+      sourceUrl: s.sourceUrl,
+      targetUrl: s.targetUrl,
+      anchorText: s.anchorText,
+      reasonCategory: s.reasonCategory || 'topical_relevance',
+      rationale: s.rationale || ''
+    }));
+
+    // Calculate dynamic graph density index
+    // density = (actual links / potential links) * 100
+    const totalPages = pages.length;
+    const potentialLinks = totalPages * (totalPages - 1);
+    const actualLinksCount = pages.reduce((sum, p) => sum + (p.outboundInternalLinks?.length || 0), 0);
+    const linkGraphDensity = potentialLinks > 0 ? Math.min(100, Math.round((actualLinksCount / potentialLinks) * 100)) : 84;
 
     return {
       success: true,
-      orphanPagesFound: 1,
-      suggestionsCount: Number(config.maxSuggestions) || 8,
-      linkGraphDensity: 84
+      linkDocId: linkDoc._id.toString(),
+      orphanPagesFound: orphanPages.length,
+      suggestionsCount: suggestions.length,
+      linkGraphDensity,
+      suggestions: suggestions.slice(0, Number(config.maxSuggestions) || 50),
+      orphanPages,
+      approvalStatus: linkDoc.agent?.approvalStatus || '',
+      completedAt: linkDoc.completedAt ? new Date(linkDoc.completedAt).toISOString() : null
     };
   }
 };

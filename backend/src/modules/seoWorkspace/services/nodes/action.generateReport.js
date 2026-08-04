@@ -22,7 +22,12 @@ module.exports = {
     outputsDoc: [
       { name: 'reportId', desc: 'WorkspaceReport record ID', type: 'string' },
       { name: 'reportPdfUrl', desc: 'Direct URL to download PDF report', type: 'string' },
+      { name: 'reportCsvUrl', desc: 'Direct URL to download CSV data export', type: 'string' },
+      { name: 'reportMarkdownUrl', desc: 'Direct URL to download Markdown version', type: 'string' },
       { name: 'executiveSummary', desc: 'High-level AI narrative summary string', type: 'string' },
+      { name: 'sectionsCount', desc: 'Number of report data sections', type: 'number' },
+      { name: 'sections', desc: 'Names of included sections', type: 'array' },
+      { name: 'metrics', desc: 'Key performance indicators summary object', type: 'object' },
       { name: 'generatedAt', desc: 'Generation timestamp', type: 'string' }
     ]
   },
@@ -33,7 +38,7 @@ module.exports = {
     supportsRetry: true
   },
 
-  estimatedRuntimeMs: 6500,
+  estimatedRuntimeMs: 20000,
   estimatedCost: { apiCalls: 1, aiTokens: 500, thirdPartyCalls: 0 },
   dependencies: [],
   permissions: ['seo:reports:generate'],
@@ -59,7 +64,12 @@ module.exports = {
     return {
       reportId: { type: 'string', description: 'Report document ID' },
       reportPdfUrl: { type: 'string', description: 'Downloadable PDF URL' },
+      reportCsvUrl: { type: 'string', description: 'Downloadable CSV URL' },
+      reportMarkdownUrl: { type: 'string', description: 'Downloadable Markdown URL' },
       executiveSummary: { type: 'string', description: 'AI generated summary' },
+      sectionsCount: { type: 'number', description: 'Sections count' },
+      sections: { type: 'array', description: 'Included sections list' },
+      metrics: { type: 'object', description: 'Summary indicators' },
       generatedAt: { type: 'string', description: 'Generation timestamp' }
     };
   },
@@ -75,28 +85,57 @@ module.exports = {
     const project = await WorkspaceProject.findById(projectId);
     const workspaceId = project?.companyId || project?.createdBy || context.userId;
 
+    if (context.isSimulation) {
+      return {
+        success: true,
+        reportId: `sim_rep_${Date.now()}`,
+        reportPdfUrl: '',
+        reportCsvUrl: '',
+        reportMarkdownUrl: '',
+        executiveSummary: 'Simulation: SEO performance report assembled successfully.',
+        sectionsCount: 4,
+        sections: ['Executive Summary', 'Audit Scores', 'Keyword Trends', 'Task Status'],
+        metrics: {},
+        generatedAt: new Date().toISOString()
+      };
+    }
+
     let reportDoc = null;
     try {
       if (project) {
         reportDoc = await reportingAgent.run(projectId, workspaceId, config.reportType || 'executive_summary');
       }
     } catch (err) {
-      logger.warn(TAG, `Reporting agent execution fallback: ${err.message}`);
+      logger.warn(TAG, `Reporting agent execution error: ${err.message}`);
     }
 
     if (!reportDoc) {
-      reportDoc = await WorkspaceReport.findOne({ projectId }).sort({ createdAt: -1 });
+      reportDoc = await WorkspaceReport.findOne({ projectId }).sort({ createdAt: -1 }).lean();
     }
 
-    const reportId = reportDoc ? reportDoc._id.toString() : `sim_rep_${Date.now()}`;
-    const reportPdfUrl = `/api/v1/seo-workspace/projects/${projectId}/reports/export/pdf?reportId=${reportId}`;
+    if (!reportDoc) {
+      return {
+        success: false,
+        error: 'Report generation failed or no completed report record found.',
+        reportId: null
+      };
+    }
+
+    const reportId = reportDoc._id.toString();
+    const format = config.exportFormat || 'pdf';
 
     return {
       success: true,
       reportId,
-      reportPdfUrl,
-      executiveSummary: reportDoc?.executiveSummary || `Overall SEO visibility index increased by 4.2% across key strategic keywords for ${project?.domain || 'the domain'}.`,
-      generatedAt: new Date().toISOString()
+      reportPdfUrl: `/api/v1/seo-workspace/projects/${projectId}/reports/${reportId}/download?format=pdf`,
+      reportCsvUrl: `/api/v1/seo-workspace/projects/${projectId}/reports/${reportId}/download?format=csv`,
+      reportMarkdownUrl: `/api/v1/seo-workspace/projects/${projectId}/reports/${reportId}/download?format=markdown`,
+      executiveSummary: reportDoc.agent?.summary || reportDoc.executiveSummary || '',
+      sectionsCount: (reportDoc.sections || []).length,
+      sections: reportDoc.sections || [],
+      metrics: reportDoc.metrics || {},
+      status: reportDoc.status || 'completed',
+      generatedAt: reportDoc.completedAt ? new Date(reportDoc.completedAt).toISOString() : new Date().toISOString()
     };
   }
 };

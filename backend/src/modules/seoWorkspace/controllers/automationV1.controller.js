@@ -422,17 +422,58 @@ exports.runWorkflow = async (req, res) => {
     if (id && mongoose.Types.ObjectId.isValid(id)) {
       const workflow = await AutomationWorkflow.findById(id);
       if (workflow && workflow.activeVersionId) {
+        // Pre-create the run record with status 'Pending' to assign a persistent runId
+        const run = await AutomationExecutionRun.create({
+          projectId,
+          workflowId: id,
+          versionId: workflow.activeVersionId,
+          triggerContext: { source: 'manual', userId: req.user?._id },
+          status: 'Pending',
+          startTime: new Date()
+        });
+
         queueService.enqueueWorkflowExecution({
           projectId,
           workflowId: id,
           versionId: workflow.activeVersionId,
-          triggerContext: { source: 'manual', userId: req.user?._id }
+          triggerContext: { source: 'manual', userId: req.user?._id, runId: run._id.toString() }
         });
+
+        return res.status(200).json({ success: true, runId: run._id, message: 'Execution queued' });
       }
+      return res.status(404).json({ success: false, error: 'Workflow or active version not found' });
     }
-    res.status(200).json({ success: true, message: 'Execution queued' });
+    return res.status(400).json({ success: false, error: 'Invalid workflow ID' });
   } catch (error) {
-    res.status(200).json({ success: true, message: 'Execution started' });
+    console.error('[runWorkflow] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getRunById = async (req, res) => {
+  try {
+    const { projectId, runId } = req.params;
+    const run = await AutomationExecutionRun.findById(runId)
+      .populate('workflowId', 'name category triggerType status')
+      .lean();
+
+    if (!run) {
+      return res.status(404).json({ success: false, error: 'Execution run not found' });
+    }
+
+    const logs = await AutomationExecutionNodeLog.find({ executionRunId: runId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const result = {
+      ...run,
+      workflowName: run.workflowName || run.workflowId?.name || 'Automated SEO Pipeline',
+      nodeLogs: logs || []
+    };
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

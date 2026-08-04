@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, message, Button, Drawer, Typography, Space, Select, Input, Tabs, Collapse, Card, Tooltip, Alert, Divider, Spin } from 'antd';
 import {
   RefreshCw, Search, CheckCircle2, XCircle, Clock, Terminal,
-  ChevronRight, Copy, Download, Code, Layers, FileJson, ArrowUpRight, Zap
+  ChevronRight, Copy, Download, Code, Layers, FileJson, ArrowUpRight, Zap,
+  TrendingUp, Crosshair, FileText, Cpu, Bot, Globe, GitBranch, Image, ShieldCheck, BarChart3
 } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 import { useTheme } from '../../../../../contexts/ThemeContext';
@@ -30,65 +31,473 @@ export default function ExecutionHistory({ projectId }) {
   const codeBg = isDark ? '#070c18' : '#f1f5f9';
   const codeClr = isDark ? '#38bdf8' : '#0369a1';
 
-  const defaultMockLogs = [
-    {
-      nodeName: 'Trigger Evaluated',
-      nodeType: 'trigger',
-      status: 'Completed',
-      durationMs: 45,
-      inputPayload: { triggerType: 'schedule', cron: '0 19 * * *' },
-      outputPayload: {
-        triggered: true,
-        source: 'scheduler',
-        event: 'DAILY_SEO_HEALTH_CHECK',
-        timestamp: new Date().toISOString(),
-        payload: { targetDomain: 'askeva.io', urgency: 'high' }
-      }
-    },
-    {
-      nodeName: 'Condition Checked',
-      nodeType: 'condition',
-      status: 'Completed',
-      durationMs: 15,
-      inputPayload: { expression: "trigger.payload.urgency === 'high'" },
-      outputPayload: {
-        evaluatedExpression: "trigger.payload.urgency === 'high'",
-        result: true,
-        branch: 'true',
-        executionPath: 'continue_audit'
-      }
-    },
-    {
-      nodeName: 'Run Technical SEO Crawl',
-      nodeType: 'action',
-      status: 'Completed',
-      durationMs: 180,
-      inputPayload: { domain: 'askeva.io', crawlDepth: 3, checkBrokenLinks: true },
-      outputPayload: {
-        success: true,
-        crawledPages: 48,
-        healthScore: 92,
-        issuesDetected: { critical: 0, warnings: 4, notices: 12 },
-        brokenLinks: 0,
-        sslStatus: 'Valid (Expires in 84 days)',
-        coreWebVitals: { lcp: '1.8s', fid: '12ms', cls: '0.02' }
-      }
-    },
-    {
-      nodeName: 'Dispatched Alert & Digest',
-      nodeType: 'action',
-      status: 'Completed',
-      durationMs: 210,
-      inputPayload: { channel: '#seo-operations', recipient: 'seo-team@company.com' },
-      outputPayload: {
-        success: true,
-        notificationId: 'notif_98234710',
-        deliveredChannels: ['Slack #seo-operations', 'Email: seo-team@company.com'],
-        messageTitle: '[SEO Health Check] askeva.io scored 92/100',
-        deliveredAt: new Date().toISOString()
-      }
+  const renderNodeOutputUI = (node) => {
+    const payload = node.outputPayload;
+    if (!payload || typeof payload !== 'object') return null;
+
+    // 1. WEBSITE AUDIT
+    if (payload.overallScore !== undefined && payload.pagesCrawled !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11 }}>OVERALL SEO HEALTH SCORE</Text>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontSize: 24, fontWeight: 800, color: payload.overallScore >= 90 ? '#10b981' : payload.overallScore >= 70 ? '#f59e0b' : '#ef4444' }}>
+                    {payload.overallScore}
+                  </span>
+                  <Tag color="blue">{payload.grade} Grade</Tag>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <Text type="secondary" style={{ fontSize: 11 }}>PAGES AUDITED</Text>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{payload.pagesCrawled}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              <div style={{ textAlign: 'center', padding: '6px', background: isDark ? '#0f172a' : '#f1f5f9', borderRadius: 4 }}>
+                <Text style={{ fontSize: 10 }} type="secondary">TECHNICAL</Text>
+                <div style={{ fontWeight: 700, color: '#3b82f6' }}>{payload.technicalScore}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '6px', background: isDark ? '#0f172a' : '#f1f5f9', borderRadius: 4 }}>
+                <Text style={{ fontSize: 10 }} type="secondary">PERFORMANCE</Text>
+                <div style={{ fontWeight: 700, color: '#ec4899' }}>{payload.performanceScore}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '6px', background: isDark ? '#0f172a' : '#f1f5f9', borderRadius: 4 }}>
+                <Text style={{ fontSize: 10 }} type="secondary">ACCESSIBILITY</Text>
+                <div style={{ fontWeight: 700, color: '#10b981' }}>{payload.accessibilityScore || 90}</div>
+              </div>
+            </div>
+
+            <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+              <Space split={<Divider type="vertical" />} style={{ width: '100%', justifyContent: 'space-between', fontSize: 11 }}>
+                <span><Text strong type="danger">{payload.criticalCount}</Text> Critical</span>
+                <span><Text strong type="warning">{payload.highCount}</Text> High</span>
+                <span><Text strong style={{ color: '#eab308' }}>{payload.mediumCount}</Text> Medium</span>
+                <span><Text strong type="secondary">{payload.lowCount}</Text> Low</span>
+              </Space>
+            </div>
+
+            {payload.summary && (
+              <Alert message="AI Audit Insight" description={payload.summary} type="info" showIcon />
+            )}
+
+            {payload.reportPdfUrl && (
+              <Button type="link" size="small" icon={<Download size={13} />} href={payload.reportPdfUrl} style={{ padding: 0 }}>
+                Download Full Audit PDF Report
+              </Button>
+            )}
+          </Space>
+        </Card>
+      );
     }
-  ];
+
+    // 2. TECHNICAL SEO
+    if (payload.technicalAuditId !== undefined && payload.findings !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11 }}>TECHNICAL SEO SCORE</Text>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#3b82f6' }}>{payload.technicalScore}/100</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <Tag color="orange">{payload.findingsCount} Issues Flagged</Tag>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{payload.fixesGenerated} Fixes Generated</div>
+              </div>
+            </div>
+
+            <Text strong style={{ fontSize: 12 }}>Key Findings & Auto-Remediations:</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {payload.findings?.slice(0, 3).map((f, idx) => (
+                <div key={idx} style={{ padding: 8, background: isDark ? '#0f172a' : '#ffffff', borderRadius: 6, border: '1px solid #334155', fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                    <Tag color={f.severity === 'critical' ? 'red' : f.severity === 'high' ? 'orange' : 'blue'} style={{ fontSize: 9 }}>
+                      {f.severity.toUpperCase()}
+                    </Tag>
+                    <Text type="secondary" style={{ fontSize: 10 }}>{f.category}</Text>
+                  </div>
+                  <div><Text strong>{f.issue}</Text></div>
+                  <div style={{ color: '#10b981', marginTop: 2 }}>Fix: {f.recommendation}</div>
+                </div>
+              ))}
+              {payload.findings?.length > 3 && (
+                <Text type="secondary" style={{ fontSize: 11, textAlign: 'center', display: 'block' }}>
+                  + {payload.findings.length - 3} more technical findings inside raw payload
+                </Text>
+              )}
+            </div>
+          </Space>
+        </Card>
+      );
+    }
+
+    // 3. KEYWORD TRACKING
+    if (payload.totalKeywordsTracked !== undefined && payload.keywords !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>VISIBILITY INDEX</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{payload.visibilityIndex}%</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>AVG POSITION</Text>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>#{payload.averagePosition}</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>TOP 10 KEYWORDS</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{payload.top10Count}</div>
+              </div>
+            </div>
+
+            {payload.rankDrops?.length > 0 && (
+              <div>
+                <Text type="danger" strong style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Position Drops:</Text>
+                {payload.rankDrops.slice(0, 2).map((d, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, background: isDark ? '#ef444415' : '#fee2e2', padding: '4px 8px', borderRadius: 4, marginBottom: 2 }}>
+                    <span>{d.keyword}</span>
+                    <span style={{ fontWeight: 600 }}>{d.previousRank} → {d.currentRank} (-{d.dropAmount})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {payload.rankImprovements?.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <Text type="success" strong style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Rank Improvements:</Text>
+                {payload.rankImprovements.slice(0, 2).map((imp, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, background: isDark ? '#10b98115' : '#dcfce7', padding: '4px 8px', borderRadius: 4, marginBottom: 2 }}>
+                    <span>{imp.keyword}</span>
+                    <span style={{ fontWeight: 600 }}>{imp.previousRank} → {imp.currentRank} (+{imp.gainAmount})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 4. COMPETITORS
+    if (payload.competitorsAnalyzedCount !== undefined && payload.competitors !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingBottom: 6 }}>
+              <Text strong style={{ fontSize: 12 }}>Surveillance Scope: {payload.competitorsAnalyzedCount} Rivals</Text>
+              <Tag color="red">{payload.overtakesDetected} Overtakes Detected</Tag>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {payload.competitors?.slice(0, 3).map((c, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, padding: 4 }}>
+                  <Space>
+                    <Text strong>{c.domain}</Text>
+                    <Tag size="small" color={c.threatLevel === 'critical' || c.threatLevel === 'high' ? 'red' : 'blue'}>
+                      {c.threatLevel} threat
+                    </Tag>
+                  </Space>
+                  <Text type="secondary">Est Traffic: {c.metrics?.organicTraffic?.toLocaleString() || 0}</Text>
+                </div>
+              ))}
+            </div>
+          </Space>
+        </Card>
+      );
+    }
+
+    // 5. CONTENT BRIEF
+    if (payload.briefId !== undefined && payload.briefs !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 10 }}>GENERATED SEO CONTENT BRIEF</Text>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#3b82f6', marginTop: 2 }}>{payload.title}</div>
+              <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: 11, color: '#64748b', marginTop: 4, marginBottom: 6 }}>
+                {payload.metaDescription}
+              </Paragraph>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, fontSize: 11 }}>
+              <span>Target: <Text strong>{payload.targetKeyword}</Text></span>
+              <span>Headings: <Text strong>{payload.headingsCount}</Text></span>
+              <span>Word Count: <Text strong>{payload.wordCountTarget || 1500}</Text></span>
+            </div>
+
+            {payload.outline?.length > 0 && (
+              <div style={{ padding: 8, background: isDark ? '#0f172a' : '#ffffff', borderRadius: 6, border: '1px solid #334155', marginTop: 4 }}>
+                <Text strong style={{ fontSize: 10, display: 'block', marginBottom: 4 }} type="secondary">PROPOSED OUTLINE HEADINGS:</Text>
+                {payload.outline.slice(0, 4).map((h, idx) => (
+                  <div key={idx} style={{ fontSize: 11, padding: '2px 4px', borderLeft: '2px solid #3b82f6', marginBottom: 2, paddingLeft: 6 }}>
+                    {h}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 6. AEO AUDIT
+    if (payload.aeoAuditId !== undefined && payload.platformScores !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>AEO INDEX</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#8b5cf6' }}>{payload.overallAeoScore}%</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>CITATION RATE</Text>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{payload.citationScore}%</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>E-E-A-T SCORE</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{payload.eeatScore}%</div>
+              </div>
+            </div>
+
+            <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+              <Text strong style={{ fontSize: 10 }} type="secondary">AI PLATFORM CITATION RATINGS:</Text>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 4 }}>
+                {Object.entries(payload.platformScores).map(([platform, val]) => (
+                  <div key={platform} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ textTransform: 'capitalize' }}>{platform}</span>
+                    <span style={{ fontWeight: 600 }}>{val}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Space>
+        </Card>
+      );
+    }
+
+    // 7. GEO AUDIT
+    if (payload.geoAuditId !== undefined && payload.entityConsistencyScore !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>GEO HEALTH</Text>
+                <div style={{ fontSize: 16, fontWeight: 800, textTransform: 'capitalize', color: '#10b981' }}>{payload.healthLevel}</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>CONSISTENCY</Text>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{payload.entityConsistencyScore}%</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>SENTIMENT</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#eab308' }}>{payload.brandSentimentScore}%</div>
+              </div>
+            </div>
+
+            {payload.recommendations?.length > 0 && (
+              <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+                <Text strong style={{ fontSize: 11 }} type="secondary">GEO Action Priorities:</Text>
+                {payload.recommendations.slice(0, 2).map((r, idx) => (
+                  <div key={idx} style={{ fontSize: 11, background: isDark ? '#0f172a' : '#ffffff', padding: 6, borderRadius: 4, border: '1px solid #334155', marginTop: 4 }}>
+                    <Text strong>{r.title}</Text>
+                    <div>{r.description}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 8. SCHEMA STRUCTURED DATA
+    if (payload.schemaId !== undefined && payload.scriptTagHtml !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text strong style={{ fontSize: 12 }}>Structured JSON-LD Schema Code</Text>
+              <Tag color={payload.validationStatus === 'Valid' ? 'green' : 'orange'}>
+                {payload.validationStatus}
+              </Tag>
+            </div>
+            
+            <div
+              style={{
+                background: isDark ? '#090d16' : '#ffffff',
+                border: '1px solid #334155',
+                padding: '6px 10px',
+                borderRadius: 6,
+                fontFamily: 'monospace',
+                fontSize: 11,
+                maxHeight: 120,
+                overflowY: 'auto'
+              }}
+            >
+              {payload.scriptTagHtml}
+            </div>
+          </Space>
+        </Card>
+      );
+    }
+
+    // 9. INTERNAL LINKING
+    if (payload.linkDocId !== undefined && payload.linkGraphDensity !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>ORPHANS FOUND</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: payload.orphanPagesFound > 0 ? '#ef4444' : '#10b981' }}>
+                  {payload.orphanPagesFound}
+                </div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>SUGGESTIONS</Text>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{payload.suggestionsCount} Links</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>GRAPH DENSITY</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{payload.linkGraphDensity}%</div>
+              </div>
+            </div>
+
+            {payload.suggestions?.length > 0 && (
+              <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+                <Text strong style={{ fontSize: 11 }} type="secondary">Top Proposed Internal Links:</Text>
+                {payload.suggestions.slice(0, 2).map((s, idx) => (
+                  <div key={idx} style={{ fontSize: 11, padding: 6, background: isDark ? '#0f172a' : '#ffffff', borderRadius: 4, border: '1px solid #334155', marginTop: 4 }}>
+                    <div><Text strong>Source:</Text> {s.sourceUrl}</div>
+                    <div><Text strong>Target:</Text> {s.targetUrl}</div>
+                    <div><Text strong>Anchor:</Text> <span style={{ background: '#3b82f625', color: '#3b82f6', padding: '1px 4px', borderRadius: 3 }}>"{s.anchorText}"</span></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 10. IMAGE SEO
+    if (payload.imageSeoId !== undefined && payload.imagesScanned !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>SCANNED IMAGES</Text>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{payload.imagesScanned}</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>MISSING ALT</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: payload.missingAltCount > 0 ? '#f59e0b' : '#10b981' }}>{payload.missingAltCount}</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>AI ALT GENERATED</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{payload.optimizedAltCount}</div>
+              </div>
+            </div>
+
+            {payload.images?.length > 0 && (
+              <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+                <Text strong style={{ fontSize: 11 }} type="secondary">Alt Text Optimizations:</Text>
+                {payload.images.slice(0, 2).map((img, idx) => (
+                  <div key={idx} style={{ fontSize: 11, padding: 6, background: isDark ? '#0f172a' : '#ffffff', borderRadius: 4, border: '1px solid #334155', marginTop: 4 }}>
+                    <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}><Text strong>Src:</Text> {img.src}</div>
+                    <div style={{ color: '#10b981', marginTop: 2 }}><Text strong>Suggested Alt:</Text> "{img.proposedValue}"</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 11. MONITORING SCAN
+    if (payload.scanId !== undefined && payload.healthScore !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 4 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>HEALTH SCORE</Text>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{payload.healthScore}%</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>UPTIME</Text>
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4 }}>{payload.uptimeStatus}</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>SSL EXPIRY</Text>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>{payload.sslDaysRemaining} days</div>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10 }}>CWV STATUS</Text>
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: '#3b82f6' }}>{payload.cwvRating}</div>
+              </div>
+            </div>
+
+            {payload.activeAlerts?.length > 0 && (
+              <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingTop: 8 }}>
+                <Text type="danger" strong style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Open Scan Alerts:</Text>
+                {payload.activeAlerts.map((a, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: 6, fontSize: 11, padding: 4, background: isDark ? '#ef444410' : '#fee2e2', borderRadius: 4, marginBottom: 2 }}>
+                    <XCircle size={12} color="#ef4444" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span>{a.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Space>
+        </Card>
+      );
+    }
+
+    // 12. EXECUTIVE REPORT
+    if (payload.reportId !== undefined && payload.reportPdfUrl !== undefined) {
+      return (
+        <Card size="small" style={{ background: isDark ? '#1e293b' : '#f8fafc', border: cardBdr, borderRadius: 8, marginBottom: 12 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <div>
+              <Text strong style={{ fontSize: 12 }}>Branded Executive SEO Report Completed</Text>
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Contains {payload.sectionsCount} key sections: {payload.sections?.join(', ')}</div>
+            </div>
+
+            {payload.executiveSummary && (
+              <Paragraph ellipsis={{ rows: 3 }} style={{ fontSize: 11, fontStyle: 'italic', background: isDark ? '#0f172a' : '#ffffff', padding: 8, borderRadius: 4, border: '1px solid #334155', margin: 0 }}>
+                "{payload.executiveSummary}"
+              </Paragraph>
+            )}
+
+            <Space size="middle" style={{ marginTop: 4 }}>
+              {payload.reportPdfUrl && (
+                <Button type="primary" size="small" icon={<Download size={12} />} href={payload.reportPdfUrl} style={{ background: '#2563eb' }}>
+                  Download PDF
+                </Button>
+              )}
+              {payload.reportCsvUrl && (
+                <Button size="small" icon={<Download size={12} />} href={payload.reportCsvUrl}>
+                  Download CSV
+                </Button>
+              )}
+            </Space>
+          </Space>
+        </Card>
+      );
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -100,73 +509,11 @@ export default function ExecutionHistory({ projectId }) {
       setLoading(true);
       const res = await seoWorkspaceApi.getAutomationHistory(projectId);
       const list = Array.isArray(res?.data) ? res.data : [];
-      setRuns(list.length > 0 ? list : [
-        {
-          _id: '6a718120667191d0f8b13665',
-          workflowName: 'Daily Site Audit & Slack Alert',
-          status: 'Succeeded',
-          startTime: new Date().toISOString(),
-          durationMs: 450,
-          retryCount: 0,
-          triggerContext: { source: 'schedule', event: 'DAILY_AUDIT' },
-          result: {
-            outputs: {
-              healthScore: 92,
-              crawledPages: 48,
-              notificationStatus: 'Delivered to #seo-operations'
-            }
-          },
-          nodeLogs: defaultMockLogs
-        },
-        {
-          _id: '6a717e2e667191d0f8b150b5',
-          workflowName: 'Rank Drop Sentinel',
-          status: 'Succeeded',
-          startTime: new Date(Date.now() - 3600000).toISOString(),
-          durationMs: 388,
-          retryCount: 0,
-          triggerContext: { source: 'event', event: 'KEYWORD_RANK_DROPPED' },
-          result: {
-            outputs: {
-              keyword: 'enterprise seo platform',
-              rankShift: '-4 positions',
-              alertSent: true
-            }
-          },
-          nodeLogs: defaultMockLogs
-        },
-        {
-          _id: '6a717dd5667191d0f8b12b34',
-          workflowName: 'Core Web Vitals Regression Sentinel',
-          status: 'Succeeded',
-          startTime: new Date(Date.now() - 7200000).toISOString(),
-          durationMs: 454,
-          retryCount: 0,
-          triggerContext: { source: 'schedule', event: 'CWV_MONITOR' },
-          result: {
-            outputs: {
-              lcp: '1.8s',
-              cls: '0.02',
-              status: 'Passed'
-            }
-          },
-          nodeLogs: defaultMockLogs
-        }
-      ]);
+      setRuns(list);
     } catch (error) {
-      console.warn('Could not load remote history, using fallback dataset:', error);
-      setRuns([
-        {
-          _id: '6a718120667191d0f8b13665',
-          workflowName: 'Daily Site Audit & Slack Alert',
-          status: 'Succeeded',
-          startTime: new Date().toISOString(),
-          durationMs: 450,
-          retryCount: 0,
-          result: { outputs: { healthScore: 92, crawledPages: 48, alertSent: true } },
-          nodeLogs: defaultMockLogs
-        }
-      ]);
+      console.error('Could not load execution history:', error);
+      message.error('Failed to load execution history from backend.');
+      setRuns([]);
     } finally {
       setLoading(false);
     }
@@ -187,9 +534,10 @@ export default function ExecutionHistory({ projectId }) {
       setLogsLoading(true);
       const res = await seoWorkspaceApi.getAutomationRunLogs(projectId, run._id);
       const fetchedLogs = Array.isArray(res?.data) ? res.data : [];
-      setSelectedRunLogs(fetchedLogs.length > 0 ? fetchedLogs : defaultMockLogs);
+      setSelectedRunLogs(fetchedLogs);
     } catch (err) {
-      setSelectedRunLogs(defaultMockLogs);
+      console.error('Failed to load node execution logs:', err);
+      setSelectedRunLogs([]);
     } finally {
       setLogsLoading(false);
     }
@@ -642,40 +990,48 @@ export default function ExecutionHistory({ projectId }) {
                                   <span style={{ fontSize: 11, fontWeight: 700, color: isDark ? '#38bdf8' : '#0369a1', textTransform: 'uppercase' }}>
                                     ✓ Step Return Output:
                                   </span>
-                                  {hasOutput && (
-                                    <Button
-                                      size="small"
-                                      type="text"
-                                      icon={<Copy size={12} />}
-                                      onClick={(e) => { e.stopPropagation(); copyToClipboard(node.outputPayload, `${node.nodeName} Output`); }}
-                                      style={{ fontSize: 11, height: 22 }}
-                                    >
-                                      Copy Output
-                                    </Button>
-                                  )}
                                 </div>
 
-                                <div
-                                  style={{
-                                    padding: '8px 12px',
-                                    background: codeBg,
-                                    borderRadius: 6,
-                                    border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                    color: codeClr,
-                                    maxHeight: 220,
-                                    overflowY: 'auto',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-all'
-                                  }}
-                                >
-                                  {hasOutput ? (
-                                    JSON.stringify(node.outputPayload, null, 2)
-                                  ) : (
-                                    JSON.stringify({ success: true, message: 'Step completed with status 200' }, null, 2)
-                                  )}
-                                </div>
+                                {renderNodeOutputUI(node)}
+
+                                <Collapse style={{ background: 'transparent', border: 'none', padding: 0 }} size="small">
+                                  <Panel header="View Raw JSON Output" key="raw_json" style={{ padding: 0, border: 'none' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                                      {hasOutput && (
+                                        <Button
+                                          size="small"
+                                          type="text"
+                                          icon={<Copy size={12} />}
+                                          onClick={(e) => { e.stopPropagation(); copyToClipboard(node.outputPayload, `${node.nodeName} Output`); }}
+                                          style={{ fontSize: 11, height: 22 }}
+                                        >
+                                          Copy JSON
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <div
+                                      style={{
+                                        padding: '8px 12px',
+                                        background: codeBg,
+                                        borderRadius: 6,
+                                        border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        color: codeClr,
+                                        maxHeight: 220,
+                                        overflowY: 'auto',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-all'
+                                      }}
+                                    >
+                                      {hasOutput ? (
+                                        JSON.stringify(node.outputPayload, null, 2)
+                                      ) : (
+                                        JSON.stringify({ success: true, message: 'Step completed with status 200' }, null, 2)
+                                      )}
+                                    </div>
+                                  </Panel>
+                                </Collapse>
                               </div>
 
                               {/* Input Payload Block */}

@@ -22,10 +22,10 @@ module.exports = {
     ],
     outputsDoc: [
       { name: 'briefId', desc: 'MongoDB ID of the created WorkspaceContentBrief', type: 'string' },
-      { name: 'title', desc: 'Generated SEO Title tag', type: 'string' },
-      { name: 'metaDescription', desc: 'Generated Meta Description', type: 'string' },
-      { name: 'headingsCount', desc: 'Count of H2/H3 headings in proposed outline', type: 'number' },
-      { name: 'suggestedKeywords', desc: 'Secondary semantic keywords to include', type: 'array' }
+      { name: 'briefsCount', desc: 'Number of content briefs generated', type: 'number' },
+      { name: 'briefs', desc: 'Full array of content briefs with title, outline, keywords, meta tags, FAQ', type: 'array' },
+      { name: 'summary', desc: 'AI-generated content strategy summary', type: 'string' },
+      { name: 'approvalStatus', desc: 'Approval status of the generated briefs', type: 'string' }
     ]
   },
 
@@ -35,7 +35,7 @@ module.exports = {
     supportsRetry: true
   },
 
-  estimatedRuntimeMs: 7000,
+  estimatedRuntimeMs: 30000,
   estimatedCost: { apiCalls: 1, aiTokens: 800, thirdPartyCalls: 1 },
   dependencies: [],
   permissions: ['seo:content:generate'],
@@ -56,11 +56,11 @@ module.exports = {
 
   getOutputSchema() {
     return {
-      briefId: { type: 'string', description: 'WorkspaceContentBrief ID' },
-      title: { type: 'string', description: 'Suggested SEO title' },
-      metaDescription: { type: 'string', description: 'Suggested meta description' },
-      headingsCount: { type: 'number', description: 'Count of generated headings' },
-      suggestedKeywords: { type: 'array', description: 'Semantic keyword list' }
+      briefId: { type: 'string', description: 'WorkspaceContentBrief document ID' },
+      briefsCount: { type: 'number', description: 'Number of briefs generated' },
+      briefs: { type: 'array', description: 'Full content brief objects with title, outline, keywords, meta, FAQs' },
+      summary: { type: 'string', description: 'AI strategy summary' },
+      approvalStatus: { type: 'string', description: 'Agent approval status' }
     };
   },
 
@@ -75,28 +75,74 @@ module.exports = {
     const project = await WorkspaceProject.findById(projectId);
     const workspaceId = project?.companyId || project?.createdBy || context.userId;
 
-    let briefDoc = null;
+    if (context.isSimulation) {
+      return {
+        success: true,
+        briefId: `sim_brief_${Date.now()}`,
+        briefsCount: 1,
+        briefs: [],
+        summary: 'Simulation: Content brief generation completed.',
+        approvalStatus: 'Pending Approval'
+      };
+    }
+
     try {
       if (project) {
         await contentAgent.run(projectId, workspaceId);
       }
     } catch (err) {
-      logger.warn(TAG, `Content agent execution fallback: ${err.message}`);
+      logger.warn(TAG, `Content agent execution error: ${err.message}`);
     }
 
-    briefDoc = await WorkspaceContentBrief.findOne({ projectId }).sort({ createdAt: -1 });
+    // Read the most recently created brief document
+    const briefDoc = await WorkspaceContentBrief.findOne({ projectId }).sort({ createdAt: -1 }).lean();
 
-    const briefId = briefDoc ? briefDoc._id.toString() : `sim_brief_${Date.now()}`;
-    const title = briefDoc?.title || `Complete Guide to ${config.targetKeyword || 'Enterprise SEO Automation'} (2026)`;
-    const metaDescription = briefDoc?.metaDescription || `Discover the leading strategies and architectures for ${config.targetKeyword || 'modern SEO automation'}.`;
+    if (!briefDoc) {
+      return {
+        success: false,
+        error: 'Content brief generation failed or no brief found for this project.',
+        briefId: null
+      };
+    }
+
+    // Map the full briefs array from the DB record
+    const briefs = (briefDoc.agent?.briefs || []).map(b => ({
+      targetKeyword: b.targetKeyword,
+      title: b.title,
+      contentType: b.contentType,
+      recommendedAction: b.recommendedAction,
+      targetUrl: b.targetUrl || null,
+      metaTitle: b.metaTitle || '',
+      metaDescription: b.metaDescription || '',
+      wordCountTarget: b.wordCountTarget || null,
+      outline: b.outline || [],
+      headingsCount: (b.outline || []).length,
+      secondaryKeywords: b.secondaryKeywords || [],
+      theme: b.theme || '',
+      rationale: b.rationale || ''
+    }));
+
+    // The first brief's data is surfaced at the top level for easy variable access
+    const primaryBrief = briefs[0] || {};
 
     return {
       success: true,
-      briefId,
-      title,
-      metaDescription,
-      headingsCount: briefDoc?.outline?.length || 6,
-      suggestedKeywords: briefDoc?.secondaryKeywords || ['automation orchestration', 'workflow engine', 'seo intelligence']
+      briefId: briefDoc._id.toString(),
+      briefsCount: briefs.length,
+      summary: briefDoc.agent?.summary || '',
+      approvalStatus: briefDoc.agent?.approvalStatus || '',
+      completedAt: briefDoc.completedAt ? new Date(briefDoc.completedAt).toISOString() : null,
+      // Top-level convenience fields (first brief)
+      title: primaryBrief.title || '',
+      metaDescription: primaryBrief.metaDescription || '',
+      targetKeyword: primaryBrief.targetKeyword || '',
+      outline: primaryBrief.outline || [],
+      headingsCount: primaryBrief.headingsCount || 0,
+      suggestedKeywords: primaryBrief.secondaryKeywords || [],
+      contentType: primaryBrief.contentType || '',
+      wordCountTarget: primaryBrief.wordCountTarget || null,
+      // Full structured output
+      briefs
     };
   }
 };

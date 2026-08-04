@@ -30,6 +30,7 @@ router.post('/projects/:projectId/workflows/:id/cancel', automationController.ca
 
 // History & Logs & Metrics
 router.get('/projects/:projectId/history', automationController.getHistory);
+router.get('/projects/:projectId/history/:runId', automationController.getRunById);
 router.get('/projects/:projectId/history/:runId/logs', automationController.getLogs);
 router.get('/projects/:projectId/metrics', automationController.getMetrics);
 router.get('/projects/:projectId/queue', automationController.getQueueStatus);
