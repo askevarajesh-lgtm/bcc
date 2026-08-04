@@ -36,7 +36,7 @@ const NAV_ITEMS = [
   { id: 'aeo', label: 'AEO', icon: MessageCircle },
   { id: 'geo', label: 'GEO', icon: Globe2 },
   { id: 'reports', label: 'Reports', icon: FileText },
-  { id: 'automation', label: 'Automation', icon: Zap },
+  // { id: 'automation', label: 'Automation', icon: Zap },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
