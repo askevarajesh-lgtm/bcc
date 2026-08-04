@@ -111,10 +111,20 @@ export default function AutomationTab({ projectId: propProjectId }) {
   return (
     <div 
       className={`automation-tab-container${isDark ? ' dark' : ''}`} 
-      style={{ padding: '0 8px', background: isDark ? '#0f172a' : undefined, color: isDark ? '#f8fafc' : undefined }}
+      style={{ padding: '0 4px', background: 'transparent', color: 'var(--text-primary)' }}
     >
-      <div style={{ marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: -0.5, color: isDark ? '#f1f5f9' : undefined }}>Enterprise SEO Automation Platform</Title>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14,
+          background: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          <Rocket size={24} color="#fff" />
+        </div>
+        <div>
+          <Title level={4} style={{ margin: 0, fontWeight: 900, letterSpacing: -0.5 }}>Enterprise SEO Automation Platform</Title>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>Multi-step visual workflow engine, scheduled audits, auto-healing, and webhook triggers.</Typography.Text>
+        </div>
       </div>
       <Tabs 
         activeKey={activeView}

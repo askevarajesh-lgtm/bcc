@@ -116,17 +116,24 @@ const GEOTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Globe2 size={28} />
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {activeProject ? `${activeProject.name} — GEO Dashboard` : 'GEO Enterprise Dashboard'}
-          </Title>
-          <Text type="secondary">Generative Engine Optimization — deterministic evidence-based scoring and AI-enhanced recommendations.</Text>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <Globe2 size={24} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>
+              {activeProject ? `${activeProject.name} — GEO Dashboard` : 'GEO Enterprise Dashboard'}
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>Generative Engine Optimization — deterministic evidence-based scoring and AI-enhanced recommendations.</Text>
+          </div>
         </div>
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
-
-      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {!projectId ? (
         <Empty description="Select or create a Workspace Project to run the GEO Agent" />
@@ -135,7 +142,7 @@ const GEOTab = () => {
           {overallScore !== null && (
             <>
               <Col xs={24} lg={6}>
-                <Card size="small" title="Overall GEO Health" style={{ height: '100%' }}>
+                <Card size="small" title="Overall GEO Health" style={{ height: '100%', borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <div style={{ textAlign: 'center' }}>
                     <Progress type="dashboard" percent={overallScore} strokeColor={scoreColor(overallScore)} />
                     <div style={{ marginTop: 8 }}>
@@ -149,7 +156,7 @@ const GEOTab = () => {
               
               {Object.keys(breakdown).length > 0 && (
                 <Col xs={24} lg={18}>
-                  <Card size="small" title="Score Breakdown & Evidence" style={{ height: '100%' }}>
+                  <Card size="small" title="Score Breakdown & Evidence" style={{ height: '100%', borderRadius: 12, border: '1px solid var(--border-color)' }}>
                     <Row gutter={[16, 16]}>
                       {Object.entries(breakdown).map(([key, data]) => (
                         <Col xs={12} sm={8} md={6} key={key}>
@@ -160,7 +167,7 @@ const GEOTab = () => {
                             valueStyle={{ color: scoreColor(data.score) }}
                           />
                           <Tooltip title={`Confidence: ${data.confidence}%`}>
-                            <Progress percent={data.confidence} size="small" showInfo={false} strokeColor="#d9d9d9" />
+                            <Progress percent={data.confidence} size="small" showInfo={false} strokeColor="var(--border-color)" />
                           </Tooltip>
                         </Col>
                       ))}
@@ -171,7 +178,7 @@ const GEOTab = () => {
 
               {technicalData && (
                 <Col xs={24}>
-                  <Card size="small" title="Sitewide Technical Factors">
+                  <Card size="small" title="Sitewide Technical Factors" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                     <Row gutter={[16,16]}>
                       <Col span={6}>
                         <Statistic title="Robots.txt" value={technicalData.metrics?.hasRobotsTxt ? 'Present' : 'Missing'} prefix={technicalData.metrics?.hasRobotsTxt ? <CheckCircle2 color="green"/> : <XCircle color="red"/>} />
@@ -192,7 +199,7 @@ const GEOTab = () => {
 
               {pages.length > 0 && (
                 <Col xs={24}>
-                  <Card size="small" title="Page-Level Analysis (Lazy Loaded)">
+                  <Card size="small" title="Page-Level Analysis (Lazy Loaded)" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                     <Table 
                       dataSource={pages} 
                       columns={pageColumns} 

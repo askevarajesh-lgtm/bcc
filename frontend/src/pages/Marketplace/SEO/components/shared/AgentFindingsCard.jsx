@@ -103,6 +103,7 @@ const AgentFindingsCard = ({
     <Card
       size="small"
       title={title}
+      style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
       extra={
         <Space>
           {extraActions}
@@ -160,7 +161,7 @@ const AgentFindingsCard = ({
       )}
 
       <Collapse
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}
         items={[{
           key: 'history',
           label: <Space><HistoryIcon size={14} /> Execution History</Space>,

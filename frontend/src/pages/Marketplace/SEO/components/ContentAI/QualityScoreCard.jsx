@@ -25,14 +25,14 @@ const colorFor = (score) => {
 const QualityScoreCard = ({ score }) => {
   if (!score) {
     return (
-      <Card size="small" title="Content Quality Score">
+      <Card size="small" title="Content Quality Score" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
         <Empty description="No score yet — generate a version first." image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </Card>
     );
   }
 
   return (
-    <Card size="small" title="Content Quality Score">
+    <Card size="small" title="Content Quality Score" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
       <Row gutter={[16, 16]} style={{ marginBottom: 8 }}>
         <Col span={24}>
           <Text strong>Overall: </Text>

@@ -86,17 +86,22 @@ const SettingsTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ padding: 8, background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
-          <Settings size={24} />
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, #1890ff 0%, #13c2c2 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <Settings size={24} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>SEO Settings & Configuration</Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>Manage global AI API keys and project-specific crawler thresholds.</Text>
+          </div>
         </div>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>SEO Settings & Configuration</Title>
-          <Text type="secondary">Manage global AI API keys and project-specific crawler thresholds.</Text>
-        </div>
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
-
-      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
@@ -106,7 +111,7 @@ const SettingsTab = () => {
           <Card 
             size="small" 
             title={<Space><Globe size={16} color="#1890ff" /> Active Project Settings ({activeProject ? activeProject.name : 'No project selected'})</Space>}
-            style={{ borderRadius: 8, height: '100%' }}
+            style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}
           >
             {activeProject ? (
               <Form form={projectForm} layout="vertical" onFinish={handleSaveProject}>
@@ -167,7 +172,7 @@ const SettingsTab = () => {
           <Card 
             size="small" 
             title={<Space><KeyRound size={16} color="#722ed1" /> AI Engine Credentials</Space>}
-            style={{ borderRadius: 8, height: '100%' }}
+            style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}
           >
             {loading ? (
               <Skeleton active paragraph={{ rows: 4 }} />

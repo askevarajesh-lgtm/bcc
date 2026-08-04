@@ -121,7 +121,12 @@ const BrandVoicePanel = () => {
   ];
 
   return (
-    <Card size="small" title="Brand Voice" extra={<Button type="primary" onClick={openCreate}>New Brand Voice</Button>}>
+    <Card
+      size="small"
+      title="Brand Voice"
+      style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
+      extra={<Button type="primary" onClick={openCreate}>New Brand Voice</Button>}
+    >
       <Table rowKey="_id" loading={loading} columns={columns} dataSource={voices} size="small" pagination={false} />
 
       <Modal

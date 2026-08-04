@@ -3,6 +3,7 @@ import { Typography, Card, Row, Col, Progress, Tag, Space, Empty, Tooltip, Colla
 import { MessageCircle, PlayCircle, History, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 
@@ -11,6 +12,7 @@ const { Title, Text, Paragraph } = Typography;
 const scoreColor = (score) => (score >= 80 ? '#52c41a' : score >= 50 ? '#faad14' : '#f5222d');
 
 const AEODashboard = ({ projectId }) => {
+  const { isDark } = useTheme();
   const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
@@ -173,7 +175,7 @@ const AEODashboard = ({ projectId }) => {
   const recColumns = [
     { title: 'Category', dataIndex: 'category', key: 'category', render: c => <Tag>{c}</Tag> },
     { title: 'Priority', dataIndex: 'priority', key: 'priority', render: p => <Tag color={p === 'Critical' ? 'red' : p === 'High' ? 'orange' : 'blue'}>{p}</Tag> },
-    { title: 'Title', dataIndex: 'title', key: 'title', render: (t, r) => <div><Text strong>{t}</Text><div style={{fontSize: 12, color: '#888'}}>{r.pageUrl || 'Site-wide'}</div></div> },
+    { title: 'Title', dataIndex: 'title', key: 'title', render: (t, r) => <div><Text strong>{t}</Text><div style={{fontSize: 12, color: 'var(--text-secondary)'}}>{r.pageUrl || 'Site-wide'}</div></div> },
     { title: 'Fix', dataIndex: 'suggestedFix', key: 'suggestedFix', render: f => <div style={{maxWidth: 300, whiteSpace: 'pre-wrap', fontSize: 12}}>{f}</div> },
     { title: 'Status', dataIndex: 'status', key: 'status', render: s => <Tag color={s === 'Pending' ? 'processing' : s === 'Task Created' ? 'success' : 'default'}>{s}</Tag> }
   ];
@@ -188,7 +190,7 @@ const AEODashboard = ({ projectId }) => {
 
   if (audit.status === 'queued' || audit.status === 'running') {
     return (
-      <Card>
+      <Card style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
         <Space direction="vertical" style={{ width: '100%', alignItems: 'center', padding: '40px 0' }}>
           <Progress type="circle" percent={audit.progress || (audit.status === 'running' ? 10 : 0)} status="active" />
           <Title level={4}>Audit is {audit.status}...</Title>
@@ -209,7 +211,10 @@ const AEODashboard = ({ projectId }) => {
   };
 
   return (
-    <Card extra={<Button type="primary" icon={<PlayCircle size={16}/>} loading={loading} onClick={handleRun}>Re-run Audit</Button>}>
+    <Card
+      style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
+      extra={<Button type="primary" icon={<PlayCircle size={16}/>} loading={loading} onClick={handleRun}>Re-run Audit</Button>}
+    >
       <Tabs defaultActiveKey="1" items={[
         {
           key: '1',
@@ -217,7 +222,7 @@ const AEODashboard = ({ projectId }) => {
           children: (
             <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
-                <Card size="small" title="AEO Readiness">
+                <Card size="small" title="AEO Readiness" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <div style={{textAlign: 'center'}}>
                     <Progress type="dashboard" percent={overallScores.aeo || 0} strokeColor={scoreColor(overallScores.aeo || 0)} />
                     <div>{renderTrend(overallScores.aeo || 0, prevScores.aeo)}</div>
@@ -225,7 +230,7 @@ const AEODashboard = ({ projectId }) => {
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card size="small" title="EEAT Signal">
+                <Card size="small" title="EEAT Signal" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <div style={{textAlign: 'center'}}>
                     <Progress type="dashboard" percent={overallScores.eeat || 0} strokeColor={scoreColor(overallScores.eeat || 0)} />
                     <div>{renderTrend(overallScores.eeat || 0, prevScores.eeat)}</div>
@@ -233,7 +238,7 @@ const AEODashboard = ({ projectId }) => {
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card size="small" title="Citation Likelihood">
+                <Card size="small" title="Citation Likelihood" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <div style={{textAlign: 'center'}}>
                     <Progress type="dashboard" percent={overallScores.citation || 0} strokeColor={scoreColor(overallScores.citation || 0)} />
                     <div>{renderTrend(overallScores.citation || 0, prevScores.citation)}</div>
@@ -241,7 +246,7 @@ const AEODashboard = ({ projectId }) => {
                 </Card>
               </Col>
               <Col span={24}>
-                <Card size="small" title="Executive Summary">
+                <Card size="small" title="Executive Summary" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
                   <Paragraph>{audit.summary || 'No summary available.'}</Paragraph>
                 </Card>
               </Col>
@@ -270,7 +275,7 @@ const AEODashboard = ({ projectId }) => {
           label: <Badge count={recommendations.filter(r=>r.status==='Pending').length} offset={[10, 0]}>Recommendations</Badge>,
           children: (
             <div>
-              <div style={{marginBottom: 16, display: 'flex', justifyContent: 'space-between'}}>
+              <div style={{marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8}}>
                 <Button onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/seo-workspace/projects/${projectId}/aeo-agent/${audit._id}/export?token=${localStorage.getItem('token')}`)} type="default">Export CSV</Button>
                 <Button type="primary" onClick={handleApproveAll} loading={loading}>Approve All Pending</Button>
               </div>
@@ -289,7 +294,7 @@ const AEODashboard = ({ projectId }) => {
       >
         {detailLoading ? <div style={{textAlign: 'center', padding: 50}}><Progress type="circle" percent={50} status="active" /></div> : (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-            <Card size="small" title="Entities Extracted">
+            <Card size="small" title="Entities Extracted" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
               {entityGraph?.nodes?.length ? (
                 <Space wrap>
                   {entityGraph.nodes.map(n => (
@@ -299,7 +304,7 @@ const AEODashboard = ({ projectId }) => {
               ) : <Text type="secondary">No entities extracted.</Text>}
             </Card>
 
-            <Card size="small" title="Simulations (AI Platforms)">
+            <Card size="small" title="Simulations (AI Platforms)" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
               {simulations.length ? (
                 <Collapse ghost items={simulations.map(sim => ({
                   key: sim.platform,
@@ -325,17 +330,26 @@ const AEOTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <MessageCircle size={28} />
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {activeProject ? `${activeProject.name} — AEO Dashboard` : 'AEO Dashboard'}
-          </Title>
-          <Text type="secondary">Answer Engine Optimization — Measure Readiness for AI Overviews, ChatGPT, Gemini</Text>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, #13c2c2 0%, #52c41a 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <MessageCircle size={24} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>
+              {activeProject ? `${activeProject.name} — AEO Dashboard` : 'AEO Dashboard'}
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              Answer Engine Optimization — Measure Readiness for AI Overviews, ChatGPT, Gemini
+            </Text>
+          </div>
         </div>
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
-
-      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {!projectId ? (
         <Empty description="Select or create a Workspace Project to view the AEO Dashboard" />

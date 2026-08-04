@@ -19,6 +19,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { competitorIntelligenceApi } from '../../../../api/competitorIntelligenceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
@@ -28,15 +29,7 @@ const { Option } = Select;
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const THREAT_COLORS   = { minimal: '#d9d9d9', low: '#52c41a', medium: '#faad14', high: '#f5222d', critical: '#820014' };
-const THREAT_BG       = { minimal: '#fafafa', low: '#f6ffed', medium: '#fffbe6', high: '#fff1f0', critical: '#fff0f6' };
 const STATUS_COLORS   = { Suggested: 'gold', Approved: 'green', Rejected: 'red' };
-const BUCKET_META     = {
-  quick_win:  { label: 'Quick Win',  color: '#52c41a', bg: '#f6ffed', icon: Zap,       order: 0 },
-  easy_win:   { label: 'Easy Win',   color: '#1677ff', bg: '#e6f4ff', icon: Target,    order: 1 },
-  medium:     { label: 'Medium',     color: '#faad14', bg: '#fffbe6', icon: Activity,  order: 2 },
-  hard:       { label: 'Hard',       color: '#f5222d', bg: '#fff1f0', icon: Flame,     order: 3 },
-  long_term:  { label: 'Long Term',  color: '#722ed1', bg: '#f9f0ff', icon: Star,      order: 4 }
-};
 const CHART_COLORS    = ['#1677ff','#52c41a','#faad14','#f5222d','#722ed1','#13c2c2'];
 const GAP_TYPE_LABELS = {
   keyword_gap: 'Keyword Gap', content_gap: 'Content Gap',
@@ -167,7 +160,17 @@ const EmptyState = ({ icon: Icon = Globe, title, desc, action }) => (
 
 // ── Main Component ───────────────────────────────────────────────────────────
 const CompetitorsTab = () => {
+  const { isDark } = useTheme();
   const { activeProjectId: projectId, activeProject } = useSEO();
+
+  const BUCKET_META = useMemo(() => ({
+    quick_win:  { label: 'Quick Win',  color: '#52c41a', bg: isDark ? 'rgba(82, 196, 26, 0.12)' : '#f6ffed', icon: Zap,       order: 0 },
+    easy_win:   { label: 'Easy Win',   color: '#1677ff', bg: isDark ? 'rgba(22, 119, 255, 0.12)' : '#e6f4ff', icon: Target,    order: 1 },
+    medium:     { label: 'Medium',     color: '#faad14', bg: isDark ? 'rgba(250, 173, 20, 0.12)' : '#fffbe6', icon: Activity,  order: 2 },
+    hard:       { label: 'Hard',       color: '#f5222d', bg: isDark ? 'rgba(245, 34, 45, 0.12)' : '#fff1f0', icon: Flame,     order: 3 },
+    long_term:  { label: 'Long Term',  color: '#722ed1', bg: isDark ? 'rgba(114, 46, 209, 0.12)' : '#f9f0ff', icon: Star,      order: 4 }
+  }), [isDark]);
+
   const [activeTab, setActiveTab] = useState('overview');
 
   // Agent discovery state (existing functionality)
@@ -570,9 +573,9 @@ const CompetitorsTab = () => {
 
         {agentResult?.summary && (
           <div style={{
-            background: 'linear-gradient(135deg, #e6f4ff 0%, #f0f5ff 100%)',
+            background: isDark ? 'linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(22, 119, 255, 0.05) 100%)' : 'linear-gradient(135deg, #e6f4ff 0%, #f0f5ff 100%)',
             borderRadius: 8, padding: '12px 16px', marginBottom: 16,
-            border: '1px solid #bae0ff'
+            border: isDark ? '1px solid rgba(22, 119, 255, 0.3)' : '1px solid #bae0ff'
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <Brain size={16} style={{ color: '#1677ff', marginTop: 2, flexShrink: 0 }} />
@@ -736,17 +739,17 @@ const CompetitorsTab = () => {
             <div style={{ marginBottom: 16 }}>
               <Row gutter={[12, 12]}>
                 <Col xs={24} sm={8}>
-                  <Card size="small" bordered={false} style={{ background: '#f0f5ff', borderRadius: 8, overflow: 'hidden' }}>
+                  <Card size="small" bordered={false} style={{ background: isDark ? 'rgba(22, 119, 255, 0.12)' : '#f0f5ff', border: isDark ? '1px solid rgba(22, 119, 255, 0.3)' : undefined, borderRadius: 8, overflow: 'hidden' }}>
                     <Statistic title="Total Gaps Found" value={gapResult.rows?.length || 0} valueStyle={{ color: '#1677ff', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <Card size="small" bordered={false} style={{ background: '#f6ffed', borderRadius: 8, overflow: 'hidden' }}>
+                  <Card size="small" bordered={false} style={{ background: isDark ? 'rgba(82, 196, 26, 0.12)' : '#f6ffed', border: isDark ? '1px solid rgba(82, 196, 26, 0.3)' : undefined, borderRadius: 8, overflow: 'hidden' }}>
                     <Statistic title="Avg Search Volume" value={formatCompact(Math.round((gapResult.rows || []).reduce((s, r) => s + (r.searchVolume || 0), 0) / Math.max(1, gapResult.rows?.length || 1)))} valueStyle={{ color: '#52c41a', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <Card size="small" bordered={false} style={{ background: '#fff7e6', borderRadius: 8, overflow: 'hidden' }}>
+                  <Card size="small" bordered={false} style={{ background: isDark ? 'rgba(250, 140, 22, 0.12)' : '#fff7e6', border: isDark ? '1px solid rgba(250, 140, 22, 0.3)' : undefined, borderRadius: 8, overflow: 'hidden' }}>
                     <Statistic title="Competitors Analyzed" value={gapResult.domains?.length - 1 || 0} valueStyle={{ color: '#fa8c16', fontSize: 'clamp(18px, 1.4vw, 24px)' }} />
                   </Card>
                 </Col>
@@ -954,9 +957,9 @@ const CompetitorsTab = () => {
                 size="small"
                 bordered={false}
                 style={{
-                  background: '#f0f5ff',
+                  background: isDark ? 'rgba(22, 119, 255, 0.12)' : '#f0f5ff',
                   borderRadius: 12,
-                  border: '1px solid #bae0ff',
+                  border: isDark ? '1px solid rgba(22, 119, 255, 0.3)' : '1px solid #bae0ff',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
