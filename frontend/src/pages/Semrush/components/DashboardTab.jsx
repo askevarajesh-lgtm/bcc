@@ -4,12 +4,16 @@ import { Trophy, TrendingUp, Globe, Link as LinkIcon, AlertCircle, CheckCircle2,
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useOutletContext, useNavigate } from 'react-router-dom';
+import { Button, message, Spin } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
+import { semrushApi } from '../../../api/semrushApi';
 import './DashboardTab.css';
 
 const { Title, Text } = Typography;
 
 const DashboardTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, setProjectData } = useOutletContext();
+  const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
   const domain = project?.domain;
   const data = projectData?.overview || {};
@@ -33,8 +37,38 @@ const DashboardTab = () => {
   const topKeywords = keywords.slice(0, 3);
   const healthScore = health.score || 0;
 
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      const res = await semrushApi.refreshProject(project._id, 'us');
+      if (res.data.success) {
+        setProjectData(res.data.data);
+        message.success('Dashboard data audited successfully!');
+      }
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to audit dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '40px' }}><Spin size="large" /></div>;
+  }
+
   return (
     <div className="semrush-dashboard-container">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, padding: '0 12px' }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Executive Summary</Title>
+          <Text type="secondary">High-level overview of your Semrush metrics.</Text>
+        </div>
+        <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
+          Audit Dashboard
+        </Button>
+      </div>
+
       <AnimatePresence mode="wait">
         {projectData ? (
           <motion.div 
@@ -263,7 +297,10 @@ const DashboardTab = () => {
             className="semrush-empty-state"
           >
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
-            <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from Semrush.</Text>
+            <Text type="secondary">Click the 'Audit Dashboard' button above to fetch the latest insights from Semrush.</Text>
+            <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} style={{ marginTop: 16 }} size="large">
+              Audit Dashboard Data Now
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

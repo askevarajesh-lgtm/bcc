@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Typography, Table, Tag, Progress, Tooltip } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink } from 'lucide-react';
+import { ReloadOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import './DashboardTab.css'; 
@@ -11,7 +12,30 @@ const { Title, Text } = Typography;
 const OrganicKeywordsTab = () => {
   const { project, projectData } = useOutletContext();
   const domain = project?.domain;
-  const data = projectData?.organicKeywords || [];
+  const [data, setData] = React.useState(projectData?.organicKeywords || []);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (projectData?.organicKeywords && data.length === 0) {
+      setData(projectData.organicKeywords);
+    }
+  }, [projectData]);
+
+  const handleAudit = async () => {
+    if (!domain) return;
+    try {
+      setLoading(true);
+      const { semrushApi } = await import('../../../api/semrushApi');
+      const res = await semrushApi.getDomainKeywordsDrilldown(domain, 100, true);
+      if (res) {
+        setData(res);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
     { 
@@ -202,9 +226,14 @@ const OrganicKeywordsTab = () => {
                 <Title level={3} style={{ margin: 0 }}>Organic Keywords for <span style={{ color: '#722ed1' }}>{domain}</span></Title>
                 <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
               </div>
-              <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
-                Export
-              </Button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
+                  Audit Data
+                </Button>
+                <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+                  Export
+                </Button>
+              </div>
             </div>
 
             <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -212,6 +241,7 @@ const OrganicKeywordsTab = () => {
                 dataSource={data}
                 columns={columns}
                 rowKey="key"
+                loading={loading}
                 pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} keywords` }}
                 size="middle"
                 style={{ margin: 0 }}
@@ -228,7 +258,10 @@ const OrganicKeywordsTab = () => {
           >
             <BarChart2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Organic Keywords Data Available</Title>
-            <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from Semrush.</Text>
+            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Audit Data' button to fetch the latest insights from Semrush.</Text>
+            <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading}>
+              Audit Data
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

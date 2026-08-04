@@ -1,37 +1,37 @@
 import api from '../services/api';
 
 export const semrushApi = {
-  getDomainOverview: async (domain, database = 'us') => {
+  getDomainOverview: async (domain, database = 'us', force = false) => {
     const response = await api.get('/semrush/domain-overview', {
-      params: { domain, database }
+      params: { domain, database, force }
     });
     return response.data.data;
   },
 
-  getKeywordResearch: async (keyword, database = 'us') => {
+  getKeywordResearch: async (keyword, database = 'us', force = false) => {
     const response = await api.get('/semrush/keyword-research', {
-      params: { keyword, database }
+      params: { keyword, database, force }
     });
     return response.data.data;
   },
 
-  getBacklinksOverview: async (domain) => {
+  getBacklinksOverview: async (domain, force = false) => {
     const response = await api.get('/semrush/backlinks', {
-      params: { domain }
+      params: { domain, force }
     });
     return response.data.data;
   },
 
-  getSiteHealth: async (domain) => {
+  getSiteHealth: async (domain, database = 'us', force = false) => {
     const response = await api.get('/semrush/site-health', {
-      params: { domain }
+      params: { domain, database, force }
     });
     return response.data.data;
   },
 
-  getDomainKeywordsDrilldown: async (domain, limit = 100) => {
+  getDomainKeywordsDrilldown: async (domain, limit = 100, force = false) => {
     const response = await api.get('/semrush/domain-keywords-drilldown', {
-      params: { domain, limit }
+      params: { domain, limit, force }
     });
     return response.data.data;
   },
@@ -56,5 +56,26 @@ export const semrushApi = {
       params: { database }
     });
     return response;
+  },
+
+  getCompetitorAnalysis: async (domain, database = 'us', limit = 20, force = false) => {
+    const response = await api.get('/semrush/competitor-analysis', {
+      params: { domain, database, limit, force }
+    });
+    return response.data.data;
+  },
+
+  getTrafficAnalytics: async (domain, force = false) => {
+    const response = await api.get('/semrush/traffic-analytics', {
+      params: { domain, force }
+    });
+    return response.data.data;
+  },
+
+  getKeywordMagicTool: async (keyword, database = 'us', matchType = 'phrase', force = false) => {
+    const response = await api.get('/semrush/keyword-magic-tool', {
+      params: { keyword, database, matchType, force }
+    });
+    return response.data.data;
   }
 };

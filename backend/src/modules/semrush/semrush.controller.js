@@ -1,4 +1,5 @@
 
+const mongoose = require('mongoose');
 const semrushService = require('./semrush.service');
 const trackingService = require('./semrush.tracking');
 const SemrushProject = require('./models/semrushProject.model');
@@ -43,7 +44,7 @@ exports.createProject = async (req, res) => {
   }
 };
 
-const mongoose = require('mongoose');
+
 
 exports.getProjectById = async (req, res) => {
   try {
@@ -168,10 +169,57 @@ exports.configureTracking = async (req, res) => {
     // limit keywords to 100 max
     const limitedKeywords = (keywords || []).slice(0, 100);
 
-    const project = await SemrushProject.findOneAndUpdate(
+    // Fetch project from DB first to get the domain
+    let project = await SemrushProject.findOne({ _id: id, companyId: req.companyId });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    let semrushProjectId = project.semrushProjectId;
+    let semrushCampaignId = project.semrushCampaignId;
+
+    // Connect to Semrush Management API
+    try {
+      if (!semrushProjectId) {
+        const srProjects = await semrushService.getProjects();
+        const existing = srProjects.find(p => p.url === project.domain || p.project_name === project.domain);
+        if (existing) {
+          semrushProjectId = existing.project_id;
+        } else {
+          const newProj = await semrushService.createProject(project.domain);
+          if (newProj && newProj.project_id) {
+            semrushProjectId = newProj.project_id;
+          }
+        }
+      }
+
+      if (semrushProjectId && !semrushCampaignId) {
+        const campaigns = await semrushService.getTrackingCampaigns(semrushProjectId);
+        if (campaigns && campaigns.length > 0) {
+          semrushCampaignId = campaigns[0].id; // Just pick the first tracking campaign
+        } else {
+          // Default to US (2840) or India (2356) based on location param if possible
+          const locId = location === 'in' ? 2356 : 2840;
+          await semrushService.enableTrackingCampaign(semrushProjectId, project.domain, locId);
+          // Wait a moment and fetch campaigns again to get the generated ID
+          await new Promise(r => setTimeout(r, 2000));
+          const newCampaigns = await semrushService.getTrackingCampaigns(semrushProjectId);
+          if (newCampaigns && newCampaigns.length > 0) {
+            semrushCampaignId = newCampaigns[0].id;
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.error('[Semrush Controller - Sync API Error]', apiErr.message);
+      // We log but continue, ensuring the local DB is updated at least
+    }
+
+    project = await SemrushProject.findOneAndUpdate(
       { _id: id, companyId: req.companyId },
       { 
         $set: {
+          semrushProjectId: semrushProjectId,
+          semrushCampaignId: semrushCampaignId,
           trackingConfig: {
             isActive: true,
             searchEngine: 'Google',
@@ -189,8 +237,14 @@ exports.configureTracking = async (req, res) => {
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
+
+    // Sync keywords to Semrush campaign in the background (do not block response)
+    if (semrushCampaignId && limitedKeywords.length > 0) {
+      semrushService.syncKeywordsToCampaign(semrushCampaignId, limitedKeywords)
+        .catch(err => console.error('[configureTracking] Keyword sync failed:', err.message));
+    }
     
-    res.status(200).json({ success: true, message: 'Tracking configured', data: project });
+    res.status(200).json({ success: true, message: 'Tracking configured. Keywords synced to Semrush — rankings will appear within 24 hours.', data: project });
   } catch (error) {
     console.error('[Semrush Controller - configureTracking]', error);
     res.status(500).json({ success: false, message: error.message });
@@ -215,8 +269,9 @@ exports.getPositionTracking = async (req, res) => {
     const domain = project.domain;
     const database = project.trackingConfig.location || 'us';
     const keywords = project.trackingConfig.keywords || [];
+    const campaignId = project.semrushCampaignId;
     
-    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords);
+    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId);
     
     res.status(200).json({ 
       success: true, 
@@ -235,12 +290,12 @@ exports.getPositionTracking = async (req, res) => {
 // Legacy Endpoints
 exports.getDomainOverview = async (req, res) => {
   try {
-    const { domain, database } = req.query;
+    const { domain, database, force } = req.query;
     if (!domain) {
       return res.status(400).json({ success: false, message: 'Domain is required' });
     }
     
-    const data = await semrushService.getDomainOverview(domain, database);
+    const data = await semrushService.getDomainOverview(domain, database, force === 'true');
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error('[Semrush Controller - getDomainOverview]', error);
@@ -250,12 +305,12 @@ exports.getDomainOverview = async (req, res) => {
 
 exports.getKeywordResearch = async (req, res) => {
   try {
-    const { keyword, database } = req.query;
+    const { keyword, database, force } = req.query;
     if (!keyword) {
       return res.status(400).json({ success: false, message: 'Keyword is required' });
     }
     
-    const data = await semrushService.getKeywordResearch(keyword, database);
+    const data = await semrushService.getKeywordResearch(keyword, database, force === 'true');
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error('[Semrush Controller - getKeywordResearch]', error);
@@ -265,12 +320,12 @@ exports.getKeywordResearch = async (req, res) => {
 
 exports.getBacklinksOverview = async (req, res) => {
   try {
-    const { domain } = req.query;
+    const { domain, force } = req.query;
     if (!domain) {
       return res.status(400).json({ success: false, message: 'Domain is required' });
     }
     
-    const data = await semrushService.getBacklinksOverview(domain);
+    const data = await semrushService.getBacklinksOverview(domain, force === 'true');
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error('[Semrush Controller - getBacklinksOverview]', error);
@@ -280,12 +335,12 @@ exports.getBacklinksOverview = async (req, res) => {
 
 exports.getSiteHealth = async (req, res) => {
   try {
-    const { domain } = req.query;
+    const { domain, database, force } = req.query;
     if (!domain) {
       return res.status(400).json({ success: false, message: 'Domain is required' });
     }
     
-    const data = await semrushService.getSiteHealth(domain);
+    const data = await semrushService.getSiteHealth(domain, database || 'us', force === 'true');
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error('[Semrush Controller - getSiteHealth]', error);
@@ -295,15 +350,60 @@ exports.getSiteHealth = async (req, res) => {
 
 exports.getDomainKeywordsDrilldown = async (req, res) => {
   try {
-    const { domain, limit } = req.query;
+    const { domain, limit, force } = req.query;
     if (!domain) {
       return res.status(400).json({ success: false, message: 'Domain is required' });
     }
     
-    const data = await semrushService.getDomainKeywordsDrilldown(domain, 'us', limit ? parseInt(limit) : 100);
+    const data = await semrushService.getDomainKeywordsDrilldown(domain, 'us', limit ? parseInt(limit) : 100, force === 'true');
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error('[Semrush Controller - getDomainKeywordsDrilldown]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getCompetitorAnalysis = async (req, res) => {
+  try {
+    const { domain, database, limit, force } = req.query;
+    if (!domain) {
+      return res.status(400).json({ success: false, message: 'Domain is required' });
+    }
+    
+    const data = await semrushService.getCompetitorAnalysis(domain, database || 'us', limit ? parseInt(limit) : 20, force === 'true');
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('[Semrush Controller - getCompetitorAnalysis]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getTrafficAnalytics = async (req, res) => {
+  try {
+    const { domain, force } = req.query;
+    if (!domain) {
+      return res.status(400).json({ success: false, message: 'Domain is required' });
+    }
+    
+    const data = await semrushService.getTrafficAnalytics(domain, force === 'true');
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('[Semrush Controller - getTrafficAnalytics]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getKeywordMagicTool = async (req, res) => {
+  try {
+    const { keyword, database, matchType, force } = req.query;
+    if (!keyword) {
+      return res.status(400).json({ success: false, message: 'Keyword is required' });
+    }
+    
+    const data = await semrushService.getKeywordMagicTool(keyword, database || 'us', matchType || 'phrase', force === 'true');
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('[Semrush Controller - getKeywordMagicTool]', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

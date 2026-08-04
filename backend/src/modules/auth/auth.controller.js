@@ -47,7 +47,8 @@ exports.signin = async (req, res, next) => {
 
     const user = await User.findOne({ email })
       .populate('agencyId', 'companyName name logo status theme')
-      .populate('brandId', 'companyName name logo status features theme');
+      .populate('brandId', 'companyName name logo status features theme')
+      .populate('adminId', 'status');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
     }
@@ -56,7 +57,8 @@ exports.signin = async (req, res, next) => {
     if (
       isBlocked(user.status) || 
       (user.agencyId && isBlocked(user.agencyId.status)) ||
-      (user.brandId && isBlocked(user.brandId.status))
+      (user.brandId && isBlocked(user.brandId.status)) ||
+      (user.adminId && isBlocked(user.adminId.status))
     ) {
       return res.status(403).json({ success: false, error: 'Your account or organization has been suspended or is inactive. Please contact your Administrator for further assistance.' });
     }
@@ -190,7 +192,8 @@ exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('agencyId', 'companyName name logo status theme')
-      .populate('brandId', 'companyName name logo domain contactEmail industry features theme');
+      .populate('brandId', 'companyName name logo domain contactEmail industry features theme')
+      .populate('adminId', 'status');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -200,7 +203,8 @@ exports.me = async (req, res, next) => {
     if (
       isBlocked(user.status) || 
       (user.agencyId && isBlocked(user.agencyId.status)) ||
-      (user.brandId && isBlocked(user.brandId.status))
+      (user.brandId && isBlocked(user.brandId.status)) ||
+      (user.adminId && isBlocked(user.adminId.status))
     ) {
       return res.status(403).json({ success: false, error: 'Your account or organization has been suspended or is inactive. Please contact your Administrator for further assistance.' });
     }
@@ -297,7 +301,8 @@ exports.impersonate = async (req, res, next) => {
 
     const user = await User.findById(targetUserId)
       .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo status features');
+      .populate('brandId', 'companyName name logo status features')
+      .populate('adminId', 'status');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found.' });
@@ -307,7 +312,8 @@ exports.impersonate = async (req, res, next) => {
     if (
       isBlocked(user.status) || 
       (user.agencyId && isBlocked(user.agencyId.status)) ||
-      (user.brandId && isBlocked(user.brandId.status))
+      (user.brandId && isBlocked(user.brandId.status)) ||
+      (user.adminId && isBlocked(user.adminId.status))
     ) {
       return res.status(403).json({ success: false, error: 'The target account or organization has been suspended or is inactive.' });
     }

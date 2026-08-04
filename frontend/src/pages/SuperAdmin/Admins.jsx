@@ -9,6 +9,7 @@ const { Option } = Select;
 
 const Admins = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form] = Form.useForm();
   const [adminsData, setAdminsData] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -26,13 +27,16 @@ const Admins = () => {
       setAdminsData(usersRes.data.data.map(item => ({
         key: item._id,
         _id: item._id,
-        name: item.email.split('@')[0], // Mocking name from email since user model doesn't have name
+        name: item.name || item.email.split('@')[0],
         email: item.email,
+        phone: item.phone,
+        company: item.agencyId || item.brandId,
         role: item.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        status: 'Active', // Mocking status as User model doesn't have it
+        rawRole: item.role,
+        status: (item.status === 'inactive' || item.status === 'suspended') ? 'Inactive' : 'Active',
         lastLogin: new Date(item.updatedAt).toLocaleDateString(),
         addedOn: new Date(item.createdAt).toLocaleDateString(),
-        initial: item.email.charAt(0).toUpperCase()
+        initial: (item.name ? item.name.charAt(0) : item.email.charAt(0)).toUpperCase()
       })));
     } catch (error) {
       message.error('Failed to fetch admins');
@@ -55,25 +59,58 @@ const Admins = () => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreateOrUpdate = async () => {
     try {
       const values = await form.validateFields();
-      const newUser = {
+      const payload = {
+        name: values.name,
         email: values.email,
-        password: values.password,
+        phone: values.phone,
         role: values.role,
-        agencyId: values.company
+        status: values.status === 'inactive' ? 'inactive' : 'active'
       };
-      await api.post('/users', newUser);
-      message.success('Admin created successfully');
+      if (values.company) payload.agencyId = values.company;
+      if (values.password) payload.password = values.password;
+
+      if (editId) {
+        await api.put(`/users/${editId}`, payload);
+        message.success('Admin updated successfully');
+      } else {
+        await api.post('/users', payload);
+        message.success('Admin created successfully');
+      }
       setIsModalOpen(false);
+      setEditId(null);
       form.resetFields();
       fetchData();
     } catch (error) {
       if (error.response) {
-        message.error('Failed to create admin: ' + (error.response.data.message || error.message));
+        message.error(`Failed to ${editId ? 'update' : 'create'} admin: ` + (error.response.data.message || error.message));
       }
     }
+  };
+
+  const handleStatusChange = async (id, status) => {
+    try {
+      await api.put(`/users/${id}`, { status });
+      message.success(`Account ${status === 'active' ? 'activated' : 'deactivated'} successfully`);
+      fetchData();
+    } catch (error) {
+      message.error(`Failed to ${status === 'active' ? 'activate' : 'deactivate'} account`);
+    }
+  };
+
+  const handleEdit = (record) => {
+    setEditId(record._id);
+    form.setFieldsValue({
+      name: record.name,
+      email: record.email,
+      phone: record.phone,
+      company: record.company,
+      role: record.rawRole || record.role.toLowerCase().replace(/ /g, '_'),
+      status: record.status.toLowerCase()
+    });
+    setIsModalOpen(true);
   };
 
   const getActionMenu = (record) => [
@@ -88,6 +125,12 @@ const Admins = () => {
   const handleMenuClick = (e, record) => {
     if (e.key === 'delete') {
       handleDelete(record._id);
+    } else if (e.key === 'deactivate') {
+      handleStatusChange(record._id, 'inactive');
+    } else if (e.key === 'activate') {
+      handleStatusChange(record._id, 'active');
+    } else if (e.key === 'edit') {
+      handleEdit(record);
     }
   };
 
@@ -166,7 +209,11 @@ const Admins = () => {
           type="primary" 
           icon={<Plus size={18} />} 
           style={{ background: 'var(--accent-primary)', height: 44, borderRadius: 8, fontWeight: 600 }}
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setEditId(null);
+            form.resetFields();
+            setIsModalOpen(true);
+          }}
         >
           Add Admin
         </Button>
@@ -209,9 +256,9 @@ const Admins = () => {
       </motion.div>
 
       <Modal
-        title={<span style={{ fontWeight: 700, fontSize: 18 }}>Add New Admin User</span>}
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}>{editId ? 'Edit Admin User' : 'Add New Admin User'}</span>}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => { setIsModalOpen(false); setEditId(null); form.resetFields(); }}
         footer={null}
         className="glass-modal"
         centered
@@ -230,8 +277,8 @@ const Admins = () => {
             <Input placeholder="+1234567890" style={{ borderRadius: 8 }} />
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true }]}>
-            <Input.Password placeholder="Enter secure password" style={{ borderRadius: 8 }} />
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: !editId, message: 'Password is required' }]}>
+            <Input.Password placeholder={editId ? "Leave blank to keep unchanged" : "Enter secure password"} style={{ borderRadius: 8 }} />
           </Form.Item>
           
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Associated Company</Text>} name="company" rules={[{ required: true, message: 'Please select a company' }]}>
@@ -257,8 +304,10 @@ const Admins = () => {
           </Form.Item>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
-            <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
-            <Button type="primary" onClick={handleCreate} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>Create Admin</Button>
+            <Button onClick={() => { setIsModalOpen(false); setEditId(null); form.resetFields(); }} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
+            <Button type="primary" onClick={handleCreateOrUpdate} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>
+              {editId ? 'Update Admin' : 'Create Admin'}
+            </Button>
           </div>
         </Form>
       </Modal>

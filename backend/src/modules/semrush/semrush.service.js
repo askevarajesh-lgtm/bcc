@@ -1,5 +1,6 @@
 const axios = require('axios');
 const SemrushCache = require('./semrushCache.model');
+const SemrushSyncLog = require('./models/semrushSyncLog.model');
 
 class SemrushService {
   constructor() {
@@ -10,47 +11,83 @@ class SemrushService {
    * Helper to fetch data with caching
    * @param {string} queryKey Unique key for the cache
    * @param {Object} params Query parameters for the Semrush API
-   * @param {string} [overrideBaseUrl] Optional URL to override the default baseUrl
+   * @param {boolean} [force=false] Force bypassing the cache
    * @returns {Promise<Object>} The JSON data
    */
-  async fetchWithCache(queryKey, params, overrideBaseUrl = null) {
+  async fetchWithCache(queryKey, params, overrideBaseUrl = null, force = false) {
     const apiKey = process.env.SEMRUSH_API_KEY;
     if (!apiKey) {
       throw new Error('SEMRUSH_API_KEY is not defined in environment variables');
     }
 
     try {
-      // 1. Check cache
-      const cachedResult = await SemrushCache.findOne({ queryKey });
-      if (cachedResult) {
-        console.log(`[Semrush] Cache HIT for key: ${queryKey}`);
-        return cachedResult.data;
+      const cached = await SemrushCache.findOne({ queryKey });
+      
+      // If force is false, try to use cache
+      if (!force && cached) {
+        const timestamp = cached.updatedAt || cached.createdAt;
+        const isExpired = !timestamp || (new Date() > new Date(new Date(timestamp).getTime() + (this.cacheDurationHours * 60 * 60 * 1000)));
+        if (!isExpired) {
+          // Silenced Cache HIT log to prevent terminal spam when tracking many keywords
+          return cached.data;
+        }
       }
 
-      console.log(`[Semrush] Cache MISS for key: ${queryKey}, fetching from API...`);
-
-      // 2. Fetch from Semrush
+      // Silenced Cache MISS / FORCED log to prevent terminal spam
+      
+      // If cache missed, expired, or force refresh, fetch from API
       const requestUrl = overrideBaseUrl || this.baseUrl;
       const response = await axios.get(requestUrl, {
         params: {
           key: apiKey,
           ...params
-        }
+        },
+        timeout: 10000 // Add timeout
       });
 
       // 3. Parse Semrush CSV response to JSON
       const parsedData = this.parseCSVToJSON(response.data);
 
       // 4. Save to cache
-      await SemrushCache.create({
-        queryKey,
-        data: parsedData
+      if (force) {
+        await SemrushCache.findOneAndUpdate(
+          { queryKey },
+          { data: parsedData },
+          { upsert: true, returnDocument: 'after' }
+        );
+      } else {
+        await SemrushCache.create({
+          queryKey,
+          data: parsedData
+        });
+      }
+
+      // 5. Log sync success
+      await SemrushSyncLog.create({
+        endpoint: requestUrl,
+        queryKey: queryKey,
+        status: 'success',
+        creditsUsed: 1 // Approximate, depends on endpoint
       });
 
       return parsedData;
     } catch (error) {
       const errorMessage = error.response?.data ? error.response.data.toString() : error.message;
-      console.error(`[Semrush] API Error for ${queryKey}:`, errorMessage);
+      
+      // Only log true unexpected errors, silence known subscription blocks so they don't spam the terminal
+      if (!errorMessage.includes('ERROR 130 :: API DISABLED')) {
+        console.error(`[Semrush] API Error for ${queryKey}:`, errorMessage);
+      }
+      
+      const requestUrl = overrideBaseUrl || this.baseUrl;
+      // Log sync error
+      await SemrushSyncLog.create({
+        endpoint: requestUrl,
+        queryKey: queryKey,
+        status: 'error',
+        errorMessage: errorMessage
+      });
+
       throw new Error(`Semrush API Error: ${errorMessage}`);
     }
   }
@@ -102,7 +139,7 @@ class SemrushService {
     return results;
   }
 
-  async getDomainOverview(domain, database = 'us') {
+  async getDomainOverview(domain, database = 'us', force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `domain_overview_${cleanDomain}_${database}`;
     const params = {
@@ -111,7 +148,7 @@ class SemrushService {
       database: database,
       export_columns: 'Dn,Rk,Or,Ot,Oc,Ad,At,Ac'
     };
-    const overviewData = await this.fetchWithCache(queryKey, params);
+    const overviewData = await this.fetchWithCache(queryKey, params, null, force);
     
     // Fetch historical trend, top keywords, and competitors in parallel
     if (overviewData && overviewData.length > 0) {
@@ -127,9 +164,9 @@ class SemrushService {
 
         try {
             const [trendData, keywordsData, competitorsData] = await Promise.all([
-                this.fetchWithCache(`domain_rank_history_${cleanDomain}_${database}`, trendParams).catch(() => []),
-                this.fetchWithCache(`domain_organic_${cleanDomain}_${database}`, keywordsParams).catch(() => []),
-                this.fetchWithCache(`domain_organic_organic_${cleanDomain}_${database}`, competitorsParams).catch(() => [])
+                this.fetchWithCache(`domain_rank_history_${cleanDomain}_${database}`, trendParams, null, force).catch(() => []),
+                this.fetchWithCache(`domain_organic_${cleanDomain}_${database}`, keywordsParams, null, force).catch(() => []),
+                this.fetchWithCache(`domain_organic_organic_${cleanDomain}_${database}`, competitorsParams, null, force).catch(() => [])
             ]);
             
             if (trendData && trendData.length > 0) {
@@ -264,7 +301,100 @@ class SemrushService {
     return overviewData;
   }
 
-  async getKeywordResearch(keyword, database = 'us') {
+  async getCompetitorAnalysis(domain, database = 'us', limit = 20, force = false) {
+    const cleanDomain = this.cleanDomain(domain);
+    const queryKey = `competitor_analysis_${cleanDomain}_${database}_${limit}`;
+    const params = {
+      type: 'domain_organic_organic',
+      domain: cleanDomain,
+      database: database,
+      export_columns: 'Dn,Cr,Np,Or,Ot,Oc,Ad',
+      display_limit: limit
+    };
+    try {
+      const data = await this.fetchWithCache(queryKey, params, null, force);
+      return data.map(c => ({
+        domain: c.Domain || c.Dn,
+        competitorRelevance: c['Competitor Relevance'] || c.Cr,
+        commonKeywords: c['Common Keywords'] || c.Np,
+        organicKeywords: c['Organic Keywords'] || c.Or,
+        organicTraffic: c['Organic Traffic'] || c.Ot,
+        organicCost: c['Organic Cost'] || c.Oc,
+        adwordsKeywords: c['Adwords Keywords'] || c.Ad
+      }));
+    } catch (error) {
+      console.error(`[Semrush] Failed to fetch competitor analysis for ${domain}`, error);
+      return [];
+    }
+  }
+
+  async getTrafficAnalytics(domain, force = false) {
+    const cleanDomain = this.cleanDomain(domain);
+    const queryKey = `traffic_analytics_${cleanDomain}`;
+    // Requires Traffic Analytics API add-on
+    const params = {
+      targets: cleanDomain,
+      export_columns: 'visits,unique_visitors,page_views,bounce_rate,avg_visit_duration,mobile_share'
+    };
+    try {
+      const result = await this.fetchWithCache(queryKey, params, 'https://api.semrush.com/analytics/ta/api/v3/summary', force);
+      if (result && result.length > 0) return result;
+      throw new Error('Empty result from traffic_summary');
+    } catch (error) {
+      // Intentionally suppressing console.error here so the terminal doesn't get spammed when falling back
+      // console.log(`[Semrush] Traffic Analytics API falling back to domain_ranks due to missing subscription.`);
+      
+      // Fallback to standard domain_ranks (Organic/Paid Traffic) since TA add-on is missing
+      const fallbackParams = {
+        type: 'domain_ranks',
+        domain: cleanDomain,
+        database: 'us',
+        export_columns: 'Dn,Rk,Or,Ot,Oc,Ad,At,Ac'
+      };
+      
+      try {
+        const fallbackData = await this.fetchWithCache(`traffic_analytics_fallback_${cleanDomain}`, fallbackParams, null, force);
+        if (fallbackData && fallbackData.length > 0) {
+           const d = fallbackData[0];
+           const ot = Number(d.Ot || d['Organic Traffic'] || 0);
+           const at = Number(d.At || d['Adwords Traffic'] || 0);
+           return [{
+             visits: ot + at, // Total Search Traffic (Organic + Paid)
+             organic_traffic: ot,
+             paid_traffic: at,
+             isFallback: true
+           }];
+        }
+      } catch (fallbackError) {
+        console.error(`[Semrush] Fallback to domain_ranks also failed:`, fallbackError.message);
+      }
+      return [];
+    }
+  }
+
+  async getKeywordMagicTool(keyword, database = 'us', matchType = 'phrase', force = false) {
+    const queryKey = `keyword_magic_${keyword}_${database}_${matchType}`;
+    
+    let type = 'phrase_related'; // Default to phrase match
+    if (matchType === 'exact') type = 'phrase_this';
+    else if (matchType === 'broad') type = 'phrase_all'; // Broad match
+    
+    const params = {
+      type: type,
+      phrase: keyword,
+      database: database,
+      export_columns: 'Ph,Nq,Cp,Co,Kd,In',
+      display_limit: 100
+    };
+    try {
+      return await this.fetchWithCache(queryKey, params, null, force);
+    } catch (error) {
+      console.error(`[Semrush] Failed to fetch keyword magic tool for ${keyword}`, error);
+      return [];
+    }
+  }
+
+  async getKeywordResearch(keyword, database = 'us', force = false) {
     const isDomainLike = keyword.includes('.') && !keyword.includes(' ');
     
     if (isDomainLike) {
@@ -278,7 +408,7 @@ class SemrushService {
           display_limit: 100
         };
         try {
-            const data = await this.fetchWithCache(queryKey, params);
+            const data = await this.fetchWithCache(queryKey, params, null, force);
             return data.map(item => ({
                 'Keyword': item.Keyword || item.Ph,
                 'Search Volume': item['Search Volume'] || item.Nq,
@@ -301,10 +431,10 @@ class SemrushService {
       export_columns: 'Ph,Nq,Cp,Co,Kd,In,Td',
       display_limit: 100
     };
-    return await this.fetchWithCache(queryKey, params);
+    return await this.fetchWithCache(queryKey, params, null, force);
   }
 
-  async getDomainKeywordsDrilldown(domain, database = 'us', limit = 100) {
+  async getDomainKeywordsDrilldown(domain, database = 'us', limit = 100, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `domain_keywords_drilldown_${cleanDomain}_${database}_${limit}`;
     const params = {
@@ -316,7 +446,7 @@ class SemrushService {
     };
     
     try {
-        const data = await this.fetchWithCache(queryKey, params);
+        const data = await this.fetchWithCache(queryKey, params, null, force);
         // Map to standard clean structure
         return data.map(item => ({
             keyword: item.Keyword || item.Ph,
@@ -336,13 +466,13 @@ class SemrushService {
     }
   }
 
-  async getBacklinksOverview(domain) {
+  async getBacklinksOverview(domain, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const overviewParams = {
       type: 'backlinks_overview',
       target: cleanDomain,
       target_type: 'root_domain',
-      export_columns: 'total,domains_num,ips_num,subnets_num,follows_num,nofollows_num,sponsored_num,ugc_num,texts_num,images_num,forms_num,frames_num,score'
+      export_columns: 'total,domains_num,ips_num,follows_num,nofollows_num,sponsored_num,ugc_num,texts_num,images_num,forms_num,frames_num,score'
     };
     const anchorsParams = {
       type: 'backlinks_anchors',
@@ -391,13 +521,13 @@ class SemrushService {
     
     try {
         const [overview, anchors, refDomains, tlds, geo, pages, rawBacklinks] = await Promise.all([
-          this.fetchWithCache(`backlinks_overview_${cleanDomain}`, overviewParams, baseUrl),
-          this.fetchWithCache(`backlinks_anchors_${cleanDomain}`, anchorsParams, baseUrl),
-          this.fetchWithCache(`backlinks_refdomains_${cleanDomain}`, refDomainsParams, baseUrl),
-          this.fetchWithCache(`backlinks_tld_${cleanDomain}`, tldParams, baseUrl),
-          this.fetchWithCache(`backlinks_geo_${cleanDomain}`, geoParams, baseUrl),
-          this.fetchWithCache(`backlinks_pages_${cleanDomain}`, pagesParams, baseUrl),
-          this.fetchWithCache(`backlinks_raw_${cleanDomain}`, rawBacklinksParams, baseUrl)
+          this.fetchWithCache(`backlinks_overview_${cleanDomain}`, overviewParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_anchors_${cleanDomain}`, anchorsParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_refdomains_${cleanDomain}`, refDomainsParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_tld_${cleanDomain}`, tldParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_geo_${cleanDomain}`, geoParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_pages_${cleanDomain}`, pagesParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_raw_${cleanDomain}`, rawBacklinksParams, baseUrl, force)
         ]);
         
         if (overview && overview.length > 0) {
@@ -478,7 +608,7 @@ class SemrushService {
     }
   }
 
-  async getSiteHealth(domain, database = 'us') {
+  async getSiteHealth(domain, database = 'us', force = false) {
       const cleanDomain = this.cleanDomain(domain);
       
       try {
@@ -501,6 +631,9 @@ class SemrushService {
                   const auditUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/info`;
                   const pagesUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/pages`;
                   
+                  // For Site Audit, we just hit the endpoint directly since it's a real-time status.
+                  // We don't use fetchWithCache here typically because of the /projects/ endpoint format.
+                  // But we should honor force if we wanted to implement caching. Right now it's live anyway.
                   const [response, pagesResponse] = await Promise.all([
                       axios.get(auditUrl, { params: { key: process.env.SEMRUSH_API_KEY } }),
                       axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] }))
@@ -532,7 +665,7 @@ class SemrushService {
                   
                   if (pagesList.length === 0) {
                       try {
-                          const organicData = await this.getDomainOverview(cleanDomain, database);
+                          const organicData = await this.getDomainOverview(cleanDomain, database, force);
                           const keywords = organicData[0]?.topKeywords || [];
                           if (keywords.length > 0) {
                               const uniqueUrls = [...new Set(keywords.map(k => k.url).filter(Boolean))];
@@ -606,124 +739,96 @@ class SemrushService {
           }
 
           // FALLBACK PROXY LOGIC (If no project exists or API fails)
-          const [overviewResult, backlinksResult] = await Promise.all([
-            this.getDomainOverview(cleanDomain, database),
-            this.getBacklinksOverview(cleanDomain)
-          ]);
-
-          const overview = overviewResult?.[0] || {};
-          const backlinks = backlinksResult?.[0] || {};
-
-          const authority = Number(backlinks.score || overview.Rank || 0);
-          const traffic = Number(overview['Organic Traffic'] || overview.Ot || 0);
-          const keywords = Number(overview['Organic Keywords'] || overview.Or || 0);
-          const followLinks = Number(backlinks.follows_num || 0);
-          const nofollowLinks = Number(backlinks.nofollows_num || 0);
-          const totalLinks = followLinks + nofollowLinks;
-
-          let score = 65;
-          if (authority === 0 && traffic === 0 && keywords === 0 && totalLinks === 0) {
-              score = 15;
-          } else {
-              score += Math.min(15, (authority / 60) * 15);
-              score += Math.min(10, (traffic / 5000) * 10);
-              score += Math.min(5, (keywords / 500) * 5);
-              if (totalLinks > 0) {
-                  const followRatio = followLinks / totalLinks;
-                  if (followRatio < 0.3) score -= 10;
-                  else score += Math.min(5, (followRatio / 0.8) * 5);
-              }
-          }
-
-          score = Math.round(score);
-          if (score > 100) score = 100;
-          if (score < 10) score = 10;
-
-          const strengths = [];
-          const weaknesses = [];
-
-          if (authority >= 40) strengths.push({ title: 'Strong Authority', desc: `Domain Authority score is ${authority}` });
-          else if (authority > 0) weaknesses.push({ title: 'Low Authority', desc: `Domain Authority score is only ${authority}` });
-
-          if (traffic >= 1000) strengths.push({ title: 'Good Traffic Volume', desc: `${traffic.toLocaleString()} monthly visitors` });
-          else weaknesses.push({ title: 'Low Organic Traffic', desc: `${traffic.toLocaleString()} monthly visitors indicates low search visibility` });
-
-          if (keywords >= 500) strengths.push({ title: 'Broad Keyword Reach', desc: `Ranking for ${keywords.toLocaleString()} keywords` });
-          else weaknesses.push({ title: 'Limited Keyword Rankings', desc: `Only ranking for ${keywords.toLocaleString()} keywords` });
-
-          if (totalLinks > 0) {
-              const followRatio = followLinks / totalLinks;
-              if (followRatio >= 0.5) strengths.push({ title: 'Healthy Link Profile', desc: `${Math.round(followRatio * 100)}% follow links` });
-              else weaknesses.push({ title: 'Poor Link Ratio', desc: `${Math.round((1 - followRatio) * 100)}% nofollow links limits link equity passing` });
-          } else {
-              weaknesses.push({ title: 'No Backlink Data', desc: 'No inbound links detected' });
-          }
-
-          // Simulate some raw data based on the score so the frontend can render the audit view
-          const pagesCrawled = 100;
-          const healthyPages = Math.round(score);
-          const brokenPages = Math.max(0, Math.round((100 - score) * 0.2));
-          const issuePages = Math.max(0, Math.round((100 - score) * 0.6));
-          const redirectedPages = Math.max(0, Math.round((100 - score) * 0.1));
-          const blockedPages = Math.max(0, 100 - healthyPages - brokenPages - issuePages - redirectedPages);
-          
-          const rawData = {
-              errors: Math.round((100 - score) / 2),
-              warnings: Math.round(100 - score),
-              notices: Math.round((100 - score) * 1.5),
-              pages_crawled: pagesCrawled,
-              healthy: healthyPages,
-              broken: brokenPages,
-              haveIssues: issuePages,
-              redirected: redirectedPages,
-              blocked: blockedPages,
-              defects: {
-                  2: Math.round((100 - score) * 0.1),
-                  8: Math.round((100 - score) * 0.3),
-                  13: Math.round((100 - score) * 0.2),
-                  112: Math.round((100 - score) * 0.4)
-              },
-              crawledPagesList: []
-          };
-          
-          if (overview.topKeywords && overview.topKeywords.length > 0) {
-              const uniqueUrls = [...new Set(overview.topKeywords.map(k => k.url).filter(Boolean))];
-              rawData.crawledPagesList = uniqueUrls.slice(0, 15).map((url, idx) => {
-                  let path = url.replace(/^https?:\/\/[^\/]+/, '');
-                  if (!path || path === '/') path = 'Homepage';
-                  else path = path.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                  
-                  return {
-                      id: idx + 1,
-                      url: url,
-                      title: path,
-                      statusCode: 200,
-                      depth: (url.match(/\//g) || []).length > 2 ? 2 : 1,
-                      errors: Math.random() > 0.7 ? 1 : 0,
-                      warnings: Math.random() > 0.5 ? 1 : 0,
-                      notices: Math.random() > 0.3 ? 1 : 0
-                  };
-              });
-          }
-          
-          if (rawData.crawledPagesList.length === 0) {
-              rawData.crawledPagesList = [
-                  { id: 1, url: `https://${cleanDomain}/`, title: 'Home', statusCode: 200, depth: 1, errors: 0, warnings: 1, notices: 0 },
-                  { id: 2, url: `https://${cleanDomain}/about`, title: 'About Us', statusCode: 200, depth: 2, errors: 0, warnings: 0, notices: 1 },
-                  { id: 3, url: `https://${cleanDomain}/contact`, title: 'Contact', statusCode: 200, depth: 2, errors: 1, warnings: 0, notices: 0 }
-              ];
-          }
-
           return {
-              isBasicHealth: true,
-              overallScore: score,
-              metrics: { authority, traffic, keywords, followLinks, nofollowLinks, totalLinks },
-              insights: { strengths, weaknesses },
-              rawData: rawData
+              isBasicHealth: false,
+              overallScore: null,
+              insights: { strengths: [], weaknesses: [] },
+              rawData: null,
+              error: 'Not Available from Semrush API'
           };
       } catch (err) {
           throw new Error('Failed to fetch Site Health. ' + err.message);
       }
+  }
+  // ---------------------------------------------------------
+  // Position Tracking Management API Wrappers
+  // ---------------------------------------------------------
+
+  async getProjects() {
+    try {
+      const response = await axios.get('https://api.semrush.com/management/v1/projects', {
+        params: { key: process.env.SEMRUSH_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[SemrushService - getProjects]', error.message);
+      return [];
+    }
+  }
+
+  async createProject(domain) {
+    try {
+      const response = await axios.post('https://api.semrush.com/management/v1/projects', {
+        project_name: domain,
+        url: domain
+      }, {
+        params: { key: process.env.SEMRUSH_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[SemrushService - createProject]', error.response ? error.response.data : error.message);
+      return null;
+    }
+  }
+
+  async getTrackingCampaigns(projectId) {
+    try {
+      const response = await axios.get(`https://api.semrush.com/management/v1/projects/${projectId}/tracking/campaigns`, {
+        params: { key: process.env.SEMRUSH_API_KEY }
+      });
+      return response.data.campaigns || [];
+    } catch (error) {
+      console.error('[SemrushService - getTrackingCampaigns]', error.message);
+      return [];
+    }
+  }
+
+  async enableTrackingCampaign(projectId, domain, locationId = 2356) {
+    try {
+      const response = await axios.post(`https://api.semrush.com/management/v1/projects/${projectId}/tracking/enable`, {
+        tracking_url: domain,
+        tracking_url_type: 'rootdomain',
+        location_id: locationId
+      }, {
+        params: { key: process.env.SEMRUSH_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[SemrushService - enableTrackingCampaign]', error.response ? error.response.data : error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Syncs a set of keywords to a Semrush Position Tracking campaign.
+   * Uses PUT /management/v1/projects/{campaignId}/keywords
+   * This endpoint REPLACES all keywords in the campaign with the new list.
+   */
+  async syncKeywordsToCampaign(campaignId, keywords) {
+    if (!campaignId || !keywords || keywords.length === 0) return null;
+    try {
+      const keywordsPayload = keywords.map(kw => ({ keyword: kw.trim() }));
+      const response = await axios.put(
+        `https://api.semrush.com/management/v1/projects/${campaignId}/keywords`,
+        { keywords: keywordsPayload },
+        { params: { key: process.env.SEMRUSH_API_KEY } }
+      );
+      console.log(`[SemrushService] Synced ${keywords.length} keywords to campaign ${campaignId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[SemrushService - syncKeywordsToCampaign]', error.response ? error.response.data : error.message);
+      return null;
+    }
   }
 }
 

@@ -32,9 +32,14 @@ const Semrush = () => {
     const path = location.pathname;
     if (path.includes('/domain-overview')) setActiveTab('domain-overview');
     else if (path.includes('/keyword-research')) setActiveTab('keyword-research');
+    else if (path.includes('/keyword-magic-tool')) setActiveTab('keyword-magic-tool');
     else if (path.includes('/backlinks')) setActiveTab('backlinks');
     else if (path.includes('/organic-keywords')) setActiveTab('organic-keywords');
     else if (path.includes('/site-health')) setActiveTab('site-health');
+    else if (path.includes('/position-tracking')) setActiveTab('position-tracking');
+    else if (path.includes('/competitor-analysis')) setActiveTab('competitor-analysis');
+    else if (path.includes('/traffic-analytics')) setActiveTab('traffic-analytics');
+    else if (path.includes('/reports')) setActiveTab('reports');
     else setActiveTab('dashboard');
   }, [location]);
 
@@ -55,22 +60,7 @@ const Semrush = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      const res = await semrushApi.refreshProject(projectId, selectedDatabase.toLowerCase());
-      if (res.data.success) {
-        message.success('Project data refreshed successfully');
-        setProject(res.data.project);
-        setProjectData(res.data.data);
-      }
-    } catch (error) {
-      console.error(error);
-      message.error('Failed to refresh project data');
-    } finally {
-      setRefreshing(false);
-    }
-  };
+
 
   const handleDatabaseChange = async (val) => {
     setSelectedDatabase(val);
@@ -143,9 +133,6 @@ const Semrush = () => {
 
             <Button type="text" icon={<ShareAltOutlined />} style={{ fontWeight: 500 }} onClick={handleShare}>Share</Button>
             <Button type="text" icon={<ExportOutlined />} style={{ fontWeight: 500 }} onClick={handleExport}>Export</Button>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing} style={{ borderRadius: '8px', fontWeight: 600, boxShadow: '0 4px 12px rgba(24, 144, 255, 0.3)' }}>
-              Refresh Data
-            </Button>
           </div>
         </div>
 
@@ -157,10 +144,14 @@ const Semrush = () => {
             items={[
               { key: 'dashboard', label: 'Dashboard' },
               { key: 'domain-overview', label: 'Domain Overview' },
-              { key: 'organic-keywords', label: 'Organic Keywords' },
-              { key: 'backlinks', label: 'Backlink Analytics' },
+              { key: 'organic-keywords', label: 'Organic Research' },
+              { key: 'keyword-magic-tool', label: 'Keyword Magic' },
               { key: 'position-tracking', label: 'Position Tracking' },
-              { key: 'site-health', label: 'Site Health' },
+              { key: 'competitor-analysis', label: 'Competitor Analysis' },
+              { key: 'backlinks', label: 'Backlinks' },
+              { key: 'site-health', label: 'Site Audit' },
+              // { key: 'traffic-analytics', label: 'Traffic Analytics' },
+              { key: 'reports', label: 'Reports' },
             ]}
           />
         </div>
@@ -176,7 +167,7 @@ const Semrush = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Outlet context={{ project, projectData }} />
+            <Outlet context={{ project, projectData, setProjectData, fetchProjectData }} />
           </motion.div>
         </AnimatePresence>
       </div>

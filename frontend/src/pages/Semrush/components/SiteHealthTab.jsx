@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover } from 'antd';
-import { Download, Share2, Settings, AlertCircle, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover, Spin } from 'antd';
+import { Download, Share2, Settings, AlertCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import './SiteHealthTab.css';
@@ -78,15 +78,43 @@ const IssuePopover = ({ id }) => {
 const SiteHealthTab = () => {
   const { project, projectData } = useOutletContext();
   const domain = project?.domain;
-  const auditData = projectData?.siteHealth?.rawData;
-  const overallScore = projectData?.siteHealth?.overallScore || 0;
+  const [localData, setLocalData] = useState(projectData?.siteHealth);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    if (projectData?.siteHealth && !localData) {
+      setLocalData(projectData.siteHealth);
+    }
+  }, [projectData]);
+
+  const auditData = localData?.rawData;
+  const overallScore = localData?.overallScore || 0;
   const [activeTab, setActiveTab] = useState('overview');
+
+  const handleAudit = async () => {
+    if (!domain) return;
+    try {
+      setLoading(true);
+      const { semrushApi } = await import('../../../api/semrushApi');
+      const res = await semrushApi.getSiteHealth(domain, 'us', true);
+      if (res) {
+        setLocalData(res);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!auditData) {
     return (
       <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
         <Title level={4} style={{ color: '#8c8c8c' }}>No Site Audit Data</Title>
-        <Text>Please refresh project data to run a site audit.</Text>
+        <Text style={{ display: 'block', marginBottom: 16 }}>Click the 'Audit Data' button to fetch the latest insights from Semrush.</Text>
+        <Button type="primary" icon={<RefreshCw size={16} />} onClick={handleAudit} loading={loading}>
+          Audit Data
+        </Button>
       </div>
     );
   }
@@ -122,6 +150,11 @@ const SiteHealthTab = () => {
             <span>Pages crawled: <span style={{ color: '#faad14', fontWeight: 600 }}>{pages_crawled}/100</span></span>
           </div>
         </div>
+        <Space>
+          <Button type="primary" icon={<RefreshCw size={16} style={{ marginRight: 4 }} />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
+            Audit Data
+          </Button>
+        </Space>
       </div>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} />

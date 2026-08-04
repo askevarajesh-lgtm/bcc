@@ -7,6 +7,9 @@ const SemrushProjectSchema = new mongoose.Schema({
   domain: { type: String, required: true, trim: true, index: true },
   name: { type: String, required: true },
   
+  semrushProjectId: { type: String, default: null },
+  semrushCampaignId: { type: String, default: null },
+  
   // Dashboard Metrics
   stats: {
     aiVisibility: { type: Number, default: 0 },
@@ -37,4 +40,4 @@ const SemrushProjectSchema = new mongoose.Schema({
 
 SemrushProjectSchema.index({ companyId: 1, domain: 1 }, { unique: true });
 
-module.exports = mongoose.model('SemrushProject', SemrushProjectSchema, 'semrush_projects');
+module.exports = mongoose.model('SemrushProject', SemrushProjectSchema, 'semrushprojects');

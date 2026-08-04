@@ -42,6 +42,18 @@ const semrushProjectSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  moduleRefreshes: {
+    domainOverview: { type: Date, default: null },
+    organicKeywords: { type: Date, default: null },
+    backlinks: { type: Date, default: null },
+    siteHealth: { type: Date, default: null },
+    positionTracking: { type: Date, default: null },
+  },
+  apiSyncStatus: {
+    status: { type: String, enum: ['idle', 'syncing', 'error'], default: 'idle' },
+    lastError: { type: String, default: null },
+    lastSyncAttempt: { type: Date, default: null }
+  },
   isActive: {
     type: Boolean,
     default: true

@@ -6,13 +6,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, RadarChart, PolarGrid, PolarA
 import { useOutletContext } from 'react-router-dom';
 import '../BacklinksTab.css'; 
 
-const BacklinksOverview = ({ setActiveTab }) => {
+const BacklinksOverview = ({ setActiveTab, localData }) => {
   const { project, projectData } = useOutletContext();
   const domain = project?.domain || 'unknown.com';
   
   // Data sources
-  const overviewData = projectData?.overview || {};
-  const data = projectData?.backlinksOverview || {};
+  const overviewData = localData?.overview || projectData?.overview || {};
+  const data = localData?.backlinksOverview || projectData?.backlinksOverview || {};
   
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0';

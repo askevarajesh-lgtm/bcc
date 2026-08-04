@@ -22,5 +22,8 @@ router.get('/keyword-research', semrushController.getKeywordResearch);
 router.get('/backlinks', semrushController.getBacklinksOverview);
 router.get('/site-health', semrushController.getSiteHealth);
 router.get('/domain-keywords-drilldown', semrushController.getDomainKeywordsDrilldown);
+router.get('/competitor-analysis', semrushController.getCompetitorAnalysis);
+router.get('/traffic-analytics', semrushController.getTrafficAnalytics);
+router.get('/keyword-magic-tool', semrushController.getKeywordMagicTool);
 
 module.exports = router;

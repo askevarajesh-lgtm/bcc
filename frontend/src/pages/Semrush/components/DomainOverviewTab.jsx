@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Typography, Table, Tag, Tooltip, Progress, Space } from 'antd';
-import { InfoCircleOutlined, InfoOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Typography, Table, Tag, Tooltip, Progress, Space, Button } from 'antd';
+import { InfoCircleOutlined, InfoOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, BarChart, Bar } from 'recharts';
@@ -13,8 +13,34 @@ const DomainOverviewTab = () => {
   const { project, projectData } = useOutletContext();
   const navigate = useNavigate();
   const domain = project?.domain || 'unknown.com';
-  const data = projectData?.overview || {};
-  const backlinksData = projectData?.backlinksOverview || {};
+  
+  const [data, setData] = useState(projectData?.overview || {});
+  const [backlinksData, setBacklinksData] = useState(projectData?.backlinksOverview || {});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (projectData?.overview && Object.keys(data).length === 0) setData(projectData.overview);
+    if (projectData?.backlinksOverview && Object.keys(backlinksData).length === 0) setBacklinksData(projectData.backlinksOverview);
+  }, [projectData]);
+
+  const handleAudit = async () => {
+    if (!domain || domain === 'unknown.com') return;
+    try {
+      setLoading(true);
+      const { semrushApi } = await import('../../../api/semrushApi');
+      const [overviewRes, backlinksRes] = await Promise.all([
+        semrushApi.getDomainOverview(domain, 'us', true),
+        semrushApi.getBacklinksOverview(domain, true)
+      ]);
+      
+      if (overviewRes && overviewRes.length > 0) setData(overviewRes[0]);
+      if (backlinksRes && backlinksRes.length > 0) setBacklinksData(backlinksRes[0]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0';
@@ -49,6 +75,12 @@ const DomainOverviewTab = () => {
   return (
     <div className="so-overview-container">
       {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
+          Audit Data
+        </Button>
+      </div>
+
       <div className="so-card">
         <div className="so-card-header" style={{ marginBottom: 12 }}>
           <div className="so-badge" style={{ background: '#e6f7ff', color: 'var(--accent-primary)', fontWeight: 600 }}>SEO</div>

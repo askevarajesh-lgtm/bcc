@@ -40,6 +40,10 @@ import DomainOverviewTab from './pages/Semrush/components/DomainOverviewTab';
 import OrganicKeywordsTab from './pages/Semrush/components/OrganicKeywordsTab';
 import BacklinksTab from './pages/Semrush/components/BacklinksTab';
 import SiteHealthTab from './pages/Semrush/components/SiteHealthTab';
+import KeywordMagicToolTab from './pages/Semrush/components/KeywordMagicToolTab';
+import CompetitorAnalysisTab from './pages/Semrush/components/CompetitorAnalysisTab';
+import TrafficAnalyticsTab from './pages/Semrush/components/TrafficAnalyticsTab';
+import ReportsTab from './pages/Semrush/components/ReportsTab';
 import Content from './pages/Content/Content';
 import AIStudio from './pages/AIStudio/AIStudio';
 import CampaignScheduledPage from './pages/Campaign Scheduled/CampaignScheduledPage';
@@ -318,8 +322,12 @@ const AppRoutes = () => {
             <Route path="domain-overview" element={<DomainOverviewTab />} />
             <Route path="position-tracking" element={<PositionTrackingTab />} />
             <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
+            <Route path="keyword-magic-tool" element={<KeywordMagicToolTab />} />
+            <Route path="competitor-analysis" element={<CompetitorAnalysisTab />} />
             <Route path="backlinks" element={<BacklinksTab />} />
             <Route path="site-health" element={<SiteHealthTab />} />
+            <Route path="traffic-analytics" element={<TrafficAnalyticsTab />} />
+            <Route path="reports" element={<ReportsTab />} />
           </Route>
 
           <Route path="ops/team" element={<Teams />} />
