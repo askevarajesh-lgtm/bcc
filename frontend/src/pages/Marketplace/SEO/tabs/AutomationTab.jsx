@@ -26,22 +26,30 @@ export default function AutomationTab({ projectId: propProjectId }) {
   const effectiveProjectId = propProjectId || contextProjectId;
   const [activeView, setActiveView] = useState('dashboard');
   const [editingWorkflowId, setEditingWorkflowId] = useState(null);
+  const [initialWorkflowData, setInitialWorkflowData] = useState(null);
   const { isDark } = useTheme();
 
-  const handleEditWorkflow = (workflowId) => {
+  const handleEditWorkflow = (workflowId, initialData = null) => {
     setEditingWorkflowId(workflowId);
+    setInitialWorkflowData(initialData);
     setActiveView('editor');
   };
 
   const handleCloseEditor = () => {
     setEditingWorkflowId(null);
+    setInitialWorkflowData(null);
     setActiveView('workflows');
   };
 
   if (activeView === 'editor') {
     return (
       <Suspense fallback={<div style={{ padding: 50, textAlign: 'center' }}><Spin size="large" tip="Loading Visual Workflow Studio..." /></div>}>
-        <WorkflowEditor projectId={effectiveProjectId} workflowId={editingWorkflowId} onClose={handleCloseEditor} />
+        <WorkflowEditor 
+          projectId={effectiveProjectId} 
+          workflowId={editingWorkflowId} 
+          initialData={initialWorkflowData}
+          onClose={handleCloseEditor} 
+        />
       </Suspense>
     );
   }

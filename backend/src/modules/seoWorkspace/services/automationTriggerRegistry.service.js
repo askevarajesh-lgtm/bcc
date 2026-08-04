@@ -1,37 +1,19 @@
+const { getPluginLoader } = require('./automationPluginLoader.service');
 const logger = require('../../aiCore/logger.service');
+
 const TAG = 'AutomationTriggerRegistry';
 
 class AutomationTriggerRegistry {
-  constructor() {
-    this._triggers = new Map();
-  }
-
-  /**
-   * Register a new trigger module
-   * @param {Object} triggerModule - The trigger implementation
-   */
   register(triggerModule) {
-    if (!triggerModule.id) {
-      throw new Error('Invalid trigger module: missing id');
-    }
-
-    // Normalize match/evaluate function
-    if (!triggerModule.evaluate && typeof triggerModule.match === 'function') {
-      triggerModule.evaluate = (eventPayload, config) => triggerModule.match(config, eventPayload);
-    } else if (!triggerModule.evaluate) {
-      triggerModule.evaluate = () => true;
-    }
-
-    this._triggers.set(triggerModule.id, triggerModule);
-    logger.info(TAG, `Registered trigger: ${triggerModule.id}`);
+    getPluginLoader().registerTrigger(triggerModule);
   }
 
   getTrigger(id) {
-    return this._triggers.get(id);
+    return getPluginLoader().getTrigger(id);
   }
 
   listTriggers() {
-    return Array.from(this._triggers.values()).map(t => t.metadata ? t.metadata() : { id: t.id });
+    return getPluginLoader().listTriggers();
   }
 
   async evaluateEvent(eventData) {
@@ -51,19 +33,24 @@ class AutomationTriggerRegistry {
     const versions = await AutomationWorkflowVersion.find({ _id: { $in: activeVersionIds } }).lean();
 
     for (const version of versions) {
-      const triggerNodes = (version.nodes || []).filter(n => n.type === 'trigger');
+      const triggerNodes = (version.nodes || []).filter(n => n.type === 'trigger' || n.data?.type === 'trigger');
       for (const node of triggerNodes) {
-        const triggerId = node.data?.triggerId || node.data?.type || node.id;
-        const triggerImpl = this._triggers.get(triggerId);
+        const triggerId = node.data?.triggerId || node.data?.subtype || node.data?.type || node.id;
+        const triggerImpl = this.getTrigger(triggerId) || this.getTrigger(`trigger_${triggerId}`) || this.getTrigger(triggerId.replace('trigger_', ''));
+        
         if (triggerImpl && typeof triggerImpl.evaluate === 'function') {
-          const isMatch = await triggerImpl.evaluate(eventData, node.data?.config);
-          if (isMatch) {
-            matchedTriggers.push({
-              workflowId: version.workflowId,
-              versionId: version._id,
-              projectId: version.projectId || eventData.projectId,
-              metadata: { nodeId: node.id, triggerId }
-            });
+          try {
+            const isMatch = await triggerImpl.evaluate(eventData, node.data?.config);
+            if (isMatch) {
+              matchedTriggers.push({
+                workflowId: version.workflowId,
+                versionId: version._id,
+                projectId: version.projectId || eventData.projectId,
+                metadata: { nodeId: node.id, triggerId }
+              });
+            }
+          } catch (err) {
+            logger.warn(TAG, `Error evaluating trigger ${triggerId} for workflow ${version.workflowId}: ${err.message}`);
           }
         }
       }

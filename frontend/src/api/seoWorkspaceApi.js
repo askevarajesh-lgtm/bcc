@@ -528,6 +528,11 @@ export const seoWorkspaceApi = {
     const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/history${qs(params)}`, getAuthHeaders());
     return res.data;
   },
+  getAutomationRunLogs: async (projectId, runId) => {
+    const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
+    const res = await axios.get(`${API_URL}/v1/automation/projects/${pid}/history/${runId}/logs`, getAuthHeaders());
+    return res.data;
+  },
   toggleQueueState: async (projectId, isPaused) => {
     const pid = projectId && projectId !== 'undefined' ? projectId : 'default';
     return { success: true, isPaused };

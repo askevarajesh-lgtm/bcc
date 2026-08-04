@@ -31,6 +31,19 @@ class AutomationExecutionEngine {
   }
 
   /**
+   * Runs workflow in simulation / dry-run mode
+   */
+  async simulateWorkflowRun(projectId, workflowId, versionId, mockPayload = {}) {
+    logger.info(TAG, `Starting simulation run for workflow ${workflowId}`);
+    return this.executeWorkflowRun(projectId, workflowId, versionId, {
+      source: 'simulation',
+      isSimulation: true,
+      payload: mockPayload,
+      variables: mockPayload
+    });
+  }
+
+  /**
    * Executes a workflow version DAG
    */
   async executeWorkflowRun(projectId, workflowId, versionId, triggerContext = {}) {
@@ -66,6 +79,7 @@ class AutomationExecutionEngine {
         versionId,
         runId: run._id,
         trigger: triggerContext,
+        isSimulation: Boolean(triggerContext.isSimulation),
         variables: { ...(version.variables || {}), ...(triggerContext.variables || {}) },
         nodeOutputs: {},
         steps: {},
@@ -133,6 +147,7 @@ class AutomationExecutionEngine {
 
       const effectiveType = ((node.data?.type || node.type) || 'action').toLowerCase();
       const nodeName = node.data?.label || node.data?.name || node.id;
+      const subtype = (node.data?.subtype || node.data?.actionId || node.data?.triggerId || '').toLowerCase();
 
       // Create live node execution log
       const log = await AutomationExecutionNodeLog.create({
@@ -149,19 +164,19 @@ class AutomationExecutionEngine {
       let output = null;
 
       try {
-        const subtype = (node.data?.subtype || node.data?.actionId || '').toLowerCase();
         const resolvedConfig = this.resolveVariablesInConfig(node.data?.config || {}, context);
 
-        if (effectiveType === 'trigger' && (subtype.includes('audit') || nodeName.toLowerCase().includes('audit'))) {
-          // If trigger is an audit trigger, invoke the audit executor directly
-          let actionModule = actionRegistry.getAction('run_site_audit') || actionRegistry.getAction('trigger_site_audit');
-          if (actionModule) {
+        if (effectiveType === 'trigger') {
+          // Check if trigger is an active runner
+          let actionModule = actionRegistry.getAction(subtype) ||
+            actionRegistry.getAction(subtype.replace('trigger_', 'run_')) ||
+            actionRegistry.getAction(subtype.replace('trigger_', ''));
+
+          if (actionModule && (subtype.includes('audit') || subtype.includes('crawl'))) {
             output = await actionModule.execute(resolvedConfig, context);
           } else {
             output = { success: true, triggered: true, data: context.trigger };
           }
-        } else if (effectiveType === 'trigger') {
-          output = { success: true, triggered: true, data: context.trigger };
         } else if (effectiveType === 'condition' || subtype === 'if_else') {
           const conditionExp = node.data?.config?.expression || node.data?.expression;
           let condResult = true;
@@ -173,31 +188,31 @@ class AutomationExecutionEngine {
           output = { success: true, result: Boolean(condResult), branch: condResult ? 'true' : 'false' };
         } else if (effectiveType === 'switch' || subtype === 'multi_switch') {
           output = { success: true, branch: 'default' };
-        } else if (effectiveType === 'ai_agent') {
-          output = {
-            success: true,
-            agentKey: node.data?.config?.agentKey || subtype || 'seoAuditor',
-            analysis: 'Automated SEO diagnostics completed successfully.',
-            recommendations: ['Update internal links', 'Regenerate schema markup']
-          };
+        } else if (effectiveType === 'delay') {
+          output = { success: true, delayedMinutes: Number(resolvedConfig?.delayMinutes) || 1 };
         } else {
-          // General Action / Logic execution
+          // General Action / SEO Module execution
           let actionModule = actionRegistry.getAction(subtype) ||
             actionRegistry.getAction(`action_${subtype}`) ||
             actionRegistry.getAction(subtype.replace('trigger_', 'run_')) ||
-            actionRegistry.getAction(subtype.replace('run_', 'trigger_'));
+            actionRegistry.getAction(subtype.replace('run_', 'trigger_')) ||
+            actionRegistry.getAction(subtype.replace('send_', '')) ||
+            actionRegistry.getAction(`send_${subtype}`);
 
-          if (!actionModule && (subtype.includes('audit') || nodeName.toLowerCase().includes('audit'))) {
-            actionModule = actionRegistry.getAction('run_site_audit');
-          }
-          if (!actionModule && (subtype.includes('update') || subtype.includes('workspace_db'))) {
-            actionModule = actionRegistry.getAction('update_workspace_db');
+          if (!actionModule) {
+            const cleanSub = subtype.replace(/[^a-z0-9_]/g, '');
+            actionModule = actionRegistry.getAction(cleanSub);
           }
 
           if (!actionModule) {
-            logger.info(TAG, `Executing generic action step: ${nodeName}`);
+            logger.info(TAG, `Executing generic action step: ${nodeName} (${subtype})`);
             output = { success: true, executed: true, data: resolvedConfig };
           } else {
+            // Register compensation hook if available
+            if (typeof actionModule.compensate === 'function') {
+              context.compensationStack.push(() => actionModule.compensate(resolvedConfig, context));
+            }
+
             let attempts = 0;
             const maxRetries = Number(node.data?.retryCount) || 1;
             let delayMs = 1000;

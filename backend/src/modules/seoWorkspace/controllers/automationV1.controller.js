@@ -455,8 +455,35 @@ exports.cancelExecution = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const runs = await AutomationExecutionRun.find({ projectId }).sort({ createdAt: -1 }).limit(50);
-    res.status(200).json({ success: true, data: runs });
+    const filter = (projectId && mongoose.Types.ObjectId.isValid(projectId))
+      ? { projectId }
+      : {};
+
+    const runs = await AutomationExecutionRun.find(filter)
+      .populate('workflowId', 'name category triggerType')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const runIds = runs.map(r => r._id);
+    const logs = await AutomationExecutionNodeLog.find({ executionRunId: { $in: runIds } })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const logsByRun = {};
+    for (const log of logs) {
+      const rId = String(log.executionRunId);
+      if (!logsByRun[rId]) logsByRun[rId] = [];
+      logsByRun[rId].push(log);
+    }
+
+    const populatedRuns = runs.map(r => ({
+      ...r,
+      workflowName: r.workflowName || r.workflowId?.name || 'Automated SEO Pipeline',
+      nodeLogs: logsByRun[String(r._id)] || []
+    }));
+
+    res.status(200).json({ success: true, data: populatedRuns });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
@@ -465,7 +492,7 @@ exports.getHistory = async (req, res) => {
 exports.getLogs = async (req, res) => {
   try {
     const { runId } = req.params;
-    const logs = await AutomationExecutionNodeLog.find({ executionRunId: runId }).sort({ createdAt: 1 });
+    const logs = await AutomationExecutionNodeLog.find({ executionRunId: runId }).sort({ createdAt: 1 }).lean();
     res.status(200).json({ success: true, data: logs });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
