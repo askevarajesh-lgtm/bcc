@@ -7,6 +7,7 @@ import { Hash, Sparkles, Network, TrendingUp, Search, Download, Target, Filter, 
 import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import ProjectSelector from '../components/shared/ProjectSelector';
 
@@ -34,6 +35,7 @@ const TrendSparkline = ({ data = [] }) => {
 };
 
 const KeywordsTab = () => {
+  const { isDark } = useTheme();
   const { activeProjectId: projectId, activeProject } = useSEO();
   const [activeTab, setActiveTab] = useState('tracked');
   const [error, setError] = useState(null);
@@ -341,7 +343,7 @@ const KeywordsTab = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ padding: 8, background: '#f9f0ff', borderRadius: 8, color: '#722ed1' }}>
+          <div style={{ padding: 8, background: isDark ? 'rgba(114, 46, 209, 0.15)' : '#f9f0ff', borderRadius: 8, color: '#722ed1' }}>
             <Hash size={24} />
           </div>
           <div>
@@ -359,7 +361,7 @@ const KeywordsTab = () => {
       {!projectId ? (
         <Empty description="Select or create a Workspace Project to begin keyword intelligence" />
       ) : (
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" style={{ background: isDark ? '#111c31' : '#fff', padding: 16, borderRadius: 8, border: isDark ? '1px solid #1e293b' : 'none' }}>
           <TabPane tab={<Space><Target size={16}/> Tracked Keywords</Space>} key="tracked">
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Space>
@@ -408,19 +410,22 @@ const KeywordsTab = () => {
                 white-space: nowrap !important;
                 height: 52px;
                 vertical-align: middle;
-                background-color: #fafafa;
+                background-color: ${isDark ? '#162238' : '#fafafa'} !important;
+                color: ${isDark ? '#f8fafc' : 'inherit'} !important;
+                border-bottom: 1px solid ${isDark ? '#1e293b' : '#f0f0f0'} !important;
               }
               .enterprise-table .ant-table-tbody > tr > td {
                 padding: 12px 16px !important;
                 height: 48px;
                 vertical-align: middle;
+                border-bottom: 1px solid ${isDark ? '#1e293b' : '#f0f0f0'} !important;
               }
               .enterprise-table .ant-table-tbody > tr:hover > td {
-                background-color: #f0f7ff !important;
+                background-color: ${isDark ? '#1a2b47' : '#f0f7ff'} !important;
               }
             `}</style>
             
-            <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+            <div style={{ background: isDark ? '#111c31' : '#fff', borderRadius: 8, overflow: 'hidden', border: isDark ? '1px solid #1e293b' : '1px solid #f0f0f0' }}>
               <Table
                 rowKey="_id"
                 className="enterprise-table"
@@ -451,7 +456,7 @@ const KeywordsTab = () => {
           <TabPane tab={<Space><Sparkles size={16}/> Discovery & Opportunities</Space>} key="discovery">
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={12}>
-                <Card size="small" title="AI Keyword Research Agent" bordered={false} style={{ background: '#f9f9f9', height: '100%' }}>
+                <Card size="small" title="AI Keyword Research Agent" bordered={false} style={{ background: isDark ? '#162238' : '#f9f9f9', border: isDark ? '1px solid #1e293b' : undefined, height: '100%' }}>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <Text>Generate new keyword clusters, related questions, and long-tail opportunities based on the project's domain and target audience.</Text>
                     <Input placeholder="Optional seed keyword (e.g. 'marathon training')" value={seedKeyword} onChange={(e) => setSeedKeyword(e.target.value)} />
@@ -463,7 +468,7 @@ const KeywordsTab = () => {
                 </Card>
               </Col>
               <Col xs={24} lg={12}>
-                <Card size="small" title="Quick Related Keyword Lookup" bordered={false} style={{ background: '#f9f9f9', height: '100%' }}>
+                <Card size="small" title="Quick Related Keyword Lookup" bordered={false} style={{ background: isDark ? '#162238' : '#f9f9f9', border: isDark ? '1px solid #1e293b' : undefined, height: '100%' }}>
                   <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
                     <Input placeholder="Search term (e.g. 'running shoes')" value={relatedInput} onChange={(e) => setRelatedInput(e.target.value)} onPressEnter={fetchRelated} />
                     <Button type="primary" loading={relatedLoading} onClick={fetchRelated} icon={<Search size={14}/>}>Lookup</Button>
@@ -514,7 +519,7 @@ const KeywordsTab = () => {
           </TabPane>
 
           <TabPane tab={<Space><TrendingUp size={16}/> Keyword Gap</Space>} key="gap">
-            <Card size="small" bordered={false} style={{ background: '#f9f9f9', marginBottom: 16 }}>
+            <Card size="small" bordered={false} style={{ background: isDark ? '#162238' : '#f9f9f9', border: isDark ? '1px solid #1e293b' : undefined, marginBottom: 16 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Text>Identify high-value keywords that your competitors rank for, but you are missing.</Text>
                 <Space.Compact style={{ width: 400 }}>
@@ -527,7 +532,7 @@ const KeywordsTab = () => {
           </TabPane>
 
           <TabPane tab={<Space><Alert size={16}/> Cannibalization Report</Space>} key="cannibalization">
-            <Card size="small" bordered={false} style={{ background: '#f9f9f9', marginBottom: 16 }}>
+            <Card size="small" bordered={false} style={{ background: isDark ? '#162238' : '#f9f9f9', border: isDark ? '1px solid #1e293b' : undefined, marginBottom: 16 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Text>Identify keywords where multiple pages on your site are competing against each other in search results.</Text>
               </Space>
@@ -552,7 +557,7 @@ const KeywordsTab = () => {
           </TabPane>
 
           <TabPane tab={<Space><Target size={16}/> Topical Authority</Space>} key="authority">
-            <Card size="small" bordered={false} style={{ background: '#f9f9f9', marginBottom: 16 }}>
+            <Card size="small" bordered={false} style={{ background: isDark ? '#162238' : '#f9f9f9', border: isDark ? '1px solid #1e293b' : undefined, marginBottom: 16 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Text>Topic Authority is calculated by comparing your search volume coverage across keyword clusters.</Text>
                 <Button type="primary" onClick={async () => {
@@ -608,7 +613,7 @@ const KeywordsTab = () => {
               <Descriptions.Item label="Score Rationale">
                 {selectedKeywordEvidence.agent?.rationale || 'Calculation not available.'}
                 {selectedKeywordEvidence.agent?.opportunityBreakdown && (
-                  <pre style={{ fontSize: 11, background: '#f5f5f5', padding: 8, marginTop: 8 }}>
+                  <pre style={{ fontSize: 11, background: isDark ? '#162238' : '#f5f5f5', color: isDark ? '#f8fafc' : 'inherit', border: isDark ? '1px solid #1e293b' : 'none', padding: 8, marginTop: 8, borderRadius: 4 }}>
                     {JSON.stringify(selectedKeywordEvidence.agent.opportunityBreakdown, null, 2)}
                   </pre>
                 )}

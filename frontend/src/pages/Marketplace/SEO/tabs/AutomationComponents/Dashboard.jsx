@@ -3,6 +3,7 @@ import { Row, Col, Card, Statistic, Table, Tag, Button, Typography, Space } from
 import { CheckCircle, XCircle, Clock, Activity, Play, Plus, Zap, ArrowUpRight } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 import { useTheme } from '../../../../../contexts/ThemeContext';
+import CreateWorkflowModal from './CreateWorkflowModal';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +11,7 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
   const [metrics, setMetrics] = useState({ queuedTasks: 0, completed: 0, failed: 0, activeGlobal: 0, totalWorkflows: 0 });
   const [recentRuns, setRecentRuns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { isDark } = useTheme();
 
   const cardBg = isDark ? '#111c31' : '#ffffff';
@@ -40,6 +42,13 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
     } catch (error) {
       console.error('Failed to load dashboard:', error);
       setLoading(false);
+    }
+  };
+
+  const handleCreateWorkflow = (workflowConfig) => {
+    setIsCreateModalOpen(false);
+    if (onNavigateToEditor) {
+      onNavigateToEditor('new', workflowConfig);
     }
   };
 
@@ -89,7 +98,7 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
         <Button
           type="primary"
           icon={<Plus size={14} />}
-          onClick={() => onNavigateToEditor && onNavigateToEditor(null)}
+          onClick={() => setIsCreateModalOpen(true)}
           style={{ background: '#2563eb' }}
         >
           Create Workflow
@@ -157,6 +166,12 @@ export default function Dashboard({ projectId, onNavigateToEditor }) {
           size="small"
         />
       </Card>
+
+      <CreateWorkflowModal
+        visible={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreateWorkflow}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { ClipboardCheck, Activity, Search, History, Bug, Code, ArrowRightLeft, D
 import { motion } from 'framer-motion';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import ProjectSelector from '../components/shared/ProjectSelector';
 import { SeverityTag } from '../components/shared/StatusTags';
 
@@ -25,6 +26,7 @@ const CategoryIcon = ({ category }) => {
 };
 
 const AuditTab = () => {
+  const { isDark } = useTheme();
   const { activeProjectId, activeProject, selectProject } = useSEO();
   const [runningBasic, setRunningBasic] = useState(false);
   const [liveProgress, setLiveProgress] = useState(null);
@@ -191,7 +193,7 @@ const AuditTab = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ padding: 8, background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
+          <div style={{ padding: 8, background: isDark ? 'rgba(24, 144, 255, 0.15)' : '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
             <ClipboardCheck size={24} />
           </div>
           <div>
@@ -282,8 +284,8 @@ const AuditTab = () => {
                         hoverable 
                         onClick={() => setSelectedAuditId(audit._id)}
                         style={{ 
-                          borderLeft: selectedAuditId === audit._id ? '4px solid #1890ff' : '1px solid #f0f0f0',
-                          backgroundColor: selectedAuditId === audit._id ? '#e6f7ff' : '#fff',
+                          borderLeft: selectedAuditId === audit._id ? '4px solid #1890ff' : (isDark ? '1px solid #334155' : '1px solid #f0f0f0'),
+                          backgroundColor: selectedAuditId === audit._id ? (isDark ? 'rgba(24, 144, 255, 0.18)' : '#e6f7ff') : (isDark ? '#1e293b' : '#fff'),
                           cursor: 'pointer'
                         }}
                       >
@@ -399,15 +401,15 @@ const AuditTab = () => {
               </Text>
             </div>
 
-            <Card size="small" title="Root Cause Analysis" bordered={false} style={{ background: '#fff1f0', borderRadius: 6 }}>
+            <Card size="small" title="Root Cause Analysis" bordered={false} style={{ background: isDark ? 'rgba(245, 34, 45, 0.12)' : '#fff1f0', border: isDark ? '1px solid rgba(245, 34, 45, 0.3)' : undefined, borderRadius: 6 }}>
               <Paragraph>{selectedFinding.rootCause || 'Detected during automated DOM and HTTP response inspection.'}</Paragraph>
             </Card>
 
-            <Card size="small" title="Recommended Technical Fix" bordered={false} style={{ background: '#f6ffed', borderRadius: 6 }}>
+            <Card size="small" title="Recommended Technical Fix" bordered={false} style={{ background: isDark ? 'rgba(82, 196, 26, 0.12)' : '#f6ffed', border: isDark ? '1px solid rgba(82, 196, 26, 0.3)' : undefined, borderRadius: 6 }}>
               <Paragraph>{selectedFinding.suggestedTechnicalFix || selectedFinding.recommendation || 'Implement required HTML and header tags according to Google Search Central guidelines.'}</Paragraph>
             </Card>
 
-            <Card size="small" title={<Space><Sparkles size={14} color="#1890ff"/> AI Diagnostic Summary</Space>} bordered={false} style={{ background: '#e6f7ff', borderRadius: 6 }}>
+            <Card size="small" title={<Space><Sparkles size={14} color="#1890ff"/> AI Diagnostic Summary</Space>} bordered={false} style={{ background: isDark ? 'rgba(24, 144, 255, 0.12)' : '#e6f7ff', border: isDark ? '1px solid rgba(24, 144, 255, 0.3)' : undefined, borderRadius: 6 }}>
               <Paragraph>{selectedFinding.aiExplanation || 'Resolving this finding will improve search engine crawl efficiency and indexing status.'}</Paragraph>
               {selectedFinding.recommendation && (
                  <Paragraph strong>Action Item: {selectedFinding.recommendation}</Paragraph>

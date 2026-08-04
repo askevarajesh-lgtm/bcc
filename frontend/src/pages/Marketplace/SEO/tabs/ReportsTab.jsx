@@ -200,17 +200,24 @@ const ReportsTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <FileText size={28} />
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {activeProject ? `${activeProject.name} — Enterprise Reports` : 'Enterprise Reports'}
-          </Title>
-          <Text type="secondary">Generate, schedule, and preview comprehensive, immutable SEO reports.</Text>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, #1677ff 0%, #00b96b 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <FileText size={24} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>
+              {activeProject ? `${activeProject.name} — Enterprise Reports` : 'Enterprise Reports'}
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>Generate, schedule, and preview comprehensive, immutable SEO reports.</Text>
+          </div>
         </div>
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
-
-      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
@@ -219,8 +226,9 @@ const ReportsTab = () => {
       ) : (
         <Card
           size="small"
+          style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
           title={
-            <Space>
+            <Space wrap>
               <Search placeholder="Search reports..." allowClear onSearch={setSearch} style={{ width: 200 }} />
               <Select placeholder="Filter Status" allowClear style={{ width: 150 }} onChange={setStatusFilter}>
                 <Select.Option value="Completed">Completed</Select.Option>

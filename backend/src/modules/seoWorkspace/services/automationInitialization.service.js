@@ -1,46 +1,26 @@
-const fs = require('fs');
-const path = require('path');
+const { getPluginLoader } = require('./automationPluginLoader.service');
 const { getTriggerRegistry } = require('./automationTriggerRegistry.service');
 const { getActionRegistry } = require('./automationActionRegistry.service');
 const logger = require('../../aiCore/logger.service');
 
 const TAG = 'AutomationInitialization';
 
-function initializeBuiltInNodes() {
-  logger.info(TAG, 'Initializing enterprise automation nodes and trigger suites');
+async function initializeBuiltInNodes() {
+  logger.info(TAG, 'Initializing enterprise plugin-based automation nodes, triggers, and scheduler...');
 
-  const triggerRegistry = getTriggerRegistry();
+  const pluginLoader = getPluginLoader();
+  await pluginLoader.initialize();
+
+  // Also bridge common aliases for backward compatibility
   const actionRegistry = getActionRegistry();
-
-  const nodesDir = path.join(__dirname, 'nodes');
-  if (!fs.existsSync(nodesDir)) {
-    logger.warn(TAG, `Nodes directory not found at ${nodesDir}`);
-    return;
+  const siteAuditAction = actionRegistry.getAction('run_site_audit');
+  if (siteAuditAction) {
+    actionRegistry.register({ ...siteAuditAction, id: 'trigger_site_audit' });
+    actionRegistry.register({ ...siteAuditAction, id: 'action_run_site_audit' });
+    actionRegistry.register({ ...siteAuditAction, id: 'action_trigger_site_audit' });
   }
 
-  const files = fs.readdirSync(nodesDir).filter(f => f.endsWith('.js'));
-
-  for (const file of files) {
-    try {
-      const nodeModule = require(path.join(nodesDir, file));
-      if (!nodeModule || !nodeModule.id) continue;
-
-      if (file.startsWith('trigger.') || nodeModule.id.startsWith('trigger_')) {
-        triggerRegistry.register(nodeModule);
-      } else {
-        actionRegistry.register(nodeModule);
-        if (nodeModule.id === 'run_site_audit') {
-          actionRegistry.register({ ...nodeModule, id: 'trigger_site_audit' });
-          actionRegistry.register({ ...nodeModule, id: 'action_run_site_audit' });
-          actionRegistry.register({ ...nodeModule, id: 'action_trigger_site_audit' });
-        }
-      }
-    } catch (err) {
-      logger.error(TAG, `Failed to load node module from ${file}: ${err.message}`);
-    }
-  }
-
-  logger.info(TAG, `Successfully loaded ${triggerRegistry.listTriggers().length} triggers and ${actionRegistry.listActions().length} actions`);
+  logger.info(TAG, `Automation engine ready. Total triggers: ${pluginLoader.listTriggers().length}, Total actions: ${pluginLoader.listActions().length}`);
 }
 
 module.exports = { initializeBuiltInNodes };

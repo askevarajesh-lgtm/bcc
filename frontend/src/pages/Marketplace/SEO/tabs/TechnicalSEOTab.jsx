@@ -19,7 +19,7 @@ const SignalsPanel = ({ signals }) => {
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
       <Col xs={12} md={6}>
-        <Card size="small" title="robots.txt" style={{ borderRadius: 8 }}>
+        <Card size="small" title="robots.txt" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           <Space direction="vertical" size={4}>
             <Space><YesNo ok={signals.robotsTxt?.exists} /> <Text>Exists</Text></Space>
             <Space><YesNo ok={signals.robotsTxt?.accessible} /> <Text>Accessible</Text></Space>
@@ -29,13 +29,13 @@ const SignalsPanel = ({ signals }) => {
         </Card>
       </Col>
       <Col xs={12} md={6}>
-        <Card size="small" title="XML Sitemap" style={{ borderRadius: 8 }}>
+        <Card size="small" title="XML Sitemap" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           <Statistic title="URLs Indexed" value={signals.sitemap?.urlCount ?? 0} />
           <Space style={{ marginTop: 8 }}><YesNo ok={signals.sitemap?.exists} /> <Text>Accessible & Valid</Text></Space>
         </Card>
       </Col>
       <Col xs={12} md={6}>
-        <Card size="small" title="SSL / HTTPS Security" style={{ borderRadius: 8 }}>
+        <Card size="small" title="SSL / HTTPS Security" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           <Space direction="vertical" size={4}>
             <Space><YesNo ok={signals.ssl?.isHttps !== false} /> <Text>HTTPS Protocol</Text></Space>
             <Space><YesNo ok={signals.ssl?.validCert !== false} /> <Text>Valid Certificate</Text></Space>
@@ -44,14 +44,14 @@ const SignalsPanel = ({ signals }) => {
         </Card>
       </Col>
       <Col xs={12} md={6}>
-        <Card size="small" title="Internationalization" style={{ borderRadius: 8 }}>
+        <Card size="small" title="Internationalization" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           {signals.hreflang?.checked
             ? <Statistic title="Hreflang Tags" value={signals.hreflang?.tagsFound ?? 0} />
             : <Text type="secondary">Single-region standard</Text>}
         </Card>
       </Col>
       <Col xs={24} md={12}>
-        <Card size="small" title="Crawl Diagnostics" style={{ borderRadius: 8 }}>
+        <Card size="small" title="Crawl Diagnostics" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           <Row gutter={[8, 8]}>
             <Col span={8}><Text type="secondary">Pages crawled</Text><div><Text strong>{signals.crawl?.pagesCrawled ?? 0}</Text></div></Col>
             <Col span={8}><Text type="secondary">Redirected (3xx)</Text><div><Text strong>{signals.crawl?.redirectedPages ?? 0}</Text></div></Col>
@@ -63,7 +63,7 @@ const SignalsPanel = ({ signals }) => {
         </Card>
       </Col>
       <Col xs={24} md={12}>
-        <Card size="small" title="Core Web Vitals" style={{ borderRadius: 8 }}>
+        <Card size="small" title="Core Web Vitals" style={{ borderRadius: 12, border: '1px solid var(--border-color)', height: '100%' }}>
           {signals.coreWebVitals?.desktop || signals.coreWebVitals?.mobile ? (
             <Row gutter={16}>
               <Col span={12}>
@@ -145,19 +145,24 @@ const TechnicalSEOTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ padding: 8, background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
-          <Cpu size={24} />
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, #1890ff 0%, #13c2c2 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <Cpu size={24} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 900 }}>
+              {activeProject ? `${activeProject.name} — Technical SEO` : 'Technical SEO'}
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>robots.txt, XML sitemap, canonical links, 3xx/4xx/5xx redirects, Core Web Vitals, and AI remediation.</Text>
+          </div>
         </div>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {activeProject ? `${activeProject.name} — Technical SEO` : 'Technical SEO'}
-          </Title>
-          <Text type="secondary">robots.txt, XML sitemap, canonical links, 3xx/4xx/5xx redirects, Core Web Vitals, and AI remediation.</Text>
-        </div>
+        <ProjectSelector style={{ marginBottom: 0 }} />
       </div>
-
-      <ProjectSelector style={{ marginBottom: 20 }} />
 
       {!activeProjectId ? (
         <Empty description="Select or create a Workspace Project to run a technical audit" />

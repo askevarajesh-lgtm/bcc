@@ -5,6 +5,90 @@ const TAG = 'AutomationTemplatesSeeder';
 
 const ENTERPRISE_TEMPLATES = [
   {
+    name: 'Daily 19:00 Site Audit & Multi-Channel Alert',
+    description: 'Runs an automated end-to-end website crawl and technical SEO audit daily at 19:00 UTC for https://askeva.io, logs the snapshot to the workspace database, and sends executive PDF digests to Email and Slack.',
+    category: 'Website Audit',
+    tags: ['Site Audit', 'Daily', 'Scheduled', 'Email', 'Slack', 'Executive'],
+    difficulty: 'Intermediate',
+    icon: 'activity',
+    nodes: [
+      {
+        id: 'node-1',
+        type: 'trigger',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Daily 19:00 Schedule',
+          subtitle: 'Cron: 0 19 * * * (UTC)',
+          type: 'trigger',
+          subtype: 'schedule_cron',
+          config: { cron: '0 19 * * *', timezone: 'UTC' }
+        }
+      },
+      {
+        id: 'node-2',
+        type: 'action',
+        position: { x: 250, y: 180 },
+        data: {
+          label: 'Run Website Audit',
+          subtitle: 'Deep crawl https://askeva.io',
+          type: 'action',
+          subtype: 'run_site_audit',
+          config: {
+            targetDomain: 'https://askeva.io',
+            maxPages: 25,
+            crawlDepth: 3,
+            jsRendering: false,
+            deviceType: 'desktop',
+            storeResults: true
+          }
+        }
+      },
+      {
+        id: 'node-3',
+        type: 'action',
+        position: { x: 100, y: 320 },
+        data: {
+          label: 'Send Email Digest',
+          subtitle: 'Executive Summary to SEO Team',
+          type: 'action',
+          subtype: 'send_email_digest',
+          config: {
+            channel: 'email',
+            title: 'Daily Site Audit: https://askeva.io - {{date}}',
+            recipient: 'seo-team@company.com',
+            message: 'Daily 19:00 Site Audit completed for https://askeva.io.\nOverall Score: {{steps.run_site_audit.score}}/100\nPages Crawled: {{steps.run_site_audit.pagesCrawled}}\nFindings: {{steps.run_site_audit.findingsCount}}\n\nDownload Report: {{steps.run_site_audit.reportPdfUrl}}'
+          }
+        }
+      },
+      {
+        id: 'node-4',
+        type: 'action',
+        position: { x: 400, y: 320 },
+        data: {
+          label: 'Slack Channel Alert',
+          subtitle: 'Post to #seo-alerts',
+          type: 'action',
+          subtype: 'send_slack_message',
+          config: {
+            channel: 'slack',
+            title: 'Audit Complete: https://askeva.io',
+            recipient: '#seo-alerts',
+            message: 'Daily Audit completed with score *{{steps.run_site_audit.score}}/100*. Report URL: {{steps.run_site_audit.reportPdfUrl}}',
+            severity: 'info'
+          }
+        }
+      }
+    ],
+    edges: [
+      { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
+      { id: 'e2-3', source: 'node-2', target: 'node-3', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
+      { id: 'e2-4', source: 'node-2', target: 'node-4', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }
+    ],
+    variables: {
+      targetDomain: 'https://askeva.io'
+    }
+  },
+  {
     name: 'Keyword Rank Drop Alert & Remediation Brief',
     description: 'Triggers when a tracked target keyword drops > 3 positions, runs AI SERP analysis, creates an actionable workspace task, and notifies the SEO channel on Slack.',
     category: 'Rankings',
@@ -95,78 +179,25 @@ const ENTERPRISE_TEMPLATES = [
       { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true }
     ],
     variables: {}
-  },
-  {
-    name: 'Lost High-DA Backlink Recovery Pipeline',
-    description: 'Alerts when a backlink from a high-domain-authority site (DA > 40) is lost or drops to 404, triggering an outreach recovery task.',
-    category: 'Backlinks',
-    tags: ['Backlinks', 'Outreach', 'Recovery'],
-    difficulty: 'Intermediate',
-    icon: 'unlink',
-    nodes: [
-      { id: 'node-1', type: 'trigger', position: { x: 100, y: 150 }, data: { label: 'Lost Backlink', triggerId: 'trigger_backlink_lost', config: { minDomainAuthority: 40 } } },
-      { id: 'node-2', type: 'action', position: { x: 380, y: 150 }, data: { label: 'Draft Outreach Email', actionId: 'action_ai_generate', config: { prompt: 'Write a friendly backlink reclamation email to the webmaster of {{sourceUrl}} regarding lost link to {{targetUrl}}.' } } },
-      { id: 'node-3', type: 'action', position: { x: 660, y: 150 }, data: { label: 'Create Outreach Task', actionId: 'action_task_creator', config: { title: 'Reclaim Backlink from {{sourceUrl}} (DA {{domainAuthority}})', priority: 'Medium', category: 'Outreach' } } }
-    ],
-    edges: [
-      { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true },
-      { id: 'e2-3', source: 'node-2', target: 'node-3', animated: true }
-    ],
-    variables: {}
-  },
-  {
-    name: 'Weekly Executive SEO Digest to Discord & Email',
-    description: 'Schedules a recurring weekly executive summary of keyword movements, crawl audits, and organic traffic growth.',
-    category: 'Reporting',
-    tags: ['Digest', 'Cron', 'Discord', 'Executive'],
-    difficulty: 'Beginner',
-    icon: 'file-text',
-    nodes: [
-      { id: 'node-1', type: 'trigger', position: { x: 100, y: 150 }, data: { label: 'Weekly Schedule (Monday 9AM)', triggerId: 'trigger_schedule', config: { cron: '0 9 * * 1' } } },
-      { id: 'node-2', type: 'action', position: { x: 380, y: 150 }, data: { label: 'Query Workspace Stats', actionId: 'action_database_query', config: { collectionName: 'keywords', limit: 20 } } },
-      { id: 'node-3', type: 'action', position: { x: 660, y: 150 }, data: { label: 'AI Executive Summary', actionId: 'action_ai_summarize', config: { targetAudience: 'Executive Leadership' } } },
-      { id: 'node-4', type: 'action', position: { x: 940, y: 150 }, data: { label: 'Dispatch Discord Broadcast', actionId: 'action_notification', config: { channel: 'discord', title: 'Weekly SEO Performance Digest', message: '{{summary}}' } } }
-    ],
-    edges: [
-      { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true },
-      { id: 'e2-3', source: 'node-2', target: 'node-3', animated: true },
-      { id: 'e3-4', source: 'node-3', target: 'node-4', animated: true }
-    ],
-    variables: {}
-  },
-  {
-    name: 'Critical Site Downtime / 5xx Outage Escalation',
-    description: 'Instant multi-channel emergency alert (PagerDuty/Slack/Telegram) when site uptime monitor detects endpoint downtime.',
-    category: 'Monitoring',
-    tags: ['Uptime', 'Outage', 'Slack', 'Telegram', 'P0'],
-    difficulty: 'Intermediate',
-    icon: 'power-off',
-    nodes: [
-      { id: 'node-1', type: 'trigger', position: { x: 100, y: 150 }, data: { label: 'Uptime Down Trigger', triggerId: 'trigger_uptime_down', config: {} } },
-      { id: 'node-2', type: 'action', position: { x: 380, y: 150 }, data: { label: 'Slack Alert', actionId: 'action_notification', config: { channel: 'slack', title: '🚨 P0 OUTAGE: {{url}} is DOWN', message: 'HTTP Status: {{statusCode}} - Response: {{errorMessage}}', severity: 'critical' } } },
-      { id: 'node-3', type: 'action', position: { x: 660, y: 150 }, data: { label: 'Telegram Alert', actionId: 'action_notification', config: { channel: 'telegram', title: '🚨 P0 OUTAGE: {{url}} is DOWN', message: 'HTTP Status: {{statusCode}}', severity: 'critical' } } }
-    ],
-    edges: [
-      { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true },
-      { id: 'e2-3', source: 'node-2', target: 'node-3', animated: true }
-    ],
-    variables: {}
   }
 ];
 
 async function seedEnterpriseTemplates() {
   try {
-    for (const t of ENTERPRISE_TEMPLATES) {
+    for (const tpl of ENTERPRISE_TEMPLATES) {
       await AutomationTemplate.findOneAndUpdate(
-        { name: t.name },
-        { ...t, isPublic: true },
+        { name: tpl.name },
+        { $set: tpl },
         { upsert: true, new: true }
       );
     }
     logger.info(TAG, `Successfully seeded ${ENTERPRISE_TEMPLATES.length} enterprise automation templates`);
-  } catch (err) {
-    logger.warn(TAG, `Failed to seed templates: ${err.message}`);
+  } catch (error) {
+    logger.error(TAG, `Error seeding enterprise templates: ${error.message}`);
   }
 }
 
-module.exports = { seedEnterpriseTemplates, ENTERPRISE_TEMPLATES };
+module.exports = {
+  ENTERPRISE_TEMPLATES,
+  seedEnterpriseTemplates
+};

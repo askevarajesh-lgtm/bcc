@@ -6,21 +6,27 @@ import InspectorPanel from './InspectorPanel';
 import SimulationDrawer from './SimulationDrawer';
 import AiGeneratorModal from './AiGeneratorModal';
 import VersionHistoryModal from './VersionHistoryModal';
-import { Button, message, Tooltip, Space, Tag, Input, Modal } from 'antd';
+import { Button, message, Tooltip, Space, Tag, Input, Modal, Spin } from 'antd';
 import { 
   Save, ArrowLeft, Play, Sparkles, History, Download, Upload, 
-  CheckCircle, Globe, Zap, Settings, RefreshCw
+  CheckCircle, Globe, Zap, Settings, RefreshCw, Edit3, Check, X
 } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../../api/seoWorkspaceApi';
 import { useTheme } from '../../../../../../contexts/ThemeContext';
 
-export default function WorkflowEditor({ projectId, workflowId, onClose }) {
+export default function WorkflowEditor({ projectId, workflowId, initialData, onClose }) {
   const isExistingWorkflow = workflowId && workflowId !== 'new' && workflowId !== 'temp_workflow';
   const [currentWorkflowId, setCurrentWorkflowId] = useState(isExistingWorkflow ? workflowId : null);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
-  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', status: 'Draft', triggerType: 'event', category: 'General', description: '' });
+  const [workflowMeta, setWorkflowMeta] = useState({
+    name: initialData?.name || 'Untitled Workflow',
+    status: 'Draft',
+    triggerType: initialData?.triggerType || 'schedule',
+    category: initialData?.category || 'Website Audit',
+    description: initialData?.description || ''
+  });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const { isDark } = useTheme();
@@ -30,10 +36,88 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(initialData?.name || 'Untitled Workflow');
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
-  // Load workflow data if editing existing
+  const buildStarterNodes = (category = 'Website Audit', triggerType = 'schedule') => {
+    const triggerSubtype = triggerType === 'schedule' ? 'schedule_cron' : triggerType === 'webhook' ? 'webhook_inbound' : 'keyword_rank_dropped';
+    const triggerLabel = triggerType === 'schedule' ? 'Daily Schedule' : triggerType === 'webhook' ? 'Inbound Webhook' : 'Rank Drop Alert';
+
+    let actionSubtype = 'run_site_audit';
+    let actionLabel = 'Run Website Audit';
+    if (category === 'Technical SEO') {
+      actionSubtype = 'run_technical_seo';
+      actionLabel = 'Deep Technical SEO Crawl';
+    } else if (category === 'Keywords & Rankings') {
+      actionSubtype = 'track_keyword_ranks';
+      actionLabel = 'Track Keyword Positions';
+    } else if (category === 'Competitor Analysis') {
+      actionSubtype = 'scan_competitor_changes';
+      actionLabel = 'Scan Competitor Gap';
+    } else if (category === 'Content AI') {
+      actionSubtype = 'generate_content_brief';
+      actionLabel = 'Generate Content Brief';
+    } else if (category === 'Internal Linking') {
+      actionSubtype = 'generate_internal_links';
+      actionLabel = 'Generate Internal Links';
+    } else if (category === 'Monitoring & Uptime') {
+      actionSubtype = 'check_site_health';
+      actionLabel = 'Check Site Uptime & SSL';
+    }
+
+    const starterNodes = [
+      {
+        id: 'node_starter_trigger',
+        type: 'custom',
+        position: { x: 250, y: 50 },
+        data: {
+          label: triggerLabel,
+          subtitle: triggerType === 'schedule' ? '0 19 * * * (Daily at 19:00 UTC)' : 'Auto-triggered',
+          type: 'trigger',
+          subtype: triggerSubtype,
+          config: triggerType === 'schedule' ? { cronExpression: '0 19 * * *', timezone: 'UTC' } : {}
+        }
+      },
+      {
+        id: 'node_starter_action',
+        type: 'custom',
+        position: { x: 250, y: 200 },
+        data: {
+          label: actionLabel,
+          subtitle: `Auto-invokes ${category} Engine`,
+          type: 'action',
+          subtype: actionSubtype,
+          config: { domain: '{{project.domain}}' }
+        }
+      },
+      {
+        id: 'node_starter_notify',
+        type: 'custom',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Send Email Digest',
+          subtitle: 'Notify team with execution metrics',
+          type: 'action',
+          subtype: 'send_email_digest',
+          config: {
+            recipient: 'seo-team@company.com',
+            subject: `[SEO Alert] ${category} executed successfully`,
+            body: `Automation finished for {{project.domain}}.\nScore: {{steps.${actionSubtype}.score}}`
+          }
+        }
+      }
+    ];
+
+    const starterEdges = [
+      { id: 'e_starter_1', source: 'node_starter_trigger', target: 'node_starter_action', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
+      { id: 'e_starter_2', source: 'node_starter_action', target: 'node_starter_notify', animated: true, style: { stroke: '#10b981', strokeWidth: 2 } }
+    ];
+
+    return { nodes: starterNodes, edges: starterEdges };
+  };
+
+  // Load workflow data if editing existing or initialize new
   useEffect(() => {
     if (workflowId && workflowId !== 'new' && workflowId !== 'temp_workflow') {
       setLoading(true);
@@ -42,13 +126,15 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
         .then(res => {
           const wf = res?.data || res;
           if (wf) {
+            const name = wf.name || 'Enterprise Workflow';
             setWorkflowMeta({
-              name: wf.name || 'Enterprise Workflow',
+              name: name,
               status: wf.status || 'Draft',
               triggerType: wf.triggerType || 'event',
               category: wf.category || 'General',
               description: wf.description || ''
             });
+            setTempTitle(name);
             const activeVer = wf.activeVersionId || {};
             const wfNodes = wf.nodes || activeVer.nodes;
             const wfEdges = wf.edges || activeVer.edges;
@@ -65,74 +151,104 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
         })
         .finally(() => setLoading(false));
     } else {
-      // Default starting nodes for new workflow
+      // Initialize with user provided config
       setCurrentWorkflowId(null);
-      setWorkflowMeta({ name: 'New Automation Workflow', status: 'Draft', triggerType: 'event', category: 'General', description: '' });
-      setNodes([
-        {
-          id: 'node_trigger_start',
-          type: 'custom',
-          position: { x: 250, y: 50 },
-          data: {
-            label: 'Keyword Rank Drop',
-            subtitle: 'Position drops >= 3',
-            type: 'trigger',
-            subtype: 'keyword_rank_dropped',
-            config: { threshold: 3 }
-          }
-        },
-        {
-          id: 'node_condition_check',
-          type: 'custom',
-          position: { x: 250, y: 180 },
-          data: {
-            label: 'Severity Condition',
-            subtitle: 'Check if severity == Critical',
-            type: 'condition',
-            subtype: 'if_else',
-            config: { expression: "trigger.payload.severity === 'Critical'" }
-          }
-        },
-        {
-          id: 'node_slack_alert',
-          type: 'custom',
-          position: { x: 100, y: 320 },
-          data: {
-            label: 'Send Slack Notification',
-            subtitle: '#seo-emergency channel',
-            type: 'action',
-            subtype: 'send_slack_message',
-            config: { recipient: '#seo-emergency' }
-          }
-        },
-        {
-          id: 'node_ai_diagnosis',
-          type: 'custom',
-          position: { x: 400, y: 320 },
-          data: {
-            label: 'AI Root Cause Analysis',
-            subtitle: 'Diagnose SERP & competitor change',
-            type: 'ai_agent',
-            subtype: 'ai_root_cause_analysis',
-            config: { model: 'gpt-4o' }
-          }
-        }
-      ]);
+      const customName = initialData?.name || 'New Custom Workflow';
+      const customCategory = initialData?.category || 'Website Audit';
+      const customTriggerType = initialData?.triggerType || 'schedule';
+      const customDesc = initialData?.description || '';
 
-      setEdges([
-        { id: 'e1', source: 'node_trigger_start', target: 'node_condition_check', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
-        { id: 'e2', source: 'node_condition_check', sourceHandle: 'true', target: 'node_slack_alert', animated: true, style: { stroke: '#10b981', strokeWidth: 2 } },
-        { id: 'e3', source: 'node_condition_check', sourceHandle: 'false', target: 'node_ai_diagnosis', animated: true, style: { stroke: '#ef4444', strokeWidth: 2 } }
-      ]);
+      setWorkflowMeta({
+        name: customName,
+        status: 'Draft',
+        triggerType: customTriggerType,
+        category: customCategory,
+        description: customDesc
+      });
+      setTempTitle(customName);
+
+      if (initialData?.startType === 'blank') {
+        // Single starting trigger node
+        const triggerSubtype = customTriggerType === 'schedule' ? 'schedule_cron' : customTriggerType === 'webhook' ? 'webhook_inbound' : 'keyword_rank_dropped';
+        const triggerLabel = customTriggerType === 'schedule' ? 'Schedule Trigger' : customTriggerType === 'webhook' ? 'Inbound Webhook' : 'Event Trigger';
+        setNodes([
+          {
+            id: 'node_start_trigger',
+            type: 'custom',
+            position: { x: 250, y: 80 },
+            data: {
+              label: triggerLabel,
+              subtitle: 'Configure parameters in Inspector panel',
+              type: 'trigger',
+              subtype: triggerSubtype,
+              config: customTriggerType === 'schedule' ? { cronExpression: '0 19 * * *', timezone: 'UTC' } : {}
+            }
+          }
+        ]);
+        setEdges([]);
+      } else if (initialData?.startType === 'ai' && initialData?.aiPrompt) {
+        // AI generation flow
+        setLoading(true);
+        seoWorkspaceApi.generateAiWorkflow(projectId, initialData.aiPrompt)
+          .then(res => {
+            const aiData = res?.data || res;
+            if (aiData?.nodes && Array.isArray(aiData.nodes) && aiData.nodes.length > 0) {
+              setNodes(aiData.nodes);
+              setEdges(aiData.edges || []);
+              if (aiData.name) {
+                setWorkflowMeta(prev => ({ ...prev, name: aiData.name }));
+                setTempTitle(aiData.name);
+              }
+              message.success('AI Workflow graph generated and wired!');
+            } else {
+              const starter = buildStarterNodes(customCategory, customTriggerType);
+              setNodes(starter.nodes);
+              setEdges(starter.edges);
+            }
+          })
+          .catch(err => {
+            console.warn('AI generation error, loading starter nodes:', err);
+            const starter = buildStarterNodes(customCategory, customTriggerType);
+            setNodes(starter.nodes);
+            setEdges(starter.edges);
+          })
+          .finally(() => setLoading(false));
+      } else {
+        // Default starter nodes
+        const starter = buildStarterNodes(customCategory, customTriggerType);
+        setNodes(starter.nodes);
+        setEdges(starter.edges);
+      }
     }
-  }, [workflowId, projectId]);
+  }, [workflowId, projectId, initialData]);
+
+  // Auto-select first node if none is currently selected
+  useEffect(() => {
+    if (nodes.length > 0 && (!selectedNodeId || !nodes.find(n => n.id === selectedNodeId))) {
+      setSelectedNodeId(nodes[0].id);
+    }
+  }, [nodes, selectedNodeId]);
+
+  const handleSaveTitle = () => {
+    const cleanTitle = tempTitle.trim() || 'Untitled Workflow';
+    setWorkflowMeta(prev => ({ ...prev, name: cleanTitle }));
+    setTempTitle(cleanTitle);
+    setEditingTitle(false);
+  };
 
   const handleSave = async (publish = false) => {
+    const finalName = (workflowMeta.name || '').trim();
+    if (!finalName || finalName === 'Untitled Workflow') {
+      setEditingTitle(true);
+      message.warning('Please enter a specific name for your workflow');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
-        name: workflowMeta.name || 'Untitled Workflow',
-        triggerType: workflowMeta.triggerType || 'event',
+        name: finalName,
+        triggerType: workflowMeta.triggerType || 'schedule',
         category: workflowMeta.category || 'General',
         description: workflowMeta.description || '',
         status: publish ? 'Published' : (workflowMeta.status === 'Published' || workflowMeta.status === 'Active' ? 'Active' : 'Draft'),
@@ -157,6 +273,7 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
           name: savedData.name,
           status: savedData.status || (publish ? 'Published' : 'Draft')
         }));
+        setTempTitle(savedData.name);
       }
       message.success(publish ? 'Workflow published and active in workspace!' : 'Workflow draft saved successfully!');
     } catch (err) {
@@ -171,7 +288,10 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
   const handleApplyAiGraph = (newNodes, newEdges, name) => {
     setNodes(newNodes);
     setEdges(newEdges);
-    if (name) setWorkflowMeta(prev => ({ ...prev, name }));
+    if (name) {
+      setWorkflowMeta(prev => ({ ...prev, name }));
+      setTempTitle(name);
+    }
   };
 
   const handleExportJson = () => {
@@ -195,7 +315,10 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
         if (parsed.nodes && parsed.edges) {
           setNodes(parsed.nodes);
           setEdges(parsed.edges);
-          if (parsed.meta?.name) setWorkflowMeta(prev => ({ ...prev, name: parsed.meta.name }));
+          if (parsed.meta?.name) {
+            setWorkflowMeta(prev => ({ ...prev, name: parsed.meta.name }));
+            setTempTitle(parsed.meta.name);
+          }
           message.success('Workflow JSON imported!');
         } else {
           message.error('Invalid workflow file format');
@@ -290,23 +413,53 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
           <Button type="text" icon={<ArrowLeft size={16} />} onClick={onClose} />
           
           {editingTitle ? (
-            <Input
-              value={workflowMeta.name}
-              onChange={e => setWorkflowMeta({ ...workflowMeta, name: e.target.value })}
-              onBlur={() => setEditingTitle(false)}
-              onPressEnter={() => setEditingTitle(false)}
-              autoFocus
-              size="small"
-              style={{ width: 250, fontWeight: 700 }}
-            />
+            <Space.Compact style={{ width: 320 }}>
+              <Input
+                value={tempTitle}
+                onChange={e => setTempTitle(e.target.value)}
+                onPressEnter={handleSaveTitle}
+                autoFocus
+                size="middle"
+                style={{ fontWeight: 700, borderRadius: '6px 0 0 6px' }}
+              />
+              <Button type="primary" icon={<Check size={14} />} onClick={handleSaveTitle} />
+              <Button icon={<X size={14} />} onClick={() => { setTempTitle(workflowMeta.name); setEditingTitle(false); }} />
+            </Space.Compact>
           ) : (
             <div 
-              onClick={() => setEditingTitle(true)}
-              style={{ fontWeight: 700, fontSize: 16, color: isDark ? '#f1f5f9' : '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              <span>{workflowMeta.name}</span>
+              <span 
+                onClick={() => { setTempTitle(workflowMeta.name); setEditingTitle(true); }}
+                style={{ 
+                  fontWeight: 700, 
+                  fontSize: 16, 
+                  color: isDark ? '#f1f5f9' : '#0f172a', 
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  border: '1px solid transparent',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
+                title="Click to rename workflow"
+              >
+                {workflowMeta.name}
+              </span>
+              <Tooltip title="Rename workflow">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<Edit3 size={13} color="#64748b" />} 
+                  onClick={() => { setTempTitle(workflowMeta.name); setEditingTitle(true); }} 
+                />
+              </Tooltip>
               <Tag color={workflowMeta.status === 'Active' || workflowMeta.status === 'Published' ? 'green' : 'default'} style={{ margin: 0, fontSize: 11 }}>
                 {workflowMeta.status}
+              </Tag>
+              <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
+                {workflowMeta.category || 'Website Audit'}
               </Tag>
             </div>
           )}
@@ -351,62 +504,85 @@ export default function WorkflowEditor({ projectId, workflowId, onClose }) {
 
           <Button 
             type="primary" 
-            icon={<Zap size={14} />} 
+            icon={<CheckCircle size={14} />} 
             loading={saving}
             onClick={() => handleSave(true)}
-            style={{ background: '#2563eb' }}
+            style={{ background: '#10b981', borderColor: '#10b981' }}
           >
             Publish Workflow
           </Button>
         </div>
       </div>
 
-      {/* Main Studio Body: 3-column Layout */}
-      <div className="workflow-editor-body" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <ReactFlowProvider>
-          <NodePalette onAddNode={handleAddNode} />
-          
-          <Canvas 
-            nodes={nodes} 
-            edges={edges} 
-            setNodes={setNodes} 
-            setEdges={setEdges}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={(node) => setSelectedNodeId(node?.id || null)}
-          />
-          
-          <InspectorPanel 
-            selectedNode={selectedNode}
-            setNodes={setNodes}
-            projectId={projectId}
-            onDeleteNode={handleDeleteNode}
-            onDuplicateNode={handleDuplicateNode}
-          />
-        </ReactFlowProvider>
+      {/* Main Studio Body: Palette, Visual Canvas, Inspector */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        {loading ? (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Spin size="large" tip="Loading workflow canvas..." />
+          </div>
+        ) : (
+          <ReactFlowProvider>
+            {/* Left Node Palette */}
+            <NodePalette onAddNode={handleAddNode} />
+
+            {/* Central Visual DAG Canvas */}
+            <div style={{ flex: 1, height: '100%', position: 'relative' }}>
+              <Canvas
+                nodes={nodes}
+                edges={edges}
+                setNodes={setNodes}
+                setEdges={setEdges}
+                selectedNodeId={selectedNodeId}
+                setSelectedNodeId={setSelectedNodeId}
+                onDuplicateNode={handleDuplicateNode}
+                onDeleteNode={handleDeleteNode}
+              />
+            </div>
+
+            {/* Right Node Inspector / Edit Panel */}
+            <InspectorPanel
+              selectedNode={selectedNode}
+              setNodes={setNodes}
+              projectId={projectId}
+              onDeleteNode={handleDeleteNode}
+              onDuplicateNode={handleDuplicateNode}
+              onClose={() => setSelectedNodeId(null)}
+            />
+          </ReactFlowProvider>
+        )}
       </div>
 
-      {/* Modals & Drawers */}
+      {/* Simulation Drawer */}
       <SimulationDrawer
         visible={showSimulator}
         onClose={() => setShowSimulator(false)}
         projectId={projectId}
-        workflowId={workflowId}
-        nodes={nodes}
-        edges={edges}
+        workflow={{
+          ...workflowMeta,
+          nodes,
+          edges
+        }}
       />
 
+      {/* AI Generator Modal */}
       <AiGeneratorModal
         visible={showAiModal}
-        onCancel={() => setShowAiModal(false)}
-        onApplyGraph={handleApplyAiGraph}
+        onClose={() => setShowAiModal(false)}
         projectId={projectId}
+        onApplyGraph={handleApplyAiGraph}
       />
 
+      {/* Version History Modal */}
       <VersionHistoryModal
         visible={showVersionModal}
-        onCancel={() => setShowVersionModal(false)}
-        workflowId={workflowId}
+        onClose={() => setShowVersionModal(false)}
         projectId={projectId}
+        workflowId={currentWorkflowId}
+        onRestoreVersion={(verNodes, verEdges) => {
+          setNodes(verNodes);
+          setEdges(verEdges);
+          message.success('Workflow restored to chosen version');
+        }}
       />
     </div>
   );

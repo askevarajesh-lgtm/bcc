@@ -112,7 +112,7 @@ const GeneratePanel = () => {
   return (
     <Row gutter={24}>
       <Col span={10}>
-        <Card size="small" title={<Space><Sparkles size={16} /> Generate Content</Space>}>
+        <Card size="small" title={<Space><Sparkles size={16} /> Generate Content</Space>} style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
           <Form layout="vertical">
             <Form.Item label="Generator">
               <Select
@@ -163,7 +163,7 @@ const GeneratePanel = () => {
       <Col span={14}>
         {loading && <Spin />}
         {!loading && !result && (
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <Text type="secondary">Pick a generator on the left and generate — the output and its quality score will show here.</Text>
           </Card>
         )}
@@ -171,6 +171,7 @@ const GeneratePanel = () => {
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <Card
               size="small"
+              style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
               title={
                 <Space>
                   <Text strong>Generated Output</Text>

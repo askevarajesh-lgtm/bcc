@@ -534,7 +534,7 @@ a {
   color: var(--text-secondary) !important;
 }
 
-.app-sidebar .ant-menu-submenu-open > .ant-menu-submenu-title {
+.app-sidebar .ant-menu-submenu-open>.ant-menu-submenu-title {
   color: var(--text-primary) !important;
 }
 
@@ -573,7 +573,7 @@ a {
   width: 100%;
 }
 
-.sidebar-menu-label > span:first-child {
+.sidebar-menu-label>span:first-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -894,7 +894,7 @@ a {
   margin-bottom: 20px;
 }
 
-.signin-page .ant-form-item-label > label {
+.signin-page .ant-form-item-label>label {
   height: auto;
   color: var(--text-primary) !important;
   font-size: 13px;
@@ -1062,17 +1062,17 @@ a {
     flex-wrap: wrap;
     gap: 16px;
   }
-  
+
   .app-header__left {
     flex: 1 1 auto;
     min-width: 250px;
   }
-  
+
   .app-header__actions {
     flex: 1 1 auto;
     justify-content: flex-end;
   }
-  
+
   .ant-card {
     overflow-x: auto;
   }

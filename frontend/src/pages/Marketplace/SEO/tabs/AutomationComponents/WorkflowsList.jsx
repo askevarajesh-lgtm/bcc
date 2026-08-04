@@ -3,6 +3,7 @@ import { Table, Button, Tag, Space, message, Popconfirm, Input, Typography, Swit
 import { Edit2, Play, Copy, Trash2, Plus, Search, CheckCircle, RefreshCw, Zap } from 'lucide-react';
 import { seoWorkspaceApi } from '../../../../../api/seoWorkspaceApi';
 import { useTheme } from '../../../../../contexts/ThemeContext';
+import CreateWorkflowModal from './CreateWorkflowModal';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +11,7 @@ export default function WorkflowsList({ projectId, onEdit }) {
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { isDark } = useTheme();
   const titleClr = isDark ? '#f1f5f9' : '#0f172a';
   const subClr   = isDark ? '#64748b' : '#64748b';
@@ -79,6 +81,13 @@ export default function WorkflowsList({ projectId, onEdit }) {
       fetchWorkflows();
     } catch (err) {
       setWorkflows(prev => prev.map(w => w._id === record._id ? { ...w, status: newStatus } : w));
+    }
+  };
+
+  const handleCreateWorkflow = (workflowConfig) => {
+    setIsCreateModalOpen(false);
+    if (onEdit) {
+      onEdit('new', workflowConfig);
     }
   };
 
@@ -173,7 +182,7 @@ export default function WorkflowsList({ projectId, onEdit }) {
             allowClear
           />
           <Button icon={<RefreshCw size={14} />} onClick={fetchWorkflows}>Refresh</Button>
-          <Button type="primary" icon={<Plus size={14} />} onClick={() => onEdit('new')} style={{ background: '#2563eb' }}>
+          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsCreateModalOpen(true)} style={{ background: '#2563eb' }}>
             New Workflow
           </Button>
         </Space>
@@ -185,6 +194,12 @@ export default function WorkflowsList({ projectId, onEdit }) {
         rowKey="_id"
         loading={loading}
         pagination={{ pageSize: 10 }}
+      />
+
+      <CreateWorkflowModal
+        visible={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreateWorkflow}
       />
     </div>
   );

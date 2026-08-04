@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
 import { useSEO } from '../context/SEOContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { generateMasterDashboardPDF } from '../utils/reportPdfGenerator';
 
@@ -23,6 +24,7 @@ const COLORS = ['#52c41a', '#f5222d', '#faad14', '#1890ff']; // Improved, Declin
 const INTENT_COLORS = { informational: '#1890ff', commercial: '#722ed1', transactional: '#52c41a', navigational: '#fa8c16' };
 
 const DashboardTab = () => {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -150,7 +152,14 @@ const DashboardTab = () => {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <RechartsTooltip />
+          <RechartsTooltip
+            contentStyle={{
+              backgroundColor: isDark ? '#1f293d' : '#ffffff',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              borderRadius: 8,
+              color: isDark ? '#f8fafc' : '#0f172a'
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
     );
@@ -168,10 +177,17 @@ const DashboardTab = () => {
     return (
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={intentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-          <XAxis dataKey="intent" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-          <RechartsTooltip />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} opacity={0.5} />
+          <XAxis dataKey="intent" tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }} stroke={isDark ? '#334155' : '#e2e8f0'} />
+          <YAxis tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }} stroke={isDark ? '#334155' : '#e2e8f0'} allowDecimals={false} />
+          <RechartsTooltip
+            contentStyle={{
+              backgroundColor: isDark ? '#1f293d' : '#ffffff',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              borderRadius: 8,
+              color: isDark ? '#f8fafc' : '#0f172a'
+            }}
+          />
           <Bar dataKey="count" radius={[4, 4, 0, 0]}>
             {intentData.map((entry, idx) => (
               <Cell key={`bar-${idx}`} fill={entry.fill} />
@@ -199,7 +215,7 @@ const DashboardTab = () => {
       {/* Top Controls */}
       <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ padding: 8, background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
+          <div style={{ padding: 8, background: isDark ? 'rgba(24, 144, 255, 0.15)' : '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
             <LayoutGrid size={24} />
           </div>
           <div>
@@ -257,66 +273,66 @@ const DashboardTab = () => {
           {/* Key Metric Score Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(82, 196, 26, 0.18) 0%, rgba(82, 196, 26, 0.05) 100%)' : 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)', border: isDark ? '1px solid rgba(82, 196, 26, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="SEO Score"
                   value={data.avgSeoScore || 82}
                   suffix="/ 100"
                   prefix={<ActivitySquare size={16} />}
-                  valueStyle={{ color: '#389e0d', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#73d13d' : '#389e0d', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(24, 144, 255, 0.18) 0%, rgba(24, 144, 255, 0.05) 100%)' : 'linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%)', border: isDark ? '1px solid rgba(24, 144, 255, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="Health Index"
                   value={data.avgHealthScore || 85}
                   suffix="/ 100"
                   prefix={<ShieldCheck size={16} />}
-                  valueStyle={{ color: '#096dd9', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#40a9ff' : '#096dd9', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(114, 46, 209, 0.18) 0%, rgba(114, 46, 209, 0.05) 100%)' : 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)', border: isDark ? '1px solid rgba(114, 46, 209, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="AEO Answer Score"
                   value={data.aeoScore || 78}
                   suffix="/ 100"
                   prefix={<MessageCircle size={16} />}
-                  valueStyle={{ color: '#531dab', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#9254de' : '#531dab', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(250, 140, 22, 0.18) 0%, rgba(250, 140, 22, 0.05) 100%)' : 'linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%)', border: isDark ? '1px solid rgba(250, 140, 22, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="GEO Visibility"
                   value={data.geoScore || 84}
                   suffix="/ 100"
                   prefix={<Globe size={16} />}
-                  valueStyle={{ color: '#d46b08', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#ffc069' : '#d46b08', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fcffe6 0%, #f4ffb8 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(160, 217, 17, 0.18) 0%, rgba(160, 217, 17, 0.05) 100%)' : 'linear-gradient(135deg, #fcffe6 0%, #f4ffb8 100%)', border: isDark ? '1px solid rgba(160, 217, 17, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="Tracked Keywords"
                   value={data.keywords?.total || 0}
                   prefix={<BarChart2 size={16} />}
-                  valueStyle={{ color: '#7cb305', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#bae637' : '#7cb305', fontWeight: 700 }}
                 />
               </Card>
             </Col>
             <Col xs={12} sm={8} md={4}>
-              <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffd8e4 100%)', borderRadius: 8 }}>
+              <Card size="small" bordered={false} style={{ background: isDark ? 'linear-gradient(135deg, rgba(235, 47, 150, 0.18) 0%, rgba(235, 47, 150, 0.05) 100%)' : 'linear-gradient(135deg, #fff0f6 0%, #ffd8e4 100%)', border: isDark ? '1px solid rgba(235, 47, 150, 0.3)' : undefined, borderRadius: 8 }}>
                 <Statistic
                   title="Active Projects"
                   value={data.totalProjects || 1}
                   prefix={<Globe size={16} />}
-                  valueStyle={{ color: '#c41d7f', fontWeight: 700 }}
+                  valueStyle={{ color: isDark ? '#ff85c0' : '#c41d7f', fontWeight: 700 }}
                 />
               </Card>
             </Col>

@@ -36,7 +36,7 @@ const NAV_ITEMS = [
   { id: 'aeo', label: 'AEO', icon: MessageCircle },
   { id: 'geo', label: 'GEO', icon: Globe2 },
   { id: 'reports', label: 'Reports', icon: FileText },
-  // { id: 'automation', label: 'Automation', icon: Zap },
+  { id: 'automation', label: 'Automation', icon: Zap },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -58,10 +58,10 @@ const MarketplaceSEOContent = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { isDark } = useTheme();
 
-  const navBg = isDark ? '#111c31' : undefined;
-  const navBdr = isDark ? '1px solid #1e293b' : '1px solid var(--border-color, #e8e8e8)';
-  const tabClr = isDark ? '#94a3b8' : 'var(--text-secondary, #595959)';
-  const cardBg = isDark ? '#111c31' : '#ffffff';
+  const navBg = isDark ? 'var(--bg-secondary, #111c31)' : undefined;
+  const navBdr = '1px solid var(--border-color, #e8e8e8)';
+  const tabClr = 'var(--text-secondary, #595959)';
+  const cardBg = 'var(--bg-primary, #ffffff)';
 
   const getBasePath = () => {
     const currentPath = location.pathname.replace(/\/+$/, '');
@@ -229,7 +229,7 @@ const MarketplaceSEOContent = () => {
 
       {/* Active Tab Panel */}
       <motion.div variants={itemVariants}>
-        <Card style={{ borderRadius: 12, boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05))', background: cardBg }}>
+        <Card style={{ borderRadius: 12, boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05))', background: cardBg, border: '1px solid var(--border-color)' }}>
           {renderTabContent()}
         </Card>
       </motion.div>

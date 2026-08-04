@@ -58,17 +58,23 @@ const WebsiteBuilderTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <LayoutTemplate size={28} />
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14,
+          background: 'linear-gradient(135deg, #722ed1 0%, #13c2c2 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          <LayoutTemplate size={24} color="#fff" />
+        </div>
         <div>
-          <Title level={4} style={{ margin: 0 }}>Website Builder SEO</Title>
-          <Text type="secondary">Per-page SEO findings and approvals for websites built in the Website Builder.</Text>
+          <Title level={4} style={{ margin: 0, fontWeight: 900 }}>Website Builder SEO</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>Per-page SEO findings and approvals for websites built in the Website Builder.</Text>
         </div>
       </div>
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
-      <Space style={{ marginBottom: 20 }}>
+      <Space style={{ marginBottom: 20 }} wrap>
         <Select
           loading={loadingWebsites}
           placeholder="Select a website"

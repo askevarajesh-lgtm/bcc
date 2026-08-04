@@ -82,6 +82,7 @@ const LibraryPanel = () => {
     <Card
       size="small"
       title="Content Library"
+      style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}
       extra={
         <Select
           allowClear

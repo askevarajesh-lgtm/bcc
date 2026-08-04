@@ -35,22 +35,22 @@ const ReportPreview = ({ report }) => {
     <div style={{ padding: '20px 0' }}>
       <Row gutter={[16, 16]}>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <Statistic title="SEO Score" value={metrics.seoScore || 0} prefix={<Target size={16} style={{marginRight: 8, color: '#1890ff'}}/>} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <Statistic title="Technical Score" value={metrics.technicalScore || 0} prefix={<Zap size={16} style={{marginRight: 8, color: '#52c41a'}}/>} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <Statistic title="Content Score" value={metrics.contentScore || 0} prefix={<LayoutTemplate size={16} style={{marginRight: 8, color: '#722ed1'}}/>} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
             <Statistic title="Performance Score" value={metrics.performanceScore || 0} prefix={<Activity size={16} style={{marginRight: 8, color: '#fa8c16'}}/>} />
           </Card>
         </Col>
@@ -59,13 +59,13 @@ const ReportPreview = ({ report }) => {
       <Divider />
       
       {execSummary && (
-        <Card title="Executive Summary" style={{ marginBottom: 16 }}>
+        <Card title="Executive Summary" style={{ marginBottom: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
           <Text>{execSummary.content || execSummary}</Text>
         </Card>
       )}
 
       {actionPlan && (
-        <Card title="Recommended Action Plan">
+        <Card title="Recommended Action Plan" style={{ borderRadius: 12, border: '1px solid var(--border-color)' }}>
           {Array.isArray(actionPlan.tasks) ? (
             <List 
               size="small"
@@ -85,8 +85,17 @@ const ReportPreview = ({ report }) => {
   );
 
   const renderRaw = (type) => (
-    <Card style={{ marginTop: 20 }}>
-      <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, backgroundColor: '#fafafa', padding: 12, borderRadius: 4 }}>
+    <Card style={{ marginTop: 20, borderRadius: 12, border: '1px solid var(--border-color)' }}>
+      <pre style={{
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        fontSize: 12,
+        backgroundColor: 'var(--bg-secondary, #fafafa)',
+        color: 'var(--text-primary, #333)',
+        border: '1px solid var(--border-color, #f0f0f0)',
+        padding: 12,
+        borderRadius: 8
+      }}>
         {type === 'json' ? JSON.stringify(report, null, 2) : report.content}
       </pre>
     </Card>

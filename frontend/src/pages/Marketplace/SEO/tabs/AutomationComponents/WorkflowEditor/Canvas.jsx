@@ -19,7 +19,17 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode, selectedNodeId }) {
+export default function Canvas({ 
+  nodes, 
+  edges, 
+  setNodes, 
+  setEdges, 
+  selectedNodeId, 
+  setSelectedNodeId, 
+  onSelectNode,
+  onDuplicateNode,
+  onDeleteNode
+}) {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const { isDark } = useTheme();
@@ -33,6 +43,12 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode,
       selected: n.id === selectedNodeId
     }));
   }, [nodes, selectedNodeId]);
+
+  const handleNodeSelection = useCallback((node) => {
+    const id = node ? node.id : null;
+    if (setSelectedNodeId) setSelectedNodeId(id);
+    if (onSelectNode) onSelectNode(node);
+  }, [setSelectedNodeId, onSelectNode]);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -106,18 +122,18 @@ export default function Canvas({ nodes, edges, setNodes, setEdges, onSelectNode,
       };
 
       setNodes((nds) => nds.concat(newNode));
-      if (onSelectNode) onSelectNode(newNode);
+      handleNodeSelection(newNode);
       window.__draggedWorkflowNode = null;
     },
-    [screenToFlowPosition, setNodes, onSelectNode]
+    [screenToFlowPosition, setNodes, handleNodeSelection]
   );
 
-  const onNodeClick = (_, node) => {
-    if (onSelectNode) onSelectNode(node);
+  const onNodeClick = (evt, node) => {
+    handleNodeSelection(node);
   };
 
   const onPaneClick = () => {
-    if (onSelectNode) onSelectNode(null);
+    handleNodeSelection(null);
   };
 
   return (

@@ -58,17 +58,23 @@ const BlogSEOTab = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <BookOpen size={28} />
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14,
+          background: 'linear-gradient(135deg, #13c2c2 0%, #1677ff 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          <BookOpen size={24} color="#fff" />
+        </div>
         <div>
-          <Title level={4} style={{ margin: 0 }}>Blog SEO</Title>
-          <Text type="secondary">Per-post SEO findings and approvals for blog posts.</Text>
+          <Title level={4} style={{ margin: 0, fontWeight: 900 }}>Blog SEO</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>Per-post SEO findings and approvals for blog posts.</Text>
         </div>
       </div>
 
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
-      <Space style={{ marginBottom: 20 }}>
+      <Space style={{ marginBottom: 20 }} wrap>
         <Select
           loading={loadingBlogs}
           placeholder="Select a blog"
