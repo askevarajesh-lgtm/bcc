@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Switch, message, Typography, Button, Alert } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
 import {
@@ -323,10 +323,38 @@ const IntegrationsTab = () => {
 
   const integrations = data?.data?.integrations || [];
 
+  const websiteIntegration = integrations.find((i) => i.type === "website");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthStatus = params.get("facebook_oauth");
+    const reason = params.get("reason");
+
+    if (oauthStatus) {
+      if (oauthStatus === "success") {
+        message.success("Facebook accounts connected successfully!");
+      } else if (oauthStatus === "error") {
+        message.error(`Facebook connection failed: ${reason || "Unknown error"}`);
+      }
+      
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Auto-open website config
+      setSelectedConfig({
+        type: 'website',
+        id: websiteIntegration?._id || 'new',
+        initialTab: 'facebook'
+      });
+      // We rely on WebsiteConfigPage to also parse facebook_oauth if needed,
+      // but since we cleared it, WebsiteConfigPage won't see it.
+      // We will pass an extra state or just let the user see the website config page.
+    }
+  }, [websiteIntegration]);
+
   const whatsappIntegration = integrations.find((i) => i.type === "whatsapp");
   const smsIntegration = integrations.find((i) => i.type === "sms");
   const emailIntegration = integrations.find((i) => i.type === "email");
-  const websiteIntegration = integrations.find((i) => i.type === "website");
   const ektaIntegration = integrations.find((i) => i.type === "ekta");
   const paymentIntegration = integrations.find((i) => i.type === "payment");
   const isCommanderAdmin = role === "commander_admin";
@@ -418,7 +446,7 @@ const IntegrationsTab = () => {
         {selectedConfig.type === 'whatsapp' && <WhatsAppConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'sms' && <SmsConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
         {selectedConfig.type === 'email' && <EmailConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
-        {selectedConfig.type === 'website' && <WebsiteConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
+        {selectedConfig.type === 'website' && <WebsiteConfigPage integrationId={selectedConfig.id} initialTab={selectedConfig.initialTab} onBack={handleBack} />}
         {selectedConfig.type === 'ekta' && <EktaHrInlineConfigPage onBack={handleBack} />}
         {selectedConfig.type === 'payment' && <PaymentConfigPage integrationId={selectedConfig.id} onBack={handleBack} />}
       </div>

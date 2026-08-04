@@ -41,7 +41,7 @@ import FacebookLeadsTab from "./FacebookLeadsTab";
 
 const { Title, Text, Paragraph } = Typography;
 
-const WebsiteConfigPage = ({ integrationId: propId, onBack }) => {
+const WebsiteConfigPage = ({ integrationId: propId, initialTab, onBack }) => {
   const navigate = useNavigate();
   const { id: paramId } = useParams();
   const id = propId || paramId;
@@ -72,17 +72,20 @@ const WebsiteConfigPage = ({ integrationId: propId, onBack }) => {
   
   const [apiKey, setApiKey] = useState("");
   const [isHtmlSnippetVisible, setIsHtmlSnippetVisible] = useState(false);
-  const [activeKey, setActiveKey] = useState("website");
+  const [activeKey, setActiveKey] = useState(initialTab || "website");
 
   const watchedCustomFields = Form.useWatch("customFields", websiteForm);
   const customFieldsToRender = watchedCustomFields || websiteIntegration?.config?.customFields || [];
 
   useEffect(() => {
+    if (initialTab) {
+      setActiveKey(initialTab);
+    }
     const params = new URLSearchParams(window.location.search);
     if (params.has("facebook_oauth")) {
       setActiveKey("facebook");
     }
-  }, []);
+  }, [initialTab]);
 
   useEffect(() => {
     if (websiteIntegration) {

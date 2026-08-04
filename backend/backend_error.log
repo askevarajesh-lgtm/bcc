@@ -570,3 +570,10 @@ Require stack:
     at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
 >>>>>>> Stashed changes
+2026-08-04T10:33:26.151Z\nError: Failed to sync data from Meta
+    at Object.syncPerformanceAds (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.service.js:179:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.syncData (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.controller.js:42:23)\n\n2026-08-04T10:33:33.665Z\nError: Failed to sync data from Meta
+    at Object.syncPerformanceAds (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.service.js:179:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.syncData (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.controller.js:42:23)\n\n

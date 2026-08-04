@@ -5,10 +5,29 @@ const trackingService = require('./semrush.tracking');
 const SemrushProject = require('./models/semrushProject.model');
 const SemrushProjectData = require('./models/semrushProjectData.model');
 
+const OptimizationScore = require('../seoIntelligence/models/optimizationScore.model');
+
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await SemrushProject.find({ companyId: req.companyId, isActive: true }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: projects });
+    const projects = await SemrushProject.find({ companyId: req.companyId, isActive: true }).lean().sort({ createdAt: -1 });
+    
+    // Fetch latest optimization scores for these projects
+    const projectIds = projects.map(p => p._id);
+    const scores = await OptimizationScore.find({ projectId: { $in: projectIds } }).sort({ createdAt: -1 }).lean();
+    
+    const enrichedProjects = projects.map(project => {
+      const latestScore = scores.find(s => s.projectId.toString() === project._id.toString());
+      return {
+        ...project,
+        optimizationScore: latestScore ? {
+          seoScore: latestScore.seoScore,
+          geoScore: latestScore.geoScore,
+          aeoScore: latestScore.aeoScore
+        } : null
+      };
+    });
+
+    res.status(200).json({ success: true, data: enrichedProjects });
   } catch (error) {
     console.error('[Semrush Controller - getProjects]', error);
     res.status(500).json({ success: false, message: error.message });
@@ -270,8 +289,9 @@ exports.getPositionTracking = async (req, res) => {
     const database = project.trackingConfig.location || 'us';
     const keywords = project.trackingConfig.keywords || [];
     const campaignId = project.semrushCampaignId;
+    const force = req.query.force === 'true';
     
-    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId);
+    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId, force);
     
     res.status(200).json({ 
       success: true, 

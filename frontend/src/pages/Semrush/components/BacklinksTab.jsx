@@ -6,6 +6,7 @@ import BacklinksOverview from './backlinks/BacklinksOverview';
 import BacklinksList from './backlinks/BacklinksList';
 import BacklinksAnchors from './backlinks/BacklinksAnchors';
 import BacklinksPages from './backlinks/BacklinksPages';
+import BacklinksNetworkGraph from './backlinks/BacklinksNetworkGraph';
 
 const BacklinksTab = () => {
   const { project, projectData } = useOutletContext();
@@ -84,7 +85,7 @@ const BacklinksTab = () => {
           {activeKey === 'backlinks' && <BacklinksList />}
           {activeKey === 'anchors' && <BacklinksAnchors />}
           {activeKey === 'indexed-pages' && <BacklinksPages />}
-          {activeKey === 'network-graph' && <EmptyState message="Network Graph visualization not supported by standard API endpoints." />}
+          {activeKey === 'network-graph' && <BacklinksNetworkGraph />}
        </div>
 
     </div>

@@ -3,7 +3,7 @@ const axios = require('axios');
 const mongoose = require('mongoose');
 
 const META_APP_ID = process.env.META_APP_ID || 'dummy_app_id';
-const META_APP_SECRET = process.env.META_APP_SECRET || 'dummy_app_secret';
+const META_APP_SECRET = process.env.META_SECRET || process.env.META_APP_SECRET || 'dummy_app_secret';
 const META_REDIRECT_URI = process.env.META_REDIRECT_URI || `${process.env.APP_URL || 'http://localhost:5500'}/api/integrations/meta/callback`;
 
 exports.generateAuthUrl = async (req, res, next) => {
@@ -13,7 +13,12 @@ exports.generateAuthUrl = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Agency ID missing from user token' });
     }
 
-    const state = agencyId.toString(); // Pass agencyId in state to map callback
+    const { returnUrl } = req.query;
+    const stateObj = { 
+        agencyId: agencyId.toString(), 
+        returnUrl: returnUrl || '/agency/performance-ads' 
+    };
+    const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
     const scopes = ['ads_management', 'ads_read', 'business_management'].join(',');
     
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&state=${state}&scope=${scopes}`;
@@ -26,10 +31,27 @@ exports.generateAuthUrl = async (req, res, next) => {
 
 exports.handleCallback = async (req, res, next) => {
   try {
-    const { code, state: agencyId } = req.query;
+    const { code, state: stateStr } = req.query;
     
-    if (!code || !agencyId) {
+    if (!code || !stateStr) {
       return res.status(400).json({ success: false, message: 'Missing code or state from Meta callback' });
+    }
+
+    let agencyId, returnUrl;
+    try {
+        const stateObj = JSON.parse(Buffer.from(stateStr, 'base64').toString('utf8'));
+        
+        // If state contains redirectPath and companyId, it's actually from the Facebook Leads integration
+        // Redirect to the correct handler internally since both use the same META_REDIRECT_URI
+        if (stateObj.redirectPath && stateObj.companyId) {
+            return res.redirect(`/api/facebook/callback?code=${code}&state=${stateStr}`);
+        }
+
+        agencyId = stateObj.agencyId;
+        returnUrl = stateObj.returnUrl;
+    } catch (e) {
+        agencyId = stateStr;
+        returnUrl = '/agency/performance-ads';
     }
 
     // 1. Exchange code for short-lived token
@@ -82,10 +104,21 @@ exports.handleCallback = async (req, res, next) => {
 
     // Redirect back to frontend settings or performance ads dashboard
     // In production, this should be the frontend URL. For now, redirecting to root or settings
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/agency/settings`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}${returnUrl}`);
   } catch (error) {
-    console.error('Meta Callback Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Meta Authentication Failed' });
+    const errDetail = error.response?.data || error.message;
+    console.error('Meta Callback Error:', JSON.stringify(errDetail));
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    let fallbackReturnUrl = '/agency/performance-ads';
+    if (req.query.state) {
+        try {
+            const stateObj = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+            if (stateObj.returnUrl) fallbackReturnUrl = stateObj.returnUrl;
+        } catch (e) {}
+    }
+    
+    res.redirect(`${frontendUrl}${fallbackReturnUrl}?meta_error=${encodeURIComponent(JSON.stringify(errDetail))}`);
   }
 };
 
@@ -104,7 +137,7 @@ exports.getAdAccounts = async (req, res, next) => {
     const accountsRes = await axios.get(`https://graph.facebook.com/v18.0/${userId}/adaccounts`, {
       params: {
         access_token: accessToken,
-        fields: 'id,name,account_status,currency,timezone_name'
+        fields: 'id,name,account_status,currency,timezone_name,balance,amount_spent,funding_source_details'
       }
     });
 
@@ -148,3 +181,117 @@ exports.saveSelectedAdAccounts = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.createCampaign = async (req, res, next) => {
+  try {
+    const agencyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const integration = await Integration.findOne({ companyId: agencyId, type: 'meta_ads', isActive: true });
+    
+    if (!integration || !integration.config || !integration.config.accessToken) {
+      return res.status(404).json({ success: false, message: 'Meta Ads integration not found or disconnected' });
+    }
+
+    const { accessToken } = integration.config;
+    const { 
+      adAccountId, 
+      campaignName, 
+      objective, 
+      status = 'PAUSED', 
+      specialAdCategories = [],
+      adSetName,
+      dailyBudget, // in rupees/dollars, needs to be multiplied by 100
+      billingEvent = 'IMPRESSIONS',
+      optimizationGoal = 'REACH',
+      targeting = { geo_locations: { countries: ['IN'] } },
+      adName,
+      pageId,
+      creativeLink,
+      creativeMessage,
+      creativeImageUrl
+    } = req.body;
+
+    if (!adAccountId) return res.status(400).json({ success: false, message: 'adAccountId is required' });
+
+    // 1. Create Campaign
+    const campaignRes = await axios.post(`https://graph.facebook.com/v18.0/${adAccountId}/campaigns`, null, {
+      params: {
+        access_token: accessToken,
+        name: campaignName,
+        objective: objective,
+        status: status,
+        special_ad_categories: JSON.stringify(specialAdCategories)
+      }
+    });
+    const campaignId = campaignRes.data.id;
+
+    // 2. Create Ad Set
+    const adSetRes = await axios.post(`https://graph.facebook.com/v18.0/${adAccountId}/adsets`, null, {
+      params: {
+        access_token: accessToken,
+        name: adSetName,
+        campaign_id: campaignId,
+        daily_budget: dailyBudget * 100, // cents/paise
+        billing_event: billingEvent,
+        optimization_goal: optimizationGoal,
+        targeting: JSON.stringify(targeting),
+        status: status,
+        promoted_object: JSON.stringify({ page_id: pageId })
+      }
+    });
+    const adSetId = adSetRes.data.id;
+
+    // 3. Create Ad Creative (assuming standard link ad with image)
+    const creativeRes = await axios.post(`https://graph.facebook.com/v18.0/${adAccountId}/adcreatives`, null, {
+      params: {
+        access_token: accessToken,
+        name: `Creative - ${adName}`,
+        object_story_spec: JSON.stringify({
+          page_id: pageId,
+          link_data: {
+            image_url: creativeImageUrl,
+            link: creativeLink,
+            message: creativeMessage
+          }
+        }),
+        degrees_of_freedom_spec: JSON.stringify({ creative_features_spec: { standard_enhancements: { enrollment_status: 'OPT_OUT' } } })
+      }
+    });
+    const creativeId = creativeRes.data.id;
+
+    // 4. Create Ad
+    const adRes = await axios.post(`https://graph.facebook.com/v18.0/${adAccountId}/ads`, null, {
+      params: {
+        access_token: accessToken,
+        name: adName,
+        adset_id: adSetId,
+        creative: JSON.stringify({ creative_id: creativeId }),
+        status: status
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Campaign created successfully',
+      data: {
+        campaignId,
+        adSetId,
+        adId: adRes.data.id
+      }
+    });
+
+  } catch (error) {
+    console.error('Meta Campaign Creation Error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Failed to create campaign', error: error.response?.data || error.message });
+  }
+};
+
+exports.disconnectMeta = async (req, res, next) => {
+  try {
+    const agencyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    await Integration.findOneAndDelete({ companyId: agencyId, type: 'meta_ads' });
+    res.status(200).json({ success: true, message: 'Meta Ads disconnected successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+

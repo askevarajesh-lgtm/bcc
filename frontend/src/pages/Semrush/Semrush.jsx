@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Tabs, Button, Select, Space, Badge, message, Spin } from 'antd';
-import { ShareAltOutlined, ReloadOutlined, ExportOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { ShareAltOutlined, ReloadOutlined, ExportOutlined, EllipsisOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useParams, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { semrushApi } from '../../api/semrushApi';
@@ -110,10 +110,17 @@ const Semrush = () => {
       {/* Premium Header */}
       <div className="semrush-header-container">
         <div className="semrush-header-top">
-          <div className="semrush-domain-info">
-            <div className="semrush-domain-icon-box">
-              <span style={{ fontSize: '28px' }}>🌐</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Button 
+              type="text" 
+              icon={<ArrowLeftOutlined style={{ fontSize: '18px' }} />} 
+              onClick={() => navigate('/intelligence/semrush')} 
+              style={{ padding: '4px 8px' }}
+            />
+            <div className="semrush-domain-info">
+              <div className="semrush-domain-icon-box">
+                <span style={{ fontSize: '28px' }}>🌐</span>
+              </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
                 <h1 className="semrush-domain-name">
@@ -127,6 +134,7 @@ const Semrush = () => {
                 <span>Last updated: {project.lastRefresh ? new Date(project.lastRefresh).toLocaleString() : 'Never'}</span>
               </div>
             </div>
+          </div>
           </div>
           
           <div className="semrush-header-actions">

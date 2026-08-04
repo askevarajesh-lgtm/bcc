@@ -329,7 +329,9 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                <div key={p.url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
                   <span style={{ color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                      <Tag color="#ffe8e6" style={{ color: '#ff7a45', border: 'none', marginRight: 8 }}>200</Tag>
-                     {p.url} <ExternalLink size={12} />
+                     <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {p.url} <ExternalLink size={12} />
+                     </a>
                   </span>
                   <span style={{ color: 'var(--accent-primary)' }}>{formatNumber(p.domains)}</span>
                </div>

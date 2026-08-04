@@ -12,6 +12,8 @@ router.get('/meta/auth', authMiddleware, metaController.generateAuthUrl);
 router.get('/meta/callback', metaController.handleCallback); // No authMiddleware for callback since it comes from Meta
 router.get('/meta/ad-accounts', authMiddleware, metaController.getAdAccounts);
 router.post('/meta/ad-accounts', authMiddleware, metaController.saveSelectedAdAccounts);
+router.post('/meta/campaigns', authMiddleware, metaController.createCampaign);
+router.delete('/meta', authMiddleware, metaController.disconnectMeta);
 
 router.use(authMiddleware);
 

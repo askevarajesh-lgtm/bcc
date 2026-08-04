@@ -17,7 +17,7 @@ class SemrushTrackingService {
    * @param {string[]} keywords - user-configured keywords
    * @param {string|null} campaignId - Semrush campaign ID e.g. "30536667_5180087"
    */
-  async getPositionTrackingData(domain, database, keywords, campaignId = null) {
+  async getPositionTrackingData(domain, database, keywords, campaignId = null, force = false) {
     if (!keywords || keywords.length === 0) return [];
 
     const cleanDomain = domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
@@ -99,16 +99,39 @@ class SemrushTrackingService {
           try {
             const metricsData = await semrushService.fetchWithCache(
               `phrase_this_${kw}_${database}`,
-              { type: 'phrase_this', phrase: kw, database, export_columns: 'Ph,Nq,Kd,Cp,In' }
+              { type: 'phrase_this', phrase: kw, database, export_columns: 'Ph,Nq,Kd,Cp,In' },
+              null,
+              force
+            ).catch(() => []);
+            
+            const organicData = await semrushService.fetchWithCache(
+              `phrase_organic_${kw}_${database}`,
+              { type: 'phrase_organic', phrase: kw, database, export_columns: 'Dn,Ur' },
+              null,
+              force
             ).catch(() => []);
 
             const metrics = Array.isArray(metricsData) && metricsData.length > 0 ? metricsData[0] : {};
+            
+            let actualPosition = '> 100';
+            let actualUrl = '-';
+            
+            if (Array.isArray(organicData)) {
+               const rankIndex = organicData.findIndex(row => {
+                 const d = row.Domain || row.Dn || '';
+                 return d === cleanDomain || d === `www.${cleanDomain}` || d.endsWith(`.${cleanDomain}`);
+               });
+               if (rankIndex !== -1) {
+                  actualPosition = String(rankIndex + 1);
+                  actualUrl = organicData[rankIndex].Url || organicData[rankIndex].Ur || '-';
+               }
+            }
 
             if (!rankingMap[kw.toLowerCase()]) {
               rankingMap[kw.toLowerCase()] = {
-                position: '> 100',
+                position: actualPosition,
                 previousPosition: '-',
-                url: '-',
+                url: actualUrl,
                 diff1: 0,
                 diff7: 0,
                 searchVolume: metrics['Search Volume'] || metrics.Nq || '0',

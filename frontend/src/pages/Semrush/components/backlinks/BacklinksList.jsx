@@ -26,9 +26,9 @@ const BacklinksList = () => {
       render: (text, record) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
           <span style={{ color: '#2b2b2b', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{text || record.source_url}</span>
-          <span style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4 }}>
+          <a href={record.source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {record.source_url} <ExternalLink size={12} style={{ marginLeft: 4 }} />
-          </span>
+          </a>
         </div>
       )
     },
@@ -54,9 +54,9 @@ const BacklinksList = () => {
       render: (text, record) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
           <span style={{ color: '#2b2b2b', fontWeight: 500 }}>{text || 'Empty Anchor'}</span>
-          <span style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4 }}>
+          <a href={record.target_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {record.target_url} <ExternalLink size={12} style={{ marginLeft: 4 }} />
-          </span>
+          </a>
           <div style={{ marginTop: 8 }}>
              <Tag color="default" style={{ fontSize: 11, background: '#f0f0f0', border: 'none', color: '#595959' }}>Text</Tag>
           </div>

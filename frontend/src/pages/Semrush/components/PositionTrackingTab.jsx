@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card } from 'antd';
 import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
-import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor } from 'lucide-react';
+import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import api from '../../../services/api';
@@ -32,10 +32,10 @@ const PositionTrackingTab = () => {
     fetchTrackingData();
   }, [projectId]);
 
-  const fetchTrackingData = async () => {
+  const fetchTrackingData = async (force = false) => {
     try {
       setLoading(true);
-      const res = await api.get(`/semrush/projects/${projectId}/position-tracking`);
+      const res = await api.get(`/semrush/projects/${projectId}/position-tracking${force ? '?force=true' : ''}`);
       if (res.data.success) {
         setData(res.data.data);
       }
@@ -319,6 +319,9 @@ const PositionTrackingTab = () => {
               </Text>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
+              <Button icon={<RefreshCw size={16} />} onClick={() => fetchTrackingData(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
+                Refresh
+              </Button>
               <Button icon={<SettingOutlined />} onClick={() => {
                  // Open configure modal or just reset config
                  setConfig({ ...config, keywordsText: rankings.map(r => r.keyword).join('\n')});

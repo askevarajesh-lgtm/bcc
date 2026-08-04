@@ -24,6 +24,8 @@ const SettingsPage = () => {
   const location = useLocation();
 
   const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'integrations') return '2';
     if (location.state?.activeTab) return location.state.activeTab;
     if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) return '1';
     if (['agency_manager', 'brand_manager'].includes(role)) return '7';
@@ -31,10 +33,13 @@ const SettingsPage = () => {
   });
 
   useEffect(() => {
-    if (location.state?.activeTab) {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'integrations') {
+      setActiveTab('2');
+    } else if (location.state?.activeTab) {
       setActiveTab(location.state.activeTab);
     }
-  }, [location.state?.activeTab]);
+  }, [location.state?.activeTab, location.search]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

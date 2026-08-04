@@ -69,16 +69,22 @@ const SemrushDashboard = () => {
       )
     },
     {
-      title: 'AI Visibility',
-      dataIndex: ['stats', 'aiVisibility'],
-      key: 'aiVisibility',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+      title: 'SEO Score',
+      dataIndex: ['optimizationScore', 'seoScore'],
+      key: 'seoScore',
+      render: (val) => <Text strong style={{ color: 'var(--accent-secondary)' }}>{val || 0}</Text>
     },
     {
-      title: 'Mentions',
-      dataIndex: ['stats', 'mentions'],
-      key: 'mentions',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+      title: 'GEO Score',
+      dataIndex: ['optimizationScore', 'geoScore'],
+      key: 'geoScore',
+      render: (val) => <Text strong style={{ color: 'var(--accent-warning)' }}>{val || 0}</Text>
+    },
+    {
+      title: 'AEO Score',
+      dataIndex: ['optimizationScore', 'aeoScore'],
+      key: 'aeoScore',
+      render: (val) => <Text strong style={{ color: 'var(--accent-info)' }}>{val || 0}</Text>
     },
     {
       title: 'Site Health',

@@ -188,7 +188,8 @@ const getAllIntegrations = async (companyId, role) => {
   // Super admin sees platform-level integrations (companyId: null)
   // Others see company-specific integrations
   if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
-    query.companyId = null;
+    query.$or = [{ companyId: null }];
+    if (companyId) query.$or.push({ companyId });
   } else {
     query.companyId = companyId;
   }

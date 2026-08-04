@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Card, Button, Select, Table, Tag, Progress, Spin, message, Modal, Form, Input } from 'antd';
+import React, { useState, useEffect } from 'react'; 
+import { Typography, Row, Col, Card, Button, Select, Table, Tag, Progress, Spin, message, Modal, Form, Input, Checkbox, Dropdown } from 'antd';
 import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell, BarChart as RechartsBarChart } from 'recharts';
 import { motion } from 'framer-motion';
-import { RefreshCcw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, Activity } from 'lucide-react';
+import { RefreshCcw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, Activity, CheckCircle2, Settings, LogOut, RefreshCw } from 'lucide-react';
 import { performanceAdsApi } from '../../api/performanceAdsApi';
 import api from '../../services/api';
 import { useGetClientsQuery } from '../../api/clientApi';
+import CampaignBuilderWizard from './CampaignBuilderWizard';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -16,10 +17,19 @@ const PerformanceAds = () => {
   const [syncing, setSyncing] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [isMetaConnected, setIsMetaConnected] = useState(false);
+  const [metaIntegration, setMetaIntegration] = useState(null);
   const [adAccounts, setAdAccounts] = useState([]);
+
+  const [isAdAccountModalOpen, setIsAdAccountModalOpen] = useState(false);
+  const [availableAdAccounts, setAvailableAdAccounts] = useState([]);
+  const [selectedAdAccountIds, setSelectedAdAccountIds] = useState([]);
+  const [isFetchingAccounts, setIsFetchingAccounts] = useState(false);
+  const [isSavingAccounts, setIsSavingAccounts] = useState(false);
 
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedCampaignView, setSelectedCampaignView] = useState(null);
   const [form] = Form.useForm();
   const platformWatch = Form.useWatch('platform', form);
 
@@ -30,8 +40,58 @@ const PerformanceAds = () => {
 
 
   useEffect(() => {
-    // fetchDashboardData(); // Temporarily disabled while in "Coming Soon" state
+    fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (isAdAccountModalOpen && availableAdAccounts.length === 0) {
+      const fetchAccounts = async () => {
+        setIsFetchingAccounts(true);
+        try {
+          const res = await api.get('/integrations/meta/ad-accounts');
+          if (res.data.success) {
+            setAvailableAdAccounts(res.data.data);
+            setSelectedAdAccountIds(adAccounts.map(a => a.id));
+          } else {
+            message.error('Failed to fetch ad accounts');
+          }
+        } catch (error) {
+          console.error('Error fetching ad accounts:', error);
+          message.error(error.response?.data?.message || 'Error fetching ad accounts');
+        } finally {
+          setIsFetchingAccounts(false);
+        }
+      };
+      fetchAccounts();
+    }
+  }, [isAdAccountModalOpen]);
+
+  const handleSaveAdAccounts = async () => {
+    if (selectedAdAccountIds.length === 0) {
+      return message.warning('Please select at least one ad account');
+    }
+    const selectedAccounts = availableAdAccounts.filter(a => selectedAdAccountIds.includes(a.id)).map(a => ({ 
+      id: a.id, 
+      name: a.name, 
+      balance: a.balance, 
+      currency: a.currency, 
+      account_status: a.account_status 
+    }));
+    setIsSavingAccounts(true);
+    try {
+      const res = await api.post('/integrations/meta/ad-accounts', { selectedAdAccounts: selectedAccounts });
+      if (res.data.success) {
+        message.success('Ad accounts saved successfully!');
+        setAdAccounts(selectedAccounts);
+        setIsAdAccountModalOpen(false);
+        handleSync();
+      }
+    } catch (error) {
+      message.error('Failed to save ad accounts');
+    } finally {
+      setIsSavingAccounts(false);
+    }
+  };
 
   useEffect(() => {
     if (clients.length > 0 && !selectedClient) {
@@ -50,11 +110,17 @@ const PerformanceAds = () => {
       // Check Meta Integration Status
       const intRes = await api.get('/integrations');
       const intData = intRes.data;
-      if (intData.success && intData.data) {
-        const metaInt = intData.data.find(i => i.type === 'meta_ads' && i.isActive);
+      if (intData.success && intData.data && intData.data.integrations) {
+        const metaInt = intData.data.integrations.find(i => i.type === 'meta_ads' && i.isActive);
         if (metaInt) {
           setIsMetaConnected(true);
-          setAdAccounts(metaInt.config.selectedAdAccounts || []);
+          setMetaIntegration(metaInt);
+          const accounts = metaInt.config.selectedAdAccounts || [];
+          setAdAccounts(accounts);
+          
+          if (accounts.length === 0) {
+            setIsAdAccountModalOpen(true);
+          }
         }
       }
     } catch (error) {
@@ -66,7 +132,8 @@ const PerformanceAds = () => {
 
   const handleConnectMeta = async () => {
     try {
-      const res = await api.get('/integrations/meta/auth');
+      const returnUrl = encodeURIComponent(window.location.pathname);
+      const res = await api.get(`/integrations/meta/auth?returnUrl=${returnUrl}`);
       if (res.data.success && res.data.url) {
         window.location.href = res.data.url;
       } else {
@@ -97,40 +164,99 @@ const PerformanceAds = () => {
   const handleCreateCampaign = async (values) => {
     try {
       setIsCreatingCampaign(true);
-      const res = await performanceAdsApi.addCampaign(values);
+      const payload = {
+        ...values,
+        targeting: { geo_locations: { countries: [values.targetCountry || 'IN'] } }
+      };
+      const res = await performanceAdsApi.createMetaCampaign(payload);
       if (res.success) {
-        setData(res.data);
-        message.success('Campaign created successfully!');
+        message.success('Campaign created successfully on Meta!');
         setIsCampaignModalOpen(false);
-        form.resetFields();
+        handleSync(); // Sync data to pull the newly created campaign
+      } else {
+        message.error('Failed to create campaign: ' + res.message);
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
-      message.error('Failed to create campaign');
+      message.error(error.response?.data?.message || 'Failed to create campaign');
     } finally {
       setIsCreatingCampaign(false);
     }
   };
+  const handleDisconnectMeta = async () => {
+    try {
+      const res = await api.delete('/integrations/meta');
+      if (res.data.success) {
+        setIsMetaConnected(false);
+        setMetaIntegration(null);
+        setAdAccounts([]);
+        message.success('Meta Ads disconnected successfully');
+      }
+    } catch (error) {
+      message.error('Failed to disconnect Meta Ads');
+    }
+  };
 
-  // --- COMING SOON PLACEHOLDER ---
-  // Temporarily returning this screen to block access to the unfinished module.
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh', textAlign: 'center' }}>
-      <div style={{ background: 'var(--bg-secondary)', padding: '32px', borderRadius: '50%', marginBottom: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-        <Megaphone size={48} style={{ color: 'var(--accent-secondary)' }} />
+  const metaMenu = (
+    <div style={{ padding: 16, background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow-lg)', width: 320, border: '1px solid var(--border-color)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1877F2', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff' }}>
+          <CheckCircle2 size={24} />
+        </div>
+        <div>
+          <Text strong style={{ display: 'block', fontSize: 16, color: 'var(--text-primary)' }}>Meta Ads Connected</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>ID: {metaIntegration?.config?.userId || 'N/A'}</Text>
+        </div>
       </div>
-      <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Performance Ads</Title>
-      <Tag color="warning" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Upgrade Required</Tag>
-      <Text type="secondary" style={{ maxWidth: 450, fontSize: 16, lineHeight: 1.6 }}>
-        This module is available in this package. Purchase or upgrade your package to enable access.
-      </Text>
-    </motion.div>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <Text type="secondary" style={{ fontSize: 11, display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Connection Date</Text>
+          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{new Date(metaIntegration?.createdAt).toLocaleDateString()}</Text>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Text type="secondary" style={{ fontSize: 11, display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Status</Text>
+          <Tag color="success" style={{ margin: 0, borderRadius: 12 }}>Active</Tag>
+        </div>
+      </div>
+      {adAccounts.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <Text type="secondary" style={{ fontSize: 11, display: 'block', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>Selected Accounts & Balance</Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {adAccounts.map(a => (
+              <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '6px 12px', borderRadius: 8 }}>
+                <Text strong style={{ fontSize: 13 }}>{a.name}</Text>
+                {a.balance !== undefined ? (
+                  <Text type="success" strong style={{ fontSize: 13 }}>{(parseFloat(a.balance)/100).toFixed(2)} {a.currency}</Text>
+                ) : (
+                  <Text type="secondary" style={{ fontSize: 12 }}>Balance N/A</Text>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ borderTop: '1px solid var(--border-color)', margin: '16px -16px 12px -16px' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Button block type="text" icon={<Settings size={16} />} style={{ textAlign: 'left', fontWeight: 500, color: 'var(--text-primary)', height: 36 }} onClick={() => setIsAdAccountModalOpen(true)}>Manage Ad Accounts</Button>
+        <Button block type="text" icon={<RefreshCw size={16} />} style={{ textAlign: 'left', fontWeight: 500, color: 'var(--text-primary)', height: 36 }} onClick={handleConnectMeta}>Reconnect Account</Button>
+        <Button block danger type="text" icon={<LogOut size={16} />} style={{ textAlign: 'left', fontWeight: 500, height: 36 }} onClick={handleDisconnectMeta}>Disconnect</Button>
+      </div>
+    </div>
   );
-  // -------------------------------
 
-  if (loading || !data) {
+  if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
   }
+
+  // Use empty objects/arrays for data if null
+  const dashboardData = data || {
+    metrics: { adSpendMTD: 0, adSpendPercentage: 0, totalLeads: 0, leadsChange: '0%', costPerLead: 0, roas: 0, roasChange: '0', impressions: 0, clicks: 0, conversions: 0 },
+    campaigns: [],
+    dailyPerformance: [],
+    spendByPlatform: [],
+    cplByPlatform: []
+  };
+
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -185,7 +311,15 @@ const PerformanceAds = () => {
     { title: 'CPL', dataIndex: 'cpl', key: 'cpl', render: text => <span style={{ color: 'var(--text-secondary)' }}>{text}</span> },
     { title: 'ROAS', dataIndex: 'roas', key: 'roas', render: text => <span style={{ color: text.includes('x') ? 'var(--accent-primary)' : 'var(--text-tertiary)', fontWeight: text.includes('x') ? 700 : 400 }}>{text}</span> },
     { title: 'CTR', dataIndex: 'ctr', key: 'ctr', render: text => <span style={{ color: 'var(--text-secondary)' }}>{text}</span> },
-    { title: 'ACTIONS', key: 'actions', render: () => <Button type="link" style={{ color: 'var(--accent-secondary)', padding: 0, fontWeight: 600 }}>View</Button> }
+    { 
+      title: 'ACTIONS', 
+      key: 'actions', 
+      render: (_, record) => (
+        <Button type="link" onClick={() => { setSelectedCampaignView(record); setIsViewModalOpen(true); }} style={{ color: 'var(--accent-secondary)', padding: 0, fontWeight: 600 }}>
+          View
+        </Button>
+      ) 
+    }
   ];
 
   return (
@@ -202,7 +336,14 @@ const PerformanceAds = () => {
             {!isMetaConnected ? (
               <Button type="primary" onClick={handleConnectMeta} style={{ borderRadius: 8, background: '#1877F2', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Connect Meta Ads</Button>
             ) : (
-              <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsCampaignModalOpen(true)} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New campaign</Button>
+              <>
+                <Dropdown dropdownRender={() => metaMenu} trigger={['click']} placement="bottomRight">
+                  <Button style={{ borderRadius: 8, height: 40, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: '#1877F2', borderColor: '#1877F2' }}>
+                    <CheckCircle2 size={16} /> Meta Connected
+                  </Button>
+                </Dropdown>
+                {false && <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsCampaignModalOpen(true)} style={{ borderRadius: 8, background: 'var(--accent-primary)', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>New campaign</Button>}
+              </>
             )}
           </div>
         </div>
@@ -217,11 +358,11 @@ const PerformanceAds = () => {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'AD SPEND (MTD)', val: `₹${(data.metrics?.adSpendMTD / 100000).toFixed(2)}L`, isProgress: true, pct: data.metrics?.adSpendPercentage || 0, color: 'var(--accent-secondary)', icon: <IndianRupee size={16} /> },
-          { label: 'TOTAL LEADS', val: data.metrics?.totalLeads || 0, sub: data.metrics?.leadsChange || '0%', subColor: 'var(--accent-primary)', desc: 'Across all platforms', color: 'var(--accent-primary)', icon: <Users size={16} /> },
-          { label: 'COST PER LEAD', val: `₹${data.metrics?.costPerLead || 0}`, subColor: 'var(--accent-danger)', desc: 'Target ₹5,500', color: 'var(--accent-danger)', icon: <Target size={16} /> },
-          { label: 'ROAS', val: `${data.metrics?.roas || 0}x`, sub: data.metrics?.roasChange || '0', subColor: 'var(--accent-primary)', desc: 'Target 3.5x', color: 'var(--accent-warning)', icon: <Activity size={16} /> },
-          { label: 'IMPRESSIONS', val: `${((data.metrics?.impressions || 0) / 1000000).toFixed(1)}M`, sub: data.metrics?.impressionsChange || '0%', subColor: 'var(--accent-primary)', desc: 'Last 30 days', color: 'var(--accent-info)', icon: <Megaphone size={16} /> },
+          { label: 'AD SPEND (MTD)', val: `₹${(dashboardData.metrics?.adSpendMTD / 100000).toFixed(2)}L`, isProgress: true, pct: dashboardData.metrics?.adSpendPercentage || 0, color: 'var(--accent-secondary)', icon: <IndianRupee size={16} /> },
+          { label: 'TOTAL LEADS', val: dashboardData.metrics?.totalLeads || 0, sub: dashboardData.metrics?.leadsChange || '0%', subColor: 'var(--accent-primary)', desc: 'Across all platforms', color: 'var(--accent-primary)', icon: <Users size={16} /> },
+          { label: 'COST PER LEAD', val: `₹${dashboardData.metrics?.costPerLead || 0}`, subColor: 'var(--accent-danger)', desc: 'Target ₹5,500', color: 'var(--accent-danger)', icon: <Target size={16} /> },
+          { label: 'ROAS', val: `${dashboardData.metrics?.roas || 0}x`, sub: dashboardData.metrics?.roasChange || '0', subColor: 'var(--accent-primary)', desc: 'Target 3.5x', color: 'var(--accent-warning)', icon: <Activity size={16} /> },
+          { label: 'IMPRESSIONS', val: `${((dashboardData.metrics?.impressions || 0) / 1000000).toFixed(1)}M`, sub: dashboardData.metrics?.impressionsChange || '0%', subColor: 'var(--accent-primary)', desc: 'Last 30 days', color: 'var(--accent-info)', icon: <Megaphone size={16} /> },
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
@@ -268,7 +409,7 @@ const PerformanceAds = () => {
           extra={<Button style={{ borderRadius: 8, borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 500 }}>All campaigns</Button>}
           className="glassmorphism" style={{ borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={campaignCols} dataSource={data.activeCampaigns || []} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
+          <Table columns={campaignCols} dataSource={dashboardData.activeCampaigns || []} pagination={false} rowKey="id" size="middle" scroll={{ x: 1000 }} rowClassName={() => 'hover-bg'} />
         </Card>
       </motion.div>
 
@@ -279,7 +420,7 @@ const PerformanceAds = () => {
         >
           <div style={{ height: 400 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.dailyPerformance || []} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <ComposedChart data={dashboardData.dailyPerformance || []} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="day" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dy={10} />
                 <YAxis yAxisId="left" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dx={-10} />
@@ -308,14 +449,14 @@ const PerformanceAds = () => {
               <div style={{ display: 'flex', alignItems: 'center', height: 280, flexWrap: 'wrap' }}>
                 <ResponsiveContainer width="50%" height="100%" minWidth={200}>
                   <PieChart>
-                    <Pie data={data.spendByPlatform || []} innerRadius={70} outerRadius={100} paddingAngle={6} dataKey="value" stroke="none">
-                      {(data.spendByPlatform || []).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    <Pie data={dashboardData.spendByPlatform || []} innerRadius={70} outerRadius={100} paddingAngle={6} dataKey="value" stroke="none">
+                      {(dashboardData.spendByPlatform || []).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                     </Pie>
                     <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, boxShadow: 'var(--shadow-md)', fontWeight: 600 }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20, minWidth: 200 }}>
-                  {(data.spendByPlatform || []).map((entry) => (
+                  {(dashboardData.spendByPlatform || []).map((entry) => (
                     <div key={entry.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, color: 'var(--text-primary)' }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: entry.fill }} /> {entry.name}</span>
                       <Text type="secondary" style={{ fontWeight: 500 }}>{entry.formattedValue}</Text>
@@ -335,13 +476,13 @@ const PerformanceAds = () => {
             >
               <div style={{ height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={data.cplByPlatform || []} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                  <RechartsBarChart data={dashboardData.cplByPlatform || []} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                     <XAxis dataKey="name" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                     <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dx={-10} />
                     <Tooltip cursor={{ fill: 'var(--bg-tertiary)', opacity: 0.5 }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, boxShadow: 'var(--shadow-md)', fontWeight: 600 }} />
                     <Bar dataKey="cpl" radius={[6, 6, 0, 0]} maxBarSize={70}>
-                      {(data.cplByPlatform || []).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                      {(dashboardData.cplByPlatform || []).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                     </Bar>
                   </RechartsBarChart>
                 </ResponsiveContainer>
@@ -352,100 +493,100 @@ const PerformanceAds = () => {
         </Col>
       </Row>
 
-      <Modal
-        title="Create New Campaign"
-        open={isCampaignModalOpen}
-        onCancel={() => setIsCampaignModalOpen(false)}
-        onOk={() => form.submit()}
-        confirmLoading={isCreatingCampaign}
-        okText="Create Campaign"
-        width={600}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateCampaign} style={{ marginTop: 24 }} initialValues={{ platform: 'Meta', status: 'ACTIVE' }}>
-          <Form.Item name="campaign" label="Campaign Name" rules={[{ required: true, message: 'Please enter a campaign name' }]}>
-            <Input placeholder="e.g. Lead Gen — Bangalore" />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="platform" label="Platform" rules={[{ required: true, message: 'Required' }]}>
-                <Select placeholder="Select Platform">
-                  <Select.Option value="Meta">Meta</Select.Option>
-                  <Select.Option value="Google">Google</Select.Option>
-                  <Select.Option value="YouTube">YouTube</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Required' }]}>
-                <Select>
-                  <Select.Option value="ACTIVE">Active</Select.Option>
-                  <Select.Option value="PAUSED">Paused</Select.Option>
-                  <Select.Option value="COMPLETED">Completed</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+      <CampaignBuilderWizard 
+        open={isCampaignModalOpen} 
+        onCancel={() => setIsCampaignModalOpen(false)} 
+        onSuccess={handleCreateCampaign} 
+        adAccounts={adAccounts} 
+      />
 
-          {platformWatch === 'Meta' ? (
-            <>
-              <Form.Item name="adAccount" label="Meta Ad Account (Integration)" rules={[{ required: true, message: 'Please select a connected Meta account' }]}>
-                <Select placeholder="Select integrated Meta account" size="large" options={adAccounts.map(a => ({ value: a.id, label: a.name }))} />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="objective" label="Campaign Objective" rules={[{ required: true, message: 'Required' }]}>
-                    <Select placeholder="Select Objective">
-                      <Select.Option value="OUTCOME_LEADS">Leads</Select.Option>
-                      <Select.Option value="OUTCOME_SALES">Sales</Select.Option>
-                      <Select.Option value="OUTCOME_AWARENESS">Awareness</Select.Option>
-                      <Select.Option value="OUTCOME_ENGAGEMENT">Engagement</Select.Option>
-                      <Select.Option value="OUTCOME_TRAFFIC">Traffic</Select.Option>
-                      <Select.Option value="OUTCOME_APP_PROMOTION">App Promotion</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="specialAdCategory" label="Special Ad Category" rules={[{ required: true, message: 'Required' }]} initialValue="NONE">
-                    <Select>
-                      <Select.Option value="NONE">None</Select.Option>
-                      <Select.Option value="CREDIT">Credit</Select.Option>
-                      <Select.Option value="EMPLOYMENT">Employment</Select.Option>
-                      <Select.Option value="HOUSING">Housing</Select.Option>
-                      <Select.Option value="ISSUES_ELECTIONS_POLITICS">Issues, Elections or Politics</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="buyingType" label="Buying Type" rules={[{ required: true, message: 'Required' }]} initialValue="AUCTION">
-                    <Select>
-                      <Select.Option value="AUCTION">Auction</Select.Option>
-                      <Select.Option value="RESERVATION">Reservation</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="budgetType" label="Budget Type" rules={[{ required: true, message: 'Required' }]} initialValue="daily_budget">
-                    <Select>
-                      <Select.Option value="daily_budget">Daily Budget</Select.Option>
-                      <Select.Option value="lifetime_budget">Lifetime Budget</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="budget" label="Budget (₹)" rules={[{ required: true, message: 'Required' }]}>
-                    <Input type="number" placeholder="e.g. 500" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          ) : (
-            <Form.Item name="budget" label="Budget Amount" rules={[{ required: true, message: 'Please enter a budget' }]}>
-              <Input placeholder="e.g. ₹5.00L" />
-            </Form.Item>
-          )}
-        </Form>
+      <Modal
+        title="Select Meta Ad Accounts"
+        open={isAdAccountModalOpen}
+        onCancel={() => setIsAdAccountModalOpen(false)}
+        onOk={handleSaveAdAccounts}
+        confirmLoading={isSavingAccounts}
+        okText="Save Accounts"
+      >
+        {isFetchingAccounts ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}><Spin /></div>
+        ) : availableAdAccounts.length > 0 ? (
+          <Checkbox.Group
+            style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}
+            value={selectedAdAccountIds}
+            onChange={(checkedValues) => setSelectedAdAccountIds(checkedValues)}
+          >
+            {availableAdAccounts.map(account => (
+              <Checkbox key={account.id} value={account.id}>
+                {account.name} <Text type="secondary">({account.id})</Text>
+              </Checkbox>
+            ))}
+          </Checkbox.Group>
+        ) : (
+          <Text type="secondary">No ad accounts found for your Meta account.</Text>
+        )}
+      </Modal>
+
+      <Modal
+        title="Campaign Details"
+        open={isViewModalOpen}
+        onCancel={() => { setIsViewModalOpen(false); setSelectedCampaignView(null); }}
+        footer={[
+          <Button key="close" onClick={() => { setIsViewModalOpen(false); setSelectedCampaignView(null); }}>Close</Button>
+        ]}
+        width={700}
+      >
+        {selectedCampaignView && (
+          <div>
+            <div style={{ marginBottom: 24 }}>
+              <Title level={4}>{selectedCampaignView.campaign}</Title>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Tag color="blue">{selectedCampaignView.platform}</Tag>
+                <Tag color={selectedCampaignView.status === 'ACTIVE' || selectedCampaignView.status === 'Active' ? 'green' : 'orange'}>
+                  {selectedCampaignView.status}
+                </Tag>
+              </div>
+            </div>
+            
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col span={8}>
+                <Card size="small">
+                  <Text type="secondary">Spend</Text>
+                  <Title level={4} style={{ margin: 0 }}>₹{selectedCampaignView.spend}</Title>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small">
+                  <Text type="secondary">Leads</Text>
+                  <Title level={4} style={{ margin: 0 }}>{selectedCampaignView.leads}</Title>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small">
+                  <Text type="secondary">CPL</Text>
+                  <Title level={4} style={{ margin: 0 }}>₹{selectedCampaignView.cpl}</Title>
+                </Card>
+              </Col>
+            </Row>
+
+            <Title level={5}>Ad Sets</Title>
+            {selectedCampaignView.adSets && selectedCampaignView.adSets.length > 0 ? (
+              <Table 
+                dataSource={selectedCampaignView.adSets} 
+                pagination={false} 
+                rowKey="id"
+                size="small"
+                columns={[
+                  { title: 'Ad Set Name', dataIndex: 'name', key: 'name' },
+                  { title: 'Status', dataIndex: 'status', key: 'status', render: text => <Tag>{text}</Tag> },
+                  { title: 'Budget', dataIndex: 'budget', key: 'budget', render: text => `₹${text}` },
+                ]}
+              />
+            ) : (
+              <Text type="secondary">No Ad Sets found.</Text>
+            )}
+          </div>
+        )}
       </Modal>
     </motion.div>
   );

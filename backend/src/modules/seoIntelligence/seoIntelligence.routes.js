@@ -47,4 +47,9 @@ router.post('/websites/:projectId/content-analysis',  seoController.getContentAn
 
 // Removed AI Agent and Workspace routes (moved to seoWorkspace module)
 
+// ─── GEO & AEO Module ────────────────────────────────────────────────────────
+const geoAeoController = require('./geoAeo.controller');
+router.get('/websites/:projectId/geo-aeo-dashboard', geoAeoController.getDashboardData);
+router.post('/websites/:projectId/geo-aeo-refresh', geoAeoController.refreshScores);
+
 module.exports = router;

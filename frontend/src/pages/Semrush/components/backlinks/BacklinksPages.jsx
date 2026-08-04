@@ -18,9 +18,9 @@ const BacklinksPages = () => {
       render: (text) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
           <span style={{ color: '#2b2b2b', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>Not Acceptable!</span>
-          <span style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4 }}>
+          <a href={text} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {text} <ExternalLink size={12} style={{ marginLeft: 4 }} />
-          </span>
+          </a>
           <div style={{ marginTop: 8 }}>
              <Tag color="#ffe8e6" style={{ color: '#ff7a45', border: 'none', fontWeight: 500 }}>200</Tag>
           </div>

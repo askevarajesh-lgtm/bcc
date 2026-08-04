@@ -36,12 +36,30 @@ const performanceAdsSchema = new mongoose.Schema(
         objective: String,
         specialAdCategory: String,
         buyingType: String,
-        budgetType: String
+        budgetType: String,
+        insights: mongoose.Schema.Types.Mixed,
+        adSets: [
+          {
+            id: String,
+            name: String,
+            status: String,
+            budget: String,
+            insights: mongoose.Schema.Types.Mixed,
+            ads: [
+              {
+                id: String,
+                name: String,
+                status: String,
+                insights: mongoose.Schema.Types.Mixed
+              }
+            ]
+          }
+        ]
       }
     ],
     dailyPerformance: [
       {
-        day: Number,
+        day: String,
         leads: Number,
         roas: Number,
         spend: Number

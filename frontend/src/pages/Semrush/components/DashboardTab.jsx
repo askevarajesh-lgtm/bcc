@@ -1,20 +1,26 @@
-import React from 'react';
-import { Typography, Table, Tag, Progress, Divider } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Typography, Row, Col, Progress, Divider, Button, message, Spin, Table, Tag } from 'antd';
 import { Trophy, TrendingUp, Globe, Link as LinkIcon, AlertCircle, CheckCircle2, Zap, LayoutDashboard, Share2, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Button, message, Spin } from 'antd';
+import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
 import { ReloadOutlined } from '@ant-design/icons';
 import { semrushApi } from '../../../api/semrushApi';
+import { geoAeoApi } from '../../../api/geoAeoApi';
+import ScoreGaugeCard from '../../SEO/components/ScoreGaugeCard';
+import RecommendationsTable from '../../SEO/components/RecommendationsTable';
 import './DashboardTab.css';
 
 const { Title, Text } = Typography;
 
 const DashboardTab = () => {
+  const { projectId } = useParams();
   const { project, projectData, setProjectData } = useOutletContext();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [geoData, setGeoData] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
   const navigate = useNavigate();
+
   const domain = project?.domain;
   const data = projectData?.overview || {};
   const backlinks = projectData?.backlinksOverview || {};
@@ -35,15 +41,44 @@ const DashboardTab = () => {
   };
 
   const topKeywords = keywords.slice(0, 3);
-  const healthScore = health.score || 0;
+
+  useEffect(() => {
+    if (projectId) {
+      fetchGeoData();
+    }
+  }, [projectId]);
+
+  const fetchGeoData = async () => {
+    try {
+      setGeoLoading(true);
+      const res = await geoAeoApi.getDashboardData(projectId);
+      if (res.data.success) {
+        setGeoData(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch GEO data', error);
+    } finally {
+      setGeoLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     try {
       setLoading(true);
-      const res = await semrushApi.refreshProject(project._id, 'us');
-      if (res.data.success) {
-        setProjectData(res.data.data);
-        message.success('Dashboard data audited successfully!');
+      // Refresh both Semrush and AI scoring concurrently
+      const [semrushRes, geoRes] = await Promise.all([
+        semrushApi.refreshProject(projectId, 'us'),
+        geoAeoApi.refreshScores(projectId)
+      ]);
+
+      if (semrushRes.data.success) {
+        setProjectData(semrushRes.data.data);
+      }
+      
+      if (geoRes.data.success) {
+        // Fetch new historical trend after refresh
+        fetchGeoData();
+        message.success('Enterprise AI Dashboard refreshed successfully!');
       }
     } catch (error) {
       console.error(error);
@@ -53,78 +88,128 @@ const DashboardTab = () => {
     }
   };
 
-  if (loading) {
-    return <div style={{ textAlign: 'center', padding: '40px' }}><Spin size="large" /></div>;
+  if (loading || geoLoading) {
+    return <div style={{ textAlign: 'center', padding: '100px' }}><Spin size="large" tip="Running Enterprise AI Analysis..." /></div>;
   }
+
+  const currentScore = geoData?.current || {};
+  const prevScore = geoData?.previous || {};
 
   return (
     <div className="semrush-dashboard-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, padding: '0 12px' }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Executive Summary</Title>
-          <Text type="secondary">High-level overview of your Semrush metrics.</Text>
+          <Title level={3} style={{ margin: 0, fontWeight: 800 }}>AI Optimization Intelligence</Title>
+          <Text type="secondary">Enterprise SEO, GEO, and AEO tracking and analysis.</Text>
         </div>
-        <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-          Audit Dashboard
+        <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+          Refresh AI Analysis
         </Button>
       </div>
 
       <AnimatePresence mode="wait">
-        {projectData ? (
+        {projectData && currentScore ? (
           <motion.div 
             key="content"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <div className="semrush-masonry-grid">
-              
-              {/* Row 1: Search Intent & SEO Scope */}
-              <div className="col-span-8 semrush-widget-card" style={{ background: 'linear-gradient(to right, #f9f0ff, #e6f7ff)' }}>
-                <div className="semrush-widget-header" style={{ borderBottom: 'none' }}>
-                  <h3 className="semrush-widget-title" style={{ color: '#722ed1' }}><Zap size={18} /> Search Intent Distribution</h3>
+            {/* Enterprise Score Cards */}
+            <Row gutter={[24, 24]} style={{ marginBottom: 24, alignItems: 'stretch' }}>
+              <Col xs={24} md={12} xl={6}>
+                <ScoreGaugeCard 
+                  title="Overall Optimization" 
+                  score={currentScore.overallScore} 
+                  previousScore={prevScore.overallScore} 
+                  color="var(--accent-primary)"
+                  description="Combined SEO, GEO, and AEO performance metric."
+                  delay={0.1}
+                  details={[
+                    { label: 'Technical SEO', value: currentScore.seoScore, color: 'var(--accent-secondary)' },
+                    { label: 'Generative Engine', value: currentScore.geoScore, color: 'var(--accent-warning)' },
+                    { label: 'Answer Engine', value: currentScore.aeoScore, color: 'var(--accent-info)' }
+                  ]}
+                />
+              </Col>
+              <Col xs={24} md={12} xl={6}>
+                <ScoreGaugeCard 
+                  title="SEO Score" 
+                  score={currentScore.seoScore} 
+                  previousScore={prevScore.seoScore} 
+                  color="var(--accent-secondary)"
+                  description="Traditional Search Engine Optimization score based on authority and technical health."
+                  delay={0.2}
+                  details={[
+                    { label: 'Authority Score', value: currentScore.seoMetrics?.authorityScore },
+                    { label: 'Technical Health', value: currentScore.seoMetrics?.technicalScore },
+                    { label: 'Core Web Vitals', value: currentScore.seoMetrics?.coreWebVitals }
+                  ]}
+                />
+              </Col>
+              <Col xs={24} md={12} xl={6}>
+                <ScoreGaugeCard 
+                  title="GEO Score" 
+                  score={currentScore.geoScore} 
+                  previousScore={prevScore.geoScore} 
+                  color="var(--accent-warning)"
+                  description="Generative Engine Optimization: Entity coverage, LLM formatting, and topical authority."
+                  delay={0.3}
+                  details={[
+                    { label: 'E-E-A-T Signals', value: currentScore.geoMetrics?.eeatSignals },
+                    { label: 'Topical Authority', value: currentScore.geoMetrics?.topicalAuthority },
+                    { label: 'Semantic Coverage', value: currentScore.geoMetrics?.semanticCoverage },
+                    { label: 'LLM Formatting', value: currentScore.geoMetrics?.llmFormatting }
+                  ]}
+                />
+              </Col>
+              <Col xs={24} md={12} xl={6}>
+                <ScoreGaugeCard 
+                  title="AEO Score" 
+                  score={currentScore.aeoScore} 
+                  previousScore={prevScore.aeoScore} 
+                  color="var(--accent-info)"
+                  description="Answer Engine Optimization: Voice search, FAQ schema, and direct answer quality."
+                  delay={0.4}
+                  details={[
+                    { label: 'Answer Intent', value: currentScore.aeoMetrics?.answerIntent },
+                    { label: 'Voice Search', value: currentScore.aeoMetrics?.voiceSearchScore },
+                    { label: 'FAQ Schema', value: currentScore.aeoMetrics?.faqSchema },
+                    { label: 'Conversational', value: currentScore.aeoMetrics?.conversationalContent }
+                  ]}
+                />
+              </Col>
+            </Row>
+
+            <div className="semrush-masonry-grid" style={{ marginBottom: 24 }}>
+              {/* Historical Trend */}
+              <div className="col-span-12 semrush-widget-card" style={{ height: 'auto' }}>
+                <div className="semrush-widget-header">
+                  <h3 className="semrush-widget-title"><TrendingUp size={18} /> Historical Optimization Trend</h3>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 8 }}>
-                  {(() => {
-                    const intentCounts = { C: 0, I: 0, N: 0, T: 0 };
-                    keywords.forEach(kw => {
-                      if (kw.intent !== undefined && kw.intent !== null && String(kw.intent).trim() !== '') {
-                        const intents = String(kw.intent).split(',').map(Number);
-                        if (intents.includes(0)) { intentCounts.C++; }
-                        else if (intents.includes(1)) { intentCounts.I++; }
-                        else if (intents.includes(2)) { intentCounts.N++; }
-                        else if (intents.includes(3)) { intentCounts.T++; }
-                        else { intentCounts.I++; }
-                      }
-                    });
-                    const total = Math.max(1, keywords.length);
-                    return (
-                      <>
-                        <div>
-                          <Text type="secondary">Informational</Text>
-                          <Title level={2} style={{ margin: 0, color: 'var(--accent-primary)' }}>{Math.round((intentCounts.I / total) * 100)}%</Title>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{intentCounts.I} keywords</div>
-                        </div>
-                        <div>
-                          <Text type="secondary">Navigational</Text>
-                          <Title level={2} style={{ margin: 0, color: '#722ed1' }}>{Math.round((intentCounts.N / total) * 100)}%</Title>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{intentCounts.N} keywords</div>
-                        </div>
-                        <div>
-                          <Text type="secondary">Commercial</Text>
-                          <Title level={2} style={{ margin: 0, color: '#faad14' }}>{Math.round((intentCounts.C / total) * 100)}%</Title>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{intentCounts.C} keywords</div>
-                        </div>
-                        <div>
-                          <Text type="secondary">Transactional</Text>
-                          <Title level={2} style={{ margin: 0, color: '#52c41a' }}>{Math.round((intentCounts.T / total) * 100)}%</Title>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{intentCounts.T} keywords</div>
-                        </div>
-                      </>
-                    );
-                  })()}
+                <div style={{ height: 350, width: '100%', padding: '20px 0' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={geoData?.trend || []}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                      <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                      <RechartsTooltip />
+                      <Area type="monotone" name="Overall" dataKey="overallScore" stroke="var(--accent-primary)" fillOpacity={0.1} fill="var(--accent-primary)" />
+                      <Area type="monotone" name="GEO" dataKey="geoScore" stroke="var(--accent-warning)" fillOpacity={0} />
+                      <Area type="monotone" name="AEO" dataKey="aeoScore" stroke="var(--accent-info)" fillOpacity={0} />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
+              {/* AI Recommendations */}
+              <div className="col-span-12" style={{ height: '100%' }}>
+                <RecommendationsTable recommendations={currentScore.recommendations} />
+              </div>
+            </div>
+
+            {/* Legacy Dashboard Grid */}
+            <div className="semrush-masonry-grid">
+              {/* SEO Scope */}
               <div className="col-span-4 semrush-widget-card">
                 <div className="semrush-widget-header">
                   <h3 className="semrush-widget-title"><Search size={18} /> SEO Scope</h3>
@@ -149,47 +234,7 @@ const DashboardTab = () => {
                 </div>
               </div>
 
-              {/* Row 2: Position Tracking & Site Audit */}
-              <div className="col-span-8 semrush-widget-card">
-                <div className="semrush-widget-header">
-                  <h3 className="semrush-widget-title"><TrendingUp size={18} /> Position Tracking</h3>
-                  <a style={{ fontSize: 12 }} onClick={() => navigate(`/intelligence/semrush/${project._id}/organic-keywords`)}>View all</a>
-                </div>
-                <div style={{ display: 'flex', gap: 24 }}>
-                  <div style={{ flex: 1 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Visibility Index</Text>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-primary)', marginBottom: 16 }}>
-                      {Math.min(100, (data['Organic Traffic'] / Math.max(1, (data['Organic Traffic'] + 1000))) * 100).toFixed(1)}%
-                    </div>
-                    {data.trend && data.trend.length > 0 ? (
-                      <div style={{ height: 120, width: '100%' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={data.trend}>
-                            <Area type="monotone" dataKey="traffic" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={0.1} fill="var(--accent-primary)" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div style={{ height: 120, background: '#f5f5f5', borderRadius: 8 }} />
-                    )}
-                  </div>
-                  <Divider type="vertical" style={{ height: 'auto' }} />
-                  <div style={{ flex: 1.5 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Top Keywords</Text>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Pos</Text>
-                    </div>
-                    {topKeywords.map((kw, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                        <Text strong style={{ color: 'var(--accent-primary)', fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%' }}>{kw.keyword}</Text>
-                        <Tag color={kw.position <= 3 ? 'green' : 'blue'} style={{ margin: 0 }}>{kw.position}</Tag>
-                      </div>
-                    ))}
-                    {topKeywords.length === 0 && <Text type="secondary">No keywords tracked</Text>}
-                  </div>
-                </div>
-              </div>
-
+              {/* Site Audit */}
               <div className="col-span-4 semrush-widget-card">
                 <div className="semrush-widget-header">
                   <h3 className="semrush-widget-title"><AlertCircle size={18} /> Site Audit</h3>
@@ -218,47 +263,7 @@ const DashboardTab = () => {
                 </div>
               </div>
 
-              {/* Row 3: Organic Rankings & Backlinks */}
-              <div className="col-span-6 semrush-widget-card">
-                <div className="semrush-widget-header">
-                  <h3 className="semrush-widget-title"><Globe size={18} /> Organic Rankings (Pos Distribution)</h3>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Total Keywords</Text>
-                    <div style={{ fontSize: 24, fontWeight: 800 }}>{formatNumber(data['Organic Keywords'])}</div>
-                  </div>
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Traffic Cost</Text>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#52c41a' }}>${formatNumber(data['Organic Cost'])}</div>
-                  </div>
-                </div>
-                <div style={{ height: 80, display: 'flex', gap: 4, alignItems: 'flex-end' }}>
-                  {(() => {
-                    // Calculate real position distribution from live keywords
-                    const dist = { '1-3': 0, '4-10': 0, '11-20': 0, '21-50': 0, '51+': 0 };
-                    keywords.forEach(kw => {
-                      const p = Number(kw.position);
-                      if (p <= 3) dist['1-3']++;
-                      else if (p <= 10) dist['4-10']++;
-                      else if (p <= 20) dist['11-20']++;
-                      else if (p <= 50) dist['21-50']++;
-                      else dist['51+']++;
-                    });
-                    
-                    const maxCount = Math.max(1, ...Object.values(dist));
-                    
-                    return Object.entries(dist).map(([label, count], i) => (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                        <div style={{ width: '100%', height: `${(count / maxCount) * 100}%`, background: 'var(--accent-primary)', borderRadius: '4px 4px 0 0', minHeight: 4, transition: 'height 0.5s ease' }} />
-                        <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4, fontWeight: 600 }}>{label}</div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className="col-span-6 semrush-widget-card">
+              <div className="col-span-4 semrush-widget-card">
                 <div className="semrush-widget-header">
                   <h3 className="semrush-widget-title"><LinkIcon size={18} /> Backlinks Analytics</h3>
                 </div>
@@ -286,7 +291,6 @@ const DashboardTab = () => {
                   </div>
                 </div>
               </div>
-
             </div>
           </motion.div>
         ) : (
@@ -297,10 +301,7 @@ const DashboardTab = () => {
             className="semrush-empty-state"
           >
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
-            <Text type="secondary">Click the 'Audit Dashboard' button above to fetch the latest insights from Semrush.</Text>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} style={{ marginTop: 16 }} size="large">
-              Audit Dashboard Data Now
-            </Button>
+            <Text type="secondary">Click the 'Refresh AI Analysis' button above to fetch the latest insights.</Text>
           </motion.div>
         )}
       </AnimatePresence>

@@ -12,5 +12,9 @@ export const performanceAdsApi = {
   addCampaign: async (campaignData) => {
     const response = await api.post('/performance-ads/campaign', campaignData);
     return response.data;
+  },
+  createMetaCampaign: async (campaignData) => {
+    const response = await api.post('/integrations/meta/campaigns', campaignData);
+    return response.data;
   }
 };

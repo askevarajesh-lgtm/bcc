@@ -52,6 +52,7 @@ import Accounts from './pages/Accounts/Accounts';
 import SLA from './pages/SLA/SLA';
 import PortalSettings from './pages/PortalSettings/PortalSettings';
 import Analytics from './pages/Analytics/Analytics';
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Automation from './pages/Automation/Automation';
 import TasksPage from './pages/Tasks/TasksPage';
 import TaskForm from './pages/Tasks/TaskForm';
@@ -371,7 +372,7 @@ const AppRoutes = () => {
           <Route path="tasks" element={<AgencyTasksTab />} />
           <Route path="billing" element={<AgencyBillingTab />} />
           <Route path="reports" element={<AgencyReportsTab />} />
-          <Route path="settings" element={role === 'agency_super_admin' ? <AgencySettingsTab /> : <SettingsPage />} />
+          <Route path="settings" element={role === 'agency_super_admin' ? <ErrorBoundary><AgencySettingsTab /></ErrorBoundary> : <ErrorBoundary><SettingsPage /></ErrorBoundary>} />
           <Route path="users" element={<AgencyUsersTab />} />
           <Route path="support" element={<AgencySupportTab />} />
           
@@ -604,7 +605,7 @@ const AppRoutes = () => {
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
           
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Route>
       </Route>
 

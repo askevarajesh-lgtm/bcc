@@ -65,6 +65,7 @@ const syncPerformanceAds = async (agencyId) => {
   let totalClicks = 0;
   
   let liveCampaigns = [];
+  let allDailyData = [];
 
   // Loop through selected Ad Accounts to fetch insights and campaigns
   try {
@@ -87,17 +88,43 @@ const syncPerformanceAds = async (agencyId) => {
         totalClicks += parseInt(insights.clicks || 0, 10);
       }
 
-      // Fetch Active Campaigns
+      // Fetch Daily Insights for Graph (Last 30 Days)
+      const dailyInsightsRes = await axios.get(`https://graph.facebook.com/v18.0/${actId}/insights`, {
+        params: {
+          access_token: accessToken,
+          date_preset: 'last_30d',
+          time_increment: 1,
+          fields: 'spend,clicks,cpc'
+        }
+      });
+      const dailyData = dailyInsightsRes.data.data || [];
+      allDailyData = allDailyData.concat(dailyData);
+
+      // Fetch Active Campaigns with AdSets and Ads
       const campaignsRes = await axios.get(`https://graph.facebook.com/v18.0/${actId}/campaigns`, {
         params: {
           access_token: accessToken,
-          fields: 'id,name,status,objective,daily_budget,lifetime_budget,insights{spend,cpc}',
+          fields: 'id,name,status,objective,daily_budget,lifetime_budget,insights{spend,cpc,cpm,ctr,reach,clicks},adsets{id,name,status,daily_budget,lifetime_budget,insights{spend,cpc,cpm,ctr,reach,clicks},ads{id,name,status,insights{spend,cpc,cpm,ctr,reach,clicks}}}',
           effective_status: ['ACTIVE']
         }
       });
 
       const campaigns = campaignsRes.data.data || [];
       campaigns.forEach(c => {
+        const adSets = (c.adsets && c.adsets.data) ? c.adsets.data.map(adset => ({
+          id: adset.id,
+          name: adset.name,
+          status: adset.status,
+          budget: adset.daily_budget ? (parseInt(adset.daily_budget)/100) : (adset.lifetime_budget ? parseInt(adset.lifetime_budget)/100 : 0),
+          insights: adset.insights && adset.insights.data[0] ? adset.insights.data[0] : null,
+          ads: (adset.ads && adset.ads.data) ? adset.ads.data.map(ad => ({
+            id: ad.id,
+            name: ad.name,
+            status: ad.status,
+            insights: ad.insights && ad.insights.data[0] ? ad.insights.data[0] : null
+          })) : []
+        })) : [];
+
         liveCampaigns.push({
           id: c.id,
           campaign: c.name,
@@ -106,12 +133,14 @@ const syncPerformanceAds = async (agencyId) => {
           budget: c.daily_budget ? (parseInt(c.daily_budget)/100) : (c.lifetime_budget ? parseInt(c.lifetime_budget)/100 : 0),
           spend: c.insights && c.insights.data[0] ? parseFloat(c.insights.data[0].spend) : 0,
           progress: 100, // Assuming active
-          leads: 0, // Would need to parse action stats
+          leads: c.insights && c.insights.data[0] ? parseInt(c.insights.data[0].clicks || 0, 10) : 0,
           cpl: c.insights && c.insights.data[0] ? c.insights.data[0].cpc : '0',
           roas: '-',
-          ctr: '-',
+          ctr: c.insights && c.insights.data[0] && c.insights.data[0].ctr ? c.insights.data[0].ctr : '-',
           adAccount: adAccount.name,
-          objective: c.objective
+          objective: c.objective,
+          insights: c.insights && c.insights.data[0] ? c.insights.data[0] : null,
+          adSets
         });
       });
     }
@@ -119,7 +148,28 @@ const syncPerformanceAds = async (agencyId) => {
     const data = getEmptyData();
     data.metrics.adSpendMTD = totalSpend;
     data.metrics.impressions = totalImpressions;
+    data.metrics.totalLeads = totalClicks;
+    data.metrics.costPerLead = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : 0;
+    data.metrics.roas = 0; // Not fetching purchases for ROAS calculation yet
     data.activeCampaigns = liveCampaigns;
+    
+    if (totalSpend > 0) {
+      data.spendByPlatform = [{ name: 'Meta', value: totalSpend, fill: '#1877F2' }];
+    }
+
+    if (allDailyData.length > 0) {
+      const dailyMap = {};
+      allDailyData.forEach(d => {
+        if (!d.date_start) return;
+        const dateStr = d.date_start;
+        if (!dailyMap[dateStr]) {
+          dailyMap[dateStr] = { day: dateStr.split('-').slice(1).join('/'), leads: 0, roas: 0, spend: 0 };
+        }
+        dailyMap[dateStr].spend += parseFloat(d.spend || 0);
+        dailyMap[dateStr].leads += parseInt(d.clicks || 0, 10); 
+      });
+      data.dailyPerformance = Object.values(dailyMap).sort((a, b) => a.day.localeCompare(b.day));
+    }
 
     const dashboard = await PerformanceAd.findOneAndUpdate(
       { agency: agencyId },

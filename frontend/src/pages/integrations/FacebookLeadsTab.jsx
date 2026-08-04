@@ -84,10 +84,7 @@ const FacebookLeadsTab = () => {
       return;
     }
     const backendUrl = getBackendUrl();
-    const isClientPanel = window.location.pathname.includes("client-panel");
-    const redirectPath = isClientPanel
-      ? "/client-panel/settings/integration/website"
-      : `/settings/integrations/website/${integrationId || ""}`;
+    const redirectPath = `${window.location.pathname}?tab=integrations`;
 
     const clientIdParam = selectedClientId
       ? `&clientId=${selectedClientId}`
