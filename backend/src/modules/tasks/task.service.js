@@ -353,7 +353,6 @@ const ensureNoOtherInProgressTask = async (
   const query = {
     assignedTo: assignedUserId,
     status: { $in: ["in_progress", targetStatus] },
-    tenantCompanyId,
   };
 
   if (excludedTaskId) {
