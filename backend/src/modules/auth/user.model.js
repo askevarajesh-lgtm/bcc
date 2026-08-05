@@ -58,7 +58,7 @@ const UserSchema = new mongoose.Schema({
   domain: { type: String, default: null },
   contactEmail: { type: String, default: null },
   supportPhone: { type: String, default: null },
-  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'AgencyPackage', default: null },
+  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Package', default: null },
   allowedUsers: { type: Number, default: 5 },
   mrr: { type: Number, default: 0 },
   

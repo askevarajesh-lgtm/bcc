@@ -133,13 +133,12 @@ exports.signin = async (req, res, next) => {
       features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
-    const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
-    const ClientPackage = require('../agencyPackages/clientPackage.model');
-    
+    const Package = require('../packages/package.model');
+
     const resolveBrandPackage = async (packageName) => {
-      let pkg = await DirectClientPackage.findOne({ name: packageName });
+      let pkg = await Package.findOne({ type: 'directClient', name: packageName });
       if (!pkg) {
-        pkg = await ClientPackage.findOne({ name: packageName });
+        pkg = await Package.findOne({ type: 'client', name: packageName });
       }
       if (pkg) {
         return { name: pkg.name, price: pkg.price, billingInterval: pkg.billingInterval, userCount: pkg.userCount, description: pkg.description, features: pkg.features };
@@ -375,15 +374,14 @@ exports.impersonate = async (req, res, next) => {
       features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
-    const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
-    const ClientPackage = require('../agencyPackages/clientPackage.model');
-    
+    const Package = require('../packages/package.model');
+
     let brandPackageDetails = null;
     
     const resolveBrandPackageImp = async (packageName) => {
-      let pkg = await DirectClientPackage.findOne({ name: packageName });
+      let pkg = await Package.findOne({ type: 'directClient', name: packageName });
       if (!pkg) {
-        pkg = await ClientPackage.findOne({ name: packageName });
+        pkg = await Package.findOne({ type: 'client', name: packageName });
       }
       if (pkg) {
         return { name: pkg.name, price: pkg.price, billingInterval: pkg.billingInterval, userCount: pkg.userCount, description: pkg.description, features: pkg.features };

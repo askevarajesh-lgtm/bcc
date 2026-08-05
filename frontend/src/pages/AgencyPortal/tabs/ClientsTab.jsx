@@ -46,7 +46,7 @@ const ClientsTab = () => {
   const fetchPackages = async () => {
     try {
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-      const res = await fetch('/api/agency/client-packages', { headers });
+      const res = await fetch('/api/packages?type=client', { headers });
       const data = await res.json();
       if (data.success) {
         setPackages(data.data);

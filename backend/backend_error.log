@@ -570,6 +570,7 @@ Require stack:
     at exports.me (E:\Bcc Seo\backend\src\modules\auth\auth.controller.js:275:9)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
 >>>>>>> Stashed changes
+<<<<<<< HEAD
 2026-08-04T10:33:26.151Z\nError: Failed to sync data from Meta
     at Object.syncPerformanceAds (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.service.js:179:11)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
@@ -577,3 +578,17 @@ Require stack:
     at Object.syncPerformanceAds (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.service.js:179:11)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
     at async exports.syncData (E:\Bcc Seo\backend\src\modules\performanceAds\performanceAds.controller.js:42:23)\n\n
+=======
+2026-08-05T05:52:30.711Z\nSyntaxError: Unexpected token '"', ""6a72cea8e"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
+>>>>>>> origin/louis-v2

@@ -90,11 +90,33 @@ export const useAddMeetingNoteMutation = createMutationHook('post')(({ id, ...bo
   url: `/meetings/${id}/notes`,
   body
 }));
+export const useUpdateMeetingNoteMutation = createMutationHook('put')(({ id, noteId, ...body }) => ({
+  url: `/meetings/${id}/notes/${noteId}`,
+  body
+}));
+export const useDeleteMeetingNoteMutation = createMutationHook('delete')(({ id, noteId }) => ({
+  url: `/meetings/${id}/notes/${noteId}`
+}));
+
 export const useAddMeetingAttachmentMutation = createMutationHook('post')(({ id, ...body }) => ({
   url: `/meetings/${id}/attachments`,
   body
 }));
+export const useRemoveMeetingAttachmentMutation = createMutationHook('delete')(({ id, attachmentId }) => ({
+  url: `/meetings/${id}/attachments/${attachmentId}`
+}));
+
 export const useCreateFollowUpMutation = createMutationHook('post')(({ id, ...body }) => ({
   url: `/meetings/${id}/followups`,
   body
+}));
+export const useUpdateFollowUpMutation = createMutationHook('put')(({ id, followUpId, ...body }) => ({
+  url: `/meetings/${id}/followups/${followUpId}`,
+  body
+}));
+export const useCompleteFollowUpMutation = createMutationHook('put')(({ id, followUpId }) => ({
+  url: `/meetings/${id}/followups/${followUpId}/complete`
+}));
+export const useDeleteFollowUpMutation = createMutationHook('delete')(({ id, followUpId }) => ({
+  url: `/meetings/${id}/followups/${followUpId}`
 }));

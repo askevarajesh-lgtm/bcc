@@ -38,7 +38,7 @@ const AgencyPackagesTab = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/agency-packages');
+      const res = await api.get('/packages?type=agency');
       setPackages(res.data.data);
     } catch (error) {
       message.error('Failed to fetch agency packages');
@@ -91,10 +91,10 @@ const AgencyPackagesTab = () => {
 
     try {
       if (editingPkg) {
-        await api.put(`/agency-packages/${editingPkg._id}`, formData);
+        await api.put(`/packages/${editingPkg._id}`, formData);
         message.success("Package updated successfully");
       } else {
-        await api.post('/agency-packages', formData);
+        await api.post('/packages', { ...formData, type: 'agency' });
         message.success("Package created successfully");
       }
       setIsModalOpen(false);
@@ -106,7 +106,7 @@ const AgencyPackagesTab = () => {
 
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/agency-packages/${id}`);
+      await api.delete(`/packages/${id}`);
       message.success("Package deleted successfully");
       fetchPackages();
     } catch (error) {

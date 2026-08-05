@@ -1,5 +1,83 @@
 const mongoose = require('mongoose');
 
+// Embedded sub-schema: preserves every field from the old MeetingNote collection
+const meetingNoteSchema = new mongoose.Schema(
+  {
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    }
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Embedded sub-schema: preserves every field from the old MeetingAttachment collection
+const meetingAttachmentSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+    },
+    fileName: {
+      type: String,
+      required: true,
+    },
+    fileType: {
+      type: String,
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    }
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Embedded sub-schema: preserves every field from the old MeetingFollowUp collection
+const meetingFollowUpSchema = new mongoose.Schema(
+  {
+    taskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Task',
+      default: null,
+      index: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    dueDate: {
+      type: Date,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending',
+    }
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const meetingSchema = new mongoose.Schema(
   {
     title: {
@@ -102,6 +180,18 @@ const meetingSchema = new mongoose.Schema(
     outlookEventId: {
       type: String,
       default: null,
+    },
+    notes: {
+      type: [meetingNoteSchema],
+      default: [],
+    },
+    attachments: {
+      type: [meetingAttachmentSchema],
+      default: [],
+    },
+    followUps: {
+      type: [meetingFollowUpSchema],
+      default: [],
     }
   },
   {

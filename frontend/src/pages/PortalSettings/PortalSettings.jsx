@@ -51,7 +51,7 @@ const PortalSettings = () => {
   const fetchPackages = async () => {
     try {
       setPackagesLoading(true);
-      const res = await api.get('/direct-packages');
+      const res = await api.get('/packages?type=directClient');
       if (res && res.data && res.data.success) {
         setPackages(res.data.data);
       }
