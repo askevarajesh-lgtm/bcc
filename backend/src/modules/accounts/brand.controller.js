@@ -65,16 +65,30 @@ exports.createBrand = async (req, res, next) => {
 
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
+    
+    let hasCreatePerm = false;
+    if (isEmployee) {
+      const dbUser = await User.findById(req.user._id);
+      if (dbUser && dbUser.customRoleId) {
+        const mongoose = require('mongoose');
+        const RoleModel = mongoose.models.Role || require('../roles/role.model');
+        const roleDoc = await RoleModel.findById(dbUser.customRoleId);
+        if (roleDoc && roleDoc.permissions && roleDoc.permissions['Clients-Accounts']) {
+          hasCreatePerm = roleDoc.permissions['Clients-Accounts'].Create;
+        }
+      }
+    }
 
-    if (!isAdmin && !isAgency) {
+    if (!isAdmin && !isAgency && !(isEmployee && hasCreatePerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized to create companies' });
     }
 
     let agencyId = null;
     let isDirect = false;
 
-    if (isAgency) {
-      agencyId = req.user.agencyId || req.user.adminId || req.user._id;
+    if (isAgency || isEmployee) {
+      agencyId = req.user.agencyId || req.user.adminId || (isAgency ? req.user._id : null);
       if (!agencyId) {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }
@@ -138,7 +152,7 @@ exports.createBrand = async (req, res, next) => {
       countryCode,
       address,
       password: password || undefined,
-      role: isAgency ? 'agency_client' : (isAdmin ? 'brand_super_admin' : 'brand_manager'),
+      role: (isAgency || isEmployee) ? 'agency_client' : (isAdmin ? 'brand_super_admin' : 'brand_manager'),
       agencyId, // Null for direct brands
       companyName: name,
       isDirect,
@@ -179,14 +193,16 @@ exports.updateBrandStatus = async (req, res, next) => {
   try {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
+    const hasEditPerm = req.user.permissions && req.user.permissions['Clients-Accounts'] && req.user.permissions['Clients-Accounts'].Edit;
 
-    if (!isAdmin && !isAgency) {
+    if (!isAdmin && !isAgency && !(isEmployee && hasEditPerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-    if (isAgency) {
-      filter.agencyId = req.user.agencyId;
+    if (isAgency || isEmployee) {
+      filter.agencyId = req.user.agencyId || req.user.adminId || (isAgency ? req.user._id : null);
     } else {
       filter.isDirect = true;
     }
@@ -213,14 +229,28 @@ exports.deleteBrand = async (req, res, next) => {
   try {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
+    
+    let hasDeletePerm = false;
+    if (isEmployee) {
+      const dbUser = await User.findById(req.user._id);
+      if (dbUser && dbUser.customRoleId) {
+        const mongoose = require('mongoose');
+        const RoleModel = mongoose.models.Role || require('../roles/role.model');
+        const roleDoc = await RoleModel.findById(dbUser.customRoleId);
+        if (roleDoc && roleDoc.permissions && roleDoc.permissions['Clients-Accounts']) {
+          hasDeletePerm = roleDoc.permissions['Clients-Accounts'].Delete;
+        }
+      }
+    }
 
-    if (!isAdmin && !isAgency) {
+    if (!isAdmin && !isAgency && !(isEmployee && hasDeletePerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-    if (isAgency) {
-      filter.agencyId = req.user.agencyId;
+    if (isAgency || isEmployee) {
+      filter.agencyId = req.user.agencyId || req.user.adminId || (isAgency ? req.user._id : null);
     } else {
       filter.isDirect = true;
     }
@@ -245,14 +275,16 @@ exports.updateBrand = async (req, res, next) => {
   try {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
+    const hasEditPerm = req.user.permissions && req.user.permissions['Clients-Accounts'] && req.user.permissions['Clients-Accounts'].Edit;
 
-    if (!isAdmin && !isAgency) {
+    if (!isAdmin && !isAgency && !(isEmployee && hasEditPerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     let filter = { _id: req.params.id, role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-    if (isAgency) {
-      filter.agencyId = req.user.agencyId;
+    if (isAgency || isEmployee) {
+      filter.agencyId = req.user.agencyId || req.user.adminId || (isAgency ? req.user._id : null);
     } else {
       filter.isDirect = true;
     }

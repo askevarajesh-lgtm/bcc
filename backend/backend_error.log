@@ -667,4 +667,32 @@ Require stack:
     at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
     at Server.emit (node:events:524:28)
     at parserOnIncoming (node:_http_server:1153:12)
-    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n2026-08-05T12:01:18.210Z\nError: Cannot find module '../auth/role.model'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\accounts\brand.controller.js
+- E:\Bcc Seo\backend\src\modules\accounts\brand.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.createBrand (E:\Bcc Seo\backend\src\modules\accounts\brand.controller.js:74:22)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-05T12:01:23.650Z\nError: Cannot find module '../auth/role.model'
+Require stack:
+- E:\Bcc Seo\backend\src\modules\accounts\brand.controller.js
+- E:\Bcc Seo\backend\src\modules\accounts\brand.routes.js
+- E:\Bcc Seo\backend\src\routes\index.js
+- E:\Bcc Seo\backend\src\app.js
+- E:\Bcc Seo\backend\server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
+    at Function._load (node:internal/modules/cjs/loader:1075:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at Module.require (node:internal/modules/cjs/loader:1340:12)
+    at require (node:internal/modules/helpers:138:16)
+    at exports.createBrand (E:\Bcc Seo\backend\src\modules\accounts\brand.controller.js:74:22)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n

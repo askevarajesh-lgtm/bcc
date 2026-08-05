@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CheckSquare, LayoutDashboard, Settings, FileText, Palette, GitMerge, 
-  Target, Search, BarChart2, Globe, LineChart, MessageCircle, TrendingUp, Briefcase
+  Target, Search, BarChart2, Globe, LineChart, MessageCircle, TrendingUp, Briefcase, Users, Activity
 } from 'lucide-react';
 import PortalSidebar from './PortalSidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +59,23 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Agency Ops-Calendar') || hasPerm('Workspace-Calendar')) menuItems.push({ key: '/user/workspace/calendar', icon: getIcon(CheckSquare), label: 'Calendar' });
   if (hasPerm('Agency Ops-Deliverables') || hasPerm('Workspace-Deliverables')) menuItems.push({ key: '/user/workspace/deliverables', icon: getIcon(CheckSquare), label: 'Deliverables' });
   if (hasPerm('Agency Ops-Sales Pipeline')) menuItems.push({ key: '/user/workspace/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
+
+  const clientsChildren = [];
+  if (hasPerm('Clients-Accounts')) {
+    clientsChildren.push({ key: '/user/clients', icon: getIcon(Users), label: 'Accounts' });
+  }
+  if (hasPerm('Clients-SLA & Success')) {
+    clientsChildren.push({ key: '/user/sla', icon: getIcon(Activity), label: 'SLA & Success' });
+  }
+
+  if (clientsChildren.length > 0) {
+    menuItems.push({
+      key: 'clients',
+      label: 'Clients',
+      icon: getIcon(Users),
+      children: clientsChildren
+    });
+  }
 
   const hrmsChildren = [];
   // Performance is currently granted for all employees as per original logic, but we can respect permission if present,

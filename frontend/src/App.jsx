@@ -563,6 +563,9 @@ const AppRoutes = () => {
           <Route path="workspace/tasks/analytics" element={<TaskAnalyticsPage />} />
           <Route path="workspace/tasks/coordinator" element={<CoordinatorTasks />} />
           
+          <Route path="clients" element={<ClientsTab />} />
+          <Route path="sla" element={<SLA />} />
+          
           {/* Dynamically Granted Modules */}
           <Route path="workspace/strategy" element={<Strategy />} />
           <Route path="workspace/seo/*" element={<MarketplaceSEO />} />

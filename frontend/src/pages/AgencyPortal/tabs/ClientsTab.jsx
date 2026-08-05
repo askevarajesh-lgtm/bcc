@@ -404,6 +404,22 @@ const ClientsTab = () => {
               )
             },
             {
+              title: 'Created By',
+              key: 'createdBy',
+              render: (_, record) => {
+                const creator = record.createdBy;
+                if (!creator) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
+                return (
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{creator.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                      {(creator.roleName || creator.role || '').replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                );
+              }
+            },
+            {
               title: 'Actions',
               key: 'actions',
               align: 'right',
