@@ -24,7 +24,7 @@ const Analytics = () => {
   const clients = clientsData?.data || [];
 
   useEffect(() => {
-    // fetchAnalytics(); // Temporarily disabled while in "Coming Soon" state
+    fetchAnalytics(); // Temporarily disabled while in "Coming Soon" state
   }, [selectedClient, dateRange]);
 
   const fetchAnalytics = async () => {
@@ -83,22 +83,6 @@ const Analytics = () => {
       transition: { type: 'spring', stiffness: 300, damping: 24 } 
     }
   };
-
-  // --- COMING SOON PLACEHOLDER ---
-  // Temporarily returning this screen to block access to the unfinished module.
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh', textAlign: 'center' }}>
-      <div style={{ background: 'var(--bg-secondary)', padding: '32px', borderRadius: '50%', marginBottom: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-        <BarChart2 size={48} style={{ color: 'var(--accent-secondary)' }} />
-      </div>
-      <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Analytics & Attribution</Title>
-      <Tag color="warning" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Upgrade Required</Tag>
-      <Text type="secondary" style={{ maxWidth: 450, fontSize: 16, lineHeight: 1.6 }}>
-        This module is available in this package. Purchase or upgrade your package to enable access.
-      </Text>
-    </motion.div>
-  );
-  // -------------------------------
 
   const renderActiveTab = () => {
     if (loading || !data) return <div style={{ textAlign: 'center', padding: '100px 0' }}>Loading analytics...</div>;
