@@ -1,235 +1,96 @@
 import React from 'react';
-import { Typography, Card, Select, Table, Tag, Row, Col } from 'antd';
+import { Typography, Card, Table, Alert } from 'antd';
 import { motion } from 'framer-motion';
-import { Activity, Info, ArrowRight } from 'lucide-react';
+import { Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { type: 'spring', stiffness: 300, damping: 24 } 
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 300, damping: 24 }
   }
 };
 
-// SVG Flow Diagram Component
-const CustomerJourneyFlow = ({ journeyData }) => {
-  // Columns X coordinates
-  const c1x = 0;
-  const c2x = 420;
-  const c3x = 840;
-  const nodeWidth = 160;
-
-  // Nodes definition
-  const nodes = [
-    // Column 1
-    { id: 'organic', label: 'Organic', value: journeyData.organic?.toLocaleString() || '0', x: c1x, y: 0, h: 120, color: '#34d399' },
-    { id: 'google', label: 'Google Ads', value: journeyData.googleAds?.toLocaleString() || '0', x: c1x, y: 130, h: 80, color: '#38bdf8' },
-    { id: 'meta', label: 'Meta Ads', value: journeyData.metaAds?.toLocaleString() || '0', x: c1x, y: 220, h: 60, color: '#6366f1' },
-    { id: 'whatsapp1', label: 'WhatsApp', value: journeyData.whatsapp?.toLocaleString() || '0', x: c1x, y: 290, h: 30, color: '#4ade80' },
-    { id: 'direct', label: 'Direct', value: journeyData.direct?.toLocaleString() || '0', x: c1x, y: 330, h: 20, color: '#fbbf24' },
-
-    // Column 2
-    { id: 'landing', label: 'Landing Page', value: journeyData.landingPage?.toLocaleString() || '0', x: c2x, y: 0, h: 110, color: '#7dd3fc' },
-    { id: 'blog', label: 'Blog', value: journeyData.blog?.toLocaleString() || '0', x: c2x, y: 120, h: 70, color: '#a78bfa' },
-    { id: 'product', label: 'Product Page', value: journeyData.productPage?.toLocaleString() || '0', x: c2x, y: 200, h: 90, color: '#67e8f9' },
-    { id: 'retargeting', label: 'Retargeting Ad', value: journeyData.retargetingAd?.toLocaleString() || '0', x: c2x, y: 300, h: 50, color: '#f472b6' },
-
-    // Column 3
-    { id: 'lead', label: 'Lead Captured', value: journeyData.leadCaptured?.toLocaleString() || '0', x: c3x, y: 0, h: 100, color: '#4ade80' },
-    { id: 'form', label: 'Form Submit', value: journeyData.formSubmit?.toLocaleString() || '0', x: c3x, y: 110, h: 90, color: '#2dd4bf' },
-    { id: 'call', label: 'Call', value: journeyData.call?.toLocaleString() || '0', x: c3x, y: 210, h: 50, color: '#fbbf24' },
-    { id: 'whatsapp2', label: 'WhatsApp Inquiry', value: journeyData.whatsappInquiry?.toLocaleString() || '0', x: c3x, y: 270, h: 80, color: '#22c55e' },
-  ];
-
-  // Helper to draw bezier path between two nodes
-  const drawLink = (fromId, toId, yOffsetFrom, yOffsetTo, thickness, color1, color2) => {
-    const fromNode = nodes.find(n => n.id === fromId);
-    const toNode = nodes.find(n => n.id === toId);
-    
-    const x1 = fromNode.x + nodeWidth;
-    const y1 = fromNode.y + yOffsetFrom;
-    const x2 = toNode.x;
-    const y2 = toNode.y + yOffsetTo;
-    
-    const cp1x = x1 + (x2 - x1) * 0.5;
-    const cp2x = x1 + (x2 - x1) * 0.5;
-    
-    const path = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
-    const gradId = `grad-${fromId}-${toId}`;
-
-    return (
-      <g key={`${fromId}-${toId}`}>
-        <defs>
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={color1} stopOpacity="0.4" />
-            <stop offset="100%" stopColor={color2} stopOpacity="0.4" />
-          </linearGradient>
-        </defs>
-        <path d={path} stroke={`url(#${gradId})`} strokeWidth={thickness} fill="none" />
-      </g>
-    );
-  };
-
-  return (
-    <div style={{ width: '100%', overflowX: 'auto', padding: '20px 0' }}>
-      <svg viewBox="0 0 1000 370" style={{ minWidth: 800, width: '100%', height: 'auto' }}>
-        {/* Draw Links */}
-        {/* Organic -> Columns */}
-        {drawLink('organic', 'blog', 30, 20, 40, '#34d399', '#a78bfa')}
-        {drawLink('organic', 'landing', 80, 20, 30, '#34d399', '#7dd3fc')}
-        {drawLink('organic', 'product', 105, 20, 20, '#34d399', '#67e8f9')}
-        
-        {/* Google -> Columns */}
-        {drawLink('google', 'landing', 20, 70, 30, '#38bdf8', '#7dd3fc')}
-        {drawLink('google', 'product', 60, 45, 25, '#38bdf8', '#67e8f9')}
-        
-        {/* Meta -> Columns */}
-        {drawLink('meta', 'landing', 15, 95, 15, '#6366f1', '#7dd3fc')}
-        {drawLink('meta', 'retargeting', 45, 15, 25, '#6366f1', '#f472b6')}
-        
-        {/* WhatsApp -> Columns */}
-        {drawLink('whatsapp1', 'product', 15, 75, 20, '#4ade80', '#67e8f9')}
-        
-        {/* Direct -> Columns */}
-        {drawLink('direct', 'blog', 10, 55, 10, '#fbbf24', '#a78bfa')}
-
-        {/* Col2 -> Col3 */}
-        {/* Landing -> Col3 */}
-        {drawLink('landing', 'lead', 20, 20, 30, '#7dd3fc', '#4ade80')}
-        {drawLink('landing', 'form', 60, 20, 20, '#7dd3fc', '#2dd4bf')}
-        {drawLink('landing', 'whatsapp2', 90, 20, 25, '#7dd3fc', '#22c55e')}
-        
-        {/* Blog -> Col3 */}
-        {drawLink('blog', 'form', 25, 55, 30, '#a78bfa', '#2dd4bf')}
-        {drawLink('blog', 'lead', 55, 65, 15, '#a78bfa', '#4ade80')}
-        
-        {/* Product -> Col3 */}
-        {drawLink('product', 'form', 20, 75, 25, '#67e8f9', '#2dd4bf')}
-        {drawLink('product', 'call', 50, 25, 30, '#67e8f9', '#fbbf24')}
-        {drawLink('product', 'lead', 75, 85, 10, '#67e8f9', '#4ade80')}
-        
-        {/* Retargeting -> Col3 */}
-        {drawLink('retargeting', 'whatsapp2', 25, 60, 35, '#f472b6', '#22c55e')}
-
-        {/* Draw Nodes */}
-        {nodes.map(node => (
-          <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
-            <rect width={nodeWidth} height={node.h} fill={node.color} rx={8} />
-            <text x={12} y={24} fill="#fff" fontSize={12} fontWeight="700" fontFamily="Inter, sans-serif">{node.label}</text>
-            <text x={12} y={40} fill="rgba(255,255,255,0.9)" fontSize={11} fontWeight="500" fontFamily="Inter, sans-serif">{node.value}</text>
-          </g>
-        ))}
-      </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 24px 0', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: 1 }}>
-        <span>SOURCE</span>
-        <span>TOUCHPOINT</span>
-        <span>OUTCOME</span>
-      </div>
-    </div>
-  );
-};
+const breakdownCols = [
+  { title: 'Channel', dataIndex: 'channel', key: 'channel', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
+  { title: 'Sessions', dataIndex: 'sessions', key: 'sessions', align: 'right', render: t => <Text style={{ fontWeight: 500 }}>{Number(t).toLocaleString()}</Text> },
+  { title: 'Leads', dataIndex: 'leads', key: 'leads', align: 'right', render: t => <strong style={{ color: 'var(--text-primary)' }}>{Number(t).toLocaleString()}</strong> },
+  { title: 'Session → Lead Rate', dataIndex: 'conversionRate', key: 'conversionRate', align: 'right', render: t => <Text style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{t}</Text> },
+];
 
 const AttributionTab = ({ data }) => {
   if (!data) return null;
   const breakdownData = data.channelBreakdown || [];
-
-  const breakdownCols = [
-    { title: 'Channel', dataIndex: 'channel', key: 'channel', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
-    { title: 'Touchpoints', dataIndex: 'touchpoints', key: 'touchpoints', align: 'right', render: t => <Text style={{ fontWeight: 500 }}>{t}</Text> },
-    { title: 'Assisted', dataIndex: 'assisted', key: 'assisted', align: 'right', render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{t}</Text> },
-    { title: 'Direct', dataIndex: 'direct', key: 'direct', align: 'right', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
-    { title: 'Revenue', dataIndex: 'revenue', key: 'revenue', align: 'right', render: t => <Text style={{ fontWeight: 600 }}>{t}</Text> },
-    { title: 'Cost', dataIndex: 'cost', key: 'cost', align: 'right', render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{t}</Text> },
-    { title: 'ROAS', dataIndex: 'roas', key: 'roas', align: 'right', render: t => (
-      t === '∞' 
-      ? <Tag style={{ margin: 0, borderRadius: 12, border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-primary)', fontWeight: 800 }}>∞</Tag>
-      : <Text style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{t}</Text>
-    ) },
-    { title: 'CPA', dataIndex: 'cpa', key: 'cpa', align: 'right', render: t => <Text style={{ fontWeight: 600 }}>{t}</Text> },
-  ];
-
-  const PathTag = ({ text, color }) => (
-    <div style={{ padding: '4px 12px', background: `var(--bg-tertiary)`, border: `1px solid ${color}`, color: color, borderRadius: 16, fontSize: 12, fontWeight: 600 }}>
-      {text}
-    </div>
-  );
-
-  const Arrow = () => <ArrowRight size={14} color="var(--text-tertiary)" />;
+  const chartData = breakdownData.map(c => ({ channel: c.channel, sessions: c.sessions, leads: c.leads }));
 
   return (
     <>
-      {/* Model Selection */}
       <motion.div variants={itemVariants} style={{ marginBottom: 24 }}>
         <Card className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Activity size={14}/> ATTRIBUTION MODEL</Text>
-              <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 800, color: 'var(--text-primary)' }}>Last Click</Title>
-              <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>100% of the credit goes to the last channel a user touched before converting. Best for short, <br/>transactional journeys — but undervalues awareness and assist channels.</Text>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Last Click</Text>
-              <Tag color="default" style={{ borderRadius: 12, border: 'none', margin: 0, fontWeight: 600 }}>default</Tag>
-              <Select defaultValue="last" style={{ width: 40 }} bordered={false} suffixIcon={null} dropdownMatchSelectWidth={false}>
-                <Option value="last">Last Click</Option>
-                <Option value="first">First Click</Option>
-                <Option value="linear">Linear</Option>
-                <Option value="decay">Time Decay</Option>
-              </Select>
-            </div>
+          <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Activity size={14} /> ATTRIBUTION MODEL</Text>
+          <Title level={4} style={{ margin: '0 0 8px 0', fontWeight: 800, color: 'var(--text-primary)' }}>Channel-Level (Last Touch)</Title>
+          <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
+            Each channel's sessions come from Google Analytics 4, and its leads come from the CRM's recorded lead source — grouped onto the same channel taxonomy. This reflects
+            last-touch volume per channel, not a multi-touch or cross-session customer journey. Full multi-touch attribution would require session-level touchpoint tracking
+            that isn't collected yet.
+          </Text>
+        </Card>
+      </motion.div>
+
+      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Sessions vs Leads by Channel</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Selected date range</Text></div>}
+          className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24 }}
+        >
+          <div style={{ height: 320 }}>
+            {chartData.length === 0 ? (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text type="secondary">No channel data for this range yet.</Text></div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="channel" stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dy={10} />
+                  <YAxis stroke="var(--text-tertiary)" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 500 }} dx={-10} />
+                  <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--text-primary)' }} />
+                  <Legend iconType="circle" wrapperStyle={{ paddingTop: 20, fontSize: 13, fontWeight: 500 }} />
+                  <Bar dataKey="sessions" name="Sessions" fill="var(--accent-info)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="leads" name="Leads" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </motion.div>
 
-      {/* Customer Journey Flow */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Customer Journey Flow</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Where users come from, where they engage, and how they convert.</Text></div>}
-          extra={<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, background: 'var(--bg-tertiary)', padding: '4px 10px', borderRadius: 12, border: '1px solid var(--border-color)' }}><Info size={14}/> Width ∝ volume</div>}
-          className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '0 24px 24px' }}
-        >
-          <CustomerJourneyFlow journeyData={data.customerJourney || {}} />
-        </Card>
-      </motion.div>
-
-      {/* Channel Breakdown */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Channel Attribution Breakdown</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Assist + direct conversions per channel · Last Click model</Text></div>}
+        <Card
+          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Channel Attribution Breakdown</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Sessions and leads per channel, selected date range</Text></div>}
           className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 0 }}
         >
-          <Table columns={breakdownCols} dataSource={breakdownData} pagination={false} size="middle" rowClassName={() => 'hover-bg'} scroll={{ x: 'max-content' }} />
+          <Table
+            columns={breakdownCols}
+            dataSource={breakdownData}
+            pagination={false}
+            size="middle"
+            rowKey="channel"
+            rowClassName={() => 'hover-bg'}
+            scroll={{ x: 'max-content' }}
+            locale={{ emptyText: 'No channel data for this range yet.' }}
+          />
         </Card>
       </motion.div>
 
-      {/* Conversion Paths */}
-      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Card 
-          title={<div style={{ paddingTop: 8 }}><Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Most Common Conversion Paths</Title><Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Top 5 sequences leading to a conversion</Text></div>}
-          className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: '24px 32px' }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {(data.attributionPaths || []).map((path, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: idx !== (data.attributionPaths?.length - 1) ? '1px solid var(--border-color)' : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 12, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)' }}>{idx + 1}</div>
-                  {path.steps.map((step, stepIdx) => (
-                    <React.Fragment key={stepIdx}>
-                      <PathTag text={step.text} color={step.color} />
-                      {stepIdx < path.steps.length - 1 && <Arrow />}
-                    </React.Fragment>
-                  ))}
-                </div>
-                <div><strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>{path.conversions}</strong> <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>conversions</Text></div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </motion.div>
+      <Alert
+        type="info"
+        showIcon
+        style={{ borderRadius: 12 }}
+        message="Multi-touch customer journey mapping isn't available yet"
+        description="Sequenced, cross-session conversion paths (e.g. Organic → Blog → Form Submit) require session-level touchpoint tracking that this workspace doesn't currently collect. Showing a fabricated journey here would be misleading, so this view is limited to the real, channel-level data above."
+      />
     </>
   );
 };

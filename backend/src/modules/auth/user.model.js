@@ -73,6 +73,7 @@ const UserSchema = new mongoose.Schema({
   packageName: { type: String, default: null },
   features: [{ type: String }],
   ga4PropertyId: { type: String, default: null },
+  gscSiteUrl: { type: String, default: null }, // Google Search Console verified property (e.g. "sc-domain:example.com")
   
   // Custom Overrides (For Agency and Direct Brand)
   extraUsers: { type: Number, default: 0 },

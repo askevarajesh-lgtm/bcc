@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Select, Button, DatePicker, message, Tag } from 'antd';
+import { Typography, Select, Button, DatePicker, message } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Calendar as CalendarIcon, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import { analyticsApi } from '../../api/analyticsApi';
@@ -24,7 +24,7 @@ const Analytics = () => {
   const clients = clientsData?.data || [];
 
   useEffect(() => {
-    fetchAnalytics(); // Temporarily disabled while in "Coming Soon" state
+    fetchAnalytics();
   }, [selectedClient, dateRange]);
 
   const fetchAnalytics = async () => {
@@ -48,10 +48,13 @@ const Analytics = () => {
     try {
       const csvContent = "data:text/csv;charset=utf-8," 
         + "Metric,Value\n"
-        + `Total Sessions,${data.metrics?.totalSessions || 0}\n`
-        + `Total Leads,${data.metrics?.totalLeads || 0}\n`
-        + `Ad Spend,${data.metrics?.totalAdSpend || '0'}\n`
-        + `Organic Share,${data.metrics?.organicTrafficShare || '0%'}`;
+        + `Sessions,${data.metrics?.sessions || 0}\n`
+        + `Users,${data.metrics?.users || 0}\n`
+        + `Leads,${data.metrics?.leads || 0}\n`
+        + `Revenue,${data.metrics?.revenueFormatted || '₹0L'}\n`
+        + `Conversion Rate,${data.metrics?.conversionRate || '0%'}\n`
+        + `Ad Spend,${data.metrics?.totalAdSpend || '₹0L'}\n`
+        + `Organic Traffic Share,${data.metrics?.organicTrafficShare || '0%'}`;
       
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
