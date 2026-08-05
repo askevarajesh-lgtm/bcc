@@ -1,8 +1,4 @@
 const Meeting = require('./models/meeting.model');
-const MeetingNote = require('./models/meetingNote.model');
-const MeetingFollowUp = require('./models/meetingFollowUp.model');
-const MeetingAttachment = require('./models/meetingAttachment.model');
-const CalendarSync = require('./models/calendarSync.model');
 const User = require('../auth/user.model');
 const Task = require('../tasks/task.model');
 const taskService = require('../tasks/task.service');
@@ -156,7 +152,9 @@ const getAllMeetings = async (companyId, query, userRole, userId) => {
     });
   }
 
+  // Projection: list view doesn't need the embedded notes/attachments/followUps payload
   const meetings = await Meeting.find(filters)
+    .select('-notes -attachments -followUps')
     .populate('host', 'name email role logo')
     .populate('participants', 'name email role logo')
     .populate('clientId', 'name companyName email')
@@ -187,16 +185,20 @@ const getMeetingById = async (meetingId, companyId, userRole, userId) => {
     .populate('participants', 'name email role logo')
     .populate('clientId', 'name companyName email')
     .populate('projectId', 'name status')
-    .populate('leadId', 'fullName companyName email');
+    .populate('leadId', 'fullName companyName email')
+    .populate('notes.createdBy', 'name email role')
+    .populate('followUps.assignedTo', 'name email role')
+    .populate('followUps.taskId', 'title status dueDate')
+    .populate('attachments.uploadedBy', 'name email role');
 
   if (!meeting) {
     throw new Error('Meeting not found or you do not have permission to view it');
   }
 
-  // Fetch linked notes, follow-ups, and attachments
-  const notes = await MeetingNote.find({ meetingId }).populate('createdBy', 'name email role').sort({ createdAt: -1 });
-  const followUps = await MeetingFollowUp.find({ meetingId }).populate('assignedTo', 'name email role').populate('taskId', 'title status dueDate');
-  const attachments = await MeetingAttachment.find({ meetingId }).populate('uploadedBy', 'name email role');
+  // Preserve prior response shape: notes newest-first, attachments/followUps as embedded
+  const notes = [...meeting.notes].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const followUps = meeting.followUps;
+  const attachments = meeting.attachments;
 
   return {
     meeting,
@@ -210,7 +212,6 @@ const getMeetingById = async (meetingId, companyId, userRole, userId) => {
  * Update meeting
  */
 const updateMeeting = async (meetingId, updateData, companyId, userId) => {
-  const baseFilter = buildScopingFilter('supreme_super_admin', userId, companyId); // Scoped inside update check below
   const meeting = await Meeting.findOne({ _id: meetingId, companyId });
 
   if (!meeting) {
@@ -271,17 +272,14 @@ const updateMeeting = async (meetingId, updateData, companyId, userId) => {
 
 /**
  * Delete meeting
+ * Notes, attachments, and follow-ups are embedded in the meeting document,
+ * so deleting the meeting removes them too — no separate cleanup needed.
  */
 const deleteMeeting = async (meetingId, companyId) => {
   const meeting = await Meeting.findOneAndDelete({ _id: meetingId, companyId });
   if (!meeting) {
     throw new Error('Meeting not found');
   }
-
-  // Delete associated notes, followups, attachments
-  await MeetingNote.deleteMany({ meetingId });
-  await MeetingFollowUp.deleteMany({ meetingId });
-  await MeetingAttachment.deleteMany({ meetingId });
 
   return meeting;
 };
@@ -330,22 +328,75 @@ const addMeetingNote = async (meetingId, noteData, companyId, userId) => {
     throw new Error('Meeting not found');
   }
 
-  const note = new MeetingNote({
-    meetingId,
+  meeting.notes.push({
     content: noteData.content,
     createdBy: userId
   });
-
-  await note.save();
 
   meeting.history.push({
     action: 'note_added',
     performedBy: userId,
     details: `Added note: "${noteData.content.substring(0, 30)}..."`
   });
+
   await meeting.save();
 
-  return note.populate('createdBy', 'name email role');
+  const note = meeting.notes[meeting.notes.length - 1];
+  await meeting.populate('notes.createdBy', 'name email role');
+  return meeting.notes.id(note._id);
+};
+
+/**
+ * Edit an existing note on a meeting
+ */
+const updateMeetingNote = async (meetingId, noteId, noteData, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const note = meeting.notes.id(noteId);
+  if (!note) {
+    throw new Error('Note not found');
+  }
+
+  note.content = noteData.content;
+
+  meeting.history.push({
+    action: 'note_updated',
+    performedBy: userId,
+    details: `Edited note: "${noteData.content.substring(0, 30)}..."`
+  });
+
+  await meeting.save();
+  await meeting.populate('notes.createdBy', 'name email role');
+  return meeting.notes.id(noteId);
+};
+
+/**
+ * Delete a note from a meeting
+ */
+const deleteMeetingNote = async (meetingId, noteId, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const note = meeting.notes.id(noteId);
+  if (!note) {
+    throw new Error('Note not found');
+  }
+
+  note.deleteOne();
+
+  meeting.history.push({
+    action: 'note_deleted',
+    performedBy: userId,
+    details: 'Deleted a meeting note'
+  });
+
+  await meeting.save();
+  return meeting;
 };
 
 /**
@@ -357,24 +408,51 @@ const addMeetingAttachment = async (meetingId, attachmentData, companyId, userId
     throw new Error('Meeting not found');
   }
 
-  const attachment = new MeetingAttachment({
-    meetingId,
+  meeting.attachments.push({
     url: attachmentData.url,
     fileName: attachmentData.fileName,
     fileType: attachmentData.fileType,
     uploadedBy: userId
   });
 
-  await attachment.save();
-
   meeting.history.push({
     action: 'attachment_added',
     performedBy: userId,
     details: `Added attachment: "${attachmentData.fileName}"`
   });
+
   await meeting.save();
 
-  return attachment.populate('uploadedBy', 'name email role');
+  const attachment = meeting.attachments[meeting.attachments.length - 1];
+  await meeting.populate('attachments.uploadedBy', 'name email role');
+  return meeting.attachments.id(attachment._id);
+};
+
+/**
+ * Remove an attachment from a meeting
+ */
+const removeMeetingAttachment = async (meetingId, attachmentId, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const attachment = meeting.attachments.id(attachmentId);
+  if (!attachment) {
+    throw new Error('Attachment not found');
+  }
+
+  const fileName = attachment.fileName;
+  attachment.deleteOne();
+
+  meeting.history.push({
+    action: 'attachment_removed',
+    performedBy: userId,
+    details: `Removed attachment: "${fileName}"`
+  });
+
+  await meeting.save();
+  return meeting;
 };
 
 /**
@@ -414,22 +492,22 @@ const createFollowUp = async (meetingId, followUpData, companyId, userId) => {
     }
   }
 
-  const followUp = new MeetingFollowUp({
-    meetingId,
+  meeting.followUps.push({
     description: followUpData.description,
     assignedTo: followUpData.assignedTo,
     dueDate: new Date(followUpData.dueDate),
     taskId: linkedTaskId
   });
 
-  await followUp.save();
-
   meeting.history.push({
     action: 'followup_created',
     performedBy: userId,
     details: `Created follow-up item: "${followUpData.description}"`
   });
+
   await meeting.save();
+
+  const followUp = meeting.followUps[meeting.followUps.length - 1];
 
   // Notify the assigned follow-up owner
   await createMeetingNotification(
@@ -440,12 +518,106 @@ const createFollowUp = async (meetingId, followUpData, companyId, userId) => {
     meeting._id
   );
 
-  await followUp.populate([
-    { path: 'assignedTo', select: 'name email role' },
-    { path: 'taskId', select: 'title status dueDate' }
+  await meeting.populate([
+    { path: 'followUps.assignedTo', select: 'name email role' },
+    { path: 'followUps.taskId', select: 'title status dueDate' }
   ]);
 
-  return followUp;
+  return meeting.followUps.id(followUp._id);
+};
+
+/**
+ * Update a follow-up's editable fields
+ */
+const updateFollowUp = async (meetingId, followUpId, followUpData, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const followUp = meeting.followUps.id(followUpId);
+  if (!followUp) {
+    throw new Error('Follow-up not found');
+  }
+
+  const allowedFields = ['description', 'assignedTo', 'dueDate', 'status'];
+  allowedFields.forEach(field => {
+    if (followUpData[field] !== undefined) {
+      followUp[field] = field === 'dueDate' ? new Date(followUpData[field]) : followUpData[field];
+    }
+  });
+
+  meeting.history.push({
+    action: 'followup_updated',
+    performedBy: userId,
+    details: `Updated follow-up item: "${followUp.description}"`
+  });
+
+  await meeting.save();
+  await meeting.populate([
+    { path: 'followUps.assignedTo', select: 'name email role' },
+    { path: 'followUps.taskId', select: 'title status dueDate' }
+  ]);
+
+  return meeting.followUps.id(followUpId);
+};
+
+/**
+ * Mark a follow-up as completed
+ */
+const completeFollowUp = async (meetingId, followUpId, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const followUp = meeting.followUps.id(followUpId);
+  if (!followUp) {
+    throw new Error('Follow-up not found');
+  }
+
+  followUp.status = 'completed';
+
+  meeting.history.push({
+    action: 'followup_completed',
+    performedBy: userId,
+    details: `Completed follow-up item: "${followUp.description}"`
+  });
+
+  await meeting.save();
+  await meeting.populate([
+    { path: 'followUps.assignedTo', select: 'name email role' },
+    { path: 'followUps.taskId', select: 'title status dueDate' }
+  ]);
+
+  return meeting.followUps.id(followUpId);
+};
+
+/**
+ * Delete a follow-up from a meeting
+ */
+const deleteFollowUp = async (meetingId, followUpId, companyId, userId) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, companyId });
+  if (!meeting) {
+    throw new Error('Meeting not found');
+  }
+
+  const followUp = meeting.followUps.id(followUpId);
+  if (!followUp) {
+    throw new Error('Follow-up not found');
+  }
+
+  const description = followUp.description;
+  followUp.deleteOne();
+
+  meeting.history.push({
+    action: 'followup_deleted',
+    performedBy: userId,
+    details: `Deleted follow-up item: "${description}"`
+  });
+
+  await meeting.save();
+  return meeting;
 };
 
 /**
@@ -469,11 +641,21 @@ const getMeetingAnalytics = async (companyId, userRole, userId) => {
     typeStats[type] = await Meeting.countDocuments({ ...baseFilter, meetingType: type });
   }
 
-  // Calculate follow-up completion rate
-  const meetings = await Meeting.find(baseFilter).select('_id');
-  const meetingIds = meetings.map(m => m._id);
-  const totalFollowUps = await MeetingFollowUp.countDocuments({ meetingId: { $in: meetingIds } });
-  const completedFollowUps = await MeetingFollowUp.countDocuments({ meetingId: { $in: meetingIds }, status: 'completed' });
+  // Calculate follow-up completion rate from embedded followUps arrays
+  const followUpStats = await Meeting.aggregate([
+    { $match: baseFilter },
+    { $unwind: { path: '$followUps', preserveNullAndEmptyArrays: false } },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        completed: { $sum: { $cond: [{ $eq: ['$followUps.status', 'completed'] }, 1, 0] } }
+      }
+    }
+  ]);
+
+  const totalFollowUps = followUpStats[0]?.total || 0;
+  const completedFollowUps = followUpStats[0]?.completed || 0;
   const followUpCompletionRate = totalFollowUps > 0 ? Math.round((completedFollowUps / totalFollowUps) * 100) : 100;
 
   // Client-wise meeting breakdown
@@ -517,7 +699,13 @@ module.exports = {
   deleteMeeting,
   updateMeetingStatus,
   addMeetingNote,
+  updateMeetingNote,
+  deleteMeetingNote,
   addMeetingAttachment,
+  removeMeetingAttachment,
   createFollowUp,
+  updateFollowUp,
+  completeFollowUp,
+  deleteFollowUp,
   getMeetingAnalytics
 };

@@ -99,6 +99,35 @@ const addMeetingNote = async (req, res) => {
   }
 };
 
+const updateMeetingNote = async (req, res) => {
+  try {
+    const note = await meetingService.updateMeetingNote(
+      req.params.id,
+      req.params.noteId,
+      req.body,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Note updated successfully', { note });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const deleteMeetingNote = async (req, res) => {
+  try {
+    await meetingService.deleteMeetingNote(
+      req.params.id,
+      req.params.noteId,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Note deleted successfully');
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
 const addMeetingAttachment = async (req, res) => {
   try {
     const attachment = await meetingService.addMeetingAttachment(
@@ -113,6 +142,20 @@ const addMeetingAttachment = async (req, res) => {
   }
 };
 
+const removeMeetingAttachment = async (req, res) => {
+  try {
+    await meetingService.removeMeetingAttachment(
+      req.params.id,
+      req.params.attachmentId,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Attachment removed successfully');
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
 const createFollowUp = async (req, res) => {
   try {
     const followUp = await meetingService.createFollowUp(
@@ -122,6 +165,49 @@ const createFollowUp = async (req, res) => {
       req.user?._id
     );
     return sendSuccess(res, 'Follow-up created successfully', { followUp });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const updateFollowUp = async (req, res) => {
+  try {
+    const followUp = await meetingService.updateFollowUp(
+      req.params.id,
+      req.params.followUpId,
+      req.body,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Follow-up updated successfully', { followUp });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const completeFollowUp = async (req, res) => {
+  try {
+    const followUp = await meetingService.completeFollowUp(
+      req.params.id,
+      req.params.followUpId,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Follow-up marked as completed', { followUp });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const deleteFollowUp = async (req, res) => {
+  try {
+    await meetingService.deleteFollowUp(
+      req.params.id,
+      req.params.followUpId,
+      req.companyId,
+      req.user?._id
+    );
+    return sendSuccess(res, 'Follow-up deleted successfully');
   } catch (error) {
     return sendError(res, 400, error.message);
   }
@@ -148,7 +234,13 @@ module.exports = {
   deleteMeeting,
   updateMeetingStatus,
   addMeetingNote,
+  updateMeetingNote,
+  deleteMeetingNote,
   addMeetingAttachment,
+  removeMeetingAttachment,
   createFollowUp,
+  updateFollowUp,
+  completeFollowUp,
+  deleteFollowUp,
   getMeetingAnalytics
 };

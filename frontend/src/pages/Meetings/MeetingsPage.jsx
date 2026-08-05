@@ -19,7 +19,10 @@ import {
   useGetMeetingsQuery, useGetMeetingByIdQuery, useGetMeetingAnalyticsQuery, 
   useCreateMeetingMutation, useUpdateMeetingMutation, useDeleteMeetingMutation, 
   useUpdateMeetingStatusMutation, useAddMeetingNoteMutation, 
-  useAddMeetingAttachmentMutation, useCreateFollowUpMutation 
+  useUpdateMeetingNoteMutation, useDeleteMeetingNoteMutation,
+  useAddMeetingAttachmentMutation, useRemoveMeetingAttachmentMutation,
+  useCreateFollowUpMutation, useUpdateFollowUpMutation,
+  useCompleteFollowUpMutation, useDeleteFollowUpMutation
 } from '../../api/meetingApi';
 import { useGetUsersDropdownQuery } from '../../api/userApi';
 import { useGetCompaniesDropdownQuery } from '../../api/companyApi';
@@ -64,10 +67,13 @@ const MeetingsPage = () => {
   
   // Note/Followup/Attachment inputs
   const [noteContent, setNoteContent] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState(null);
+
   const [followUpDescription, setFollowUpDescription] = useState('');
   const [followUpAssignedTo, setFollowUpAssignedTo] = useState('');
   const [followUpDueDate, setFollowUpDueDate] = useState(null);
   const [followUpCreateTask, setFollowUpCreateTask] = useState(false);
+  const [editingFollowUpId, setEditingFollowUpId] = useState(null);
   
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [attachmentName, setAttachmentName] = useState('');
@@ -99,8 +105,16 @@ const MeetingsPage = () => {
   const [deleteMeeting] = useDeleteMeetingMutation();
   const [updateMeetingStatus] = useUpdateMeetingStatusMutation();
   const [addMeetingNote, { isLoading: isAddingNote }] = useAddMeetingNoteMutation();
+  const [updateMeetingNote, { isLoading: isUpdatingNote }] = useUpdateMeetingNoteMutation();
+  const [deleteMeetingNote] = useDeleteMeetingNoteMutation();
+
   const [addMeetingAttachment] = useAddMeetingAttachmentMutation();
+  const [removeMeetingAttachment] = useRemoveMeetingAttachmentMutation();
+
   const [createFollowUp, { isLoading: isCreatingFollowUp }] = useCreateFollowUpMutation();
+  const [updateFollowUp, { isLoading: isUpdatingFollowUp }] = useUpdateFollowUpMutation();
+  const [completeFollowUp] = useCompleteFollowUpMutation();
+  const [deleteFollowUp] = useDeleteFollowUpMutation();
 
   const meetings = meetingsResponse?.data?.meetings || [];
   const analytics = analyticsResponse?.data?.analytics || null;
@@ -205,16 +219,45 @@ const MeetingsPage = () => {
     }
   };
 
-  // Add Note
+  // Add or Save an edited Note
   const handleAddNote = async () => {
     if (!noteContent.trim()) return;
     try {
-      await addMeetingNote({ id: selectedMeetingId, content: noteContent }).unwrap();
+      if (editingNoteId) {
+        await updateMeetingNote({ id: selectedMeetingId, noteId: editingNoteId, content: noteContent }).unwrap();
+        message.success('Note updated');
+      } else {
+        await addMeetingNote({ id: selectedMeetingId, content: noteContent }).unwrap();
+        message.success('Note added');
+      }
       setNoteContent('');
-      message.success('Note added');
+      setEditingNoteId(null);
       refetchDetail();
     } catch (err) {
-      message.error('Failed to add note');
+      message.error(editingNoteId ? 'Failed to update note' : 'Failed to add note');
+    }
+  };
+
+  // Populate the note form for editing
+  const handleEditNote = (note) => {
+    setEditingNoteId(note._id);
+    setNoteContent(note.content);
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setNoteContent('');
+  };
+
+  // Delete Note
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await deleteMeetingNote({ id: selectedMeetingId, noteId }).unwrap();
+      message.success('Note deleted');
+      if (editingNoteId === noteId) handleCancelEditNote();
+      refetchDetail();
+    } catch (err) {
+      message.error('Failed to delete note');
     }
   };
 
@@ -237,27 +280,89 @@ const MeetingsPage = () => {
     }
   };
 
-  // Create Follow Up
+  // Remove Attachment
+  const handleRemoveAttachment = async (attachmentId) => {
+    try {
+      await removeMeetingAttachment({ id: selectedMeetingId, attachmentId }).unwrap();
+      message.success('Attachment removed');
+      refetchDetail();
+    } catch (err) {
+      message.error('Failed to remove attachment');
+    }
+  };
+
+  // Create or Save an edited Follow Up
   const handleCreateFollowUp = async () => {
     if (!followUpDescription.trim() || !followUpAssignedTo || !followUpDueDate) return;
     try {
-      await createFollowUp({
-        id: selectedMeetingId,
-        description: followUpDescription,
-        assignedTo: followUpAssignedTo,
-        dueDate: followUpDueDate.format('YYYY-MM-DD'),
-        createTask: followUpCreateTask
-      }).unwrap();
+      if (editingFollowUpId) {
+        await updateFollowUp({
+          id: selectedMeetingId,
+          followUpId: editingFollowUpId,
+          description: followUpDescription,
+          assignedTo: followUpAssignedTo,
+          dueDate: followUpDueDate.format('YYYY-MM-DD')
+        }).unwrap();
+        message.success('Follow-up updated successfully');
+      } else {
+        await createFollowUp({
+          id: selectedMeetingId,
+          description: followUpDescription,
+          assignedTo: followUpAssignedTo,
+          dueDate: followUpDueDate.format('YYYY-MM-DD'),
+          createTask: followUpCreateTask
+        }).unwrap();
+        message.success('Follow-up created successfully');
+      }
       
       setFollowUpDescription('');
       setFollowUpAssignedTo('');
       setFollowUpDueDate(null);
       setFollowUpCreateTask(false);
+      setEditingFollowUpId(null);
       
-      message.success('Follow-up created successfully');
       refetchDetail();
     } catch (err) {
-      message.error('Failed to create follow-up action');
+      message.error(editingFollowUpId ? 'Failed to update follow-up' : 'Failed to create follow-up action');
+    }
+  };
+
+  // Populate the follow-up form for editing
+  const handleEditFollowUp = (followUp) => {
+    setEditingFollowUpId(followUp._id);
+    setFollowUpDescription(followUp.description);
+    setFollowUpAssignedTo(followUp.assignedTo?._id || followUp.assignedTo);
+    setFollowUpDueDate(dayjs(followUp.dueDate));
+  };
+
+  const handleCancelEditFollowUp = () => {
+    setEditingFollowUpId(null);
+    setFollowUpDescription('');
+    setFollowUpAssignedTo('');
+    setFollowUpDueDate(null);
+    setFollowUpCreateTask(false);
+  };
+
+  // Mark Follow Up Completed
+  const handleCompleteFollowUp = async (followUpId) => {
+    try {
+      await completeFollowUp({ id: selectedMeetingId, followUpId }).unwrap();
+      message.success('Follow-up marked as completed');
+      refetchDetail();
+    } catch (err) {
+      message.error('Failed to complete follow-up');
+    }
+  };
+
+  // Delete Follow Up
+  const handleDeleteFollowUp = async (followUpId) => {
+    try {
+      await deleteFollowUp({ id: selectedMeetingId, followUpId }).unwrap();
+      message.success('Follow-up deleted');
+      if (editingFollowUpId === followUpId) handleCancelEditFollowUp();
+      refetchDetail();
+    } catch (err) {
+      message.error('Failed to delete follow-up');
     }
   };
 
@@ -858,7 +963,25 @@ const MeetingsPage = () => {
                 dataSource={detailData.notes}
                 style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}
                 renderItem={note => (
-                  <List.Item key={note._id}>
+                  <List.Item
+                    key={note._id}
+                    actions={[
+                      <Tooltip title="Edit" key="edit">
+                        <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditNote(note)} />
+                      </Tooltip>,
+                      <Popconfirm
+                        key="delete"
+                        title="Delete this note?"
+                        onConfirm={() => handleDeleteNote(note._id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <Tooltip title="Delete">
+                          <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    ]}
+                  >
                     <List.Item.Meta
                       avatar={<Avatar icon={<UserOutlined />} />}
                       title={<span>{note.createdBy?.name || 'User'} <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{dayjs(note.createdAt).format('MMM D, h:mm a')}</span></span>}
@@ -868,21 +991,25 @@ const MeetingsPage = () => {
                 )}
               />
               <Divider />
-              <Form.Item label="Add Meeting Note">
+              <Form.Item label={editingNoteId ? "Edit Meeting Note" : "Add Meeting Note"}>
                 <TextArea 
                   rows={3} 
                   value={noteContent} 
                   onChange={e => setNoteContent(e.target.value)} 
                   placeholder="Type important items, decisions or notes discussed..."
                 />
-                <Button 
-                  type="primary" 
-                  style={{ marginTop: 12 }} 
-                  onClick={handleAddNote}
-                  loading={isAddingNote}
-                >
-                  Post Note
-                </Button>
+                <Space style={{ marginTop: 12 }}>
+                  <Button 
+                    type="primary" 
+                    onClick={handleAddNote}
+                    loading={editingNoteId ? isUpdatingNote : isAddingNote}
+                  >
+                    {editingNoteId ? "Save Changes" : "Post Note"}
+                  </Button>
+                  {editingNoteId && (
+                    <Button onClick={handleCancelEditNote}>Cancel</Button>
+                  )}
+                </Space>
               </Form.Item>
             </Tabs.TabPane>
 
@@ -892,7 +1019,30 @@ const MeetingsPage = () => {
                 dataSource={detailData.followUps}
                 style={{ marginBottom: 24 }}
                 renderItem={item => (
-                  <List.Item key={item._id}>
+                  <List.Item
+                    key={item._id}
+                    actions={[
+                      item.status !== 'completed' && (
+                        <Tooltip title="Mark Completed" key="complete">
+                          <Button type="link" size="small" icon={<CheckCircleOutlined />} style={{ color: '#52c41a' }} onClick={() => handleCompleteFollowUp(item._id)} />
+                        </Tooltip>
+                      ),
+                      <Tooltip title="Edit" key="edit">
+                        <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditFollowUp(item)} />
+                      </Tooltip>,
+                      <Popconfirm
+                        key="delete"
+                        title="Delete this follow-up?"
+                        onConfirm={() => handleDeleteFollowUp(item._id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <Tooltip title="Delete">
+                          <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    ].filter(Boolean)}
+                  >
                     <Checkbox checked={item.status === 'completed'} disabled>
                       {item.description}
                     </Checkbox>
@@ -911,7 +1061,7 @@ const MeetingsPage = () => {
               {['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
                 <>
                   <Divider />
-                  <h4>Add Follow-Up / Action Item</h4>
+                  <h4>{editingFollowUpId ? "Edit Follow-Up / Action Item" : "Add Follow-Up / Action Item"}</h4>
                   <Form layout="vertical">
                     <Form.Item label="Description" required>
                       <Input 
@@ -945,22 +1095,29 @@ const MeetingsPage = () => {
                       </Col>
                     </Row>
                     
-                    <Form.Item>
-                      <Checkbox 
-                        checked={followUpCreateTask} 
-                        onChange={e => setFollowUpCreateTask(e.target.checked)}
-                      >
-                        Auto-generate and link with Task Management module (assigned user gets notified)
-                      </Checkbox>
-                    </Form.Item>
+                    {!editingFollowUpId && (
+                      <Form.Item>
+                        <Checkbox 
+                          checked={followUpCreateTask} 
+                          onChange={e => setFollowUpCreateTask(e.target.checked)}
+                        >
+                          Auto-generate and link with Task Management module (assigned user gets notified)
+                        </Checkbox>
+                      </Form.Item>
+                    )}
 
-                    <Button 
-                      type="primary" 
-                      onClick={handleCreateFollowUp}
-                      loading={isCreatingFollowUp}
-                    >
-                      Assign Action Item
-                    </Button>
+                    <Space>
+                      <Button 
+                        type="primary" 
+                        onClick={handleCreateFollowUp}
+                        loading={editingFollowUpId ? isUpdatingFollowUp : isCreatingFollowUp}
+                      >
+                        {editingFollowUpId ? "Save Changes" : "Assign Action Item"}
+                      </Button>
+                      {editingFollowUpId && (
+                        <Button onClick={handleCancelEditFollowUp}>Cancel</Button>
+                      )}
+                    </Space>
                   </Form>
                 </>
               )}
@@ -970,7 +1127,22 @@ const MeetingsPage = () => {
               <List
                 dataSource={detailData.attachments}
                 renderItem={att => (
-                  <List.Item key={att._id}>
+                  <List.Item
+                    key={att._id}
+                    actions={[
+                      <Popconfirm
+                        key="remove"
+                        title="Remove this attachment?"
+                        onConfirm={() => handleRemoveAttachment(att._id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <Tooltip title="Remove">
+                          <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    ]}
+                  >
                     <Space>
                       <PaperClipOutlined />
                       <a href={att.url} target="_blank" rel="noreferrer">{att.fileName}</a>
