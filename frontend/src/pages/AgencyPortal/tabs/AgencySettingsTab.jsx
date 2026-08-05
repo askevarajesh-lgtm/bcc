@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox, ColorPicker } from 'antd';
+import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox, ColorPicker, Upload } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase } from 'lucide-react';
+import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase, Upload as UploadIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -36,6 +36,8 @@ const AgencySettingsTab = () => {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedModules, setSelectedModules] = useState([]);
   const [submittingUpgrade, setSubmittingUpgrade] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -44,9 +46,11 @@ const AgencySettingsTab = () => {
         domain: user.domain || '',
         email: user.contactEmail || '',
         phone: user.supportPhone || '',
+        logo: user.logo || '',
         theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
         theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
       });
+      if (user.logo) setLogoPreview(user.logo);
       formAccount.setFieldsValue({
         firstName: (user.name || '').split(' ')[0] || '',
         lastName: (user.name || '').split(' ').slice(1).join(' ') || '',
@@ -57,6 +61,57 @@ const AgencySettingsTab = () => {
 
   const handleOpenUpgrade = () => {
     setIsUpgradeModalOpen(true);
+  };
+
+  const customUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setLogoPreview(url);
+        formAgency.setFieldsValue({ logo: url });
+        
+        // Auto-save the logo to the DB
+        const payload = {
+          companyName: formAgency.getFieldValue('name'),
+          domain: formAgency.getFieldValue('domain'),
+          contactEmail: formAgency.getFieldValue('email'),
+          supportPhone: formAgency.getFieldValue('phone'),
+          logo: url,
+          theme: {
+            primaryColor: typeof formAgency.getFieldValue('theme_primaryColor') === 'string' ? formAgency.getFieldValue('theme_primaryColor') : formAgency.getFieldValue('theme_primaryColor')?.toHexString(),
+            secondaryColor: typeof formAgency.getFieldValue('theme_secondaryColor') === 'string' ? formAgency.getFieldValue('theme_secondaryColor') : formAgency.getFieldValue('theme_secondaryColor')?.toHexString()
+          }
+        };
+        const updateRes = await api.put(`/users/${user._id}`, payload);
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+
+        onSuccess(res.data);
+        message.success('Logo uploaded and applied successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleUpgradeSubmit = async () => {
@@ -109,6 +164,7 @@ const AgencySettingsTab = () => {
         domain: values.domain,
         contactEmail: values.email,
         supportPhone: values.phone,
+        logo: values.logo,
         theme: {
           primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
           secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
@@ -181,6 +237,7 @@ const AgencySettingsTab = () => {
             domain: user?.domain || '', 
             email: user?.contactEmail || '', 
             phone: user?.supportPhone || '',
+            logo: user?.logo || '',
             theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
             theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
           }}
@@ -214,6 +271,53 @@ const AgencySettingsTab = () => {
             <Col xs={24} md={12}>
               <Form.Item label={<Text style={{ fontWeight: 600 }}>Secondary Theme Color</Text>} name="theme_secondaryColor">
                 <ColorPicker format="hex" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={24} style={{ marginTop: 16 }}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Logo</Text>}>
+                <Form.Item name="logo" hidden>
+                  <Input />
+                </Form.Item>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                    <div style={{ 
+                      width: 88, 
+                      height: 88, 
+                      borderRadius: 12, 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center', 
+                      color: '#fff', 
+                      fontSize: 28, 
+                      fontWeight: 800, 
+                      boxShadow: 'var(--shadow-sm)',
+                      overflow: 'hidden',
+                      background: 'var(--accent-primary)'
+                    }}>
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
+                      ) : (
+                        user?.companyName ? user.companyName.substring(0,2).toUpperCase() : "AG"
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Upload
+                        customRequest={customUpload}
+                        showUploadList={false}
+                        accept="image/*"
+                      >
+                        <Button 
+                          icon={<UploadIcon size={16}/>} 
+                          loading={uploadingLogo}
+                          style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                        >
+                          Upload new logo
+                        </Button>
+                      </Upload>
+                      <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px. PNG or SVG preferred.</Text>
+                    </div>
+                  </div>
+                </div>
               </Form.Item>
             </Col>
           </Row>

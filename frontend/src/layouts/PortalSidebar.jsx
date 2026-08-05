@@ -89,10 +89,10 @@ const PortalSidebar = ({
       <div className="app-sidebar__brand">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px 0' }}>
           <img 
-            src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
-            alt="M1 Labs Logo" 
+            src={brandLogo || (isDark ? '/logo-dark.png' : '/logo-light.png')} 
+            alt={brandTitle ? `${brandTitle} Logo` : "Logo"} 
             style={{ 
-              maxWidth: '85%', 
+              maxWidth: '70%', 
               maxHeight: 72, 
               objectFit: 'contain' 
             }} 

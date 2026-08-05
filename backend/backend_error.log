@@ -592,3 +592,79 @@ Require stack:
     at endReadableNT (node:internal/streams/readable:1698:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
 >>>>>>> origin/louis-v2
+2026-08-05T08:40:22.854Z\nError: Not allowed by CORS
+    at origin (E:\Bcc Seo\backend\src\app.js:27:16)
+    at E:\Bcc Seo\backend\node_modules\cors\lib\index.js:219:13
+    at optionsCallback (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:199:9)
+    at corsMiddleware (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:204:7)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Bcc Seo\backend\node_modules\router\index.js:342:13)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:297:9
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\router\index.js:186:3)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\express\lib\application.js:177:15)
+    at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
+    at Server.emit (node:events:524:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n2026-08-05T08:40:22.888Z\nError: Not allowed by CORS
+    at origin (E:\Bcc Seo\backend\src\app.js:27:16)
+    at E:\Bcc Seo\backend\node_modules\cors\lib\index.js:219:13
+    at optionsCallback (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:199:9)
+    at corsMiddleware (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:204:7)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Bcc Seo\backend\node_modules\router\index.js:342:13)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:297:9
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\router\index.js:186:3)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\express\lib\application.js:177:15)
+    at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
+    at Server.emit (node:events:524:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n2026-08-05T08:40:43.061Z\nError: Not allowed by CORS
+    at origin (E:\Bcc Seo\backend\src\app.js:27:16)
+    at E:\Bcc Seo\backend\node_modules\cors\lib\index.js:219:13
+    at optionsCallback (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:199:9)
+    at corsMiddleware (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:204:7)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Bcc Seo\backend\node_modules\router\index.js:342:13)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:297:9
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\router\index.js:186:3)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\express\lib\application.js:177:15)
+    at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
+    at Server.emit (node:events:524:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n2026-08-05T08:41:02.625Z\nError: Not allowed by CORS
+    at origin (E:\Bcc Seo\backend\src\app.js:27:16)
+    at E:\Bcc Seo\backend\node_modules\cors\lib\index.js:219:13
+    at optionsCallback (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:199:9)
+    at corsMiddleware (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:204:7)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Bcc Seo\backend\node_modules\router\index.js:342:13)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:297:9
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\router\index.js:186:3)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\express\lib\application.js:177:15)
+    at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
+    at Server.emit (node:events:524:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n2026-08-05T08:41:14.957Z\nError: Not allowed by CORS
+    at origin (E:\Bcc Seo\backend\src\app.js:27:16)
+    at E:\Bcc Seo\backend\node_modules\cors\lib\index.js:219:13
+    at optionsCallback (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:199:9)
+    at corsMiddleware (E:\Bcc Seo\backend\node_modules\cors\lib\index.js:204:7)
+    at Layer.handleRequest (E:\Bcc Seo\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Bcc Seo\backend\node_modules\router\index.js:342:13)
+    at E:\Bcc Seo\backend\node_modules\router\index.js:297:9
+    at processParams (E:\Bcc Seo\backend\node_modules\router\index.js:582:12)
+    at next (E:\Bcc Seo\backend\node_modules\router\index.js:291:5)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\router\index.js:186:3)
+    at Function.handle (E:\Bcc Seo\backend\node_modules\express\lib\application.js:177:15)
+    at Server.app (E:\Bcc Seo\backend\node_modules\express\lib\express.js:38:9)
+    at Server.emit (node:events:524:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)\n\n
