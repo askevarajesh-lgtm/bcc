@@ -112,12 +112,12 @@ exports.createBrand = async (req, res, next) => {
     let packageBillingInterval = 'Monthly';
     if (packageName) {
       if (isDirect) {
-        const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
-        const pkg = await DirectClientPackage.findOne({ name: packageName, createdBy: req.user._id });
+        const Package = require('../packages/package.model');
+        const pkg = await Package.findOne({ type: 'directClient', name: packageName, createdBy: req.user._id });
         if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
       } else {
-        const ClientPackage = require('../agencyPackages/clientPackage.model');
-        const pkg = await ClientPackage.findOne({ name: packageName, agencyId: agencyId });
+        const Package = require('../packages/package.model');
+        const pkg = await Package.findOne({ type: 'client', name: packageName, agencyId: agencyId });
         if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
       }
     }

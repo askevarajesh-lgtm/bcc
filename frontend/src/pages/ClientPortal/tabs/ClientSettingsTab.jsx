@@ -126,7 +126,7 @@ const ClientSettingsTab = () => {
           setFreshUser(freshUserData);
           
           if (freshUserData.packageName) {
-            const pkgRes = await api.get('/agency/client-packages');
+            const pkgRes = await api.get('/packages?type=client');
             if (pkgRes.data.success) {
               const pkg = pkgRes.data.data.find(p => p.name === freshUserData.packageName);
               if (pkg) {

@@ -186,13 +186,13 @@ exports.createUser = async (req, res, next) => {
         let maxUsers = 0;
         
         if (brandDoc.isDirect) {
-          const DirectClientPackage = require('../agencyPackages/directClientPackage.model');
-          const pkg = await DirectClientPackage.findOne({ name: brandDoc.packageName, createdBy: brandDoc.createdBy });
+          const Package = require('../packages/package.model');
+          const pkg = await Package.findOne({ type: 'directClient', name: brandDoc.packageName, createdBy: brandDoc.createdBy });
           if (pkg) maxUsers = pkg.userCount;
         } else {
           // Agency Client
-          const AgencyPackage = require('../agencyPackages/agencyPackage.model');
-          const pkg = await AgencyPackage.findOne({ name: brandDoc.packageName }); // Agency Packages might not be strictly filtered by createdBy if global, but we can assume name is unique enough for the agency
+          const Package = require('../packages/package.model');
+          const pkg = await Package.findOne({ type: 'agency', name: brandDoc.packageName }); // Agency Packages might not be strictly filtered by createdBy if global, but we can assume name is unique enough for the agency
           if (pkg) maxUsers = pkg.users; // Or maybe brand packages for agency clients are stored elsewhere? Wait, no, Agency Package is for the agency itself. Agency Clients might not have a package with user limit? 
         }
 

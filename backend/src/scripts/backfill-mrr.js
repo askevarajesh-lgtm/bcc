@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('./src/modules/auth/user.model');
-const AgencyPackage = require('./src/modules/agencyPackages/agencyPackage.model');
+const Package = require('./src/modules/packages/package.model');
 require('dotenv').config();
 
 async function backfillMrr() {
@@ -12,7 +12,7 @@ async function backfillMrr() {
     
     let count = 0;
     for (const client of clients) {
-      const pkg = await AgencyPackage.findOne({ name: client.packageName });
+      const pkg = await Package.findOne({ type: 'agency', name: client.packageName });
       if (pkg && pkg.price) {
         client.mrr = pkg.price;
         await client.save();

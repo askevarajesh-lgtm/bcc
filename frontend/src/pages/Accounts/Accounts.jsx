@@ -52,7 +52,7 @@ const Accounts = () => {
     try {
       const [agenciesRes, packagesRes] = await Promise.all([
         api.get('/agencies'),
-        api.get('/agency-packages')
+        api.get('/packages?type=agency')
       ]);
       setAgencies(agenciesRes.data.data || []);
       setPackages(packagesRes.data.data || []);

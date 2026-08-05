@@ -37,7 +37,7 @@ const DirectPackagesTab = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/direct-packages');
+      const res = await api.get('/packages?type=directClient');
       setPackages(res.data.data);
     } catch (error) {
       message.error('Failed to fetch direct packages');
@@ -98,10 +98,10 @@ const DirectPackagesTab = () => {
 
     try {
       if (editingPkg) {
-        await api.put(`/direct-packages/${editingPkg._id}`, payload);
+        await api.put(`/packages/${editingPkg._id}`, payload);
         message.success("Package updated successfully");
       } else {
-        await api.post('/direct-packages', payload);
+        await api.post('/packages', { ...payload, type: 'directClient' });
         message.success("Package created successfully");
       }
       setIsModalOpen(false);
@@ -113,7 +113,7 @@ const DirectPackagesTab = () => {
 
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/direct-packages/${id}`);
+      await api.delete(`/packages/${id}`);
       message.success("Package deleted successfully");
       fetchPackages();
     } catch (error) {

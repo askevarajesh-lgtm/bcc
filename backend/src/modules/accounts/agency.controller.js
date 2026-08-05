@@ -63,8 +63,8 @@ exports.createAgency = async (req, res, next) => {
     let packageFeatures = [];
     let packageUsers = 5;
     if (plan || packageId) {
-      const AgencyPackage = require('../agencyPackages/agencyPackage.model');
-      const pkg = await AgencyPackage.findById(plan || packageId);
+      const Package = require('../packages/package.model');
+      const pkg = await Package.findOne({ _id: plan || packageId, type: 'agency' });
       if (pkg) {
         packageFeatures = pkg.features || [];
         packageUsers = pkg.users || 5;
