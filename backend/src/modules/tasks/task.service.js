@@ -3256,8 +3256,13 @@ const updateTaskStatusAndOrder = async (
 
   // ── [RESTRICTIONS & VALIDATIONS] ──────────────────────────────────────────
 
-  // 0. Block Multiple "In Progress" Tasks for a Single User
-  const isTargetingInProgress = finalStatus === "in_progress" || newStatus === "in_progress" || taskStatus === "in_progress";
+  const finalStatusName = validation.workflowStatus ? validation.workflowStatus.name.toLowerCase() : "";
+  const isTargetingInProgress = 
+    finalStatus === "in_progress" || 
+    newStatus === "in_progress" || 
+    taskStatus === "in_progress" ||
+    finalStatusName.includes("in progress");
+
   if (isTargetingInProgress && oldStatus !== "in_progress") {
 
     await ensureNoOtherInProgressTask(
@@ -3391,6 +3396,25 @@ const updateTaskStatusAndOrder = async (
   }
 
   await task.save();
+
+  // POST-SAVE DOUBLE CHECK (Race condition prevention)
+  if (isTargetingInProgress && oldStatus !== "in_progress") {
+    try {
+      await ensureNoOtherInProgressTask(
+        task.assignedTo,
+        task._id,
+        tenantCompanyId,
+        statusScope,
+        task,
+        finalStatus
+      );
+    } catch (error) {
+      // Revert the save if a concurrent request already moved another task to In Progress
+      task.status = oldStatus;
+      await task.save();
+      throw error;
+    }
+  }
 
   // ── [UPDATE PROJECT COMPLETED COUNTS] ───────────────────────────────────
   const completedStatuses = ["completed", "validated", "done", "complete"];
