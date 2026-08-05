@@ -454,14 +454,23 @@ const getProjectServiceTarget = (project, serviceType) => {
 
   const masterCategories = Array.isArray(project?.masterItemId?.selectedCategories)
     ? project.masterItemId.selectedCategories
-    : [];
-  const selectedCategories = Array.isArray(project?.selectedCategories)
+    : (Array.isArray(project?.masterItemIds)
+      ? project.masterItemIds.reduce((acc, m) => acc.concat(Array.isArray(m?.selectedCategories) ? m.selectedCategories : []), [])
+      : []);
+
+  let selectedCategories = Array.isArray(project?.selectedCategories) && project.selectedCategories.length > 0
     ? project.selectedCategories
     : [];
+
+  if (selectedCategories.length === 0 && masterCategories.length > 0) {
+    selectedCategories = masterCategories;
+  }
 
   const dynamicIndex = selectedCategories.findIndex((category, index) =>
     getProjectCategoryKeys(category, masterCategories[index]).includes(key),
   );
+
+  console.log(`[DEBUG getProjectServiceTarget] key: "${key}", dynamicIndex: ${dynamicIndex}, selectedCategories:`, JSON.stringify(selectedCategories));
 
   return {
     key,
@@ -493,6 +502,7 @@ const getProjectServiceCapacity = async (
   serviceType,
   tasksInput = null,
 ) => {
+  console.log(`[DEBUG getProjectServiceCapacity START] projectOrId:`, projectOrId, `tenantCompanyId:`, tenantCompanyId, `serviceType:`, serviceType);
   let project = projectOrId;
   const projectNeedsReload =
     project &&
@@ -518,8 +528,9 @@ const getProjectServiceCapacity = async (
   if (!project.save || !project._id || projectNeedsReload) {
     project = await Project.findOne({
       _id: project?._id || projectOrId,
-      companyId: tenantCompanyId,
-    }).populate("masterItemId", "selectedCategories");
+      $or: [{ companyId: tenantCompanyId }, { clientId: tenantCompanyId }]
+    }).populate("masterItemId", "selectedCategories")
+      .populate("masterItemIds", "selectedCategories");
   }
 
   if (!project) {
@@ -574,7 +585,7 @@ const getProjectServiceCapacity = async (
   const assigned = assignedCounts.get(target.key) || 0;
   const completed = completedCounts.get(target.key) || 0;
 
-  return {
+  const ret = {
     supported: total > 0 || Boolean(target.dynamicMatch),
     total,
     assigned,
@@ -584,6 +595,8 @@ const getProjectServiceCapacity = async (
     target,
     project,
   };
+  console.log(`[DEBUG getProjectServiceCapacity] returning:`, { supported: ret.supported, total: ret.total, remaining: ret.remaining });
+  return ret;
 };
 
 const reconcileProjectTaskCounts = async (
@@ -606,7 +619,8 @@ const reconcileProjectTaskCounts = async (
     // Find project by _id only — companyId on a project is the client company,
     // while tenantCompanyId is the agency. Filtering by companyId here would miss the project.
     project = await Project.findById(project?._id || projectOrId)
-      .populate("masterItemId", "selectedCategories");
+      .populate("masterItemId", "selectedCategories")
+      .populate("masterItemIds", "selectedCategories");
   }
 
   if (!project) return null;

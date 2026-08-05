@@ -345,13 +345,14 @@ const ensureNoOtherInProgressTask = async (
   excludedTaskId,
   tenantCompanyId,
   scope = {},
-  targetTask = null
+  targetTask = null,
+  targetStatus = "in_progress"
 ) => {
   if (!assignedUserId) return;
 
   const query = {
     assignedTo: assignedUserId,
-    status: "in_progress",
+    status: { $in: ["in_progress", targetStatus] },
     tenantCompanyId,
   };
 
@@ -368,42 +369,9 @@ const ensureNoOtherInProgressTask = async (
     return;
   }
 
-  // Determine the target date (the date of the task being moved, or today)
-  let targetDate = new Date();
-  if (targetTask) {
-    if (targetTask.startDate) {
-      targetDate = new Date(targetTask.startDate);
-    } else if (targetTask.dueDate) {
-      targetDate = new Date(targetTask.dueDate);
-    }
-  }
-
-  // Use scope from frontend if available
-  const scopedQuery = buildInProgressScopeQuery(scope);
-  let startOfTargetDate = new Date(targetDate);
-  startOfTargetDate.setUTCHours(0, 0, 0, 0);
-  let endOfTargetDate = new Date(targetDate);
-  endOfTargetDate.setUTCHours(23, 59, 59, 999);
-
-  if (scopedQuery && scopedQuery.$or && scope.boardStartDate && scope.boardEndDate) {
-    startOfTargetDate = normalizeKanbanRangeValue(scope.boardStartDate, false);
-    endOfTargetDate = normalizeKanbanRangeValue(scope.boardEndDate, true);
-  }
-
-  // Check if any blocking task falls within the target date
-  for (const blockingTask of blockingTasks) {
-    let blockingDate = blockingTask.startDate || blockingTask.dueDate;
-    if (!blockingDate) continue;
-
-    const bDate = new Date(blockingDate);
-    console.log(`[ensureNoOtherInProgressTask] Checking blockingTask: "${blockingTask.title}" (${blockingTask._id}), bDate: ${bDate}, startOfTargetDate: ${startOfTargetDate}, endOfTargetDate: ${endOfTargetDate}`);
-
-    // If the blocking task belongs to the SAME day as the target task, BLOCK IT.
-    if (bDate >= startOfTargetDate && bDate <= endOfTargetDate) {
-      console.log(`[ensureNoOtherInProgressTask] MATCH FOUND! Blocking because bDate (${bDate}) is within target range (${startOfTargetDate} to ${endOfTargetDate})`);
-      throw new Error(buildInProgressConflictMessage(blockingTask));
-    }
-  }
+  // If there is ANY task currently in progress for this user, block them
+  // from starting a new one, regardless of dates.
+  throw new Error(buildInProgressConflictMessage(blockingTasks[0]));
 };
 
 const getScheduledNotes = async (tenantCompanyId, reqQuery = {}) => {
@@ -483,7 +451,7 @@ const getAllTasks = async (
   // where they are assignedTo or listed in the watchers array.
   const additionalFilters = {};
   if (!isGlobalAdmin) {
-    additionalFilters.tenantCompanyId = tenantCompanyId;
+    additionalFilters.tenantCompanyId = { $in: [tenantCompanyId, ...clientCompanyIds] };
   }
   const userObjId =
     userId && mongoose.Types.ObjectId.isValid(userId)
@@ -770,7 +738,7 @@ const getTasksDropdown = async (
 
   const additionalFilters = {};
   if (!isGlobalAdmin) {
-    additionalFilters.tenantCompanyId = tenantCompanyId;
+    additionalFilters.tenantCompanyId = { $in: [tenantCompanyId, ...clientCompanyIds] };
     additionalFilters.companyId = { $in: clientCompanyIds };
   }
   const userObjId =
@@ -828,7 +796,7 @@ const getTaskById = async (
   } else {
     taskQuery = Task.findOne({
       _id: taskId,
-      tenantCompanyId,
+      tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
       companyId: { $in: clientCompanyIds },
     });
   }
@@ -1459,7 +1427,12 @@ const reopenTask = async (
   }
 
   // Load the original task
-  const original = await Task.findOne({ _id: taskId, tenantCompanyId });
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const original = await Task.findOne({
+    _id: taskId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
+  });
   if (!original) throw new Error("Task not found");
 
 
@@ -1527,7 +1500,7 @@ const updateTask = async (
   } else {
     task = await Task.findOne({
       _id: taskId,
-      tenantCompanyId,
+      tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
       companyId: { $in: clientCompanyIds },
     });
   }
@@ -1784,7 +1757,8 @@ const updateTask = async (
           boardEndDate: cleanedTaskData.boardEndDate || null,
           boardDateField: cleanedTaskData.boardDateField || null,
         },
-        task
+        task,
+        taskStatus
       );
     }
 
@@ -2279,7 +2253,12 @@ const updateTask = async (
 
 // ── [NEW: HOLD TASK] ──────────────────────────────────────────────────────────
 const holdTask = async (taskId, holdReason, userId, userRole, tenantCompanyId) => {
-  const task = await Task.findOne({ _id: taskId, tenantCompanyId });
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const task = await Task.findOne({
+    _id: taskId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
+  });
   if (!task) throw new Error("Task not found");
 
   // [RESTRICTIONS REMOVED AS PER USER REQUEST: ALL USERS HAVE FULL ACCESS BY DEFAULT]
@@ -2354,7 +2333,7 @@ const submitTask = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   });
 
@@ -2405,7 +2384,7 @@ const validateTask = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   });
 
@@ -2607,7 +2586,12 @@ const approveTask = async (taskId, tenantCompanyId) => {
 };
 
 const clientApproveTask = async (taskId, approvedByUserId, tenantCompanyId) => {
-  const task = await Task.findOne({ _id: taskId, tenantCompanyId });
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const task = await Task.findOne({
+    _id: taskId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
+  });
   if (!task) throw new Error("Task not found");
 
   task.clientReviewStatus = "approved";
@@ -2653,14 +2637,13 @@ const getTasksByDepartment = async (
   tenantCompanyId,
   filters = {},
 ) => {
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const query = {
     department,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     ...filters,
   };
 
-  // Optionally filter by client companies if they belong to this tenant
-  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   if (clientCompanyIds.length > 0 && !query.companyId) {
     // If no specific company is requested, we show tasks for all client companies
     // But we don't force it if it might exclude internal tasks
@@ -2682,8 +2665,9 @@ const getTasksForKanban = async (
   userRole = null,
   userId = null,
 ) => {
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const query = {
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
   };
   const userObjId =
     userId && mongoose.Types.ObjectId.isValid(userId)
@@ -3161,7 +3145,12 @@ const updateTaskScreenshot = async (
   userId,
   tenantCompanyId,
 ) => {
-  const task = await Task.findOne({ _id: taskId, tenantCompanyId });
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
+  const task = await Task.findOne({
+    _id: taskId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
+  });
   if (!task) throw new Error("Task not found");
 
   const attachment = task.attachments.id(attachmentId);
@@ -3196,7 +3185,7 @@ const updateTaskStatusAndOrder = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   }).populate("projectId", "name status departments");
 
@@ -3268,14 +3257,16 @@ const updateTaskStatusAndOrder = async (
   // ── [RESTRICTIONS & VALIDATIONS] ──────────────────────────────────────────
 
   // 0. Block Multiple "In Progress" Tasks for a Single User
-  if (finalStatus === "in_progress" && oldStatus !== "in_progress") {
+  const isTargetingInProgress = finalStatus === "in_progress" || newStatus === "in_progress" || taskStatus === "in_progress";
+  if (isTargetingInProgress && oldStatus !== "in_progress") {
 
     await ensureNoOtherInProgressTask(
       task.assignedTo,
       task._id,
       tenantCompanyId,
       statusScope,
-      task
+      task,
+      finalStatus
     );
   }
 
@@ -3563,7 +3554,7 @@ const updateTasksOrder = async (updates, userId, tenantCompanyId) => {
     updateOne: {
       filter: {
         _id: update.taskId,
-        tenantCompanyId,
+        tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
         companyId: { $in: clientCompanyIds },
       },
       update: { $set: { order: update.order } },
@@ -3604,7 +3595,7 @@ const addComment = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   });
 
@@ -3657,7 +3648,7 @@ const getTaskComments = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   });
 
@@ -3692,7 +3683,7 @@ const getTaskActivity = async (
 
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     companyId: { $in: clientCompanyIds },
   });
 
@@ -5012,9 +5003,11 @@ const updateNotificationSettings = async (
 };
 
 const deleteTask = async (taskId, tenantCompanyId) => {
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
   });
 
   if (!task) {
@@ -5093,10 +5086,11 @@ const deleteTask = async (taskId, tenantCompanyId) => {
 
 // Send reminder notification for overdue task
 const sendTaskReminder = async (taskId, senderUserId, tenantCompanyId) => {
-  // Get task with populated fields
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const task = await Task.findOne({
     _id: taskId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
+    companyId: { $in: clientCompanyIds },
   })
     .populate("assignedTo", "name email phone")
     .populate("companyId", "name")

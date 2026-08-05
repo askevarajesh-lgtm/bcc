@@ -43,6 +43,7 @@ const salesPipelineRoutes = require('../modules/salesPipeline/salesPipeline.rout
 
 // Agency Restructure Placeholder Routes
 const agencyOverviewRoutes = require('../modules/accounts/agencyOverview.routes');
+const clientOverviewRoutes = require('../modules/accounts/clientOverview.routes');
 const agencyBillingRoutes = require('../modules/accounts/agencyBilling.routes');
 const agencyReportsRoutes = require('../modules/accounts/agencyReports.routes');
 const agencySettingsRoutes = require('../modules/accounts/agencySettings.routes');
@@ -60,6 +61,12 @@ const contentAIRoutes = require('../modules/contentAI/contentAI.routes');
 const semrushRoutes = require('../modules/semrush/semrush.routes');
 const competitorIntelligenceRoutes = require('../modules/competitorIntelligence/competitorIntelligence.routes');
 
+// Missing Financial & Analytics Routes
+const expenseRoutes = require('../modules/expenses/expense.routes');
+const transactionRoutes = require('../modules/transactions/transaction.routes');
+const salesRoutes = require('../modules/sales/sales.routes');
+const plAnalyticsRoutes = require('../modules/pl-analytics/pl.routes');
+
 // Mount routes
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
@@ -67,6 +74,7 @@ router.use('/agencies', agencyRoutes);
 router.use('/brands', brandRoutes);
 
 router.use('/agency/overview', agencyOverviewRoutes);
+router.use('/client/overview', clientOverviewRoutes);
 router.use('/agency/billing', agencyBillingRoutes);
 router.use('/agency/reports', agencyReportsRoutes);
 router.use('/agency/settings', agencySettingsRoutes);
@@ -126,6 +134,12 @@ router.use('/proposals', proposalRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/leads', leadRoutes);
 router.use('/sales-pipeline', salesPipelineRoutes);
+
+// Financial & Analytics Mounts
+router.use('/expenses', expenseRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/sales', salesRoutes);
+router.use('/pl-analytics', plAnalyticsRoutes);
 
 // Meetings Mount
 router.use('/meetings', require('../modules/meetings/meeting.routes'));

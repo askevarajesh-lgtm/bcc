@@ -228,61 +228,61 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
       ),
       children: task && (
         <Descriptions column={1} bordered>
-          <Descriptions.Item label="Title">{task.title}</Descriptions.Item>
+          <Descriptions.Item label="Title">{liveTask.title}</Descriptions.Item>
           <Descriptions.Item label="Description">
-            {task.description || "No description"}
+            {liveTask.description || "No description"}
           </Descriptions.Item>
           <Descriptions.Item label="Status">
-            <Tag color={getStatusColor(task.status)}>
-              {task.status === "backlog"
+            <Tag color={getStatusColor(liveTask.status)}>
+              {liveTask.status === "backlog"
                 ? "HOLD"
-                : task.status?.replace("_", " ").toUpperCase() || "CREATED"}
+                : liveTask.status?.replace("_", " ").toUpperCase() || "CREATED"}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Priority">
-            <Tag color={getPriorityColor(task.priority)}>
-              {task.priority?.toUpperCase() || "MEDIUM"}
+            <Tag color={getPriorityColor(liveTask.priority)}>
+              {liveTask.priority?.toUpperCase() || "MEDIUM"}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Project">
-            {task.projectId?.name || "N/A"}
+            {liveTask.projectId?.name || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Company">
-            {task.companyId?.name || "N/A"}
+            {liveTask.companyId?.name || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Department">
-            {task.department?.replace("_", " ").toUpperCase() || "N/A"}
+            {liveTask.department?.replace("_", " ").toUpperCase() || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Assigned To">
             <Space>
-              <Avatar size="small" src={task.assignedTo?.avatar}>
-                {task.assignedTo?.name?.charAt(0) || <UserOutlined />}
+              <Avatar size="small" src={liveTask.assignedTo?.avatar}>
+                {liveTask.assignedTo?.name?.charAt(0) || <UserOutlined />}
               </Avatar>
-              {task.assignedTo?.name || "N/A"}
+              {liveTask.assignedTo?.name || "N/A"}
             </Space>
           </Descriptions.Item>
           {!(
-            task.status &&
-            ["review", "done", "completed", "validated", "complete"].includes(task.status)
+            liveTask.status &&
+            ["review", "done", "completed", "validated", "complete"].includes(liveTask.status)
           ) && (
             <Descriptions.Item label="Due Date">
               <Space>
                 <CalendarOutlined />
-                {task.dueDate
-                  ? dayjs(task.dueDate).format("DD/MM/YYYY HH:mm")
+                {liveTask.dueDate
+                  ? dayjs(liveTask.dueDate).format("DD/MM/YYYY HH:mm")
                   : "N/A"}
               </Space>
             </Descriptions.Item>
           )}
           <Descriptions.Item label="Start Date">
-            {task.startDate
-              ? dayjs(task.startDate).format("DD/MM/YYYY HH:mm")
+            {liveTask.startDate
+              ? dayjs(liveTask.startDate).format("DD/MM/YYYY HH:mm")
               : "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Labels">
-            {task.labels && task.labels.length > 0 ? (
+            {liveTask.labels && liveTask.labels.length > 0 ? (
               <Space>
-                {task.labels.map((label, idx) => (
+                {liveTask.labels.map((label, idx) => (
                   <Tag key={idx}>{label}</Tag>
                 ))}
               </Space>
@@ -291,10 +291,10 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
             )}
           </Descriptions.Item>
           <Descriptions.Item label="Attachments">
-            {task.attachments &&
-            task.attachments.filter((a) => !a.isScreenshot).length > 0 ? (
+            {liveTask.attachments &&
+            liveTask.attachments.filter((a) => !a.isScreenshot).length > 0 ? (
               <Space direction="vertical">
-                {task.attachments
+                {liveTask.attachments
                   .filter((a) => !a.isScreenshot)
                   .map((attachment, idx) => (
                     <a
@@ -313,10 +313,10 @@ const TaskDetailDrawer = ({ task, visible, onClose, onTaskCompleted }) => {
           </Descriptions.Item>
           <Descriptions.Item label="Created By">
             <Space>
-              <Avatar size="small" src={task.createdBy?.profileImage}>
-                {task.createdBy?.name?.charAt(0) || <UserOutlined />}
+              <Avatar size="small" src={liveTask.createdBy?.profileImage}>
+                {liveTask.createdBy?.name?.charAt(0) || <UserOutlined />}
               </Avatar>
-              {task.createdBy?.name || task.assignedBy?.name || "N/A"}
+              {liveTask.createdBy?.name || liveTask.assignedBy?.name || "N/A"}
             </Space>
           </Descriptions.Item>
           <Descriptions.Item label="Created At">
