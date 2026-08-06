@@ -9,8 +9,6 @@ exports.getAnalytics = async (req, res, next) => {
     const agencyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
 
     if (!agencyId || !mongoose.Types.ObjectId.isValid(agencyId)) {
-      // No silent fallback to a shared placeholder tenant — an invalid/missing
-      // agency context means we genuinely cannot scope this request safely.
       return res.status(400).json({ success: false, message: 'Agency ID missing or invalid on user token' });
     }
 

@@ -1,9 +1,3 @@
-/**
- * Shapes the Analytics Engine's internal result into the stable response
- * contract consumed by the frontend. Keeping this as its own layer means
- * the internal engine shape (metrics.service.js) can evolve without
- * every consumer of the API needing to change in lockstep.
- */
 function toAnalyticsResponseDto(dashboard) {
   return {
     meta: dashboard.meta,
@@ -15,7 +9,9 @@ function toAnalyticsResponseDto(dashboard) {
     topChannels: dashboard.topChannels,
     topDevices: dashboard.topDevices,
     topCountries: dashboard.topCountries,
-    topReferrers: dashboard.topReferrers
+    topReferrers: dashboard.topReferrers,
+    attribution: dashboard.attribution,
+    customerJourney: dashboard.customerJourney
   };
 }
 

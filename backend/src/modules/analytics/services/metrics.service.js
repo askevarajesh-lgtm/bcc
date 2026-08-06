@@ -1,13 +1,3 @@
-/**
- * Analytics Engine — metrics/calculation service.
- *
- * This is the single place that combines the real data sources (GA4, Search
- * Console, CRM leads/invoices, Performance Ads) into the metrics the
- * Analytics & Attribution dashboard needs. Every number returned is either
- * pulled straight from one of those sources, or a deterministic derivation
- * of them (trend %, CTR, conversion rate, returning users, weighted
- * averages). Nothing here is randomized, hardcoded, or a placeholder.
- */
 const ga4 = require('../sources/googleAnalytics.source');
 const gsc = require('../sources/searchConsole.source');
 const crm = require('../sources/crm.source');
@@ -16,13 +6,12 @@ const { resolveScope } = require('./clientScope.service');
 const { resolveDateRange } = require('../utils/dateRange');
 const { trendPercent, toPercent, round, formatCurrencyLakhs } = require('../utils/calculations');
 const { normalizeChannel } = require('../utils/channelBucket');
+const { computeAttribution } = require('../attribution/attribution.service');
+const { buildCustomerJourney } = require('../attribution/journey.service');
 
-/** Sums a list of overview-metric objects returned by ga4.getOverviewMetrics. */
 function sumOverviews(overviews) {
   const connectedOnes = overviews.filter(o => o.connected);
   const base = { sessions: 0, totalUsers: 0, newUsers: 0, conversions: 0 };
-  // Bounce/engagement rate are weighted by sessions so combining multiple
-  // GA4 properties doesn't just naively average two very different traffic volumes.
   let bounceWeighted = 0;
   let engagementWeighted = 0;
 
@@ -64,7 +53,6 @@ function sumSearchTotals(totals) {
   };
 }
 
-/** Merges breakdown row arrays (from multiple client GA4 properties) by dimension key, summing sessions. */
 function mergeBreakdownRows(rowArrays, limit = 10) {
   const merged = new Map();
   for (const rows of rowArrays) {
@@ -106,13 +94,10 @@ function mergeDailyTraffic(dayArrays) {
   return Array.from(merged.values());
 }
 
-/**
- * Builds the full Analytics & Attribution dashboard payload for an agency,
- * optionally scoped to a single client, over a given date range.
- */
-async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange }) {
+async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attributionModel }) {
   const range = resolveDateRange(rawDateRange);
   const { scope, clients } = await resolveScope({ agencyId, clientId });
+  const crmScopedClientId = scope === 'single' ? clientId : null;
 
   const ga4Clients = clients.filter(c => c.ga4PropertyId);
   const gscClients = clients.filter(c => c.gscSiteUrl);
@@ -132,7 +117,9 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange }) {
     previousLeadMetrics,
     revenueMetrics,
     previousRevenueMetrics,
-    performanceAd
+    performanceAd,
+    attribution,
+    customerJourney
   ] = await Promise.all([
     Promise.all(ga4Clients.map(c => ga4.getOverviewMetrics(c.ga4PropertyId, range.ga4Start, range.ga4End))),
     Promise.all(ga4Clients.map(c => ga4.getOverviewMetrics(c.ga4PropertyId, range.previousGa4Start, range.previousGa4End))),
@@ -144,11 +131,13 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange }) {
     Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'sessionSource', range.ga4Start, range.ga4End, 15))),
     Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'pagePath', range.ga4Start, range.ga4End, 10))),
     Promise.all(ga4Clients.map(c => ga4.getDailyTrafficBySourceBucket(c.ga4PropertyId, range.ga4Start, range.ga4End))),
-    crm.getLeadMetrics({ companyId: agencyId, clientId: scope === 'single' ? clientId : null, start: range.start, end: range.endExclusive }),
-    crm.getLeadMetrics({ companyId: agencyId, clientId: scope === 'single' ? clientId : null, start: range.previousStart, end: range.previousEndExclusive }),
-    crm.getRevenueMetrics({ agencyId, clientId: scope === 'single' ? clientId : null, start: range.start, end: range.endExclusive }),
-    crm.getRevenueMetrics({ agencyId, clientId: scope === 'single' ? clientId : null, start: range.previousStart, end: range.previousEndExclusive }),
-    PerformanceAd.findOne({ agency: agencyId }).select('metrics')
+    crm.getLeadMetrics({ companyId: agencyId, clientId: crmScopedClientId, start: range.start, end: range.endExclusive }),
+    crm.getLeadMetrics({ companyId: agencyId, clientId: crmScopedClientId, start: range.previousStart, end: range.previousEndExclusive }),
+    crm.getRevenueMetrics({ agencyId, clientId: crmScopedClientId, start: range.start, end: range.endExclusive }),
+    crm.getRevenueMetrics({ agencyId, clientId: crmScopedClientId, start: range.previousStart, end: range.previousEndExclusive }),
+    PerformanceAd.findOne({ agency: agencyId }).select('metrics'),
+    computeAttribution({ agencyId, clientId: crmScopedClientId, start: range.start, end: range.endExclusive, preferredModel: attributionModel }),
+    buildCustomerJourney({ agencyId, clientId: crmScopedClientId, start: range.start, end: range.endExclusive })
   ]);
 
   const current = sumOverviews(currentOverviews);
@@ -163,9 +152,6 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange }) {
   const conversionRate = current.sessions > 0 ? (leadMetrics.totalLeads / current.sessions) * 100 : 0;
   const previousConversionRate = previous.sessions > 0 ? (previousLeadMetrics.totalLeads / previous.sessions) * 100 : 0;
 
-  // Channel breakdown: merges GA4 session volume with CRM lead volume on the
-  // same normalized channel key. This is the honest, last-touch-by-source
-  // view the data actually supports — not a fabricated multi-touch model.
   const channelSessions = new Map();
   for (const row of mergeBreakdownRows(channelRowsPerClient, 100)) {
     const bucket = normalizeChannel(row.dimension);
@@ -266,7 +252,9 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange }) {
     topCountries: mergeBreakdownRows(countryRowsPerClient, 10).map(r => ({ country: r.dimension, sessions: r.sessions })),
     topReferrers: mergeBreakdownRows(referrerRowsPerClient, 10)
       .filter(r => !['(direct)', 'google', '(not set)'].includes((r.dimension || '').toLowerCase()))
-      .map(r => ({ referrer: r.dimension, sessions: r.sessions }))
+      .map(r => ({ referrer: r.dimension, sessions: r.sessions })),
+    attribution,
+    customerJourney
   };
 }
 
