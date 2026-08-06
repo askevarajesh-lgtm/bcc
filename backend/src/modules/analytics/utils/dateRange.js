@@ -1,9 +1,3 @@
-/**
- * Resolves the requested date range for the Analytics dashboard, and derives
- * the immediately-preceding period of equal length for real trend
- * comparisons (as opposed to the old hardcoded "+0%" placeholders).
- */
-
 const toGa4Date = (d) => d.toISOString().split('T')[0]; // GA4/GSC expect YYYY-MM-DD
 
 function resolveDateRange(rawDateRange) {
@@ -31,7 +25,10 @@ function resolveDateRange(rawDateRange) {
     start.setDate(start.getDate() - 30);
   }
 
-  // End-exclusive boundary for Mongo range queries (createdAt < endExclusive).
+  if (start.getTime() > end.getTime()) {
+    [start, end] = [end, start];
+  }
+
   const endExclusive = new Date(end);
   endExclusive.setDate(endExclusive.getDate() + 1);
 

@@ -1,12 +1,3 @@
-/**
- * Normalizes a free-text traffic/lead source string (GA4 session/medium,
- * or a CRM Lead.source value like "Instagram Ad", "Google", "Referral")
- * into one of a fixed set of channel buckets, so GA4 traffic and CRM leads
- * can be compared/merged on a common, deterministic key. This is a
- * classification rule, not a data source — it never invents volume.
- */
-const BUCKETS = ['Organic Search', 'Paid Ads', 'Direct', 'Referral', 'Social', 'Email', 'WhatsApp', 'Other'];
-
 function normalizeChannel(raw) {
   const s = String(raw || '').toLowerCase().trim();
   if (!s) return 'Other';
@@ -22,4 +13,4 @@ function normalizeChannel(raw) {
   return 'Other';
 }
 
-module.exports = { normalizeChannel, BUCKETS };
+module.exports = { normalizeChannel };
