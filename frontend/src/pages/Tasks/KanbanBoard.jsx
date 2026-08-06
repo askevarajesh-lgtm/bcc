@@ -3532,8 +3532,7 @@ const KanbanBoard = ({
           setTaskToReopen(null);
         }}
         onSuccess={() => {
-          // The mutation automatically invalidates the Task list tag,
-          // so the Kanban board should refresh automatically.
+          refetch();
         }}
       />
     </div>

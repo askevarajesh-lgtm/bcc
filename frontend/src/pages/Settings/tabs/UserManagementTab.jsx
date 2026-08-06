@@ -701,12 +701,12 @@ const UserManagementTab = () => {
                           (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
                           (!!draftPermissions[`${group}-${record.module}`]?.[field] || 
                            (record.module === 'Dashboard' && field === 'Read') ||
-                           (record.module === 'Task Management' && ['Read', 'View'].includes(field)))
+                           (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field)))
                         }
                         disabled={
                           (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
                           (record.module === 'Dashboard' && field === 'Read') ||
-                          (record.module === 'Task Management' && ['Read', 'View'].includes(field))
+                          (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field))
                         }
                         onChange={(e) => setDraftPermissions(prev => ({
                           ...prev,

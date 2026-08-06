@@ -21,8 +21,22 @@ const startSlaScheduler = () => {
       for (const task of pendingTasks) {
         if (!task.dueDate) continue;
 
+        // A task should remain active for the entire day it was created without triggering an SLA
+        const taskCreatedAt = new Date(task.createdAt || task._id.getTimestamp());
+        const isSameDayCreated = 
+          taskCreatedAt.getFullYear() === now.getFullYear() &&
+          taskCreatedAt.getMonth() === now.getMonth() &&
+          taskCreatedAt.getDate() === now.getDate();
+
+        if (isSameDayCreated) {
+          // Clean up any mistakenly created SLAs on day 1
+          await SlaRecord.deleteOne({ entityId: task._id, entityType: 'Task' });
+          continue;
+        }
+
         let status = 'Normal';
         const dueDate = new Date(task.dueDate);
+        dueDate.setHours(23, 59, 59, 999);
 
         if (now > dueDate) {
           status = 'Breached';
@@ -62,6 +76,7 @@ const startSlaScheduler = () => {
 
         let status = 'Normal';
         const dueDate = new Date(project.endDate);
+        dueDate.setHours(23, 59, 59, 999);
 
         if (now > dueDate) {
           status = 'Breached';
@@ -127,6 +142,7 @@ const startSlaScheduler = () => {
 
         let status = 'Normal';
         const dueDate = new Date(invoice.dueDate);
+        dueDate.setHours(23, 59, 59, 999);
 
         if (now > dueDate) {
           status = 'Breached';

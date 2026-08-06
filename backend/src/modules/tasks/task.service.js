@@ -1864,7 +1864,7 @@ const updateTask = async (
 
   await task.save();
 
-  // ── [UPDATE PROJECT COMPLETED COUNTS] ───────────────────────────────────
+  // ── [UPDATE PROJECT COMPLETED COUNTS & SLAs] ───────────────────────────────────
   if (oldStatus !== task.status) {
     const completedStatuses = ["completed", "validated", "review", "in_review", "in review", "reviewing", "done", "complete"];
     const isNowCompleted = completedStatuses.includes(task.status);
@@ -1872,6 +1872,10 @@ const updateTask = async (
 
     if (isNowCompleted && !wasPreviouslyCompleted) {
       await updateProjectCompletedCount(task.projectId, task.serviceType, 1);
+      
+      // Also remove SLA automatically if task is completed
+      const SlaRecord = require('../sla/sla.model');
+      await SlaRecord.deleteMany({ entityId: task._id, entityType: 'Task' });
     } else if (!isNowCompleted && wasPreviouslyCompleted) {
       await updateProjectCompletedCount(task.projectId, task.serviceType, -1);
     }

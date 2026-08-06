@@ -107,9 +107,8 @@ const isInProgress = (status) =>
 const isPending = (status) =>
   ["created", "assigned", "backlog", "to_do"].includes(status?.toLowerCase());
 
-// Each correction/redesign cycle is treated as an additional task unit.
-const getTaskWorkloadUnits = (task) =>
-  1 + (isCorrectionTask(task) || isRedesignTask(task) ? 1 : 0);
+// Every task (New, Correction, Redesign) counts as exactly 1 task unit.
+const getTaskWorkloadUnits = (task) => 1;
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -766,11 +765,11 @@ const TaskAnalyticsPage = () => {
 
     return Object.values(perfMap)
       .map((u) => {
+        const actualNewTasks = Math.max(0, u.distinctAssigned - u.corrections - u.redesigns);
         return {
           ...u,
-          newTasks: u.distinctAssigned,
-          totalAssignedWorkload:
-            u.distinctAssigned + u.corrections + u.redesigns,
+          newTasks: actualNewTasks,
+          totalAssignedWorkload: u.distinctAssigned,
         };
       })
       .map((u) => {
@@ -828,20 +827,6 @@ const TaskAnalyticsPage = () => {
         ...task,
         _id: `${task._id}-completion-current`,
       };
-
-      // Rework tasks should appear as an additional completion cycle:
-      // one for original "New" completion and one for latest category completion.
-      if (isCorrectionTask(task) || isRedesignTask(task)) {
-        return [
-          {
-            ...task,
-            _id: `${task._id}-completion-new`,
-            taskCategory: "New",
-            status: "completed",
-          },
-          baseRow,
-        ];
-      }
 
       return [baseRow];
     };

@@ -106,7 +106,7 @@ const PortalSidebar = ({
           <Menu
             mode="inline"
             selectedKeys={selectedKeys}
-            openKeys={openKeys}
+            openKeys={collapsed ? undefined : openKeys}
             onOpenChange={handleOpenChange}
             items={menuItems}
             onClick={handleMenuClick}

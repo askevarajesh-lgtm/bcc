@@ -389,7 +389,7 @@ const KeywordsTab = () => {
                     <Button size="small" danger onClick={() => act(() => seoWorkspaceApi.rejectKeywordSuggestions(projectId, selectedRowKeys), 'Rejected')}>Reject</Button>
                   </>
                 )}
-                <Button icon={<Sparkles size={14}/>} onClick={runResearch} loading={running} type="primary" ghost>Extract Keywords</Button>
+                <Button icon={<Sparkles size={14}/>} onClick={runResearch} loading={running} type="primary">Extract Keywords</Button>
                 <Button icon={<RefreshCcw size={14}/>} onClick={handleRefreshKeywords}>Manual Refresh</Button>
                 <Button icon={<Download size={14}/>} onClick={handleExport}>Export CSV</Button>
               </Space>
