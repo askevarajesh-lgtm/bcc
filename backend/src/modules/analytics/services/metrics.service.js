@@ -8,6 +8,8 @@ const { trendPercent, toPercent, round, formatCurrencyLakhs } = require('../util
 const { normalizeChannel } = require('../utils/channelBucket');
 const { computeAttribution } = require('../attribution/attribution.service');
 const { buildCustomerJourney } = require('../attribution/journey.service');
+const { buildSeoIntelligence } = require('../seoIntelligence/seoIntelligence.service');
+const { buildAiInsights } = require('../seoIntelligence/aiInsights.service');
 
 function sumOverviews(overviews) {
   const connectedOnes = overviews.filter(o => o.connected);
@@ -55,7 +57,8 @@ function sumSearchTotals(totals) {
 
 function mergeBreakdownRows(rowArrays, limit = 10) {
   const merged = new Map();
-  for (const rows of rowArrays) {
+  for (const clientResult of rowArrays) {
+    const rows = Array.isArray(clientResult) ? clientResult : (clientResult?.rows || []);
     for (const row of rows) {
       const key = row.dimension;
       if (!merged.has(key)) {
@@ -81,7 +84,8 @@ function mergeBreakdownRows(rowArrays, limit = 10) {
 
 function mergeDailyTraffic(dayArrays) {
   const merged = new Map();
-  for (const days of dayArrays) {
+  for (const clientResult of dayArrays) {
+    const days = Array.isArray(clientResult) ? clientResult : (clientResult?.days || []);
     for (const d of days) {
       if (!merged.has(d.day)) merged.set(d.day, { day: d.day, organic: 0, paid: 0, direct: 0, referral: 0 });
       const acc = merged.get(d.day);
@@ -112,6 +116,7 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     countryRowsPerClient,
     referrerRowsPerClient,
     landingPageRowsPerClient,
+    organicPageRowsPerClient,
     dailyTrafficPerClient,
     leadMetrics,
     previousLeadMetrics,
@@ -129,7 +134,8 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'deviceCategory', range.ga4Start, range.ga4End, 10))),
     Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'country', range.ga4Start, range.ga4End, 10))),
     Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'sessionSource', range.ga4Start, range.ga4End, 15))),
-    Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'pagePath', range.ga4Start, range.ga4End, 10))),
+    Promise.all(ga4Clients.map(c => ga4.getBreakdown(c.ga4PropertyId, 'pagePath', range.ga4Start, range.ga4End, 50))),
+    Promise.all(ga4Clients.map(c => ga4.getOrganicPageBreakdown(c.ga4PropertyId, range.ga4Start, range.ga4End, 10))),
     Promise.all(ga4Clients.map(c => ga4.getDailyTrafficBySourceBucket(c.ga4PropertyId, range.ga4Start, range.ga4End))),
     crm.getLeadMetrics({ companyId: agencyId, clientId: crmScopedClientId, start: range.start, end: range.endExclusive }),
     crm.getLeadMetrics({ companyId: agencyId, clientId: crmScopedClientId, start: range.previousStart, end: range.previousEndExclusive }),
@@ -224,6 +230,34 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     blendedRoas: `${round(performanceAd?.metrics?.roas || 0, 1)}x`
   };
 
+  const topReferrers = mergeBreakdownRows(referrerRowsPerClient, 10)
+    .filter(r => !['(direct)', 'google', '(not set)'].includes((r.dimension || '').toLowerCase()))
+    .map(r => ({ referrer: r.dimension, sessions: r.sessions }));
+
+  const landingPageSessionsAll = mergeBreakdownRows(landingPageRowsPerClient, 50);
+
+  const organicPageSessions = mergeBreakdownRows(organicPageRowsPerClient, 10).map(r => ({
+    path: r.dimension,
+    sessions: r.sessions,
+    bounceRate: toPercent(r.bounceRate),
+    engagementRate: toPercent(r.engagementRate)
+  }));
+
+  const seoIntelligence = await buildSeoIntelligence({
+    agencyId,
+    clientId: crmScopedClientId,
+    clients,
+    range,
+    landingPageSessions: landingPageSessionsAll,
+    organicPageSessions,
+    topReferrers,
+    channelBreakdown,
+    attribution,
+    totalSessions: current.sessions
+  });
+
+  const aiInsights = buildAiInsights(metrics, seoIntelligence);
+
   return {
     meta: {
       agencyId: String(agencyId),
@@ -250,11 +284,11 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     topChannels: mergeBreakdownRows(channelRowsPerClient, 10).map(r => ({ channel: r.dimension, sessions: r.sessions })),
     topDevices: mergeBreakdownRows(deviceRowsPerClient, 10).map(r => ({ device: r.dimension, sessions: r.sessions })),
     topCountries: mergeBreakdownRows(countryRowsPerClient, 10).map(r => ({ country: r.dimension, sessions: r.sessions })),
-    topReferrers: mergeBreakdownRows(referrerRowsPerClient, 10)
-      .filter(r => !['(direct)', 'google', '(not set)'].includes((r.dimension || '').toLowerCase()))
-      .map(r => ({ referrer: r.dimension, sessions: r.sessions })),
+    topReferrers,
     attribution,
-    customerJourney
+    customerJourney,
+    seoIntelligence,
+    aiInsights
   };
 }
 

@@ -1,13 +1,3 @@
-/**
- * Google Analytics 4 data source for the Analytics & Attribution engine.
- *
- * Every method here either returns real numbers pulled from the GA4 Data API
- * for a configured `propertyId`, or an explicit "not connected" / zeroed
- * result with `connected: false`. Nothing in this file invents traffic
- * numbers — if a property isn't configured, or the API call fails, the
- * caller is told so and can render an honest "not connected" state instead
- * of a fake metric.
- */
 const path = require('path');
 const fs = require('fs');
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
@@ -40,12 +30,6 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/**
- * Aggregate overview metrics for a single property + date range.
- * Sessions, Users, New Users, Bounce Rate, Engagement Rate, Conversions.
- * Returning Users is derived (totalUsers - newUsers) by the metrics service,
- * not fabricated here.
- */
 async function getOverviewMetrics(propertyId, startDate, endDate) {
   const client = getClient();
   if (!client || !propertyId) {
@@ -88,10 +72,6 @@ async function getOverviewMetrics(propertyId, startDate, endDate) {
   }
 }
 
-/**
- * Breakdown by a single GA4 dimension (sessionSourceMedium, deviceCategory,
- * country, sessionSource, pagePath...), sorted by sessions desc.
- */
 async function getBreakdown(propertyId, dimensionName, startDate, endDate, limit = 10) {
   const client = getClient();
   if (!client || !propertyId) return { connected: false, rows: [] };
@@ -126,11 +106,6 @@ async function getBreakdown(propertyId, dimensionName, startDate, endDate, limit
   }
 }
 
-/**
- * Daily sessions split by traffic-source bucket, for the traffic-over-time
- * chart. Uses ['date', 'sessionSourceMedium'] and buckets the medium into
- * organic / paid / direct / referral using real GA4 source/medium values.
- */
 async function getDailyTrafficBySourceBucket(propertyId, startDate, endDate) {
   const client = getClient();
   if (!client || !propertyId) return { connected: false, days: [] };
@@ -172,8 +147,49 @@ async function getDailyTrafficBySourceBucket(propertyId, startDate, endDate) {
   }
 }
 
+async function getOrganicPageBreakdown(propertyId, startDate, endDate, limit = 10) {
+  const client = getClient();
+  if (!client || !propertyId) return { connected: false, rows: [] };
+
+  try {
+    const [response] = await client.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'pagePath' }],
+      metrics: [
+        { name: 'sessions' },
+        { name: 'bounceRate' },
+        { name: 'engagementRate' },
+        { name: 'averageSessionDuration' }
+      ],
+      dimensionFilter: {
+        filter: {
+          fieldName: 'sessionDefaultChannelGroup',
+          stringFilter: { matchType: 'EXACT', value: 'Organic Search' }
+        }
+      },
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit
+    });
+
+    const rows = (response.rows || []).map(r => ({
+      dimension: r.dimensionValues[0].value,
+      sessions: num(r.metricValues[0].value),
+      bounceRate: num(r.metricValues[1].value) * 100,
+      engagementRate: num(r.metricValues[2].value) * 100,
+      avgSessionDuration: num(r.metricValues[3].value)
+    }));
+
+    return { connected: true, rows };
+  } catch (error) {
+    console.error(`[Analytics][GA4] Organic page breakdown failed for property ${propertyId}:`, error.message);
+    return { connected: false, error: error.message, rows: [] };
+  }
+}
+
 module.exports = {
   getOverviewMetrics,
   getBreakdown,
-  getDailyTrafficBySourceBucket
+  getDailyTrafficBySourceBucket,
+  getOrganicPageBreakdown
 };

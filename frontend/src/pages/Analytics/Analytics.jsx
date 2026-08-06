@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Typography, message } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart2, PieChart as PieChartIcon } from 'lucide-react';
+import { BarChart2, PieChart as PieChartIcon, Sparkles, Lightbulb } from 'lucide-react';
 import dayjs from 'dayjs';
 
 import { useGetClientsQuery } from '../../api/clientApi';
@@ -14,12 +14,16 @@ import DashboardSkeleton from './components/DashboardSkeleton';
 import ErrorState from './components/ErrorState';
 import AnalyticsTab from './tabs/AnalyticsTab';
 import AttributionTab from './tabs/AttributionTab';
+import SeoIntelligenceTab from './tabs/SeoIntelligenceTab';
+import AiInsightsTab from './tabs/AiInsightsTab';
 
 const { Title, Text } = Typography;
 
 const TABS = [
   { key: 'analytics', label: 'Analytics', icon: BarChart2, title: 'Analytics', description: 'Unified performance data across all channels and clients.' },
-  { key: 'attribution', label: 'Attribution', icon: PieChartIcon, title: 'Attribution', description: 'Understand which channels and touchpoints drive conversions.' }
+  { key: 'attribution', label: 'Attribution', icon: PieChartIcon, title: 'Attribution', description: 'Understand which channels and touchpoints drive conversions.' },
+  { key: 'seo-intelligence', label: 'SEO Intelligence', icon: Sparkles, title: 'SEO Intelligence', description: 'Real metrics from Website Audit, Technical SEO, Keyword Intelligence, Rank Tracking, AEO, GEO, Competitor Intelligence, and Automation & Monitoring.' },
+  { key: 'ai-insights', label: 'AI Insights', icon: Lightbulb, title: 'AI Insights', description: 'Rule-based insights calculated from real traffic, ranking, and technical data — not model-generated summaries.' }
 ];
 
 const containerVariants = {
@@ -87,9 +91,10 @@ const Analytics = () => {
     if (loading) return <DashboardSkeleton />;
     if (!data) return <ErrorState message="No analytics data was returned." onRetry={retry} retrying={loading} />;
 
-    return activeTab === 'analytics'
-      ? <AnalyticsTab data={data} searchTerm={debouncedSearch} />
-      : <AttributionTab data={data} searchTerm={debouncedSearch} />;
+    if (activeTab === 'analytics') return <AnalyticsTab data={data} searchTerm={debouncedSearch} />;
+    if (activeTab === 'attribution') return <AttributionTab data={data} searchTerm={debouncedSearch} />;
+    if (activeTab === 'seo-intelligence') return <SeoIntelligenceTab data={data} searchTerm={debouncedSearch} />;
+    return <AiInsightsTab data={data} />;
   };
 
   return (

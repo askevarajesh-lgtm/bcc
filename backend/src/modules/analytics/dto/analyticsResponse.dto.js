@@ -11,7 +11,9 @@ function toAnalyticsResponseDto(dashboard) {
     topCountries: dashboard.topCountries,
     topReferrers: dashboard.topReferrers,
     attribution: dashboard.attribution,
-    customerJourney: dashboard.customerJourney
+    customerJourney: dashboard.customerJourney,
+    seoIntelligence: dashboard.seoIntelligence,
+    aiInsights: dashboard.aiInsights
   };
 }
 
