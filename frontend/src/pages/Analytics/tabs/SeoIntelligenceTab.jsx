@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography, Row, Col, Tag, Alert, Progress, Empty } from 'antd';
 import { motion } from 'framer-motion';
-import { FileSearch, Wrench, Sparkles, Globe2, Search, Link2, TrendingUp, ShieldAlert, Users } from 'lucide-react';
+import { FileSearch, Wrench, Sparkles, Globe2, TrendingUp, ShieldAlert, Users } from 'lucide-react';
 
 import KpiCard from '../components/KpiCard';
 import ChartCard from '../components/ChartCard';
@@ -16,6 +16,34 @@ const itemVariants = {
 };
 
 const SEVERITY_COLOR = { critical: 'red', high: 'volcano', medium: 'orange', low: 'blue' };
+const KEYWORD_COLUMNS = [
+  { key: 'keyword', title: 'Keyword', dataIndex: 'keyword' },
+  { key: 'currentRank', title: 'Rank', dataIndex: 'currentRank', render: (v) => v ?? '—', sorter: (a, b) => (a.currentRank ?? 999) - (b.currentRank ?? 999) },
+  { key: 'rankChange', title: 'Change', dataIndex: 'rankChange', render: (v) => <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'}>{v > 0 ? `+${v}` : v}</Tag> },
+  { key: 'trend', title: 'Trend', dataIndex: 'trend' },
+  { key: 'searchVolume', title: 'Search Vol.', dataIndex: 'searchVolume', render: (v) => v?.toLocaleString?.() ?? 0, sorter: (a, b) => a.searchVolume - b.searchVolume },
+  { key: 'estimatedTraffic', title: 'Est. Traffic', dataIndex: 'estimatedTraffic', render: (v) => v?.toLocaleString?.() ?? 0, sorter: (a, b) => a.estimatedTraffic - b.estimatedTraffic }
+];
+
+const ORGANIC_PAGE_COLUMNS = [
+  { key: 'path', title: 'Page', dataIndex: 'path' },
+  { key: 'sessions', title: 'Organic Sessions', dataIndex: 'sessions', sorter: (a, b) => a.sessions - b.sessions },
+  { key: 'bounceRate', title: 'Bounce Rate', dataIndex: 'bounceRate' },
+  { key: 'engagementRate', title: 'Engagement', dataIndex: 'engagementRate' }
+];
+
+const REFERRER_COLUMNS = [
+  { key: 'referrer', title: 'Referrer', dataIndex: 'referrer' },
+  { key: 'sessions', title: 'Sessions', dataIndex: 'sessions', sorter: (a, b) => a.sessions - b.sessions }
+];
+
+const ISSUE_COLUMNS = [
+  { key: 'source', title: 'Module', dataIndex: 'source', render: (v) => <Tag>{v}</Tag> },
+  { key: 'severity', title: 'Severity', dataIndex: 'severity', render: (v) => <Tag color={SEVERITY_COLOR[v] || 'default'}>{v}</Tag> },
+  { key: 'issue', title: 'Issue', dataIndex: 'issue' },
+  { key: 'affectedUrl', title: 'Affected URL', dataIndex: 'affectedUrl', render: (v) => v || '—' },
+  { key: 'sessionsInRange', title: 'Sessions at Risk', dataIndex: 'sessionsInRange', render: (v) => v != null ? v.toLocaleString() : '—' }
+];
 
 function ScoreBlock({ label, score, auditsRun, icon: Icon }) {
   const hasScore = typeof score === 'number';
@@ -64,35 +92,6 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
   }
 
   const { moduleScores, topKeywords, topOrganicPages, topReferrers, technicalIssueImpact, rankingImpact, organicTrafficContribution, competitorContext, monitoringAlerts } = seo;
-
-  const keywordColumns = [
-    { key: 'keyword', title: 'Keyword', dataIndex: 'keyword' },
-    { key: 'currentRank', title: 'Rank', dataIndex: 'currentRank', render: (v) => v ?? '—', sorter: (a, b) => (a.currentRank ?? 999) - (b.currentRank ?? 999) },
-    { key: 'rankChange', title: 'Change', dataIndex: 'rankChange', render: (v) => <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'}>{v > 0 ? `+${v}` : v}</Tag> },
-    { key: 'trend', title: 'Trend', dataIndex: 'trend' },
-    { key: 'searchVolume', title: 'Search Vol.', dataIndex: 'searchVolume', render: (v) => v?.toLocaleString?.() ?? 0, sorter: (a, b) => a.searchVolume - b.searchVolume },
-    { key: 'estimatedTraffic', title: 'Est. Traffic', dataIndex: 'estimatedTraffic', render: (v) => v?.toLocaleString?.() ?? 0, sorter: (a, b) => a.estimatedTraffic - b.estimatedTraffic }
-  ];
-
-  const organicPageColumns = [
-    { key: 'path', title: 'Page', dataIndex: 'path' },
-    { key: 'sessions', title: 'Organic Sessions', dataIndex: 'sessions', sorter: (a, b) => a.sessions - b.sessions },
-    { key: 'bounceRate', title: 'Bounce Rate', dataIndex: 'bounceRate' },
-    { key: 'engagementRate', title: 'Engagement', dataIndex: 'engagementRate' }
-  ];
-
-  const referrerColumns = [
-    { key: 'referrer', title: 'Referrer', dataIndex: 'referrer' },
-    { key: 'sessions', title: 'Sessions', dataIndex: 'sessions', sorter: (a, b) => a.sessions - b.sessions }
-  ];
-
-  const issueColumns = [
-    { key: 'source', title: 'Module', dataIndex: 'source', render: (v) => <Tag>{v}</Tag> },
-    { key: 'severity', title: 'Severity', dataIndex: 'severity', render: (v) => <Tag color={SEVERITY_COLOR[v] || 'default'}>{v}</Tag> },
-    { key: 'issue', title: 'Issue', dataIndex: 'issue' },
-    { key: 'affectedUrl', title: 'Affected URL', dataIndex: 'affectedUrl', render: (v) => v || '—' },
-    { key: 'sessionsInRange', title: 'Sessions at Risk', dataIndex: 'sessionsInRange', render: (v) => v != null ? v.toLocaleString() : '—' }
-  ];
 
   return (
     <>
@@ -182,7 +181,7 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
           <DataTable
             title="Top Keywords"
             subtitle="Real tracked keywords with a live rank or traffic source (Keyword Intelligence + Rank Tracking)."
-            columns={keywordColumns}
+            columns={KEYWORD_COLUMNS}
             dataSource={topKeywords.keywords}
             rowKey="keyword"
             searchTerm={searchTerm}
@@ -198,7 +197,7 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
           <DataTable
             title="Top Organic Pages"
             subtitle="Pages driving GA4 sessions specifically from the Organic Search channel."
-            columns={organicPageColumns}
+            columns={ORGANIC_PAGE_COLUMNS}
             dataSource={topOrganicPages}
             rowKey="path"
             searchTerm={searchTerm}
@@ -211,7 +210,7 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
           <DataTable
             title="Top Referrers"
             subtitle="Real GA4 referral sources for this scope."
-            columns={referrerColumns}
+            columns={REFERRER_COLUMNS}
             dataSource={topReferrers}
             rowKey="referrer"
             searchTerm={searchTerm}
@@ -227,7 +226,7 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
           <DataTable
             title="Technical Issue Impact"
             subtitle={`${technicalIssueImpact.totalIssues} open findings from the latest Website Audit + Technical SEO audit · ~${technicalIssueImpact.sessionsAtRisk.toLocaleString()} sessions on affected pages`}
-            columns={issueColumns}
+            columns={ISSUE_COLUMNS}
             dataSource={[...technicalIssueImpact.topIssuesBySessionImpact, ...technicalIssueImpact.otherOpenIssues]}
             rowKey={(r, i) => `${r.source}-${r.issue}-${i}`}
             searchTerm={searchTerm}
@@ -254,4 +253,4 @@ const SeoIntelligenceTab = ({ data, searchTerm }) => {
   );
 };
 
-export default SeoIntelligenceTab;
+export default React.memo(SeoIntelligenceTab);

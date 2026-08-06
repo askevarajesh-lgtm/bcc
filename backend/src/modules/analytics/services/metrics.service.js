@@ -151,7 +151,9 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
   const currentSearch = sumSearchTotals(currentSearchTotals);
   const previousSearch = sumSearchTotals(previousSearchTotals);
 
-  const organicSessions = mergeBreakdownRows(channelRowsPerClient, 100)
+  const mergedChannelRows = mergeBreakdownRows(channelRowsPerClient, 100);
+
+  const organicSessions = mergedChannelRows
     .filter(r => normalizeChannel(r.dimension) === 'Organic Search')
     .reduce((s, r) => s + r.sessions, 0);
 
@@ -159,7 +161,7 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
   const previousConversionRate = previous.sessions > 0 ? (previousLeadMetrics.totalLeads / previous.sessions) * 100 : 0;
 
   const channelSessions = new Map();
-  for (const row of mergeBreakdownRows(channelRowsPerClient, 100)) {
+  for (const row of mergedChannelRows) {
     const bucket = normalizeChannel(row.dimension);
     channelSessions.set(bucket, (channelSessions.get(bucket) || 0) + row.sessions);
   }
@@ -235,6 +237,12 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     .map(r => ({ referrer: r.dimension, sessions: r.sessions }));
 
   const landingPageSessionsAll = mergeBreakdownRows(landingPageRowsPerClient, 50);
+  const topLandingPages = landingPageSessionsAll.slice(0, 10).map(r => ({
+    path: r.dimension,
+    sessions: r.sessions,
+    bounceRate: toPercent(r.bounceRate),
+    engagementRate: toPercent(r.engagementRate)
+  }));
 
   const organicPageSessions = mergeBreakdownRows(organicPageRowsPerClient, 10).map(r => ({
     path: r.dimension,
@@ -275,13 +283,8 @@ async function buildAnalyticsDashboard({ agencyId, clientId, rawDateRange, attri
     websiteTraffic: mergeDailyTraffic(dailyTrafficPerClient),
     leadsByChannel: leadMetrics.leadsByChannel,
     channelBreakdown,
-    topLandingPages: mergeBreakdownRows(landingPageRowsPerClient, 10).map(r => ({
-      path: r.dimension,
-      sessions: r.sessions,
-      bounceRate: toPercent(r.bounceRate),
-      engagementRate: toPercent(r.engagementRate)
-    })),
-    topChannels: mergeBreakdownRows(channelRowsPerClient, 10).map(r => ({ channel: r.dimension, sessions: r.sessions })),
+    topLandingPages,
+    topChannels: mergedChannelRows.slice(0, 10).map(r => ({ channel: r.dimension, sessions: r.sessions })),
     topDevices: mergeBreakdownRows(deviceRowsPerClient, 10).map(r => ({ device: r.dimension, sessions: r.sessions })),
     topCountries: mergeBreakdownRows(countryRowsPerClient, 10).map(r => ({ country: r.dimension, sessions: r.sessions })),
     topReferrers,

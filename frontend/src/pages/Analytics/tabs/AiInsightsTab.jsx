@@ -13,10 +13,10 @@ const itemVariants = {
 };
 
 const SEVERITY_META = {
-  critical: { color: 'red', icon: AlertTriangle, label: 'Critical' },
-  warning: { color: 'orange', icon: AlertTriangle, label: 'Watch' },
-  info: { color: 'blue', icon: Info, label: 'Opportunity' },
-  positive: { color: 'green', icon: CheckCircle2, label: 'Positive' }
+  critical: { color: 'red', barColor: 'var(--accent-danger)', icon: AlertTriangle, label: 'Critical' },
+  warning: { color: 'orange', barColor: 'var(--accent-warning)', icon: AlertTriangle, label: 'Watch' },
+  info: { color: 'blue', barColor: 'var(--accent-info)', icon: Info, label: 'Opportunity' },
+  positive: { color: 'green', barColor: 'var(--accent-primary)', icon: CheckCircle2, label: 'Positive' }
 };
 
 const TYPE_ICON = {
@@ -27,7 +27,7 @@ const TYPE_ICON = {
   optimization_opportunity: Lightbulb
 };
 
-function InsightCard({ insight }) {
+const InsightCard = React.memo(function InsightCard({ insight }) {
   const meta = SEVERITY_META[insight.severity] || SEVERITY_META.info;
   const Icon = TYPE_ICON[insight.type] || meta.icon;
 
@@ -36,7 +36,7 @@ function InsightCard({ insight }) {
       <div style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',
-        borderLeft: `4px solid ${meta.color === 'red' ? 'var(--accent-danger)' : meta.color === 'orange' ? 'var(--accent-warning)' : meta.color === 'green' ? 'var(--accent-primary)' : 'var(--accent-info)'}`,
+        borderLeft: `4px solid ${meta.barColor}`,
         borderRadius: 12,
         padding: '16px 20px',
         marginBottom: 12,
@@ -45,7 +45,7 @@ function InsightCard({ insight }) {
         alignItems: 'flex-start',
         boxShadow: 'var(--shadow-sm)'
       }}>
-        <Icon size={20} style={{ marginTop: 2, flexShrink: 0 }} color={meta.color === 'red' ? 'var(--accent-danger)' : meta.color === 'orange' ? 'var(--accent-warning)' : meta.color === 'green' ? 'var(--accent-primary)' : 'var(--accent-info)'} />
+        <Icon size={20} style={{ marginTop: 2, flexShrink: 0 }} color={meta.barColor} />
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
             <Text strong style={{ fontSize: 14 }}>{insight.title}</Text>
@@ -56,7 +56,7 @@ function InsightCard({ insight }) {
       </div>
     </motion.div>
   );
-}
+});
 
 const AiInsightsTab = ({ data }) => {
   const aiInsights = data?.aiInsights;
@@ -84,4 +84,4 @@ const AiInsightsTab = ({ data }) => {
   );
 };
 
-export default AiInsightsTab;
+export default React.memo(AiInsightsTab);

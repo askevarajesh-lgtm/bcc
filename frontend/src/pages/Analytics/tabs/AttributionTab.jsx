@@ -82,13 +82,13 @@ const AttributionTab = ({ data, searchTerm = '' }) => {
     [channels]
   );
 
-  const breakdownCols = [
+  const breakdownCols = useMemo(() => [
     { title: 'Channel', dataIndex: 'channel', key: 'channel', sorter: (a, b) => a.channel.localeCompare(b.channel), render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
     { title: 'Attributed Leads', dataIndex: 'attributedLeads', key: 'attributedLeads', align: 'right', sorter: (a, b) => a.attributedLeads - b.attributedLeads, defaultSortOrder: 'descend', render: t => <Text style={{ fontWeight: 500 }}>{Number(t).toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text> },
     { title: 'Lead Share', dataIndex: 'leadShare', key: 'leadShare', align: 'right', render: t => <Text type="secondary">{t}</Text> },
     { title: 'Attributed Revenue', dataIndex: 'attributedRevenueFormatted', key: 'attributedRevenueFormatted', align: 'right', sorter: (a, b) => a.attributedRevenue - b.attributedRevenue, render: t => <strong style={{ color: 'var(--accent-primary)' }}>{t}</strong> },
     { title: 'Revenue Share', dataIndex: 'revenueShare', key: 'revenueShare', align: 'right', render: t => <Text style={{ fontWeight: 700 }}>{t}</Text> }
-  ];
+  ], []);
 
   const sankeyData = useMemo(() => {
     if (!journey?.nodes?.length) return null;

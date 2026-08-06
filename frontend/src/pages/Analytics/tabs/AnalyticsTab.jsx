@@ -48,6 +48,9 @@ const AnalyticsTab = ({ data, searchTerm = '' }) => {
 
   const trafficLegend = useLegendToggle();
 
+  const primaryKpis = useMemo(() => PRIMARY_KPIS(metrics), [metrics]);
+  const searchKpis = useMemo(() => SEARCH_KPIS(metrics), [metrics]);
+
   const pieData = useMemo(
     () => (data.leadsByChannel || []).map(c => ({ name: c.channel, value: c.leads, fill: CHANNEL_COLORS[c.channel] || CHANNEL_COLORS.Other })),
     [data.leadsByChannel]
@@ -59,14 +62,14 @@ const AnalyticsTab = ({ data, searchTerm = '' }) => {
   const noAnalyticsSource = (connections.ga4?.configuredClients || 0) === 0;
   const noSearchSource = (connections.gsc?.configuredClients || 0) === 0;
 
-  const topPagesCols = [
+  const topPagesCols = useMemo(() => [
     { title: 'Landing Page', dataIndex: 'path', key: 'path', sorter: (a, b) => a.path.localeCompare(b.path), render: text => <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</span> },
     { title: 'Sessions', dataIndex: 'sessions', key: 'sessions', sorter: (a, b) => a.sessions - b.sessions, defaultSortOrder: 'descend', render: text => <strong style={{ color: 'var(--text-primary)' }}>{Number(text).toLocaleString()}</strong> },
     { title: 'Bounce Rate', dataIndex: 'bounceRate', key: 'bounceRate', sorter: (a, b) => parseFloat(a.bounceRate) - parseFloat(b.bounceRate), render: text => <Text style={{ color: parseFloat(text) > 40 ? 'var(--accent-danger)' : 'var(--accent-warning)', fontWeight: 600 }}>{text}</Text> },
     { title: 'Engagement Rate', dataIndex: 'engagementRate', key: 'engagementRate', sorter: (a, b) => parseFloat(a.engagementRate) - parseFloat(b.engagementRate), render: text => (
       <span style={{ borderRadius: 12, background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 8px', fontSize: 12 }}>{text}</span>
     ) }
-  ];
+  ], []);
 
   return (
     <>
@@ -86,11 +89,11 @@ const AnalyticsTab = ({ data, searchTerm = '' }) => {
       )}
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {PRIMARY_KPIS(metrics).map(kpi => <Col key={kpi.key} style={{ flex: '1 1 200px', minWidth: 200 }}><KpiCard {...kpi} /></Col>)}
+        {primaryKpis.map(kpi => <Col key={kpi.key} style={{ flex: '1 1 200px', minWidth: 200 }}><KpiCard {...kpi} /></Col>)}
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        {SEARCH_KPIS(metrics).map(kpi => <Col key={kpi.key} style={{ flex: '1 1 200px', minWidth: 200 }}><KpiCard {...kpi} /></Col>)}
+        {searchKpis.map(kpi => <Col key={kpi.key} style={{ flex: '1 1 200px', minWidth: 200 }}><KpiCard {...kpi} /></Col>)}
       </Row>
 
       <div style={{ marginBottom: 32 }}>

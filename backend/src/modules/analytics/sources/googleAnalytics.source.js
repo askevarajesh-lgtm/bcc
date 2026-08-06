@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
+const logger = require('../utils/logger');
 
 let cachedClient = null;
 let credentialsResolved = false;
@@ -21,7 +22,14 @@ function getClient() {
     return null;
   }
 
-  cachedClient = new BetaAnalyticsDataClient({ keyFilename: resolvedPath });
+  try {
+    cachedClient = new BetaAnalyticsDataClient({ keyFilename: resolvedPath });
+  } catch (err) {
+    // A malformed key file must degrade to "not connected", the same as a
+    // missing one — not crash every request that touches GA4 data.
+    logger.error('GA4', 'Failed to initialize client from GA4_CREDENTIALS', err);
+    cachedClient = null;
+  }
   return cachedClient;
 }
 
@@ -67,7 +75,7 @@ async function getOverviewMetrics(propertyId, startDate, endDate) {
       conversions
     };
   } catch (error) {
-    console.error(`[Analytics][GA4] Overview report failed for property ${propertyId}:`, error.message);
+    logger.error('GA4', `Overview report failed for property ${propertyId}`, error);
     return { connected: false, error: error.message, sessions: 0, totalUsers: 0, newUsers: 0, bounceRate: 0, engagementRate: 0, conversions: 0 };
   }
 }
@@ -101,7 +109,7 @@ async function getBreakdown(propertyId, dimensionName, startDate, endDate, limit
 
     return { connected: true, rows };
   } catch (error) {
-    console.error(`[Analytics][GA4] Breakdown(${dimensionName}) failed for property ${propertyId}:`, error.message);
+    logger.error('GA4', `Breakdown(${dimensionName}) failed for property ${propertyId}`, error);
     return { connected: false, error: error.message, rows: [] };
   }
 }
@@ -142,7 +150,7 @@ async function getDailyTrafficBySourceBucket(propertyId, startDate, endDate) {
 
     return { connected: true, days };
   } catch (error) {
-    console.error(`[Analytics][GA4] Daily traffic report failed for property ${propertyId}:`, error.message);
+    logger.error('GA4', `Daily traffic report failed for property ${propertyId}`, error);
     return { connected: false, error: error.message, days: [] };
   }
 }
@@ -182,7 +190,7 @@ async function getOrganicPageBreakdown(propertyId, startDate, endDate, limit = 1
 
     return { connected: true, rows };
   } catch (error) {
-    console.error(`[Analytics][GA4] Organic page breakdown failed for property ${propertyId}:`, error.message);
+    logger.error('GA4', `Organic page breakdown failed for property ${propertyId}`, error);
     return { connected: false, error: error.message, rows: [] };
   }
 }

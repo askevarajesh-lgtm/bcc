@@ -1,31 +1,3 @@
-/**
- * SEO Intelligence — orchestrator.
- *
- * Reads real data from the visible SEO Workspace modules and combines it
- * with the real GA4/GSC data the Analytics engine has already fetched for
- * this request. Nothing here is fabricated: every module that has no
- * completed run for a project in scope is reported as `null`/`not_run`
- * rather than defaulted to a fake score, and every list is empty (not
- * padded) when there's no underlying data.
- *
- * Modules wired in, and exactly what's read from each:
- *   - Website Audit          -> WorkspaceAudit (latest completed per project): overall score, issue counts, findings
- *   - Technical SEO          -> WorkspaceTechnicalAudit (latest completed per project): agent.findings[]
- *   - Keyword Intelligence   -> WorkspaceKeyword: tracked keywords, search volume, estimated traffic, opportunity score
- *   - Rank Tracking          -> WorkspaceKeyword.ranking + KeywordHistorySnapshot: rank deltas within the date range
- *   - Competitor Intelligence-> WorkspaceCompetitor: visibility/authority vs the client's own site
- *   - Automation & Monitoring-> WorkspaceMonitoringAlert: open alerts by severity/category
- *   - AEO                    -> WorkspaceAeoAudit (latest completed per project): overallScores.aeo
- *   - GEO                    -> WorkspaceGeoAudit (latest completed per project): overallGeoScore
- *
- * Content AI is intentionally NOT joined here: its tenancy field
- * (`ContentPiece.workspaceId`) is populated from a different, ambiguous
- * source (`req.workspaceId`, a JWT/sandbox-derived id — see
- * `middlewares/authMiddleware.js`) that isn't reliably the same
- * `WorkspaceProject._id` every other SEO Workspace module keys off. Joining
- * it here without a confirmed shared key risks silently mixing tenants, so
- * it's left out rather than guessed at.
- */
 const WorkspaceAudit = require('../../seoWorkspace/models/workspaceAudit.model');
 const WorkspaceTechnicalAudit = require('../../seoWorkspace/models/workspaceTechnicalAudit.model');
 const WorkspaceKeyword = require('../../seoWorkspace/models/workspaceKeyword.model');
@@ -48,7 +20,6 @@ function bucketForRank(rank) {
   return null;
 }
 
-/** Latest audit-like document per project (`.completedAt` desc, falls back to `createdAt`), only projects that actually have one. */
 async function latestPerProject(Model, projectIds, statuses = ['completed'], extraFilter = {}) {
   if (!projectIds.length) return new Map();
   const docs = await Model.find({ projectId: { $in: projectIds }, status: { $in: statuses }, ...extraFilter })
@@ -58,12 +29,11 @@ async function latestPerProject(Model, projectIds, statuses = ['completed'], ext
   const byProject = new Map();
   for (const doc of docs) {
     const key = String(doc.projectId);
-    if (!byProject.has(key)) byProject.set(key, doc); // first hit per project = most recent, thanks to the sort
+    if (!byProject.has(key)) byProject.set(key, doc); 
   }
   return byProject;
 }
 
-/** Website Audit — overall score + severity-tagged findings with real affected URLs. */
 async function loadWebsiteAudit(projectIds) {
   const byProject = await latestPerProject(WorkspaceAudit, projectIds);
   const audits = Array.from(byProject.values());
@@ -84,7 +54,6 @@ async function loadWebsiteAudit(projectIds) {
   return { auditsRun: audits.length, averageScore, findings };
 }
 
-/** Technical SEO — latest completed technical audit per project, real findings with pageUrl. */
 async function loadTechnicalSeo(projectIds) {
   const byProject = await latestPerProject(WorkspaceTechnicalAudit, projectIds);
   const audits = Array.from(byProject.values());
@@ -111,16 +80,10 @@ async function loadTechnicalSeo(projectIds) {
   return { auditsRun: audits.length, crawlSignals, findings };
 }
 
-/**
- * Technical issue impact — combines Website Audit + Technical SEO findings,
- * then cross-references each finding's real affected URL against real GA4
- * landing-page sessions already fetched for this request. A finding whose
- * URL isn't among the fetched landing pages is still counted (by severity),
- * just without a sessions-at-risk number — that number is never guessed.
- */
 function computeTechnicalIssueImpact(websiteAuditFindings, technicalSeoFindings, landingPageSessions) {
   const allFindings = [...websiteAuditFindings, ...technicalSeoFindings];
   const sessionsByPath = new Map((landingPageSessions || []).map(r => [r.dimension || r.path, r.sessions]));
+  const knownPaths = Array.from(sessionsByPath.keys());
 
   const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
   let sessionsAtRisk = 0;
@@ -130,7 +93,7 @@ function computeTechnicalIssueImpact(websiteAuditFindings, technicalSeoFindings,
     if (bySeverity[f.severity] !== undefined) bySeverity[f.severity] += 1;
     let sessions = null;
     if (f.affectedUrl) {
-      const matchedPath = Array.from(sessionsByPath.keys()).find(p => f.affectedUrl.endsWith(p) || p.endsWith(f.affectedUrl));
+      const matchedPath = knownPaths.find(p => f.affectedUrl.endsWith(p) || p.endsWith(f.affectedUrl));
       if (matchedPath) {
         sessions = sessionsByPath.get(matchedPath);
         sessionsAtRisk += sessions;
@@ -161,7 +124,6 @@ function computeTechnicalIssueImpact(websiteAuditFindings, technicalSeoFindings,
   };
 }
 
-/** Keyword Intelligence — real tracked keywords with a real ranking/traffic source, sorted by estimated traffic then search volume. */
 async function loadTopKeywords(projectIds, limit = 15) {
   if (!projectIds.length) return { trackedCount: 0, keywords: [] };
 
@@ -193,13 +155,6 @@ async function loadTopKeywords(projectIds, limit = 15) {
   };
 }
 
-/**
- * Rank Tracking — ranking impact within the requested date range.
- * Primary signal: KeywordHistorySnapshot entries inside [start, end] (the
- * earliest vs. latest snapshot per keyword in range = a real, dated
- * before/after). Falls back to the keyword's own current/previous rank
- * fields only for keywords with no snapshot inside the range yet.
- */
 async function computeRankingImpact(projectIds, start, end) {
   if (!projectIds.length) return { improved: 0, declined: 0, newlyRanked: 0, lost: 0, avgRankChange: 0, distribution: { top3: 0, top10: 0, top50: 0, beyond: 0 }, biggestGains: [], biggestDrops: [] };
 
@@ -226,7 +181,7 @@ async function computeRankingImpact(projectIds, start, end) {
     if (before != null && after == null) { lost += 1; continue; }
     if (before == null || after == null) continue;
 
-    const change = before - after; // positive = improved (lower rank number is better)
+    const change = before - after; 
     if (change > 0) improved += 1;
     else if (change < 0) declined += 1;
     totalChange += change;
@@ -234,7 +189,6 @@ async function computeRankingImpact(projectIds, start, end) {
     deltas.push({ keyword, before, after, change });
   }
 
-  // Snapshot-based distribution of current standing, using the latest snapshot per keyword in range.
   const distribution = { top3: 0, top10: 0, top50: 0, beyond: 0 };
   for (const { last } of byKeyword.values()) {
     const bucket = bucketForRank(last.ranking?.rank ?? null);
@@ -258,7 +212,6 @@ async function computeRankingImpact(projectIds, start, end) {
   };
 }
 
-/** Competitor Intelligence — how the client's real visibility compares to tracked competitors. Used for context only, never to fabricate the client's own traffic. */
 async function loadCompetitorContext(projectIds) {
   if (!projectIds.length) return { trackedCompetitors: 0, avgCompetitorVisibility: null, avgCompetitorDomainRank: null };
 
@@ -278,7 +231,6 @@ async function loadCompetitorContext(projectIds) {
   };
 }
 
-/** Automation & Monitoring — real open alerts, by severity and category. */
 async function loadMonitoringAlerts(projectIds, limit = 10) {
   if (!projectIds.length) return { openCount: 0, bySeverity: { Critical: 0, High: 0, Medium: 0, Low: 0 }, recent: [] };
 
@@ -297,7 +249,6 @@ async function loadMonitoringAlerts(projectIds, limit = 10) {
   };
 }
 
-/** AEO — latest completed audit's overall AEO score per project, averaged. */
 async function loadAeo(projectIds) {
   const byProject = await latestPerProject(WorkspaceAeoAudit, projectIds, ['completed', 'completed_with_warnings']);
   const audits = Array.from(byProject.values());
@@ -319,13 +270,6 @@ async function loadGeo(projectIds) {
   };
 }
 
-/**
- * Organic traffic contribution — reuses the already-computed channel
- * breakdown (real GA4 sessions + real CRM leads) and the already-computed
- * attribution result (real invoice revenue distributed across channels),
- * rather than re-deriving them, so this number always agrees with what the
- * Analytics and Attribution tabs already show for "Organic Search".
- */
 function computeOrganicContribution({ channelBreakdown, attribution, totalSessions }) {
   const organicChannel = (channelBreakdown || []).find(c => c.channel === 'Organic Search');
   const defaultModelKey = attribution?.defaultModel || 'linear';
@@ -343,11 +287,6 @@ function computeOrganicContribution({ channelBreakdown, attribution, totalSessio
   };
 }
 
-/**
- * Builds the full SEO Intelligence dataset for the resolved agency/client
- * scope and date range. Every sub-section degrades independently — one
- * module having no data never blanks out the others.
- */
 async function buildSeoIntelligence({ agencyId, clientId, clients, range, landingPageSessions, organicPageSessions, topReferrers, channelBreakdown, attribution, totalSessions }) {
   const projects = await resolveProjects({ agencyId, clientId, clients });
   const projectIds = projects.map(p => p._id);

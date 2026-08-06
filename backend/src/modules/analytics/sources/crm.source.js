@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const Lead = require('../../leads/lead.model');
 const Invoice = require('../../invoices/invoice.model');
@@ -13,23 +12,21 @@ async function getLeadMetrics({ companyId, clientId, start, end }) {
   };
   const clientObjectId = toObjectId(clientId);
   if (clientObjectId) match.clientId = clientObjectId;
-
-  const [totalResult, bySource] = await Promise.all([
-    Lead.countDocuments(match),
-    Lead.aggregate([
-      { $match: match },
-      { $group: { _id: '$source', count: { $sum: 1 } } }
-    ])
+  const bySource = await Lead.aggregate([
+    { $match: match },
+    { $group: { _id: '$source', count: { $sum: 1 } } }
   ]);
 
   const channelCounts = new Map();
+  let totalLeads = 0;
   for (const row of bySource) {
     const channel = normalizeChannel(row._id);
     channelCounts.set(channel, (channelCounts.get(channel) || 0) + row.count);
+    totalLeads += row.count;
   }
 
   return {
-    totalLeads: totalResult,
+    totalLeads,
     leadsByChannel: Array.from(channelCounts.entries()).map(([channel, count]) => ({ channel, leads: count }))
   };
 }

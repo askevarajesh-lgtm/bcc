@@ -1,11 +1,7 @@
-/**
- * Google Search Console data source for the Analytics & Attribution engine.
- * Returns real Search Analytics totals for a verified `siteUrl`, or an
- * explicit not-connected result — never a fabricated number.
- */
 const path = require('path');
 const fs = require('fs');
 const { google } = require('googleapis');
+const logger = require('../utils/logger');
 
 let cachedAuth = null;
 let authResolved = false;
@@ -26,16 +22,18 @@ function getAuth() {
     return null;
   }
 
-  cachedAuth = new google.auth.GoogleAuth({
-    keyFile: resolvedPath,
-    scopes: ['https://www.googleapis.com/auth/webmasters.readonly']
-  });
+  try {
+    cachedAuth = new google.auth.GoogleAuth({
+      keyFile: resolvedPath,
+      scopes: ['https://www.googleapis.com/auth/webmasters.readonly']
+    });
+  } catch (err) {
+    logger.error('GSC', 'Failed to initialize auth from GSC_CREDENTIALS', err);
+    cachedAuth = null;
+  }
   return cachedAuth;
 }
 
-/**
- * Aggregate Clicks / Impressions / CTR / Average Position for a site + range.
- */
 async function getSearchTotals(siteUrl, startDate, endDate) {
   const auth = getAuth();
   if (!auth || !siteUrl) {
@@ -53,15 +51,13 @@ async function getSearchTotals(siteUrl, startDate, endDate) {
     const clicks = rows.reduce((sum, r) => sum + (r.clicks || 0), 0);
     const impressions = rows.reduce((sum, r) => sum + (r.impressions || 0), 0);
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-    // Impression-weighted average position — the standard, honest way to
-    // aggregate GSC's per-day position values into a single number.
     const position = impressions > 0
       ? rows.reduce((sum, r) => sum + (r.position || 0) * (r.impressions || 0), 0) / impressions
       : 0;
 
     return { connected: true, clicks, impressions, ctr, position };
   } catch (error) {
-    console.error(`[Analytics][GSC] Search totals failed for ${siteUrl}:`, error.message);
+    logger.error('GSC', `Search totals failed for ${siteUrl}`, error);
     return { connected: false, error: error.message, clicks: 0, impressions: 0, ctr: 0, position: 0 };
   }
 }

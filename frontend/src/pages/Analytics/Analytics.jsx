@@ -78,8 +78,7 @@ const Analytics = () => {
         ]
       });
       message.success('Export successful');
-    } catch (err) {
-      console.error('Export failed', err);
+    } catch {
       message.error('Export failed');
     }
   }, [data]);
