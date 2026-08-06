@@ -80,7 +80,8 @@ const getMessage = (count, total) => {
     "This is what being productive looks like.",
     "The list is shrinking — keep going!",
   ];
-  return pool[(count - 4) % pool.length];
+  // Fix negative index by adding pool.length before modulo
+  return pool[((count - 4) % pool.length + pool.length) % pool.length];
 };
 
 /* ─── Toast accent colors ─── */
@@ -242,7 +243,7 @@ const TaskCompletionToast = ({
                   flexShrink: 0,
                 }}
               >
-                {label} task ✓
+                Task Completed ✓
               </span>
               {total && (
                 <span
@@ -252,7 +253,7 @@ const TaskCompletionToast = ({
                     fontWeight: 500,
                   }}
                 >
-                  {count}/{total} today
+                  {count} of {total} done today
                 </span>
               )}
             </div>

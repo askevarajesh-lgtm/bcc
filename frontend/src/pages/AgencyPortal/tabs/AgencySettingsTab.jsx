@@ -37,7 +37,9 @@ const AgencySettingsTab = () => {
   const [selectedModules, setSelectedModules] = useState([]);
   const [submittingUpgrade, setSubmittingUpgrade] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -47,10 +49,12 @@ const AgencySettingsTab = () => {
         email: user.contactEmail || '',
         phone: user.supportPhone || '',
         logo: user.logo || '',
+        logoDark: user.logoDark || '',
         theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
         theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
       });
       if (user.logo) setLogoPreview(user.logo);
+      if (user.logoDark) setLogoDarkPreview(user.logoDark);
       formAccount.setFieldsValue({
         firstName: (user.name || '').split(' ')[0] || '',
         lastName: (user.name || '').split(' ').slice(1).join(' ') || '',
@@ -86,6 +90,7 @@ const AgencySettingsTab = () => {
           contactEmail: formAgency.getFieldValue('email'),
           supportPhone: formAgency.getFieldValue('phone'),
           logo: url,
+          logoDark: formAgency.getFieldValue('logoDark'),
           theme: {
             primaryColor: typeof formAgency.getFieldValue('theme_primaryColor') === 'string' ? formAgency.getFieldValue('theme_primaryColor') : formAgency.getFieldValue('theme_primaryColor')?.toHexString(),
             secondaryColor: typeof formAgency.getFieldValue('theme_secondaryColor') === 'string' ? formAgency.getFieldValue('theme_secondaryColor') : formAgency.getFieldValue('theme_secondaryColor')?.toHexString()
@@ -111,6 +116,58 @@ const AgencySettingsTab = () => {
       message.error('Failed to upload logo');
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const customUploadDark = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogoDark(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setLogoDarkPreview(url);
+        formAgency.setFieldsValue({ logoDark: url });
+        
+        // Auto-save the logo to the DB
+        const payload = {
+          companyName: formAgency.getFieldValue('name'),
+          domain: formAgency.getFieldValue('domain'),
+          contactEmail: formAgency.getFieldValue('email'),
+          supportPhone: formAgency.getFieldValue('phone'),
+          logo: formAgency.getFieldValue('logo'),
+          logoDark: url,
+          theme: {
+            primaryColor: typeof formAgency.getFieldValue('theme_primaryColor') === 'string' ? formAgency.getFieldValue('theme_primaryColor') : formAgency.getFieldValue('theme_primaryColor')?.toHexString(),
+            secondaryColor: typeof formAgency.getFieldValue('theme_secondaryColor') === 'string' ? formAgency.getFieldValue('theme_secondaryColor') : formAgency.getFieldValue('theme_secondaryColor')?.toHexString()
+          }
+        };
+        const updateRes = await api.put(`/users/${user._id}`, payload);
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+
+        onSuccess(res.data);
+        message.success('Dark mode logo uploaded and applied successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload dark mode logo');
+    } finally {
+      setUploadingLogoDark(false);
     }
   };
 
@@ -165,6 +222,7 @@ const AgencySettingsTab = () => {
         contactEmail: values.email,
         supportPhone: values.phone,
         logo: values.logo,
+        logoDark: values.logoDark,
         theme: {
           primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
           secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
@@ -238,6 +296,7 @@ const AgencySettingsTab = () => {
             email: user?.contactEmail || '', 
             phone: user?.supportPhone || '',
             logo: user?.logo || '',
+            logoDark: user?.logoDark || '',
             theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
             theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
           }}
@@ -273,9 +332,57 @@ const AgencySettingsTab = () => {
                 <ColorPicker format="hex" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={24} style={{ marginTop: 16 }}>
-              <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Logo</Text>}>
+            <Col xs={24} md={12} style={{ marginTop: 16 }}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Light Mode Logo</Text>}>
                 <Form.Item name="logo" hidden>
+                  <Input />
+                </Form.Item>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                    <div style={{ 
+                      width: 88, 
+                      height: 88, 
+                      borderRadius: 12, 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center', 
+                      color: '#000', 
+                      fontSize: 28, 
+                      fontWeight: 800, 
+                      boxShadow: 'var(--shadow-sm)',
+                      overflow: 'hidden',
+                      background: '#f3f4f6'
+                    }}>
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo Light" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
+                      ) : (
+                        user?.companyName ? user.companyName.substring(0,2).toUpperCase() : "AG"
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Upload
+                        customRequest={customUpload}
+                        showUploadList={false}
+                        accept="image/*"
+                      >
+                        <Button 
+                          icon={<UploadIcon size={16}/>} 
+                          loading={uploadingLogo}
+                          style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                        >
+                          Upload Light
+                        </Button>
+                      </Upload>
+                      <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                    </div>
+                  </div>
+                </div>
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12} style={{ marginTop: 16 }}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Dark Mode Logo</Text>}>
+                <Form.Item name="logoDark" hidden>
                   <Input />
                 </Form.Item>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -292,29 +399,29 @@ const AgencySettingsTab = () => {
                       fontWeight: 800, 
                       boxShadow: 'var(--shadow-sm)',
                       overflow: 'hidden',
-                      background: 'var(--accent-primary)'
+                      background: '#1f2937'
                     }}>
-                      {logoPreview ? (
-                        <img src={logoPreview} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
+                      {logoDarkPreview ? (
+                        <img src={logoDarkPreview} alt="Logo Dark" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoDarkPreview(null)} />
                       ) : (
                         user?.companyName ? user.companyName.substring(0,2).toUpperCase() : "AG"
                       )}
                     </div>
                     <div style={{ flex: 1 }}>
                       <Upload
-                        customRequest={customUpload}
+                        customRequest={customUploadDark}
                         showUploadList={false}
                         accept="image/*"
                       >
                         <Button 
                           icon={<UploadIcon size={16}/>} 
-                          loading={uploadingLogo}
+                          loading={uploadingLogoDark}
                           style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
                         >
-                          Upload new logo
+                          Upload Dark
                         </Button>
                       </Upload>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px. PNG or SVG preferred.</Text>
+                      <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
                     </div>
                   </div>
                 </div>

@@ -261,11 +261,22 @@ const TasksPage = () => {
     // Small delay to ensure DB consistency before refetching stats
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // ALWAYS trigger celebration for the employee when a task is completed/moved to Review
-    setShowCelebration(true);
-
     try {
-      await refetchTodayStats();
+      const result = await refetchTodayStats();
+      const stats = result.data?.data || result.data || {};
+
+      if (stats.totalToday > 0) {
+        if (stats.completedToday >= stats.totalToday) {
+          setShowCelebration(true);
+        } else {
+          setToastCount(stats.completedToday);
+          setToastTotal(stats.totalToday);
+          setShowToast(true);
+        }
+      } else {
+        // Fallback if stats don't return totalToday for some reason
+        setShowToast(true);
+      }
     } catch (error) {
       console.error("Error fetching stats:", error);
     }

@@ -74,7 +74,7 @@ const Header = ({ collapsed, setCollapsed }) => {
   };
 
   const getSettingsPath = () => {
-    if (['supreme_super_admin', 'superadmin'].includes(role)) return '/superadmin/dashboard';
+    if (['supreme_super_admin', 'superadmin'].includes(role)) return '/superadmin/settings';
     if (['commander_admin'].includes(role)) return '/settings/company';
     if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) return '/agency/settings';
     if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role)) return '/client/settings/company';
@@ -298,16 +298,6 @@ const Header = ({ collapsed, setCollapsed }) => {
             className="app-header__super-button"
           >
             Back to {revertPanelName}
-          </Button>
-        )}
-
-        {role === 'supreme_super_admin' && !location.pathname.startsWith('/superadmin') && !origUser && (
-          <Button
-            type="primary"
-            onClick={() => navigate('/superadmin/dashboard')}
-            className="app-header__super-button"
-          >
-            Back to Super Admin
           </Button>
         )}
 

@@ -135,6 +135,7 @@ import SuperAdminCompanies from './pages/SuperAdmin/Companies';
 import SuperAdminSubscriptions from './pages/SuperAdmin/Subscriptions';
 import SuperAdminIntegrations from './pages/SuperAdmin/Integrations';
 import SuperAdminAdmins from './pages/SuperAdmin/Admins';
+import SuperAdminSettings from './pages/SuperAdmin/Settings/SuperAdminSettings';
 
 // Ekta HR / HRMS Pages (Commander Admin)
 import EktaHrStaffPage from './pages/integrations/EktaHrStaffPage';
@@ -263,6 +264,7 @@ const AppRoutes = () => {
           <Route path="integrations" element={<SuperAdminIntegrations />} />
           
           <Route path="admins" element={<SuperAdminAdmins />} />
+          <Route path="settings" element={<SuperAdminSettings />} />
         </Route>
       </Route>
 

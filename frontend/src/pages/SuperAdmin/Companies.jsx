@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select, message, Avatar, Divider } from 'antd';
+import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Modal, Form, Select, message, Avatar, Divider, Upload } from 'antd';
 import { motion } from 'framer-motion';
-import { Search, Plus, MoreVertical, Edit2, Trash2, Shield, Eye, Mail, Users, Calendar, DollarSign, Building2, Activity, Star, X } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit2, Trash2, Shield, Eye, Mail, Users, Calendar, DollarSign, Building2, Activity, Star, X, Upload as UploadIcon } from 'lucide-react';
 import api from '../../services/api';
 
 const { Title, Text } = Typography;
@@ -12,6 +12,10 @@ const Companies = () => {
   const [editingCompany, setEditingCompany] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewCompany, setViewCompany] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
   const [form] = Form.useForm();
   const [companiesData, setCompaniesData] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -32,6 +36,8 @@ const Companies = () => {
         _id: item._id,
         name: item.name || 'Unknown',
         email: item.email || 'N/A',
+        logo: item.logo || null,
+        logoDark: item.logoDark || null,
         users: item.allowedUsers || 0,
         plan: item.plan ? (typeof item.plan === 'object' ? item.plan.name : item.plan.charAt(0).toUpperCase() + item.plan.slice(1)) : 'Pro',
         planId: item.plan ? (typeof item.plan === 'object' ? item.plan._id : item.plan) : null,
@@ -78,7 +84,11 @@ const Companies = () => {
         email: record.email,
         plan: record.planId,
         status: record.rawStatus,
+        logo: record.logo,
+        logoDark: record.logoDark,
       });
+      setLogoPreview(record.logo || null);
+      setLogoDarkPreview(record.logoDark || null);
       setIsModalOpen(true);
     } else if (e.key === 'view') {
       setViewCompany(record);
@@ -169,6 +179,64 @@ const Companies = () => {
     }
   };
 
+  const customUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setLogoPreview(url);
+        form.setFieldsValue({ logo: url });
+        onSuccess(res.data);
+        message.success('Logo uploaded successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const customUploadDark = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogoDark(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setLogoDarkPreview(url);
+        form.setFieldsValue({ logoDark: url });
+        onSuccess(res.data);
+        message.success('Dark mode logo uploaded successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload dark mode logo');
+    } finally {
+      setUploadingLogoDark(false);
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
@@ -186,6 +254,8 @@ const Companies = () => {
           style={{ background: 'var(--accent-primary)', height: 44, borderRadius: 8, fontWeight: 600 }}
           onClick={() => {
             setEditingCompany(null);
+            setLogoPreview(null);
+            setLogoDarkPreview(null);
             form.resetFields();
             setIsModalOpen(true);
           }}
@@ -238,6 +308,8 @@ const Companies = () => {
         onCancel={() => {
           setIsModalOpen(false);
           setEditingCompany(null);
+          setLogoPreview(null);
+          setLogoDarkPreview(null);
           form.resetFields();
         }}
         footer={null}
@@ -246,6 +318,96 @@ const Companies = () => {
         width={600}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', marginBottom: 16 }}>
+            <Form.Item label={<Text style={{ fontWeight: 600 }}>Light Mode Logo</Text>}>
+              <Form.Item name="logo" hidden>
+                <Input />
+              </Form.Item>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                <div style={{ 
+                  width: 88, 
+                  height: 88, 
+                  borderRadius: 12, 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  color: '#000', 
+                  fontSize: 28, 
+                  fontWeight: 800, 
+                  boxShadow: 'var(--shadow-sm)',
+                  overflow: 'hidden',
+                  background: '#f3f4f6'
+                }}>
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo Light" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
+                  ) : (
+                    "CO"
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Upload
+                    customRequest={customUpload}
+                    showUploadList={false}
+                    accept="image/*"
+                  >
+                    <Button 
+                      icon={<UploadIcon size={16}/>} 
+                      loading={uploadingLogo}
+                      style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                    >
+                      Upload Light
+                    </Button>
+                  </Upload>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                </div>
+              </div>
+            </Form.Item>
+
+            <Form.Item label={<Text style={{ fontWeight: 600 }}>Dark Mode Logo</Text>}>
+              <Form.Item name="logoDark" hidden>
+                <Input />
+              </Form.Item>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                <div style={{ 
+                  width: 88, 
+                  height: 88, 
+                  borderRadius: 12, 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  color: '#fff', 
+                  fontSize: 28, 
+                  fontWeight: 800, 
+                  boxShadow: 'var(--shadow-sm)',
+                  overflow: 'hidden',
+                  background: '#1f2937'
+                }}>
+                  {logoDarkPreview ? (
+                    <img src={logoDarkPreview} alt="Logo Dark" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoDarkPreview(null)} />
+                  ) : (
+                    "CO"
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Upload
+                    customRequest={customUploadDark}
+                    showUploadList={false}
+                    accept="image/*"
+                  >
+                    <Button 
+                      icon={<UploadIcon size={16}/>} 
+                      loading={uploadingLogoDark}
+                      style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                    >
+                      Upload Dark
+                    </Button>
+                  </Upload>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                </div>
+              </div>
+            </Form.Item>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item label={<Text style={{ fontWeight: 600 }}>Company Name</Text>} name="name" rules={[{ required: true }]}>
               <Input placeholder="e.g. Acme Corp" style={{ borderRadius: 8 }} />
@@ -281,6 +443,8 @@ const Companies = () => {
             <Button onClick={() => {
               setIsModalOpen(false);
               setEditingCompany(null);
+              setLogoPreview(null);
+              setLogoDarkPreview(null);
               form.resetFields();
             }} style={{ borderRadius: 8, fontWeight: 600 }}>Cancel</Button>
             <Button type="primary" onClick={handleSave} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600 }}>

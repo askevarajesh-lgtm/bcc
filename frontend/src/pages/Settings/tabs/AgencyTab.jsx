@@ -43,7 +43,9 @@ const AgencyTab = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -54,16 +56,18 @@ const AgencyTab = () => {
       setFetching(true);
       const res = await api.get('/agency/settings/profile');
       if (res.data && res.data.success) {
-        const { companyName, name, email, logo, theme } = res.data.data;
+        const { companyName, name, email, logo, logoDark, theme } = res.data.data;
         form.setFieldsValue({
           companyName,
           name,
           email,
           logo,
+          logoDark,
           theme_primaryColor: theme?.primaryColor || '#034EA1',
           theme_secondaryColor: theme?.secondaryColor || '#0ea5e9'
         });
         if (logo) setLogoPreview(logo);
+        if (logoDark) setLogoDarkPreview(logoDark);
       }
     } catch (error) {
       message.error('Failed to load agency profile');
@@ -149,6 +153,46 @@ const AgencyTab = () => {
     }
   };
 
+  const customUploadDark = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogoDark(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setLogoDarkPreview(url);
+        form.setFieldsValue({ logoDark: url });
+        
+        // Auto-save the logo to the DB
+        const currentVals = form.getFieldsValue();
+        const updateRes = await api.put('/agency/settings/profile', { ...currentVals, logoDark: url });
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+
+        onSuccess(res.data);
+        message.success('Dark mode logo uploaded and applied successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload dark mode logo');
+    } finally {
+      setUploadingLogoDark(false);
+    }
+  };
+
   return (
     <>
       <motion.div variants={itemVariants}>
@@ -205,7 +249,7 @@ const AgencyTab = () => {
                 </div>
               </div>
               <div style={{ flex: '1 1 300px' }}>
-                <Form.Item label={<strong style={{ color: 'var(--text-secondary)' }}>Agency Logo</strong>}>
+                <Form.Item label={<strong style={{ color: 'var(--text-secondary)' }}>Light Mode Logo</strong>}>
                   <Form.Item name="logo" hidden>
                     <Input />
                   </Form.Item>
@@ -214,19 +258,19 @@ const AgencyTab = () => {
                       <div style={{ 
                         width: 88, 
                         height: 88, 
-                        // background: 'var(--accent-primary)', 
+                        background: '#f3f4f6', 
                         borderRadius: 12, 
                         display: 'flex', 
                         justifyContent: 'center', 
                         alignItems: 'center', 
-                        color: '#fff', 
+                        color: '#000', 
                         fontSize: 28, 
                         fontWeight: 800, 
                         boxShadow: 'var(--shadow-sm)',
                         overflow: 'hidden'
                       }}>
                         {logoPreview ? (
-                          <img src={logoPreview} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
+                          <img src={logoPreview} alt="Logo Light" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
                         ) : (
                           "BCC"
                         )}
@@ -242,10 +286,56 @@ const AgencyTab = () => {
                             loading={uploadingLogo}
                             style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
                           >
-                            Upload new logo
+                            Upload Light
                           </Button>
                         </Upload>
-                        <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px. PNG or SVG preferred.</Text>
+                        <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                      </div>
+                    </div>
+                  </div>
+                </Form.Item>
+
+                <Form.Item label={<strong style={{ color: 'var(--text-secondary)' }}>Dark Mode Logo</strong>}>
+                  <Form.Item name="logoDark" hidden>
+                    <Input />
+                  </Form.Item>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                      <div style={{ 
+                        width: 88, 
+                        height: 88, 
+                        background: '#1f2937', 
+                        borderRadius: 12, 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        color: '#fff', 
+                        fontSize: 28, 
+                        fontWeight: 800, 
+                        boxShadow: 'var(--shadow-sm)',
+                        overflow: 'hidden'
+                      }}>
+                        {logoDarkPreview ? (
+                          <img src={logoDarkPreview} alt="Logo Dark" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoDarkPreview(null)} />
+                        ) : (
+                          "BCC"
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Upload
+                          customRequest={customUploadDark}
+                          showUploadList={false}
+                          accept="image/*"
+                        >
+                          <Button 
+                            icon={<UploadIcon size={16}/>} 
+                            loading={uploadingLogoDark}
+                            style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                          >
+                            Upload Dark
+                          </Button>
+                        </Upload>
+                        <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
                       </div>
                     </div>
                   </div>

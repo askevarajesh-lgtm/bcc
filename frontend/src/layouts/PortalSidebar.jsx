@@ -12,6 +12,7 @@ const PortalSidebar = ({
   width = 276,
   brandInitials = 'M1',
   brandLogo = null,
+  brandLogoDark = null,
   brandTitle = 'M1',
   brandSubtitle = 'Growth OS',
   accent = '#10b981',
@@ -89,7 +90,7 @@ const PortalSidebar = ({
       <div className="app-sidebar__brand">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px 0' }}>
           <img 
-            src={brandLogo || (isDark ? '/logo-dark.png' : '/logo-light.png')} 
+            src={(isDark ? (brandLogoDark || brandLogo || '/logo-dark.png') : (brandLogo || '/logo-light.png'))} 
             alt={brandTitle ? `${brandTitle} Logo` : "Logo"} 
             style={{ 
               maxWidth: '70%', 

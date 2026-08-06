@@ -50,7 +50,7 @@ exports.getAgency = async (req, res, next) => {
 
 exports.createAgency = async (req, res, next) => {
   try {
-    const { name, email, password, package: packageId, plan, status } = req.body;
+    const { name, email, password, package: packageId, plan, status, logo, logoDark } = req.body;
     const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
 
     // Check if user with this email already exists
@@ -92,6 +92,8 @@ exports.createAgency = async (req, res, next) => {
       companyName: name,
       plan: plan || packageId || null,
       status: status || 'active',
+      logo: logo || null,
+      logoDark: logoDark || null,
       features: req.body.features || packageFeatures,
       allowedUsers: packageUsers,
       subscriptionStartDate: req.body.subscriptionStartDate,
@@ -102,6 +104,14 @@ exports.createAgency = async (req, res, next) => {
 
     agencyUser.agencyId = agencyUser._id;
     await agencyUser.save();
+
+    // If a logo is provided, make it the global default for Commander Admin
+    if (logo || logoDark) {
+      const updateData = {};
+      if (logo) updateData.logo = logo;
+      if (logoDark) updateData.logoDark = logoDark;
+      await User.updateMany({ role: 'commander_admin' }, { $set: updateData });
+    }
 
     // Dispatch system notification
     const { dispatchSystemNotification } = require('../tasks/notification.service');
@@ -129,6 +139,21 @@ exports.updateAgency = async (req, res, next) => {
     if (req.body.package && !req.body.plan) {
       req.body.plan = req.body.package;
       delete req.body.package;
+    }
+
+    if ((req.body.logo || req.body.logoDark) && req.user && req.user.role === 'commander_admin') {
+      const updateData = {};
+      if (req.body.logo) updateData.logo = req.body.logo;
+      if (req.body.logoDark) updateData.logoDark = req.body.logoDark;
+      await User.updateMany({ role: 'commander_admin' }, { $set: updateData });
+    }
+    
+    if (req.body.password) {
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      req.body.password = await bcrypt.hash(req.body.password, salt);
+    } else {
+      delete req.body.password;
     }
     
     const agency = await User.findOneAndUpdate(

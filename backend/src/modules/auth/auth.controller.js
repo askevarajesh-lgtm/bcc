@@ -24,6 +24,48 @@ const getEffectiveTheme = async (user) => {
   return effectiveTheme;
 };
 
+const getEffectiveLogo = async (user) => {
+  let effectiveLogo = null;
+  try {
+    if (user.logo) {
+      effectiveLogo = user.logo;
+    } else if (user.brandId && user.brandId.logo) {
+      effectiveLogo = user.brandId.logo;
+    } else if (user.agencyId && user.agencyId.logo) {
+      effectiveLogo = user.agencyId.logo;
+    } else {
+      const commander = await User.findOne({ role: 'commander_admin' }).select('logo');
+      if (commander && commander.logo) {
+        effectiveLogo = commander.logo;
+      }
+    }
+  } catch (e) {
+    console.error('Error resolving logo:', e);
+  }
+  return effectiveLogo;
+};
+
+const getEffectiveLogoDark = async (user) => {
+  let effectiveLogoDark = null;
+  try {
+    if (user.logoDark) {
+      effectiveLogoDark = user.logoDark;
+    } else if (user.brandId && user.brandId.logoDark) {
+      effectiveLogoDark = user.brandId.logoDark;
+    } else if (user.agencyId && user.agencyId.logoDark) {
+      effectiveLogoDark = user.agencyId.logoDark;
+    } else {
+      const commander = await User.findOne({ role: 'commander_admin' }).select('logoDark');
+      if (commander && commander.logoDark) {
+        effectiveLogoDark = commander.logoDark;
+      }
+    }
+  } catch (e) {
+    console.error('Error resolving logoDark:', e);
+  }
+  return effectiveLogoDark;
+};
+
 exports.getGlobalTheme = async (req, res, next) => {
   try {
     let globalTheme = { primaryColor: '#034EA1', secondaryColor: '#0ea5e9' };
@@ -46,8 +88,8 @@ exports.signin = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email })
-      .populate('agencyId', 'companyName name logo status theme')
-      .populate('brandId', 'companyName name logo status features theme')
+      .populate('agencyId', 'companyName name logo logoDark status theme')
+      .populate('brandId', 'companyName name logo logoDark status features theme')
       .populate('adminId', 'status');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
@@ -156,6 +198,8 @@ exports.signin = async (req, res, next) => {
     }
 
     const effectiveTheme = await getEffectiveTheme(user);
+    const effectiveLogo = await getEffectiveLogo(user);
+    const effectiveLogoDark = await getEffectiveLogoDark(user);
 
     res.json({
       success: true,
@@ -171,7 +215,8 @@ exports.signin = async (req, res, next) => {
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
-        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        logo: effectiveLogo,
+        logoDark: effectiveLogoDark,
         contactEmail: user.contactEmail,
         domain: user.domain,
         industry: user.industry,
@@ -190,8 +235,8 @@ exports.signin = async (req, res, next) => {
 exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('agencyId', 'companyName name logo status theme')
-      .populate('brandId', 'companyName name logo domain contactEmail industry features theme')
+      .populate('agencyId', 'companyName name logo logoDark status theme')
+      .populate('brandId', 'companyName name logo logoDark domain contactEmail industry features theme')
       .populate('adminId', 'status');
 
     if (!user) {
@@ -250,6 +295,10 @@ exports.me = async (req, res, next) => {
       features = Array.from(new Set([...features, ...user.brandId.features]));
     }
 
+    const effectiveTheme = await getEffectiveTheme(user);
+    const effectiveLogo = await getEffectiveLogo(user);
+    const effectiveLogoDark = await getEffectiveLogoDark(user);
+
     res.json({
       success: true,
       user: {
@@ -263,7 +312,8 @@ exports.me = async (req, res, next) => {
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
-        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        logo: effectiveLogo,
+        logoDark: effectiveLogoDark,
         contactEmail: user.contactEmail || (user.brandId ? user.brandId.contactEmail : null),
         domain: user.domain || (user.brandId ? user.brandId.domain : null),
         industry: user.industry || (user.brandId ? user.brandId.industry : null),
@@ -299,8 +349,8 @@ exports.impersonate = async (req, res, next) => {
     }
 
     const user = await User.findById(targetUserId)
-      .populate('agencyId', 'companyName name logo status')
-      .populate('brandId', 'companyName name logo status features')
+      .populate('agencyId', 'companyName name logo logoDark status')
+      .populate('brandId', 'companyName name logo logoDark status features')
       .populate('adminId', 'status');
 
     if (!user) {
@@ -399,6 +449,8 @@ exports.impersonate = async (req, res, next) => {
     }
 
     const effectiveTheme = await getEffectiveTheme(user);
+    const effectiveLogo = await getEffectiveLogo(user);
+    const effectiveLogoDark = await getEffectiveLogoDark(user);
 
     res.json({
       success: true,
@@ -414,7 +466,8 @@ exports.impersonate = async (req, res, next) => {
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
         brandId: user.brandId ? user.brandId._id : null,
         brandName: user.brandId ? (user.brandId.companyName || user.brandId.name) : null,
-        logo: user.logo || (user.agencyId ? user.agencyId.logo : null) || (user.brandId ? user.brandId.logo : null),
+        logo: effectiveLogo,
+        logoDark: effectiveLogoDark,
         contactEmail: user.contactEmail || (user.brandId ? user.brandId.contactEmail : null),
         domain: user.domain || (user.brandId ? user.brandId.domain : null),
         industry: user.industry || (user.brandId ? user.brandId.industry : null),

@@ -24,6 +24,10 @@ const BrandSettingsTab = () => {
   const { updatePreviewTheme } = useTheme();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
   
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeForm] = Form.useForm();
@@ -51,6 +55,8 @@ const BrandSettingsTab = () => {
           contactEmail: values.email,
           domain: values.website,
           industry: values.industry,
+          logo: form.getFieldValue('logo'),
+          logoDark: form.getFieldValue('logoDark'),
           theme: {
             primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
             secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
@@ -76,6 +82,74 @@ const BrandSettingsTab = () => {
       message.error('An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const customUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'brand-logos');
+
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data && data.success) {
+        const url = data.data.url;
+        setLogoPreview(url);
+        form.setFieldsValue({ logo: url });
+        onSuccess(data);
+        message.success('Logo uploaded successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const customUploadDark = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingLogoDark(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'brand-logos');
+
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data && data.success) {
+        const url = data.data.url;
+        setLogoDarkPreview(url);
+        form.setFieldsValue({ logoDark: url });
+        onSuccess(data);
+        message.success('Dark mode logo uploaded successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload dark mode logo');
+    } finally {
+      setUploadingLogoDark(false);
     }
   };
 
@@ -126,17 +200,47 @@ const BrandSettingsTab = () => {
         bodyStyle={{ padding: 32 }}
       >
         <Title level={4} style={{ marginTop: 0, marginBottom: 24, fontWeight: 800 }}>Brand Profile</Title>
-        <Form form={form} layout="vertical" onValuesChange={handleValuesChange} onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || user?.name || 'My Brand', email: user?.contactEmail || user?.email, website: user?.domain, industry: user?.industry, theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1', theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9' }}>
-          <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
-            <div style={{ width: 100, height: 100, borderRadius: 12, background: 'var(--bg-tertiary)', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <UploadIcon size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Logo</span>
+        <Form form={form} layout="vertical" onValuesChange={handleValuesChange} onFinish={handleSaveDetails} initialValues={{ name: user?.companyName || user?.name || 'My Brand', email: user?.contactEmail || user?.email, website: user?.domain, industry: user?.industry, logo: user?.logo, logoDark: user?.logoDark, theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1', theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9' }}>
+          <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <Form.Item name="logo" hidden><Input /></Form.Item>
+            <Form.Item name="logoDark" hidden><Input /></Form.Item>
+            
+            <div style={{ flex: '1 1 300px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>Light Mode Logo</div>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                <div style={{ width: 88, height: 88, borderRadius: 12, background: '#f3f4f6', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {(logoPreview || user?.logo) ? (
+                    <img src={logoPreview || user?.logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <><UploadIcon size={24} color="#6b7280" style={{ marginBottom: 8 }} /><span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>Logo</span></>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Upload your brand's light mode logo.</Text>
+                  <Upload customRequest={customUpload} showUploadList={false} accept="image/*">
+                    <Button loading={uploadingLogo} style={{ borderRadius: 8 }}>Upload Light</Button>
+                  </Upload>
+                </div>
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Upload your brand's primary logo. Recommended size: 400x400px.</Text>
-              <Upload showUploadList={false}>
-                <Button style={{ borderRadius: 8 }}>Choose File</Button>
-              </Upload>
+            
+            <div style={{ flex: '1 1 300px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>Dark Mode Logo</div>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                <div style={{ width: 88, height: 88, borderRadius: 12, background: '#1f2937', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {(logoDarkPreview || user?.logoDark) ? (
+                    <img src={logoDarkPreview || user?.logoDark} alt="Logo Dark" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <><UploadIcon size={24} color="#9ca3af" style={{ marginBottom: 8 }} /><span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>Logo Dark</span></>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Upload your brand's dark mode logo.</Text>
+                  <Upload customRequest={customUploadDark} showUploadList={false} accept="image/*">
+                    <Button loading={uploadingLogoDark} style={{ borderRadius: 8 }}>Upload Dark</Button>
+                  </Upload>
+                </div>
+              </div>
             </div>
           </div>
 

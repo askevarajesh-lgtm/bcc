@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, CreditCard, Globe, LayoutDashboard, Users, Zap } from 'lucide-react';
+import { Building2, CreditCard, Globe, LayoutDashboard, Users, Zap, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PortalSidebar from './PortalSidebar';
 
@@ -37,6 +37,11 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
       icon: getIcon(Users),
       label: 'User Management',
     },
+    {
+      key: '/superadmin/settings',
+      icon: getIcon(Settings),
+      label: 'Profile',
+    },
     // {
     //   key: 'platform-views',
     //   icon: getIcon(Globe),
@@ -66,6 +71,7 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
       setCollapsed={setCollapsed}
       brandInitials="SA"
       brandLogo={user?.logo}
+      brandLogoDark={user?.logoDark}
       brandTitle="M1 Platform"
       accent="var(--accent-primary)"
       accentSoft="rgba(124, 58, 237, 0.12)"

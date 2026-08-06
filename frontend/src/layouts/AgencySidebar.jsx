@@ -263,6 +263,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       setCollapsed={setCollapsed}
       brandInitials={dynamicAgencyInitials}
       brandLogo={user?.logo}
+      brandLogoDark={user?.logoDark}
       brandTitle={dynamicAgencyName}
       brandSubtitle={user?.roleName || "Agency Portal"}
       accent="var(--accent-primary)"

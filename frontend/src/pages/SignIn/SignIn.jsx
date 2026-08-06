@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { BadgeCheck, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import api from '../../services/api';
 import './SignIn.css';
 
 const { Title, Text } = Typography;
@@ -75,6 +76,25 @@ const SignIn = () => {
   const { isDark } = useTheme();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [platformLogo, setPlatformLogo] = useState(null);
+  const [platformLogoDark, setPlatformLogoDark] = useState(null);
+
+  useEffect(() => {
+    const fetchPlatformConfig = async () => {
+      try {
+        const res = await api.get('/superadmin/platform-config');
+        if (res.data.success) {
+          if (res.data.data.logo) setPlatformLogo(res.data.data.logo);
+          if (res.data.data.logoDark) setPlatformLogoDark(res.data.data.logoDark);
+        }
+      } catch (err) {
+        // Silently fail and fallback to default logo
+        console.error("Could not load platform config:", err);
+      }
+    };
+    fetchPlatformConfig();
+  }, []);
+
   useEffect(() => {
     const { body, documentElement } = document;
     const previousBodyOverflow = body.style.overflow;
@@ -233,8 +253,12 @@ const SignIn = () => {
                 <motion.div variants={itemVariants} className="bcc-signin-brand">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                     <img 
-                      src={isDark ? '/logo-dark.png' : '/logo-light.png'} 
-                      alt="M1 Labs Logo" 
+                      src={
+                        isDark 
+                          ? (platformLogoDark || platformLogo || '/logo-dark.png')
+                          : (platformLogo || platformLogoDark || '/logo-light.png')
+                      } 
+                      alt="Logo" 
                       style={{ maxHeight: 64, objectFit: 'contain' }} 
                     />
                   </div>
