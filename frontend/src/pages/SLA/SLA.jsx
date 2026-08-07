@@ -152,12 +152,17 @@ const SLA = () => {
     { 
       title: 'CLIENT', 
       key: 'client', 
-      render: (_, r) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar style={{ backgroundColor: 'var(--accent-primary)' }}>{r.clientId?.name?.[0] || 'C'}</Avatar>
-          <strong style={{ color: 'var(--text-primary)' }}>{r.clientId?.name || 'Unknown'}</strong>
-        </div>
-      )
+      render: (_, r) => {
+        const entity = r.clientId || r.agencyId;
+        const name = entity?.companyName || entity?.name || 'Unknown';
+        const initial = name !== 'Unknown' ? name[0].toUpperCase() : 'U';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar style={{ backgroundColor: 'var(--accent-primary)' }}>{initial}</Avatar>
+            <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>
+          </div>
+        );
+      }
     },
     { title: 'TRIGGER TYPE', dataIndex: 'triggerType', key: 'triggerType' },
     { 
@@ -368,8 +373,8 @@ const SLA = () => {
               <p><strong>Priority:</strong> <strong style={{ color: getPriorityColor(selectedSla.priority) }}>{selectedSla.priority}</strong></p>
               <p><strong>Due Date:</strong> {new Date(selectedSla.dueDate).toLocaleString()}</p>
               <p><strong>Description:</strong> {selectedSla.description}</p>
-              <p><strong>Client:</strong> {selectedSla.clientId?.name || 'N/A'}</p>
-              <p><strong>Agency:</strong> {selectedSla.agencyId?.name || 'N/A'}</p>
+              <p><strong>Client:</strong> {selectedSla.clientId ? (selectedSla.clientId.companyName || selectedSla.clientId.name || 'Unknown') : 'N/A'}</p>
+              <p><strong>Agency:</strong> {selectedSla.agencyId ? (selectedSla.agencyId.companyName || selectedSla.agencyId.name || 'Unknown') : 'N/A'}</p>
             </Card>
             
             <Card title="Actions" size="small" style={{ borderRadius: 12 }}>

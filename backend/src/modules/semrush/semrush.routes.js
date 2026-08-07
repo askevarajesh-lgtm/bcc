@@ -9,6 +9,7 @@ router.use(authMiddleware);
 router.get('/projects', semrushController.getProjects);
 router.post('/projects', semrushController.createProject);
 router.get('/projects/:id', semrushController.getProjectById);
+router.put('/projects/:id', semrushController.updateProject);
 router.post('/projects/:id/refresh', semrushController.refreshProject);
 router.delete('/projects/:id', semrushController.deleteProject);
 

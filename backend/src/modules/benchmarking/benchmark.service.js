@@ -3,10 +3,71 @@ const mongoose = require('mongoose');
 
 
 
-// Function to fetch benchmarking data for a specific client
-const getClientBenchmarkData = async (clientId, industryName = 'All Industries') => {
+// Function to fetch benchmarking data for a specific client or aggregated for all clients
+const getClientBenchmarkData = async (user, clientId, industryName = 'All Industries') => {
     if (!clientId) {
         return { clientData: null, industryData: null };
+    }
+
+    if (clientId === 'all') {
+        const isAgency = ['agency_super_admin', 'agency_manager'].includes(user.role);
+        const User = require('../auth/user.model');
+        const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user.role);
+        
+        let validBrandIds = [];
+        if (isSuperAdmin) {
+            const allClients = await User.find({
+                $or: [
+                    { role: { $in: ['agency_super_admin', 'agency_manager'] } },
+                    { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+                ]
+            }).select('_id');
+            validBrandIds = allClients.map(c => c._id);
+        } else {
+            const brandQuery = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+            if (isAgency) {
+                brandQuery.agencyId = user.agencyId || user._id;
+            } else {
+                brandQuery.isDirect = true;
+            }
+            const validBrands = await User.find(brandQuery).select('_id');
+            validBrandIds = validBrands.map(b => b._id);
+        }
+
+        const clients = await ClientBenchmark.find({ clientId: { $in: validBrandIds } });
+        
+        if (!clients.length) {
+             const targetIndustry = industryName !== 'All Industries' ? industryName : 'General';
+             const industryData = await IndustryBenchmark.findOne({ industryName: targetIndustry });
+             return {
+                 clientData: null,
+                 industryData: industryData || { industryName: targetIndustry, avgMos: 0, avgSeo: 0, avgAds: 0, avgSocial: 0, avgLeads: 0, avgContent: 0, avgCx: 0 }
+             };
+        }
+
+        const avg = (key) => Math.round(clients.reduce((acc, curr) => acc + (curr.metrics[key] || 0), 0) / clients.length);
+        const avgPerc = (key) => Math.round(clients.reduce((acc, curr) => acc + (curr.percentiles[key] || 0), 0) / clients.length);
+
+        const aggregatedClientData = {
+            clientId: { companyName: 'All Clients', industry: 'Multiple' },
+            industryName: 'General',
+            metrics: {
+                mos: avg('mos'), seo: avg('seo'), social: avg('social'), 
+                ads: avg('ads'), leads: avg('leads'), content: avg('content'), cx: avg('cx')
+            },
+            percentiles: {
+                mos: avgPerc('mos'), seo: avgPerc('seo'), social: avgPerc('social'),
+                ads: avgPerc('ads'), leads: avgPerc('leads'), content: avgPerc('content'), cx: avgPerc('cx')
+            }
+        };
+
+        const targetIndustry = industryName !== 'All Industries' ? industryName : 'General';
+        const industryData = await IndustryBenchmark.findOne({ industryName: targetIndustry });
+        
+        return {
+            clientData: aggregatedClientData,
+            industryData: industryData || { industryName: targetIndustry, avgMos: 0, avgSeo: 0, avgAds: 0, avgSocial: 0, avgLeads: 0, avgContent: 0, avgCx: 0 }
+        };
     }
 
     let clientBench = await ClientBenchmark.findOne({ clientId }).populate('clientId', 'name companyName industry');
@@ -24,18 +85,27 @@ const getClientBenchmarkData = async (clientId, industryName = 'All Industries')
 const getBenchmarkTableData = async (user, industryName = 'All Industries') => {
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(user.role);
     const User = require('../auth/user.model');
+    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user.role);
     
-    const brandQuery = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-    if (isAgency) {
-      brandQuery.agencyId = user.agencyId || user._id;
+    let validBrandIds = [];
+    if (isSuperAdmin) {
+        const allClients = await User.find({
+            $or: [
+                { role: { $in: ['agency_super_admin', 'agency_manager'] } },
+                { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+            ]
+        }).select('_id');
+        validBrandIds = allClients.map(c => c._id);
     } else {
-      brandQuery.isDirect = true;
-      if (user.role === 'commander_admin') {
-        brandQuery.createdBy = user._id;
-      }
+        const brandQuery = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+        if (isAgency) {
+            brandQuery.agencyId = user.agencyId || user._id;
+        } else {
+            brandQuery.isDirect = true;
+        }
+        const validBrands = await User.find(brandQuery).select('_id');
+        validBrandIds = validBrands.map(b => b._id);
     }
-    const validBrands = await User.find(brandQuery).select('_id');
-    const validBrandIds = validBrands.map(b => b._id);
 
     const query = { clientId: { $in: validBrandIds } };
     const clients = await ClientBenchmark.find(query).populate('clientId', 'name companyName industry');

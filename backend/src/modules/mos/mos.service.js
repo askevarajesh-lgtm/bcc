@@ -14,23 +14,50 @@ function normalizeScore(raw, min, max) {
 /**
  * Calculates scores for all active clients under an agency.
  */
-exports.calculateAgencyMOS = async (user) => {
+exports.calculateAgencyMOS = async (user, targetClientId = null) => {
   const isAgency = ['agency_super_admin', 'agency_manager'].includes(user.role);
-  const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-  
-  if (isAgency) {
-    query.agencyId = user.agencyId || user._id;
+  let brands = [];
+  const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user.role);
+
+  if (isSuperAdmin) {
+    brands = await User.find({
+      $or: [
+        { role: { $in: ['agency_super_admin', 'agency_manager'] } },
+        { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+      ]
+    });
+    brands.push(user);
   } else {
-    query.isDirect = true;
-    if (user.role === 'commander_admin') {
-      query.createdBy = user._id;
+    const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+    
+    if (isAgency) {
+      query.agencyId = user.agencyId || user._id;
+    } else {
+      query.isDirect = true;
+    }
+    
+    brands = await User.find(query);
+    
+    // Also include the agency itself so their own internal projects/integrations (like Askeva/Tunepath) are scored
+    if (isAgency) {
+      brands.push(user);
     }
   }
-  
-  // Get active brands for the agency (or all for global admin)
-  const brands = await User.find(query);
 
-  // Removed mock data injection that was causing ghost clients
+  if (targetClientId) {
+    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user.role);
+    if (isSuperAdmin) {
+      // Super admins can calculate for ANY client/agency
+      const targetUser = await User.findById(targetClientId);
+      if (targetUser) {
+        brands = [targetUser];
+      } else {
+        brands = [];
+      }
+    } else {
+      brands = brands.filter(b => b._id.toString() === targetClientId.toString());
+    }
+  }
 
   // Get current weights or use defaults
   const agencyIdForConfig = isAgency ? (user.agencyId || user._id) : user._id;
@@ -72,29 +99,81 @@ exports.calculateAgencyMOS = async (user) => {
       websiteScore = 0;
     }
 
-    // 2. SEO Score
+    // 2. SEO Score, 3. GEO Score, 4. AEO Score
     let seoScore = 0;
+    let geoScore = 0;
+    let aeoScore = 0;
+    
     try {
-      const SeoWebsite = mongoose.model('SeoWebsite');
-      const seoWebsite = await SeoWebsite.findOne({ clientId: brandId, isDeleted: { $ne: true } });
-      if (seoWebsite && seoWebsite.stats) {
-        if (seoWebsite.stats.lastAuditScore) {
-          seoScore = seoWebsite.stats.lastAuditScore;
-        } else if (seoWebsite.stats.avgVisibilityScore) {
-          seoScore = Math.min(100, Math.round(seoWebsite.stats.avgVisibilityScore * 100));
-        } else if (seoWebsite.stats.totalKeywords > 0) {
-          seoScore = 75 + Math.min(25, seoWebsite.stats.totalKeywords);
-        } else {
-          seoScore = 70;
+      const SemrushProject = mongoose.model('SemrushProject');
+      const OptimizationScore = mongoose.model('OptimizationScore');
+
+      const projects = await SemrushProject.find({ clientId: brandId, isActive: true });
+      const projectIds = projects.map(p => p._id);
+      
+      if (projectIds.length > 0) {
+        const scores = await OptimizationScore.find({ projectId: { $in: projectIds } }).sort({ createdAt: -1 });
+        
+        let totalSeo = 0, totalGeo = 0, totalAeo = 0;
+        let countSeo = 0, countGeo = 0, countAeo = 0;
+        
+        // We only take the latest score per project
+        const latestScoresMap = new Map();
+        for (const s of scores) {
+          if (!latestScoresMap.has(s.projectId.toString())) {
+            latestScoresMap.set(s.projectId.toString(), s);
+          }
         }
-      } else {
-        seoScore = 0;
+        
+        latestScoresMap.forEach(scoreDoc => {
+          if (scoreDoc.seoScore !== undefined) {
+            totalSeo += scoreDoc.seoScore;
+            countSeo++;
+          }
+          if (scoreDoc.geoScore !== undefined) {
+            totalGeo += scoreDoc.geoScore;
+            countGeo++;
+          }
+          if (scoreDoc.aeoScore !== undefined) {
+            totalAeo += scoreDoc.aeoScore;
+            countAeo++;
+          }
+        });
+
+        if (countSeo > 0) seoScore = Math.round(totalSeo / countSeo);
+        if (countGeo > 0) geoScore = Math.round(totalGeo / countGeo);
+        if (countAeo > 0) aeoScore = Math.round(totalAeo / countAeo);
       }
     } catch (e) {
       seoScore = 0;
+      geoScore = 0;
+      aeoScore = 0;
     }
 
-    // 3. Leads Score (using Deal model)
+    // 5. Performance Ads Score
+    let adsScore = 0;
+    try {
+      const PerformanceAd = mongoose.model('PerformanceAd');
+      const perfAd = await PerformanceAd.findOne({ agency: brandId });
+      
+      if (perfAd) {
+        const hasCampaigns = perfAd.activeCampaigns && perfAd.activeCampaigns.length > 0;
+        const metrics = perfAd.metrics || {};
+        const spend = parseFloat(metrics.adSpendMTD || 0);
+        const leads = parseInt(metrics.totalLeads || 0, 10);
+        
+        if (hasCampaigns || spend > 0) {
+          adsScore = 60; // Base active score
+          if (leads > 0) adsScore += Math.min(25, leads * 2);
+          if (metrics.roas && parseFloat(metrics.roas) > 0) adsScore += Math.min(15, parseFloat(metrics.roas) * 5);
+          adsScore = Math.min(100, Math.round(adsScore));
+        }
+      }
+    } catch (e) {
+      adsScore = 0;
+    }
+
+    // 6. Leads Score (using Deal model)
     let leadsScore = 0;
     try {
       const Deal = mongoose.model('Deal');
@@ -107,14 +186,12 @@ exports.calculateAgencyMOS = async (user) => {
         } else {
           leadsScore += Math.min(20, deals.length * 5);
         }
-      } else {
-        leadsScore = 0;
       }
     } catch (e) {
       leadsScore = 0;
     }
 
-    // 4. Revenue Score (using Invoice model)
+    // 7. Revenue Score (using Invoice model)
     let revenueScore = 0;
     try {
       const Invoice = mongoose.model('Invoice');
@@ -123,22 +200,19 @@ exports.calculateAgencyMOS = async (user) => {
         const paid = invoices.filter(i => i.paymentStatus === 'Paid' || i.invoiceStatus === 'Paid');
         revenueScore = Math.round((paid.length / invoices.length) * 100);
         revenueScore = Math.max(50, revenueScore);
-      } else {
-        revenueScore = 0;
       }
     } catch (e) {
       revenueScore = 0;
     }
 
-    // 5. Rest of the scores (Geo, Social, Ads, CX) are set to 0 until real integrations are built
-    const geoScore = 0;
+    // 8. Social & CX
     const socialScore = 0;
-    const adsScore = 0;
     const cxScore = 0;
 
     const rawScores = {
       website: websiteScore,
       seo: seoScore,
+      aeo: aeoScore,
       geo: geoScore,
       social: socialScore,
       ads: adsScore,

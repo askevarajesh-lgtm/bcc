@@ -6,12 +6,15 @@ import { RefreshCcw, Plus, ExternalLink, IndianRupee, Target, Users, Megaphone, 
 import { performanceAdsApi } from '../../api/performanceAdsApi';
 import api from '../../services/api';
 import { useGetClientsQuery } from '../../api/clientApi';
+import { useAuth } from '../../contexts/AuthContext';
 import CampaignBuilderWizard from './CampaignBuilderWizard';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const PerformanceAds = () => {
+  const { user } = useAuth();
+  const [adminClients, setAdminClients] = useState([]);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -35,13 +38,33 @@ const PerformanceAds = () => {
 
   // Fetch clients dynamically
   const { data: clientsData, isLoading: isLoadingClients } = useGetClientsQuery({});
-  const clients = clientsData?.data || [];
+  
+  useEffect(() => {
+    const fetchAdminClients = async () => {
+      if (['commander_admin', 'supreme_super_admin'].includes(user?.role)) {
+        try {
+          const [agenciesRes, brandsRes] = await Promise.all([
+            api.get('/agencies'),
+            api.get('/brands') // returns direct brands for admin
+          ]);
+          const agencies = (agenciesRes.data.data || []).map(a => ({ ...a, clientType: 'Agency' }));
+          const brands = (brandsRes.data.data || []).map(b => ({ ...b, clientType: 'Direct Brand' }));
+          setAdminClients([...agencies, ...brands]);
+        } catch (error) {
+          console.error("Failed to fetch admin clients", error);
+        }
+      }
+    };
+    fetchAdminClients();
+  }, [user]);
 
-
+  const clients = ['commander_admin', 'supreme_super_admin'].includes(user?.role) ? adminClients : (clientsData?.data || []);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (selectedClient) {
+      fetchDashboardData();
+    }
+  }, [selectedClient]);
 
   useEffect(() => {
     if (isAdAccountModalOpen && availableAdAccounts.length === 0) {
@@ -102,13 +125,15 @@ const PerformanceAds = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const res = await performanceAdsApi.getDashboardData();
+      const res = await performanceAdsApi.getDashboardData(selectedClient);
       if (res.success && res.data) {
         setData(res.data);
+      } else {
+        setData(null);
       }
 
       // Check Meta Integration Status
-      const intRes = await api.get('/integrations');
+      const intRes = await api.get('/integrations', { params: { clientId: selectedClient } });
       const intData = intRes.data;
       if (intData.success && intData.data && intData.data.integrations) {
         const metaInt = intData.data.integrations.find(i => i.type === 'meta_ads' && i.isActive);
@@ -148,7 +173,7 @@ const PerformanceAds = () => {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      const res = await performanceAdsApi.syncData();
+      const res = await performanceAdsApi.syncData(selectedClient);
       if (res.success) {
         setData(res.data);
         message.success('Performance data synchronized successfully!');
@@ -331,7 +356,15 @@ const PerformanceAds = () => {
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Select defaultValue="Genibox Client Admin" style={{ width: 220, height: 40 }} options={[{ value: 'Genibox Client Admin', label: 'Client: Genibox Client Admin' }]} />
+            <Select 
+              value={selectedClient} 
+              onChange={(val) => setSelectedClient(val)}
+              style={{ width: 220, height: 40 }} 
+              options={clients.map(c => ({ 
+                value: c._id, 
+                label: c.clientType ? `${c.clientType}: ${c.name || c.companyName}` : `Client: ${c.name || c.companyName}` 
+              }))} 
+            />
             <Button onClick={handleSync} loading={syncing} icon={<RefreshCcw size={14} />} style={{ borderRadius: 8, height: 40, fontWeight: 600 }}>Sync data</Button>
             {!isMetaConnected ? (
               <Button type="primary" onClick={handleConnectMeta} style={{ borderRadius: 8, background: '#1877F2', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Connect Meta Ads</Button>

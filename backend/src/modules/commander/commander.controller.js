@@ -80,31 +80,64 @@ exports.getCommandCenterData = async (req, res, next) => {
         };
       });
 
+    // Execution Activity (Tasks last 30 days) - Move this up so we can use it for MOS calculation
+    let taskQuery = { createdAt: { $gte: thirtyDaysAgo } };
+    if (req.user && req.user.role === 'commander_admin') {
+      taskQuery.tenantCompanyId = { $in: allRelatedUserIds };
+    }
+    const recentTasks = await Task.find(taskQuery);
+
     // Client MOS Leaderboard
     const topClients = activeClientsDocs.map(c => {
-      // Dynamic MOS calculation based on ID for deterministic pseudo-randomness
-      const baseMos = 65 + (c._id.toString().charCodeAt(0) % 30); 
+      const clientIdStr = c._id.toString();
+      
+      // SLA compliance for this client
+      const clientSlas = slas.filter(s => 
+        s.clientId?._id?.toString() === clientIdStr || 
+        s.clientId?.toString() === clientIdStr ||
+        s.agencyId?.toString() === clientIdStr
+      );
+      let slaScore = 100;
+      if (clientSlas.length > 0) {
+        const resolved = clientSlas.filter(s => s.status === 'Resolved').length;
+        slaScore = Math.round((resolved / clientSlas.length) * 100);
+      }
+
+      // Task completion for this client
+      const clientTasks = recentTasks.filter(t => t.tenantCompanyId?.toString() === clientIdStr);
+      let taskScore = 100;
+      if (clientTasks.length > 0) {
+        const completed = clientTasks.filter(t => ['done', 'completed', 'complete'].includes(t.status?.toLowerCase())).length;
+        taskScore = Math.round((completed / clientTasks.length) * 100);
+      }
+
+      // Real MOS is average of SLA and Task completion
+      const hasSla = clientSlas.length > 0;
+      const hasTask = clientTasks.length > 0;
+      
+      let realMos = 100; // Default to 100 if no data (perfect health)
+      if (hasSla && hasTask) {
+        realMos = Math.round((slaScore + taskScore) / 2);
+      } else if (hasSla) {
+        realMos = slaScore;
+      } else if (hasTask) {
+        realMos = taskScore;
+      }
+
       return {
         id: (c.companyName || c.name || 'C').substring(0, 2).toUpperCase(),
         name: c.companyName || c.name || 'Client',
-        industry: 'Digital',
-        mos: baseMos,
-        status: baseMos >= 80 ? 'healthy' : (baseMos >= 70 ? 'renewal' : 'at risk')
+        industry: c.industry || 'Digital',
+        mos: realMos,
+        status: realMos >= 80 ? 'healthy' : (realMos >= 70 ? 'renewal' : 'at risk')
       };
     }).sort((a, b) => b.mos - a.mos).slice(0, 7);
 
     // Avg MOS Score
     const avgMosScore = topClients.length > 0 
       ? Math.round(topClients.reduce((acc, curr) => acc + curr.mos, 0) / topClients.length)
-      : 85; // Fallback default
+      : 100; // Fallback default
 
-    // Execution Activity (Tasks last 30 days)
-    let taskQuery = { createdAt: { $gte: thirtyDaysAgo } };
-    if (req.user && req.user.role === 'commander_admin') {
-      taskQuery.tenantCompanyId = { $in: allRelatedUserIds };
-    }
-    const recentTasks = await Task.find(taskQuery);
-    
     // Group recent tasks into 4 weeks
     const week1Start = new Date(thirtyDaysAgo);
     const week2Start = new Date(thirtyDaysAgo.getTime() + 7 * 24 * 60 * 60 * 1000);

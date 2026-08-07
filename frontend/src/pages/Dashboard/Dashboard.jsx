@@ -102,7 +102,7 @@ const Dashboard = () => {
       {/* KPI Cards Row */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         {[
-          { label: 'ACTIVE CLIENTS', val: data.activeClients, sub: 'Current total', type: 'up', gradient: 'linear-gradient(145deg, rgba(59, 130, 246, 0.1), transparent)' },
+          { label: 'ACTIVE AGENCIES', val: data.activeClients, sub: 'Current total', type: 'up', gradient: 'linear-gradient(145deg, rgba(59, 130, 246, 0.1), transparent)' },
           ...(role === 'commander_admin' ? [] : [{ label: 'TOTAL MRR', val: '₹33.90 L', sub: '+12% vs last month', type: 'up', gradient: 'linear-gradient(145deg, rgba(16, 185, 129, 0.1), transparent)' }]),
           { label: 'AVG MOS SCORE', val: data.avgMosScore, sub: 'Across portfolio', type: 'up', isProgress: true, gradient: 'linear-gradient(145deg, rgba(139, 92, 246, 0.1), transparent)' },
           { label: 'SLA COMPLIANCE', val: `${data.slaCompliance}%`, sub: 'Resolved on time', type: 'down', gradient: 'linear-gradient(145deg, rgba(245, 158, 11, 0.1), transparent)' },

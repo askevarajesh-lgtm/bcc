@@ -1,8 +1,8 @@
 import api from '../services/api';
 
 export const mosApi = {
-  getMosDashboard: async () => {
-    const response = await api.get('/mos/dashboard');
+  getMosDashboard: async (clientId = 'all') => {
+    const response = await api.get('/mos/dashboard', { params: { clientId } });
     return response.data;
   },
 
@@ -11,8 +11,8 @@ export const mosApi = {
     return response.data;
   },
 
-  triggerRecalculation: async () => {
-    const response = await api.post('/mos/recalculate', {});
+  triggerRecalculation: async (clientId = 'all') => {
+    const response = await api.post('/mos/recalculate', { clientId });
     return response.data;
   },
 

@@ -50,7 +50,8 @@ exports.createProject = async (req, res) => {
       companyId: req.companyId,
       createdBy: req.user._id,
       domain,
-      name
+      name,
+      clientId: req.body.clientId || null
     });
 
     await project.save();
@@ -172,6 +173,33 @@ exports.deleteProject = async (req, res) => {
     res.status(200).json({ success: true, message: 'Project deleted' });
   } catch (error) {
     console.error('[Semrush Controller - deleteProject]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    const updates = req.body;
+    
+    // Prevent updating critical non-editable fields if any
+    delete updates._id;
+    delete updates.companyId;
+
+    const project = await SemrushProject.findOneAndUpdate(
+      { _id: id, companyId: req.companyId, isActive: true },
+      updates,
+      { new: true, runValidators: true }
+    );
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    res.status(200).json({ success: true, data: project });
+  } catch (error) {
+    console.error('[Semrush Controller - updateProject]', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

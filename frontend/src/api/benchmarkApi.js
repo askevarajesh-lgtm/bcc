@@ -24,3 +24,8 @@ export const createBenchmark = async (data) => {
     const response = await api.post('/benchmark', data);
     return response.data;
 };
+
+export const syncData = async () => {
+    const response = await api.post('/benchmark/sync');
+    return response.data;
+};

@@ -25,7 +25,7 @@ const SuperAdminSidebar = ({ collapsed, setCollapsed }) => {
     {
       key: '/superadmin/subscriptions',
       icon: getIcon(CreditCard),
-      label: 'Subscriptions & Billing',
+      label: 'Subscriptions & Plans',
     },
     {
       key: '/superadmin/integrations',

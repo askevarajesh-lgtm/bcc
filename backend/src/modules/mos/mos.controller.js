@@ -7,18 +7,44 @@ exports.getMosDashboard = async (req, res, next) => {
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const User = require('../auth/user.model');
     
-    // 1. Resolve valid brands for this user
-    const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
-    if (isAgency) {
-      query.agencyId = req.user.agencyId || req.user._id;
+    const { clientId } = req.query;
+
+    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+    
+    let validBrandIds = [];
+    if (isSuperAdmin) {
+      // Super admin sees all agencies and direct brands
+      const allClients = await User.find({
+        $or: [
+          { role: { $in: ['agency_super_admin', 'agency_manager'] } },
+          { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+        ]
+      }).select('_id');
+      validBrandIds = allClients.map(c => c._id.toString());
+      validBrandIds.push(req.user._id.toString());
     } else {
-      query.isDirect = true;
-      if (req.user.role === 'commander_admin') {
-        query.createdBy = req.user._id;
+      const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
+      if (isAgency) {
+        query.agencyId = req.user.agencyId || req.user._id;
+      } else {
+        query.isDirect = true;
+      }
+      const validBrands = await User.find(query).select('_id');
+      validBrandIds = validBrands.map(b => b._id.toString());
+
+      if (isAgency) {
+        validBrandIds.push(req.user._id.toString());
       }
     }
-    const validBrands = await User.find(query).select('_id');
-    const validBrandIds = validBrands.map(b => b._id);
+
+    if (clientId && clientId !== 'all') {
+      const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+      if (isSuperAdmin || validBrandIds.includes(clientId.toString())) {
+        validBrandIds = [clientId];
+      } else {
+        return res.status(403).json({ success: false, message: 'Unauthorized client access' });
+      }
+    }
 
     // Get current month results
     const monthYear = new Date().toISOString().substring(0, 7);
@@ -30,7 +56,8 @@ exports.getMosDashboard = async (req, res, next) => {
     
     // If no scores for this month yet, calculate them on the fly
     if (currentScores.length === 0) {
-      const calculated = await mosService.calculateAgencyMOS(req.user);
+      const targetClientId = (clientId && clientId !== 'all') ? clientId : null;
+      const calculated = await mosService.calculateAgencyMOS(req.user, targetClientId);
       currentScores = calculated.map(c => ({
         clientId: { _id: c.clientId, companyName: c.client },
         overallMos: c.overallMos,
@@ -90,6 +117,8 @@ exports.getMosDashboard = async (req, res, next) => {
           overall: score.overallMos,
           website: score.signals.website,
           seo: score.signals.seo,
+          aeo: score.signals.aeo || 0,
+          geo: score.signals.geo || 0,
           social: score.signals.social,
           ads: score.signals.ads,
           leads: score.signals.leads,
@@ -152,7 +181,9 @@ exports.updateMosConfig = async (req, res, next) => {
 // Manually trigger recalculation
 exports.triggerRecalculation = async (req, res, next) => {
   try {
-    const results = await mosService.calculateAgencyMOS(req.user);
+    const { clientId } = req.body;
+    const targetClientId = (clientId && clientId !== 'all') ? clientId : null;
+    const results = await mosService.calculateAgencyMOS(req.user, targetClientId);
     
     // Auto-trigger benchmark aggregation to keep data synced
     const benchmarkService = require('../benchmarking/benchmark.service');

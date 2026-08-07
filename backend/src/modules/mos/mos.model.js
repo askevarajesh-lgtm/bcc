@@ -5,11 +5,12 @@ const mosConfigSchema = new mongoose.Schema({
   weights: {
     website: { type: Number, default: 15 },
     seo: { type: Number, default: 25 },
+    aeo: { type: Number, default: 10 },
     geo: { type: Number, default: 10 },
     social: { type: Number, default: 10 },
     ads: { type: Number, default: 15 },
-    leads: { type: Number, default: 15 },
-    revenue: { type: Number, default: 10 }, // total is 100
+    leads: { type: Number, default: 10 },
+    revenue: { type: Number, default: 5 }, // total is 100
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
@@ -25,6 +26,7 @@ const mosScoreHistorySchema = new mongoose.Schema({
   signals: {
     website: { type: Number, default: 0 },
     seo: { type: Number, default: 0 },
+    aeo: { type: Number, default: 0 },
     geo: { type: Number, default: 0 },
     social: { type: Number, default: 0 },
     ads: { type: Number, default: 0 },

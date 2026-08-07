@@ -9,13 +9,21 @@ exports.getDashboard = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Agency ID missing from user token' });
     }
     
-    // Ensure agencyId is a valid ObjectId, otherwise it will crash mongoose
-    if (!mongoose.Types.ObjectId.isValid(agencyId)) {
-      // In development sandbox, some tokens might have non-objectId values
-      agencyId = '60d0fe4f5311236168a10000'; // fallback
+    let { clientId } = req.query;
+    
+    // Check if the user is a super admin
+    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+    
+    // If clientId is not provided or it's not a super admin requesting a specific client, use the user's default agency
+    let targetAgencyId = agencyId;
+    if (clientId && isSuperAdmin) {
+      targetAgencyId = clientId;
+    } else if (clientId && ['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role)) {
+       // A brand can only query their own data
+       targetAgencyId = req.user._id;
     }
 
-    const dashboard = await performanceAdsService.getPerformanceAdsDashboard(agencyId);
+    const dashboard = await performanceAdsService.getPerformanceAdsDashboard(targetAgencyId);
     
     res.status(200).json({
       success: true,
@@ -34,12 +42,17 @@ exports.syncData = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Agency ID missing from user token' });
     }
     
-    // Ensure agencyId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(agencyId)) {
-      agencyId = '60d0fe4f5311236168a10000'; // fallback
+    let { clientId } = req.body;
+    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+    let targetAgencyId = agencyId;
+    
+    if (clientId && isSuperAdmin) {
+      targetAgencyId = clientId;
+    } else if (clientId && ['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role)) {
+       targetAgencyId = req.user._id;
     }
 
-    const dashboard = await performanceAdsService.syncPerformanceAds(agencyId);
+    const dashboard = await performanceAdsService.syncPerformanceAds(targetAgencyId);
     
     res.status(200).json({
       success: true,

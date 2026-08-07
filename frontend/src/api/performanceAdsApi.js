@@ -1,12 +1,13 @@
 import api from '../services/api';
 
 export const performanceAdsApi = {
-  getDashboardData: async () => {
-    const response = await api.get('/performance-ads/dashboard');
+  getDashboardData: async (clientId) => {
+    const params = clientId ? { clientId } : {};
+    const response = await api.get('/performance-ads/dashboard', { params });
     return response.data;
   },
-  syncData: async () => {
-    const response = await api.post('/performance-ads/sync');
+  syncData: async (clientId) => {
+    const response = await api.post('/performance-ads/sync', { clientId });
     return response.data;
   },
   addCampaign: async (campaignData) => {

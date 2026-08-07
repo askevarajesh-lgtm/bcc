@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Spin, Button, Row, Col, Modal, Form, Input, Checkbox, message, Table } from 'antd';
+import { Typography, Card, Spin, Button, Row, Col, Modal, Form, Input, Checkbox, message, Table, Select, Popconfirm, Space } from 'antd';
 import { motion } from 'framer-motion';
-import { Search, FolderPlus, MessageSquare, HeartPulse, Eye, MousePointer2, Link, Plus } from 'lucide-react';
+import { Search, FolderPlus, MessageSquare, HeartPulse, Eye, MousePointer2, Link, Plus, Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { semrushApi } from '../../api/semrushApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { useGetClientsQuery } from '../../api/clientApi';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -11,8 +14,34 @@ const SemrushDashboard = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+
+  const { user } = useAuth();
+  const [adminClients, setAdminClients] = useState([]);
+  const { data: clientsData } = useGetClientsQuery({});
+
+  useEffect(() => {
+    const fetchAdminClients = async () => {
+      if (['commander_admin', 'supreme_super_admin'].includes(user?.role)) {
+        try {
+          const [agenciesRes, brandsRes] = await Promise.all([
+            api.get('/agencies'),
+            api.get('/brands') // returns direct brands for admin
+          ]);
+          const agencies = (agenciesRes.data.data || []).map(a => ({ ...a, clientType: 'Agency' }));
+          const brands = (brandsRes.data.data || []).map(b => ({ ...b, clientType: 'Direct Brand' }));
+          setAdminClients([...agencies, ...brands]);
+        } catch (error) {
+          console.error("Failed to fetch admin clients", error);
+        }
+      }
+    };
+    fetchAdminClients();
+  }, [user]);
+
+  const clients = ['commander_admin', 'supreme_super_admin'].includes(user?.role) ? adminClients : (clientsData?.data || []);
 
   useEffect(() => {
     fetchProjects();
@@ -33,25 +62,63 @@ const SemrushDashboard = () => {
     }
   };
 
-  const handleCreateProject = async (values) => {
+  const handleCreateOrUpdateProject = async (values) => {
     try {
       setLoading(true);
-      const res = await semrushApi.createProject({
+      const payload = {
         domain: values.domain,
         name: values.name
-      });
+      };
+      if (values.clientId) {
+        payload.clientId = values.clientId;
+      }
+      
+      let res;
+      if (editingProject) {
+        res = await semrushApi.updateProject(editingProject._id, payload);
+      } else {
+        res = await semrushApi.createProject(payload);
+      }
+
       if (res.data.success) {
-        message.success('Project created successfully');
+        message.success(`Project ${editingProject ? 'updated' : 'created'} successfully`);
         setIsModalVisible(false);
+        setEditingProject(null);
         form.resetFields();
         fetchProjects();
       }
     } catch (error) {
       console.error(error);
-      message.error(error.response?.data?.message || 'Failed to create project');
+      message.error(error.response?.data?.message || `Failed to ${editingProject ? 'update' : 'create'} project`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteProject = async (id) => {
+    try {
+      setLoading(true);
+      const res = await semrushApi.deleteProject(id);
+      if (res.data.success) {
+        message.success('Project deleted successfully');
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to delete project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (project) => {
+    setEditingProject(project);
+    form.setFieldsValue({
+      name: project.name,
+      domain: project.domain,
+      clientId: project.clientId
+    });
+    setIsModalVisible(true);
   };
 
   const columns = [
@@ -115,6 +182,24 @@ const SemrushDashboard = () => {
       dataIndex: ['stats', 'backlinks'],
       key: 'backlinks',
       render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+          <Button type="text" icon={<Edit2 size={16} />} onClick={() => openEditModal(record)} />
+          <Popconfirm
+            title="Delete the project"
+            description="Are you sure to delete this project?"
+            onConfirm={() => handleDeleteProject(record._id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="text" danger icon={<Trash2 size={16} />} />
+          </Popconfirm>
+        </div>
+      )
     }
   ];
 
@@ -131,7 +216,7 @@ const SemrushDashboard = () => {
           </div>
         </div>
         <div>
-          <Button type="primary" icon={<FolderPlus size={16} />} onClick={() => setIsModalVisible(true)} size="large" style={{ borderRadius: '8px' }}>
+          <Button type="primary" icon={<FolderPlus size={16} />} onClick={() => { setEditingProject(null); form.resetFields(); setIsModalVisible(true); }} size="large" style={{ borderRadius: '8px' }}>
             Create Folder
           </Button>
         </div>
@@ -158,15 +243,15 @@ const SemrushDashboard = () => {
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FolderPlus size={20} />
-            <span style={{ fontSize: '18px', fontWeight: 600 }}>Create folder</span>
+            <span style={{ fontSize: '18px', fontWeight: 600 }}>{editingProject ? 'Edit folder' : 'Create folder'}</span>
           </div>
         }
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={() => { setIsModalVisible(false); setEditingProject(null); }}
         footer={null}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateProject} style={{ marginTop: '24px' }}>
+        <Form form={form} layout="vertical" onFinish={handleCreateOrUpdateProject} style={{ marginTop: '24px' }}>
           <Form.Item
             label={<Text strong>Website</Text>}
             name="domain"
@@ -184,15 +269,31 @@ const SemrushDashboard = () => {
             <Input placeholder="Enter a business name" size="large" />
           </Form.Item>
 
+          {['commander_admin', 'supreme_super_admin'].includes(user?.role) && (
+            <Form.Item
+              label={<Text strong>Client / Direct Brand</Text>}
+              name="clientId"
+              rules={[{ required: true, message: 'Please select a client or direct brand' }]}
+            >
+              <Select placeholder="Select a client or brand" size="large">
+                {clients.map(c => (
+                  <Select.Option key={c._id} value={c._id}>
+                    {c.clientType ? `${c.clientType}: ${c.name || c.companyName}` : `${c.name || c.companyName}`}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
           <Form.Item name="share" valuePropName="checked">
             <Checkbox>Share once created</Checkbox>
           </Form.Item>
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
             <Button type="primary" htmlType="submit" size="large" style={{ background: '#18181b', borderRadius: '6px' }}>
-              Create
+              {editingProject ? 'Update' : 'Create'}
             </Button>
-            <Button onClick={() => setIsModalVisible(false)} size="large" style={{ borderRadius: '6px' }}>
+            <Button onClick={() => { setIsModalVisible(false); setEditingProject(null); }} size="large" style={{ borderRadius: '6px' }}>
               Cancel
             </Button>
           </div>

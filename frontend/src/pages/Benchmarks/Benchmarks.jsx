@@ -1,23 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Select, Button, Row, Col, Table, Tag, Skeleton, message, Drawer, Form, InputNumber } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Minus, Plus } from 'lucide-react';
-import { getDashboardData, getTableData, getIndustries } from '../../api/benchmarkApi';
+import { getDashboardData, getTableData, getIndustries, syncData } from '../../api/benchmarkApi';
 import { useGetCompaniesDropdownQuery } from '../../api/companyApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Benchmarks = () => {
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [tableData, setTableData] = useState([]);
   const [industries, setIndustries] = useState(['All Industries']);
   const [selectedIndustry, setSelectedIndustry] = useState('All Industries');
-  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedClient, setSelectedClient] = useState('all');
+  const { user } = useAuth();
+  const [adminClients, setAdminClients] = useState([]);
 
   const { data: companiesData, isLoading: isLoadingCompanies } = useGetCompaniesDropdownQuery({});
-  const clients = companiesData?.data?.companies || companiesData?.data || [];
+  
+  useEffect(() => {
+    const fetchAdminClients = async () => {
+      if (['commander_admin', 'supreme_super_admin'].includes(user?.role)) {
+        try {
+          const [agenciesRes, brandsRes] = await Promise.all([
+            api.get('/agencies'),
+            api.get('/brands') // returns direct brands for admin
+          ]);
+          const agencies = (agenciesRes.data.data || []).map(a => ({ ...a, clientType: 'Agency' }));
+          const brands = (brandsRes.data.data || []).map(b => ({ ...b, clientType: 'Direct Brand' }));
+          setAdminClients([...agencies, ...brands]);
+        } catch (error) {
+          console.error("Failed to fetch admin clients", error);
+        }
+      }
+    };
+    fetchAdminClients();
+  }, [user]);
+
+  const clients = ['commander_admin', 'supreme_super_admin'].includes(user?.role) ? adminClients : (companiesData?.data?.companies || companiesData?.data || []);
 
   // Helper to map 0-100 score to radar chart coordinates
   const getRadarPoint = (score, angleDeg) => {
@@ -126,6 +151,24 @@ const Benchmarks = () => {
   };
 
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const res = await syncData();
+      if (res.status === 'success') {
+        message.success(res.message || 'Benchmarks synced successfully');
+        fetchData();
+      } else {
+        message.error('Failed to sync benchmarks');
+      }
+    } catch (error) {
+      console.error(error);
+      message.error('Error syncing benchmarks');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const columns = [
     { title: 'Client', dataIndex: 'client', key: 'client', render: (text) => <Text style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{text}</Text> },
     { title: 'Industry', dataIndex: 'industry', key: 'industry', render: (text) => <Text type="secondary">{text}</Text> },
@@ -159,19 +202,30 @@ const Benchmarks = () => {
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <Select 
-            placeholder="Select Client"
-            value={selectedClient || undefined} 
+            value={selectedClient} 
             onChange={setSelectedClient} 
             style={{ width: 220, height: 40 }} 
             className="custom-select"
-            allowClear
             loading={isLoadingCompanies}
           >
-            {clients.map(c => <Option key={c._id} value={c._id}>{c.companyName || c.name}</Option>)}
+            <Option value="all">All Clients</Option>
+            {clients.map(c => (
+              <Option key={c._id} value={c._id}>
+                {c.clientType ? `${c.clientType}: ${c.companyName || c.name}` : `${c.companyName || c.name}`}
+              </Option>
+            ))}
           </Select>
           <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
             {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
           </Select>
+          <Button 
+            icon={<RefreshCw size={16} />} 
+            onClick={handleSync} 
+            loading={syncing}
+            style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+          >
+            Sync Data
+          </Button>
         </div>
       </motion.div>
 

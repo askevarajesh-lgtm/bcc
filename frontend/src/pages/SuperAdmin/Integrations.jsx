@@ -1,10 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Card, Switch, Button, Tag, Avatar, message } from 'antd';
 import { motion } from 'framer-motion';
-import { Settings, ExternalLink, Link2, Search } from 'lucide-react';
+import { Search, MessageSquare, Smartphone, Mail, Phone, Globe, MonitorPlay, Users, CreditCard, UserPlus } from 'lucide-react';
 import api from '../../services/api';
 
 const { Title, Text } = Typography;
+
+const ALL_INTEGRATIONS = [
+  {
+    type: 'whatsapp',
+    name: 'WhatsApp',
+    category: 'Communication',
+    description: 'Send invoices, reminders, and notifications via WhatsApp Business API',
+    icon: <MessageSquare size={24} />,
+    bg: '#25D366',
+    color: '#fff'
+  },
+  {
+    type: 'sms',
+    name: 'SMS',
+    category: 'Communication',
+    description: 'Send SMS notifications and payment reminders to clients',
+    icon: <Smartphone size={24} />,
+    bg: '#4A90E2',
+    color: '#fff'
+  },
+  {
+    type: 'email',
+    name: 'Email (SendPulse)',
+    category: 'Communication',
+    description: 'Send invoices, reports, and notifications via SendPulse email service',
+    icon: <Mail size={24} />,
+    bg: '#FF6B6B',
+    color: '#fff'
+  },
+  {
+    type: 'ivr',
+    name: 'IVR Integration',
+    category: 'Communication',
+    description: 'Cloud telephony and IVR services setup for voice calls',
+    icon: <Phone size={24} />,
+    bg: '#F39C12',
+    color: '#fff'
+  },
+  {
+    type: 'website',
+    name: 'Lead Management Integration',
+    category: 'Marketing',
+    description: 'Configure and manage lead integrations from Website forms and WhatsApp',
+    icon: <Globe size={24} />,
+    bg: '#34495E',
+    color: '#fff'
+  },
+  {
+    type: 'meta_ads',
+    name: 'Meta Ads Integration',
+    category: 'Marketing',
+    description: 'Connect and manage Meta (Facebook/Instagram) ad campaigns',
+    icon: <MonitorPlay size={24} />,
+    bg: '#1877F2',
+    color: '#fff'
+  },
+  {
+    type: 'facebook_leads',
+    name: 'Facebook Leads',
+    category: 'Marketing',
+    description: 'Sync leads directly from Facebook Lead Ads to your CRM',
+    icon: <Users size={24} />,
+    bg: '#1877F2',
+    color: '#fff'
+  },
+  {
+    type: 'payment',
+    name: 'Payment Integration',
+    category: 'Finance',
+    description: 'Configure QR codes and payment links for your organization',
+    icon: <CreditCard size={24} />,
+    bg: '#2ECC71',
+    color: '#fff'
+  },
+  {
+    type: 'ekta',
+    name: 'Ekta HR Integration',
+    category: 'HR Management',
+    description: 'Sync employee data and attendance info with Ekta HR management system',
+    icon: <UserPlus size={24} />,
+    bg: '#9B59B6',
+    color: '#fff'
+  }
+];
 
 const Integrations = () => {
   const [integrations, setIntegrations] = useState([]);
@@ -26,9 +110,23 @@ const Integrations = () => {
     fetchIntegrations();
   }, []);
 
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleToggleStatus = async (integrationObj, currentStatus) => {
     try {
-      await api.put(`/integrations/${id}`, { status: !currentStatus });
+      let url = `/integrations`;
+      let method = 'post';
+      let payload = { 
+        type: integrationObj.type, 
+        name: integrationObj.name, 
+        isActive: !currentStatus 
+      };
+
+      if (integrationObj._id && !integrationObj._id.startsWith('dummy')) {
+        url = `/integrations/${integrationObj._id}`;
+        method = 'put';
+        payload = { isActive: !currentStatus };
+      }
+
+      await api[method](url, payload);
       message.success(`Integration ${!currentStatus ? 'enabled' : 'disabled'}`);
       fetchIntegrations();
     } catch (error) {
@@ -36,8 +134,25 @@ const Integrations = () => {
     }
   };
 
+  // Merge default integrations with database integrations
+  const mergedIntegrations = ALL_INTEGRATIONS.map(defaultInt => {
+    const dbInt = integrations.find(i => i.type === defaultInt.type);
+    return {
+      ...defaultInt,
+      ...dbInt, // overwrite defaults if it exists in db
+      _id: dbInt?._id || `dummy-${defaultInt.type}`,
+      isActive: dbInt ? (dbInt.isActive || dbInt.status) : false,
+      name: dbInt?.name || defaultInt.name,
+      category: defaultInt.category, // always use default category
+      description: dbInt?.description || defaultInt.description,
+      icon: defaultInt.icon,
+      bg: defaultInt.bg,
+      color: defaultInt.color
+    };
+  });
+
   // Group by category
-  const categoriesMap = integrations.reduce((acc, integration) => {
+  const categoriesMap = mergedIntegrations.reduce((acc, integration) => {
     if (!acc[integration.category]) {
       acc[integration.category] = [];
     }
@@ -72,7 +187,7 @@ const Integrations = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
         {integrationCategories.length === 0 && !loading && (
-          <Text type="secondary">No integrations found in the database.</Text>
+          <Text type="secondary">No integrations found.</Text>
         )}
         
         {integrationCategories.map((categoryGroup, idx) => (
@@ -80,13 +195,13 @@ const Integrations = () => {
             <Title level={4} style={{ marginBottom: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{categoryGroup.category}</Title>
             <Row gutter={[24, 24]}>
               {categoryGroup.items.map((integration, index) => (
-                <Col xs={24} md={12} xl={8} key={integration._id}>
+                <Col xs={24} md={12} xl={8} key={integration._id || index}>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (idx * 0.1) + (index * 0.05) }}>
                     <Card 
                       className="glassmorphism hover-lift"
                       style={{ 
                         borderRadius: 16, 
-                        border: integration.status ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)', 
+                        border: integration.isActive ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)', 
                         background: 'var(--bg-secondary)',
                       }}
                       bodyStyle={{ padding: 24 }}
@@ -96,8 +211,8 @@ const Integrations = () => {
                           <Avatar 
                             size={48} 
                             style={{ 
-                              background: integration.bg || integration.color || '#ccc', 
-                              color: integration.bg ? integration.color : '#fff',
+                              background: integration.bg || '#ccc', 
+                              color: integration.color || '#fff',
                               fontWeight: 800,
                               fontSize: 20,
                               borderRadius: 12
@@ -109,25 +224,20 @@ const Integrations = () => {
                             <Text style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>
                               {integration.name}
                             </Text>
-                            <Tag color={integration.status ? 'green' : 'default'} style={{ borderRadius: 12 }}>
-                              {integration.status ? 'Connected' : 'Disconnected'}
+                            <Tag color={integration.isActive ? 'green' : 'default'} style={{ borderRadius: 12 }}>
+                              {integration.isActive ? 'Connected' : 'Disconnected'}
                             </Tag>
                           </div>
                         </div>
                         <Switch 
-                          checked={integration.status} 
-                          onChange={() => handleToggleStatus(integration._id, integration.status)}
+                          checked={integration.isActive} 
+                          onChange={() => handleToggleStatus(integration, integration.isActive)}
                         />
                       </div>
                       
                       <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14, minHeight: 44 }}>
                         {integration.description}
                       </Text>
-
-                      <div style={{ display: 'flex', gap: 12, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
-                        <Button type="text" icon={<Settings size={16} />} style={{ flex: 1, fontWeight: 600, color: 'var(--text-secondary)' }}>Configure</Button>
-                        <Button type="text" icon={<ExternalLink size={16} />} style={{ flex: 1, fontWeight: 600, color: 'var(--text-secondary)' }}>Docs</Button>
-                      </div>
                     </Card>
                   </motion.div>
                 </Col>
@@ -141,3 +251,4 @@ const Integrations = () => {
 };
 
 export default Integrations;
+

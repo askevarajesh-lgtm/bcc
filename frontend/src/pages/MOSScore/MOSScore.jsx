@@ -5,6 +5,9 @@ import { Download, SlidersHorizontal, ArrowUpRight, ArrowDownRight, Zap, Activit
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { mosApi } from '../../api/mosApi';
+import { useGetClientsQuery } from '../../api/clientApi';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -18,15 +21,41 @@ const MOSScore = () => {
   const [actionPlanContent, setActionPlanContent] = useState(null);
   const [actionPlanDrawerVisible, setActionPlanDrawerVisible] = useState(false);
   const [activePlanClientName, setActivePlanClientName] = useState('');
+  
+  const [selectedClient, setSelectedClient] = useState('all');
+  const { user } = useAuth();
+  const { data: clientsData } = useGetClientsQuery({});
+  const [adminClients, setAdminClients] = useState([]);
+
+  useEffect(() => {
+    const fetchAdminClients = async () => {
+      if (['commander_admin', 'supreme_super_admin'].includes(user?.role)) {
+        try {
+          const [agenciesRes, brandsRes] = await Promise.all([
+            api.get('/agencies'),
+            api.get('/brands') // returns direct brands for admin
+          ]);
+          const agencies = (agenciesRes.data.data || []).map(a => ({ ...a, clientType: 'Agency' }));
+          const brands = (brandsRes.data.data || []).map(b => ({ ...b, clientType: 'Direct Brand' }));
+          setAdminClients([...agencies, ...brands]);
+        } catch (error) {
+          console.error("Failed to fetch admin clients", error);
+        }
+      }
+    };
+    fetchAdminClients();
+  }, [user]);
+
+  const clientList = ['commander_admin', 'supreme_super_admin'].includes(user?.role) ? adminClients : (clientsData?.data || []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedClient]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await mosApi.getMosDashboard();
+      const res = await mosApi.getMosDashboard(selectedClient);
       if (res.success) {
         setDashboardData(res.data);
       }
@@ -40,7 +69,7 @@ const MOSScore = () => {
   const handleRecalculate = async () => {
     setRecalculating(true);
     try {
-      await mosApi.triggerRecalculation();
+      await mosApi.triggerRecalculation(selectedClient);
       message.success('Recalculation complete');
       fetchData();
     } catch (error) {
@@ -137,13 +166,15 @@ const MOSScore = () => {
   const signalCols = [
     { title: 'Client', dataIndex: 'client', key: 'client', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
     { title: 'Overall', dataIndex: 'overall', key: 'overall', render: val => <Tag style={{ borderRadius: 12, border: '1px solid', color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', background: 'transparent' }}>{val}</Tag> },
-    { title: 'Website', dataIndex: 'website', key: 'website', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'SEO/GEO', dataIndex: 'seo', key: 'seo', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'Social', dataIndex: 'social', key: 'social', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'Ads', dataIndex: 'ads', key: 'ads', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'Leads', dataIndex: 'leads', key: 'leads', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'Revenue', dataIndex: 'rev', key: 'rev', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
-    { title: 'CX', dataIndex: 'cx', key: 'cx', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val}</span> },
+    { title: 'Website', dataIndex: 'website', key: 'website', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'SEO', dataIndex: 'seo', key: 'seo', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'AEO', dataIndex: 'aeo', key: 'aeo', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'GEO', dataIndex: 'geo', key: 'geo', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'Social', dataIndex: 'social', key: 'social', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'Ads', dataIndex: 'ads', key: 'ads', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'Leads', dataIndex: 'leads', key: 'leads', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'Revenue', dataIndex: 'rev', key: 'rev', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
+    { title: 'CX', dataIndex: 'cx', key: 'cx', render: val => <span style={{ color: val >= 70 ? 'var(--accent-primary)' : val >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)', fontWeight: 600 }}>{val || 0}</span> },
     { title: 'MoM', dataIndex: 'mom', key: 'mom', render: val => <span style={{ color: val.includes('+') ? 'var(--accent-primary)' : val.includes('-') ? 'var(--accent-danger)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', fontWeight: 700 }}>{val.includes('+') ? <ArrowUpRight size={14}/> : val.includes('-') ? <ArrowDownRight size={14}/> : '—'} {val.replace('+', '').replace('-', '')}</span> },
     { title: 'Action', key: 'action', render: (_, record) => <a href="/clients/portal" style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>View <ArrowUpRight size={14}/></a> },
   ];
@@ -169,8 +200,20 @@ const MOSScore = () => {
           <Text type="secondary" style={{ fontWeight: 500 }}>Composite health index — the single number that tells you everything.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<RefreshCw size={16} />} loading={recalculating} onClick={handleRecalculate} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Recalculate</Button>
-          <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export All Scores</Button>
+          <Select 
+            value={selectedClient} 
+            onChange={(val) => setSelectedClient(val)}
+            style={{ width: 220, height: 40 }} 
+          >
+            <Option value="all">All Clients</Option>
+            {clientList.map(c => (
+              <Option key={c._id} value={c._id}>
+                {c.clientType ? `${c.clientType}: ${c.name || c.companyName}` : `${c.name || c.companyName}`}
+              </Option>
+            ))}
+          </Select>
+          <Button icon={<RefreshCw size={16} />} loading={recalculating} onClick={handleRecalculate} style={{ borderRadius: 8, height: 40, fontWeight: 600, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}>Recalculate</Button>
+          <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', fontWeight: 600, border: 'none', boxShadow: 'var(--shadow-md)' }}>Export All Scores</Button>
         </div>
       </motion.div>
 
