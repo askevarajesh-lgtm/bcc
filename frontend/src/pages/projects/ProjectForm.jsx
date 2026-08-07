@@ -543,6 +543,7 @@ const ProjectForm = () => {
           initialValues={{
             status: "created",
             isActive: true, // Default to active for new projects
+            startDate: dayjs(), // Default start date to today
           }}
         >
           <Form.Item
@@ -1027,9 +1028,26 @@ const ProjectForm = () => {
             <DatePicker
               style={{ width: "100%" }}
               placeholder="Select start date"
-              disabledDate={(current) =>
-                current && current < dayjs().startOf("day")
-              }
+              onChange={(date) => {
+                if (date && selectedInvoiceItem) {
+                  const handlingDuration = selectedInvoiceItem.handlingDuration || "";
+                  const { amount, unit } = parseHandlingDuration(handlingDuration);
+                  if (amount > 0) {
+                    const newEndDate = date.add(amount, unit);
+                    const newRenewalDate = newEndDate.add(1, "day");
+                    form.setFieldsValue({
+                      endDate: newEndDate,
+                      renewalDate: newRenewalDate,
+                    });
+                  } else {
+                    const newRenewalDate = date.add(1, "day");
+                    form.setFieldsValue({
+                      endDate: date,
+                      renewalDate: newRenewalDate,
+                    });
+                  }
+                }
+              }}
             />
           </Form.Item>
 
@@ -1066,9 +1084,15 @@ const ProjectForm = () => {
               placeholder="Select end date"
               disabledDate={(current) => {
                 const startDate = form.getFieldValue("startDate");
-                if (!startDate)
-                  return current && current < dayjs().startOf("day");
+                if (!startDate) return false;
                 return current && current < dayjs(startDate).startOf("day");
+              }}
+              onChange={(date) => {
+                if (date) {
+                  form.setFieldsValue({
+                    renewalDate: date.add(1, "day"),
+                  });
+                }
               }}
             />
           </Form.Item>
