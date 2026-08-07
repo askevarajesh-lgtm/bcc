@@ -13,6 +13,7 @@ const getAllIntegrations = async (req, res) => {
     const integrations = await integrationService.getAllIntegrations(
       companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Integrations retrieved successfully", {
       integrations,
@@ -32,6 +33,7 @@ const createIntegration = async (req, res) => {
       req.body,
       req.companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Integration created successfully", {
       integration,
@@ -48,6 +50,7 @@ const updateIntegration = async (req, res) => {
       req.body,
       req.companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Integration updated successfully", {
       integration,
@@ -63,6 +66,8 @@ const sendMessage = async (req, res) => {
       req.params.id,
       req.body,
       req.companyId,
+      req.user.role,
+      req.user,
     );
     return sendSuccess(res, result.message, {
       integrationType: result.integrationType,
@@ -79,6 +84,7 @@ const fetchWhatsAppTemplates = async (req, res) => {
       req.params.id,
       req.companyId,
       req.user.role,
+      req.user,
     );
 
     // If no templates were found but no error was thrown, return empty array with info message
@@ -105,6 +111,7 @@ const validateEktaApi = async (req, res) => {
       req.body,
       req.companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Ekta API validated successfully", { integration });
   } catch (error) {
@@ -119,6 +126,7 @@ const syncEktaStaff = async (req, res) => {
       req.body,
       req.companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Ekta Staff sync started", result);
   } catch (error) {
@@ -133,6 +141,7 @@ const syncEktaAttendance = async (req, res) => {
       req.body,
       req.companyId,
       req.user.role,
+      req.user,
     );
     return sendSuccess(res, "Ekta Attendance sync started", result);
   } catch (error) {

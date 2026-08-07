@@ -28,6 +28,24 @@ export const AuthProvider = ({ children }) => {
     return [];
   });
 
+  // Package-level integration entitlements (Layer 2 -- see
+  // backend/src/utils/integrationAccess.js). Mirrors `features` above:
+  // sourced from `user.integrations`, which the backend already resolves
+  // (own snapshot, or the agency/brand's effective package) in
+  // auth.controller.js signin/me/impersonate.
+  const [integrations, setIntegrations] = useState(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.integrations || [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
   useEffect(() => {
     if (role) {
       localStorage.setItem('userRole', role);
@@ -40,6 +58,7 @@ export const AuthProvider = ({ children }) => {
     setUser(user);
     setRole(user.role);
     setFeatures(user.features || []);
+    setIntegrations(user.integrations || []);
     localStorage.setItem('user', JSON.stringify(user));
     window.dispatchEvent(new Event('user-updated'));
     
@@ -64,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setRole(null);
     setFeatures([]);
+    setIntegrations([]);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('original_token');
@@ -73,7 +93,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, role, features, setFeatures, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, role, features, setFeatures, integrations, setIntegrations, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
