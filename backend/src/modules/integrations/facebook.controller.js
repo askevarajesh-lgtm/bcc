@@ -198,5 +198,143 @@ exports.getLogs = async (req, res, next) => {
 };
 
 exports.syncLeads = async (req, res, next) => {
-  res.status(200).json({ success: true, data: { syncedCount: 0, duplicateCount: 0 } });
+  try {
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const { pageId, formId } = req.body;
+    
+    const targetId = formId || pageId;
+    if (!targetId) {
+      return res.status(400).json({ success: false, message: 'pageId or formId is required to sync leads' });
+    }
+
+    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    if (!integration || !integration.config || !integration.config.accessToken) {
+      return res.status(404).json({ success: false, message: 'Facebook integration not found or disconnected' });
+    }
+
+    const { accessToken } = integration.config;
+    let targetAccessToken = accessToken;
+
+    // If a pageId is known, try to get its specific page access token for better permissions
+    if (pageId) {
+      try {
+        const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+          params: { access_token: accessToken, fields: 'id,access_token' }
+        });
+        const page = pagesRes.data.data.find(p => p.id === pageId);
+        if (page && page.access_token) {
+          targetAccessToken = page.access_token;
+        }
+      } catch (err) {
+        console.error('Error fetching page access token, falling back to user token', err.message);
+      }
+    }
+
+    // Fetch leads from Graph API
+    let leadsData = [];
+    try {
+      if (formId) {
+        // If formId is explicitly provided, fetch leads for that form
+        const leadsRes = await axios.get(`https://graph.facebook.com/v18.0/${formId}/leads`, {
+          params: { access_token: targetAccessToken, limit: 100 }
+        });
+        if (leadsRes.data && leadsRes.data.data) {
+          leadsData = leadsRes.data.data;
+        }
+      } else if (pageId) {
+        // If only pageId is provided, fetch all leadgen forms for the page, then fetch leads for each form
+        const formsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/leadgen_forms`, {
+          params: { access_token: targetAccessToken, limit: 100 }
+        });
+        
+        if (formsRes.data && formsRes.data.data) {
+          const forms = formsRes.data.data;
+          // Fetch leads for each form
+          for (const form of forms) {
+            try {
+              const leadsRes = await axios.get(`https://graph.facebook.com/v18.0/${form.id}/leads`, {
+                params: { access_token: targetAccessToken, limit: 100 }
+              });
+              if (leadsRes.data && leadsRes.data.data) {
+                // Attach form_id to leads just in case it's missing in Facebook's response
+                const formsLeads = leadsRes.data.data.map(l => ({ ...l, form_id: form.id }));
+                leadsData = leadsData.concat(formsLeads);
+              }
+            } catch (formLeadsErr) {
+              console.error(`Error fetching leads for form ${form.id}:`, formLeadsErr.response?.data || formLeadsErr.message);
+              // Continue to the next form even if one fails
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Facebook Graph API error fetching leads or forms:', err.response?.data || err.message);
+      return res.status(500).json({ success: false, message: 'Failed to fetch leads from Facebook', error: err.response?.data });
+    }
+
+    const Lead = require('../leads/lead.model');
+    let syncedCount = 0;
+    let duplicateCount = 0;
+    
+    for (const fbLead of leadsData) {
+      const leadgenId = fbLead.id;
+      
+      // Check for duplicate
+      const existing = await Lead.findOne({ 
+        companyId, 
+        'customData.leadgenId': leadgenId 
+      });
+      
+      if (existing) {
+        duplicateCount++;
+        continue;
+      }
+      
+      // Map Facebook lead field_data to our model
+      let fullName = 'Facebook Lead';
+      let email = '';
+      let phoneNumber = '';
+      let companyName = '';
+      
+      if (Array.isArray(fbLead.field_data)) {
+        fbLead.field_data.forEach(field => {
+          const name = field.name.toLowerCase();
+          const val = field.values && field.values.length > 0 ? field.values[0] : '';
+          
+          if (name === 'full_name' || name === 'name') fullName = val;
+          else if (name === 'email') email = val;
+          else if (name === 'phone_number' || name === 'phone') phoneNumber = val;
+          else if (name === 'company_name' || name === 'company') companyName = val;
+        });
+      }
+      
+      await Lead.create({
+        companyId,
+        createdBy: req.user ? req.user._id : null,
+        fullName: fullName || 'Unknown',
+        email,
+        phoneNumber,
+        companyName,
+        source: 'Facebook Lead Ads',
+        status: 'new',
+        customData: {
+          leadgenId,
+          formId: fbLead.form_id || formId,
+          pageId: pageId,
+          createdTime: fbLead.created_time
+        },
+        activityLogs: [{ message: 'Imported from Facebook Lead Ads' }]
+      });
+      
+      syncedCount++;
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      data: { syncedCount, duplicateCount } 
+    });
+  } catch (error) {
+    console.error('Sync Leads Error:', error);
+    next(error);
+  }
 };

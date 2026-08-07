@@ -71,7 +71,7 @@ const PerformanceAds = () => {
       const fetchAccounts = async () => {
         setIsFetchingAccounts(true);
         try {
-          const res = await api.get('/integrations/meta/ad-accounts');
+          const res = await api.get(`/integrations/meta/ad-accounts?clientId=${selectedClient}`);
           if (res.data.success) {
             setAvailableAdAccounts(res.data.data);
             setSelectedAdAccountIds(adAccounts.map(a => a.id));
@@ -102,7 +102,7 @@ const PerformanceAds = () => {
     }));
     setIsSavingAccounts(true);
     try {
-      const res = await api.post('/integrations/meta/ad-accounts', { selectedAdAccounts: selectedAccounts });
+      const res = await api.post(`/integrations/meta/ad-accounts?clientId=${selectedClient}`, { selectedAdAccounts: selectedAccounts });
       if (res.data.success) {
         message.success('Ad accounts saved successfully!');
         setAdAccounts(selectedAccounts);
@@ -157,8 +157,11 @@ const PerformanceAds = () => {
 
   const handleConnectMeta = async () => {
     try {
+      if (!selectedClient) {
+        return message.warning('Please select a client first');
+      }
       const returnUrl = encodeURIComponent(window.location.pathname);
-      const res = await api.get(`/integrations/meta/auth?returnUrl=${returnUrl}`);
+      const res = await api.get(`/integrations/meta/auth?returnUrl=${returnUrl}&clientId=${selectedClient}`);
       if (res.data.success && res.data.url) {
         window.location.href = res.data.url;
       } else {
@@ -193,13 +196,13 @@ const PerformanceAds = () => {
         ...values,
         targeting: { geo_locations: { countries: [values.targetCountry || 'IN'] } }
       };
-      const res = await performanceAdsApi.createMetaCampaign(payload);
-      if (res.success) {
+      const res = await api.post(`/integrations/meta/campaigns?clientId=${selectedClient}`, payload);
+      if (res.data.success) {
         message.success('Campaign created successfully on Meta!');
         setIsCampaignModalOpen(false);
         handleSync(); // Sync data to pull the newly created campaign
       } else {
-        message.error('Failed to create campaign: ' + res.message);
+        message.error('Failed to create campaign: ' + res.data.message);
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -210,7 +213,7 @@ const PerformanceAds = () => {
   };
   const handleDisconnectMeta = async () => {
     try {
-      const res = await api.delete('/integrations/meta');
+      const res = await api.delete(`/integrations/meta?clientId=${selectedClient}`);
       if (res.data.success) {
         setIsMetaConnected(false);
         setMetaIntegration(null);
