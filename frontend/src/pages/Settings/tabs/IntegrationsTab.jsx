@@ -313,6 +313,13 @@ const isWebsiteIntegrationConfigured = (integration) => {
   return String(c.apiKey || "").trim().length > 0;
 };
 
+// Roles that configure integrations/packages at the platform level. These
+// roles always see every integration card -- Package-level entitlement
+// (below) only restricts consuming agency/brand users, mirroring the exact
+// same bypass list used server-side (integration.service.js,
+// packageAccess.service.js).
+const PLATFORM_ADMIN_ROLES = ["super_admin", "supreme_super_admin", "commander_admin"];
+
 const IntegrationsTab = () => {
   const { data, refetch } = useGetIntegrationsQuery();
   const [updateIntegration] = useUpdateIntegrationMutation();
@@ -358,6 +365,16 @@ const IntegrationsTab = () => {
   const ektaIntegration = integrations.find((i) => i.type === "ekta");
   const paymentIntegration = integrations.find((i) => i.type === "payment");
   const isCommanderAdmin = role === "commander_admin";
+
+  // Package-level integration entitlement (Layer 2 -- see
+  // backend/src/utils/integrationAccess.js). `user.integrations` is the
+  // agency/brand's effective Package.integrations, resolved server-side
+  // (auth.controller.js signin/me). Platform admins configure integrations
+  // themselves and are never restricted by this -- same bypass as backend.
+  const isPlatformAdmin = PLATFORM_ADMIN_ROLES.includes(role);
+  const entitledIntegrationTypes = user?.integrations || [];
+  const canSeeIntegration = (type) =>
+    isPlatformAdmin || entitledIntegrationTypes.includes(type);
 
   const handleToggle = async (integration, enabled) => {
     try {
@@ -465,28 +482,34 @@ const IntegrationsTab = () => {
         </Text>
 
         <div className="int-grid">
-          <IntegrationCard
-            type="whatsapp"
-            integration={whatsappIntegration}
-            icon={<WhatsAppIcon />}
-            title="WhatsApp"
-            description="Send invoices, reminders, and notifications via WhatsApp Business API"
-          />
-          <IntegrationCard
-            type="sms"
-            integration={smsIntegration}
-            icon={<SmsIcon />}
-            title="SMS"
-            description="Send SMS notifications and payment reminders to clients"
-          />
-          <IntegrationCard
-            type="email"
-            integration={emailIntegration}
-            icon={<EmailIcon />}
-            title="Email (SendPulse)"
-            description="Send invoices, reports, and notifications via SendPulse email service"
-          />
-          {(isCommanderAdmin || user?.features?.includes('crm')) && (
+          {canSeeIntegration('whatsapp') && (
+            <IntegrationCard
+              type="whatsapp"
+              integration={whatsappIntegration}
+              icon={<WhatsAppIcon />}
+              title="WhatsApp"
+              description="Send invoices, reminders, and notifications via WhatsApp Business API"
+            />
+          )}
+          {canSeeIntegration('sms') && (
+            <IntegrationCard
+              type="sms"
+              integration={smsIntegration}
+              icon={<SmsIcon />}
+              title="SMS"
+              description="Send SMS notifications and payment reminders to clients"
+            />
+          )}
+          {canSeeIntegration('email') && (
+            <IntegrationCard
+              type="email"
+              integration={emailIntegration}
+              icon={<EmailIcon />}
+              title="Email (SendPulse)"
+              description="Send invoices, reports, and notifications via SendPulse email service"
+            />
+          )}
+          {(isCommanderAdmin || user?.features?.includes('crm')) && canSeeIntegration('website') && (
             <IntegrationCard
               type="website"
               integration={websiteIntegration}
@@ -495,14 +518,16 @@ const IntegrationsTab = () => {
               description="Configure and manage lead integrations from Website forms and WhatsApp"
             />
           )}
-          <IntegrationCard
-            type="payment"
-            integration={paymentIntegration}
-            icon={<PaymentIcon />}
-            title="Payment Integration"
-            description="Configure QR codes and payment links for your organization"
-          />
-          {(isCommanderAdmin || user?.features?.includes('hrms')) && (
+          {canSeeIntegration('payment') && (
+            <IntegrationCard
+              type="payment"
+              integration={paymentIntegration}
+              icon={<PaymentIcon />}
+              title="Payment Integration"
+              description="Configure QR codes and payment links for your organization"
+            />
+          )}
+          {(isCommanderAdmin || user?.features?.includes('hrms')) && canSeeIntegration('ekta') && (
             <IntegrationCard
               type="ekta"
               integration={ektaIntegration}
@@ -512,6 +537,11 @@ const IntegrationsTab = () => {
             />
           )}
         </div>
+        {!isPlatformAdmin && entitledIntegrationTypes.length === 0 && (
+          <div style={{ padding: '40px 0', textAlign: 'center', color: '#999' }}>
+            No integrations are included in your current package. Contact your administrator to upgrade.
+          </div>
+        )}
       </div>
     </>
   );

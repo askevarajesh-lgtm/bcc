@@ -11,6 +11,9 @@ const {
 const leadService = require("../leads/lead.service");
 const Lead = require("../leads/lead.model");
 const ClientCompany = User;
+const {
+  getEffectivePackageIntegrations,
+} = require("../packages/packageAccess.service");
 
 const assertIntegrationEnabledForCompany = async (
   companyId,
@@ -25,10 +28,55 @@ const assertIntegrationEnabledForCompany = async (
     throw new Error("Company not found for integration validation");
   }
 
-  const integrations = resolveCompanyIntegrations(company);
+  const integrations = await resolveCompanyIntegrations(company);
   if (!integrations[integrationType]) {
     throw new Error(
       `${integrationType.toUpperCase()} integration is disabled for this company by Super Admin.`,
+    );
+  }
+};
+
+// Roles that manage/configure integrations and packages at the platform
+// level. These roles are never restricted by Package-level entitlement --
+// they're the ones assigning packages/integrations to everyone else.
+// Mirrors the identical bypass list already used throughout this file for
+// the existing companyId-scoping logic (see getAllIntegrations, etc).
+const PLATFORM_ADMIN_ROLES = [
+  "super_admin",
+  "supreme_super_admin",
+  "commander_admin",
+];
+
+/**
+ * Package-level entitlement guard (Layer 2 -- see
+ * backend/src/modules/packages/packageAccess.service.js and
+ * backend/src/utils/integrationAccess.js for the two-layer model).
+ *
+ * Layer 1 (assertIntegrationEnabledForCompany / resolveCompanyIntegrations,
+ * above) is untouched and still governs whether a company has an
+ * integration "switched on" at all. This is an ADDITIONAL, independent
+ * check: does the Package assigned to the requesting user's company permit
+ * this integration type to be used, regardless of whether it's configured?
+ *
+ * Platform admins (PLATFORM_ADMIN_ROLES) are never restricted here -- they
+ * are the ones who configure integrations/packages for everyone else, so
+ * package entitlement is not meaningful for their own requests.
+ *
+ * A package that doesn't resolve, or has no `integrations` set (legacy
+ * packages predating this feature), is treated as an empty entitlement list
+ * -- i.e. no integrations allowed -- for any consuming (non-admin) user.
+ * This is a deliberate default-deny; existing agencies/brands must have
+ * their packages explicitly backfilled with `integrations` for their
+ * currently-configured integrations to keep working.
+ */
+const assertPackageEntitlement = async (user, role, integrationType) => {
+  if (PLATFORM_ADMIN_ROLES.includes(role)) return;
+  if (!integrationType) return;
+
+  const allowed = await getEffectivePackageIntegrations(user);
+  if (!allowed.includes(integrationType)) {
+    throw new Error(
+      `The "${integrationType}" integration is not included in your current package. Please contact your administrator to upgrade your plan.`,
     );
   }
 };
@@ -182,7 +230,7 @@ const callEktaApi = async (endpoint, apiKey, params = {}) => {
   }
 };
 
-const getAllIntegrations = async (companyId, role) => {
+const getAllIntegrations = async (companyId, role, user) => {
   const query = {};
 
   // Super admin sees platform-level integrations (companyId: null)
@@ -196,6 +244,9 @@ const getAllIntegrations = async (companyId, role) => {
 
   const integrations = await Integration.find(query).sort({ type: 1 });
   if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+    // Platform admins configure integrations/packages themselves -- never
+    // restricted by either the company-level gate below or Package-level
+    // entitlement (Layer 2, applied further down for consuming users only).
     return integrations;
   }
 
@@ -206,9 +257,19 @@ const getAllIntegrations = async (companyId, role) => {
   if (!company) {
     return [];
   }
-  const allowed = resolveCompanyIntegrations(company);
-  return integrations.filter((integration) =>
+  const allowed = await resolveCompanyIntegrations(company);
+  const companyFiltered = integrations.filter((integration) =>
     Boolean(allowed[integration.type]),
+  );
+
+  // Layer 2 -- Package-level entitlement: intersect with whatever the
+  // requesting user's effective Package (`Package.integrations`, snapshotted
+  // onto `User.integrations` at agency/brand assignment time) permits. Both
+  // this layer and the company-level gate above must pass for an integration
+  // to be returned. See packageAccess.service.js / integrationAccess.js.
+  const packageIntegrations = await getEffectivePackageIntegrations(user);
+  return companyFiltered.filter((integration) =>
+    packageIntegrations.includes(integration.type),
   );
 };
 
@@ -223,7 +284,7 @@ const getPaymentIntegration = async (companyId) => {
   return integration;
 };
 
-const createIntegration = async (integrationData, companyId, role) => {
+const createIntegration = async (integrationData, companyId, role, user) => {
   // Only super admin can create platform-level integrations
   if (integrationData.companyId === null && !["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     throw new Error("Only super admin can create platform-level integrations");
@@ -239,6 +300,10 @@ const createIntegration = async (integrationData, companyId, role) => {
       finalCompanyId,
       integrationData.type,
     );
+    // Layer 2 -- a consuming agency/brand cannot create (self-configure) an
+    // integration type their Package doesn't entitle them to, even though
+    // the company-level gate above passed.
+    await assertPackageEntitlement(user, role, integrationData.type);
   }
 
   // Prevent duplicate payment integrations - upsert if one already exists
@@ -263,6 +328,7 @@ const updateIntegration = async (
   integrationData,
   companyId,
   role,
+  user,
 ) => {
   const query = { _id: integrationId };
 
@@ -277,6 +343,10 @@ const updateIntegration = async (
 
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
+    // Layer 2 -- blocks a consuming user from toggling/editing (e.g.
+    // isActive: true) an integration their Package no longer/never
+    // entitles them to, even via a direct PUT /integrations/:id call.
+    await assertPackageEntitlement(user, role, integration.type);
   }
 
   Object.assign(integration, integrationData);
@@ -291,7 +361,7 @@ const updateIntegration = async (
 /**
  * Fetch WhatsApp templates from the configured backend
  */
-const fetchWhatsAppTemplates = async (integrationId, companyId, role) => {
+const fetchWhatsAppTemplates = async (integrationId, companyId, role, user) => {
   const query = { _id: integrationId, type: "whatsapp" };
 
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
@@ -306,6 +376,7 @@ const fetchWhatsAppTemplates = async (integrationId, companyId, role) => {
   }
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
+    await assertPackageEntitlement(user, role, integration.type);
   }
 
   if (!integration.config?.backendUrl || !integration.config?.apiToken) {
@@ -428,7 +499,7 @@ const fetchWhatsAppTemplates = async (integrationId, companyId, role) => {
  * Validate Ekta HR API and create/update the Ekta integration document.
  * Note: Actual external API calls are not implemented yet; this stores credentials and returns capabilities.
  */
-const validateEktaApi = async (payload, companyId, role) => {
+const validateEktaApi = async (payload, companyId, role, user) => {
   const { integrationId, apiKey } = payload || {};
 
   if (!apiKey) {
@@ -439,6 +510,10 @@ const validateEktaApi = async (payload, companyId, role) => {
   const scopedCompanyId = ["super_admin", "supreme_super_admin", "commander_admin"].includes(role)
     ? null
     : companyId;
+
+  // Layer 2 -- a consuming agency/brand can't (re)configure the Ekta HR
+  // integration unless their Package entitles them to it.
+  await assertPackageEntitlement(user, role, "ekta");
 
   // Helper: merge config preserving staff/attendance settings
   const buildConfig = (existing) => ({
@@ -527,7 +602,7 @@ const validateEktaApi = async (payload, companyId, role) => {
  * Sync Ekta staff data (stub implementation).
  * Stores the endpoint + updates lastSyncedAt.
  */
-const syncEktaStaff = async (integrationId, payload, companyId, role) => {
+const syncEktaStaff = async (integrationId, payload, companyId, role, user) => {
   const { endpoint, fromDate, toDate, limit, offset, page, pageSize } =
     payload || {};
   if (!endpoint) {
@@ -545,6 +620,7 @@ const syncEktaStaff = async (integrationId, payload, companyId, role) => {
   }
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
+    await assertPackageEntitlement(user, role, integration.type);
   }
 
   const apiKey = integration.config?.api?.apiKey;
@@ -655,7 +731,7 @@ const syncEktaStaff = async (integrationId, payload, companyId, role) => {
  * Sync Ekta attendance data (stub implementation).
  * Stores the endpoint + updates lastSyncedAt.
  */
-const syncEktaAttendance = async (integrationId, payload, companyId, role) => {
+const syncEktaAttendance = async (integrationId, payload, companyId, role, user) => {
   const { endpoint, fromDate, toDate, limit, offset, page, pageSize } =
     payload || {};
   if (!endpoint) {
@@ -673,6 +749,7 @@ const syncEktaAttendance = async (integrationId, payload, companyId, role) => {
   }
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     await assertIntegrationEnabledForCompany(companyId, integration.type);
+    await assertPackageEntitlement(user, role, integration.type);
   }
 
   const apiKey = integration.config?.api?.apiKey;
@@ -849,7 +926,7 @@ const syncEktaAttendance = async (integrationId, payload, companyId, role) => {
 /**
  * Send message via integration
  */
-const sendMessage = async (integrationId, messageData, companyId) => {
+const sendMessage = async (integrationId, messageData, companyId, role, user) => {
   const integration = await Integration.findOne({
     _id: integrationId,
     companyId: companyId || null,
@@ -860,6 +937,11 @@ const sendMessage = async (integrationId, messageData, companyId) => {
     throw new Error("Integration not found or inactive");
   }
   await assertIntegrationEnabledForCompany(companyId, integration.type);
+  // Layer 2 -- assertPackageEntitlement no-ops for platform admin roles
+  // internally, so this is safe to call even when `role` is undefined
+  // (falls through to the entitlement check, matching prior behavior for
+  // any caller that isn't an explicit platform admin).
+  await assertPackageEntitlement(user, role, integration.type);
 
   try {
     switch (integration.type) {

@@ -73,6 +73,15 @@ const UserSchema = new mongoose.Schema({
   isDirect: { type: Boolean, default: false },
   packageName: { type: String, default: null },
   features: [{ type: String }],
+
+  // Package-level integration entitlements (Layer 2 -- see
+  // backend/src/utils/integrationAccess.js for the two-layer model). Snapshotted
+  // from the assigned Package's `integrations` at agency/brand creation time,
+  // same pattern as `features` above. Stable Integration `type` identifiers only
+  // (e.g. 'whatsapp'), never Integration document _id values.
+  integrations: [{ type: String }],
+  additionalIntegrations: [{ type: String }],
+  disabledPackageIntegrations: [{ type: String }],
   ga4PropertyId: { type: String, default: null },
   
   // Custom Overrides (For Agency and Direct Brand)

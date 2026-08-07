@@ -537,7 +537,7 @@ const IntegrationsPage = () => {
         </Text>
 
         <div className="int-grid">
-          {companyIntegrations.whatsapp && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('whatsapp')) && (
             <IntegrationCard
               type="whatsapp"
               integration={whatsappIntegration}
@@ -546,7 +546,7 @@ const IntegrationsPage = () => {
               description="Send invoices, reminders, and notifications via WhatsApp Business API"
             />
           )}
-          {companyIntegrations.sms && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('sms')) && (
             <IntegrationCard
               type="sms"
               integration={smsIntegration}
@@ -555,7 +555,7 @@ const IntegrationsPage = () => {
               description="Send SMS notifications and payment reminders to clients"
             />
           )}
-          {companyIntegrations.email && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('email')) && (
             <IntegrationCard
               type="email"
               integration={emailIntegration}
@@ -564,7 +564,7 @@ const IntegrationsPage = () => {
               description="Send invoices, reports, and notifications via SendPulse email service"
             />
           )}
-          {companyIntegrations.ekta && user?.features?.includes('hrms') && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('ekta')) && user?.features?.includes('hrms') && (
             <IntegrationCard
               type="ekta"
               integration={ektaIntegration}
@@ -573,7 +573,7 @@ const IntegrationsPage = () => {
               description="Sync employee data and payroll info with Ekta HR management system"
             />
           )}
-          {companyIntegrations.ivr && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('ivr')) && (
             <IntegrationCard
               type="ivr"
               integration={ivrIntegration}
@@ -582,7 +582,7 @@ const IntegrationsPage = () => {
               description="Outbound voice and IVR for leads using your telephony account (Exotel-style API credentials)"
             />
           )}
-          {companyIntegrations.website && (
+          {(companyIntegrations.isPlatformAdmin || companyIntegrations.isEntitled('website')) && (
             <IntegrationCard
               type="website"
               integration={websiteIntegration}
@@ -592,7 +592,7 @@ const IntegrationsPage = () => {
             />
           )}
         </div>
-        {!Object.values(companyIntegrations).some(Boolean) && (
+        {!companyIntegrations.isPlatformAdmin && companyIntegrations.entitledTypes.length === 0 && (
           <Alert
             style={{ marginTop: 16 }}
             type="info"

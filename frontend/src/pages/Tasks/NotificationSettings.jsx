@@ -26,8 +26,8 @@ const NotificationSettings = () => {
   const [updateSettings, { isLoading: isSaving }] =
     useUpdateNotificationSettingsMutation();
   const companyIntegrations = useCompanyIntegrations();
-  const isEmailEnabled = Boolean(companyIntegrations.email);
-  const isWhatsAppEnabled = Boolean(companyIntegrations.whatsapp);
+  const isEmailEnabled = companyIntegrations.hasActive('email');
+  const isWhatsAppEnabled = companyIntegrations.hasActive('whatsapp');
 
   useEffect(() => {
     if (data?.data?.settings) {

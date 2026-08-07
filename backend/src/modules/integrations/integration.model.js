@@ -9,8 +9,15 @@ const integrationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["whatsapp", "sms", "email", "ekta", "ivr", "website", "meta_ads", "payment", "facebook_leads"],
       required: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: function(v) {
+          return /^[a-z0-9_]+$/.test(v) && v.length > 0 && v.length <= 50;
+        },
+        message: props => `${props.value} is not a valid stable integration type!`
+      }
     },
     name: {
       type: String,

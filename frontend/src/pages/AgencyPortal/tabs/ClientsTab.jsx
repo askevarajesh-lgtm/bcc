@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm } from 'antd';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useGetIntegrationsQuery } from '../../../api/integrationApi';
 import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SlabCard from '../../../components/SlabCard';
@@ -39,9 +40,13 @@ const ClientsTab = () => {
   const [clientProjects, setClientProjects] = useState([]);
   const [clientInvoices, setClientInvoices] = useState([]);
   const [clientDataLoading, setClientDataLoading] = useState(false);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
   const { features: agencyFeatures } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
+
+  const { data: integrationsData } = useGetIntegrationsQuery();
+  const rawIntegrations = integrationsData?.data?.integrations || [];
 
   const fetchPackages = async () => {
     try {
@@ -60,21 +65,21 @@ const ClientsTab = () => {
     try {
       setLoading(true);
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-      
+
       const [brandsRes, mosRes] = await Promise.all([
         fetch('/api/brands', { headers }),
         fetch('/api/mos/dashboard', { headers })
       ]);
-      
+
       const brandsData = await brandsRes.json();
       const mosData = await mosRes.json();
-      
+
       const mosClients = mosData.success && mosData.data ? mosData.data.clients : [];
-      
+
       if (brandsData.success) {
         setDbClients(brandsData.data.map(c => {
           const mosInfo = mosClients.find(m => m.clientId === c._id) || {};
-          
+
           return {
             ...c,
             accountStatus: c.status || 'active',
@@ -123,14 +128,14 @@ const ClientsTab = () => {
 
       const res = await fetch('/api/brands', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      
+
       if (data.success) {
         message.success('Client created successfully');
         setIsCreateModalOpen(false);
@@ -151,22 +156,27 @@ const ClientsTab = () => {
   const handleEditClientSubmit = async (values) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/users/${editingClient._id}`, {
+      const res = await fetch(`/api/brands/${editingClient._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          features: values.features || []
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          address: values.address,
+          packageName: values.packageName || null
         })
       });
       const data = await res.json();
-      
+
       if (data.success) {
         message.success('Client updated successfully');
         setIsEditModalOpen(false);
         setEditingClient(null);
+        editForm.resetFields();
         fetchClients();
       } else {
         message.error(data.message || 'Failed to update client');
@@ -184,7 +194,7 @@ const ClientsTab = () => {
       const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
       const res = await fetch(`/api/brands/${clientId}/status`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -209,7 +219,7 @@ const ClientsTab = () => {
       setLoading(true);
       const res = await fetch(`/api/brands/${clientId}`, {
         method: 'DELETE',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
@@ -261,30 +271,43 @@ const ClientsTab = () => {
         <span style={{ fontSize: 14, fontWeight: 800, color: getScoreColor(score) }}>{score}</span>
       </div>
       <div style={{ width: '100%', height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-        <motion.div 
+        <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${score}%` }}
           transition={{ duration: 1, ease: "easeOut" }}
-          style={{ height: '100%', background: getScoreColor(score), borderRadius: 3 }} 
+          style={{ height: '100%', background: getScoreColor(score), borderRadius: 3 }}
         />
       </div>
     </div>
   );
 
+  // Filter clients by name or email against the search query.
+  // This is the piece that was missing: the Input had no value/onChange,
+  // so nothing ever consumed what the user typed.
+  const filteredClients = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return dbClients;
+    return dbClients.filter(c => {
+      const name = (c.name || '').toLowerCase();
+      const email = (c.adminEmail || c.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [dbClients, searchQuery]);
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
-      
+
       <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>All Clients</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
-            {dbClients.length} total active clients in your agency
+            {filteredClients.length} of {dbClients.length} total active clients in your agency
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button 
-            type="primary" 
-            icon={<Plus size={16} />} 
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
             onClick={() => setIsCreateModalOpen(true)}
             style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none' }}
           >
@@ -296,14 +319,18 @@ const ClientsTab = () => {
       {/* Filter Bar */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', padding: 12, borderRadius: 16, border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 16 }}>
-          
-          <Input 
-            prefix={<Search size={18} style={{ color: 'var(--text-tertiary)' }} />} 
-            placeholder="Search clients by name or email..." 
-            style={{ 
-              maxWidth: 400, 
-              background: 'transparent', 
-              border: 'none', 
+
+          <Input
+            prefix={<Search size={18} style={{ color: 'var(--text-tertiary)' }} />}
+            placeholder="Search clients by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+            onClear={() => setSearchQuery('')}
+            style={{
+              maxWidth: 400,
+              background: 'transparent',
+              border: 'none',
               boxShadow: 'none',
               fontSize: 15
             }}
@@ -315,10 +342,10 @@ const ClientsTab = () => {
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
-              <Shield size={20} />
+              <Users size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>Edit Client Modules</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>Edit Client Details</div>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>{editingClient?.name}</div>
             </div>
           </div>
@@ -336,30 +363,84 @@ const ClientsTab = () => {
         width={560}
       >
         <Form form={editForm} layout="vertical" onFinish={handleEditClientSubmit} style={{ marginTop: 24 }}>
-          <Form.Item name="features" label="Enabled Modules" help="Select which modules this client has access to.">
-            <Checkbox.Group style={{ width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <Form.Item
+                name="name"
+                label={<span style={{ fontWeight: 600 }}>Client Company Name</span>}
+                rules={[{ required: true, message: 'Please enter client name' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input placeholder="e.g. Acme Corp" size="large" style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </div>
+
+            <div>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+                Contact & Account Details
+              </Text>
               <Row gutter={[16, 16]}>
-                {allowedFeatures.map(feat => (
-                  <Col span={12} key={feat.id}>
-                    <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                      <Checkbox value={feat.id}>
-                        <span style={{ fontWeight: 600 }}>{feat.label}</span>
-                      </Checkbox>
-                    </div>
-                  </Col>
-                ))}
+                <Col span={24}>
+                  <Form.Item
+                    name="email"
+                    label={<span style={{ fontWeight: 600 }}>Admin Email</span>}
+                    rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input type="email" placeholder="manager@client.com" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item
+                    name="phone"
+                    label={<span style={{ fontWeight: 600 }}>Phone Number</span>}
+                    rules={[{ required: true, message: 'Please enter a phone number' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input placeholder="e.g. +91 9876543210" size="large" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item
+                    name="address"
+                    label={<span style={{ fontWeight: 600 }}>Address</span>}
+                    rules={[{ required: true, message: 'Please enter an address' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input.TextArea placeholder="e.g. 123 Main St, City, Country" size="large" rows={2} style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                </Col>
               </Row>
-            </Checkbox.Group>
-          </Form.Item>
+            </div>
+
+            <div>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+                Subscription
+              </Text>
+              <Form.Item
+                name="packageName"
+                label={<span style={{ fontWeight: 600 }}>Assign Package</span>}
+                style={{ marginBottom: 0 }}
+              >
+                <Select placeholder="Select a package" size="large" style={{ borderRadius: 8 }}>
+                  <Select.Option value={null}>No Package (Custom)</Select.Option>
+                  {packages.map(pkg => (
+                    <Select.Option key={pkg.name} value={pkg.name}>{pkg.name}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
         </Form>
       </Modal>
 
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}>
         <Table
           className="custom-table"
-          dataSource={dbClients}
+          dataSource={filteredClients}
           rowKey="_id"
           pagination={false}
+          locale={{ emptyText: searchQuery ? 'No clients match your search' : 'No clients found' }}
           columns={[
             {
               title: 'Client Name',
@@ -434,10 +515,16 @@ const ClientsTab = () => {
                       },
                       {
                         key: 'edit',
-                        label: 'Edit Modules',
+                        label: 'Edit Client',
                         onClick: () => {
                           setEditingClient(record);
-                          editForm.setFieldsValue({ features: record.features || [] });
+                          editForm.setFieldsValue({
+                            name: record.companyName || record.name,
+                            email: record.adminEmail || record.email,
+                            phone: record.phone || '',
+                            address: record.address || '',
+                            packageName: record.packageName || null
+                          });
                           setIsEditModalOpen(true);
                         }
                       },
@@ -524,6 +611,10 @@ const ClientsTab = () => {
             clientDataLoading={clientDataLoading}
             setClientDataLoading={setClientDataLoading}
             onTaskClick={(task) => { setSelectedTask(task); setTaskDrawerVisible(true); }}
+            onClientUpdated={(updatedClient) => {
+              setSelectedClient(updatedClient);
+              fetchClients();
+            }}
           />
         )}
       </Drawer>
@@ -545,8 +636,8 @@ const ClientsTab = () => {
         footer={null}
         width={520}
         closeIcon={<span style={{ color: 'var(--text-tertiary)', fontSize: 20 }}>×</span>}
-        styles={{ 
-          header: { padding: '24px 24px 16px 24px', borderBottom: '1px solid var(--border-color)' }, 
+        styles={{
+          header: { padding: '24px 24px 16px 24px', borderBottom: '1px solid var(--border-color)' },
           body: { padding: '24px', maxHeight: '550px', overflowY: 'auto' },
           content: { borderRadius: 16, overflow: 'hidden' }
         }}
@@ -571,43 +662,43 @@ const ClientsTab = () => {
                 <Input placeholder="e.g. Acme Corp" size="large" style={{ borderRadius: 8 }} />
               </Form.Item>
             </div>
-            
+
             <div>
               <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
                 Admin Account
               </Text>
               <Row gutter={16}>
                 <Col span={24}>
-                  <Form.Item 
-                    name="email" 
-                    label={<span style={{ fontWeight: 600 }}>Admin Email</span>} 
+                  <Form.Item
+                    name="email"
+                    label={<span style={{ fontWeight: 600 }}>Admin Email</span>}
                     rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
                   >
                     <Input type="email" placeholder="manager@client.com" size="large" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item 
-                    name="password" 
-                    label={<span style={{ fontWeight: 600 }}>Initial Password</span>} 
+                  <Form.Item
+                    name="password"
+                    label={<span style={{ fontWeight: 600 }}>Initial Password</span>}
                     rules={[{ required: true, message: 'Please enter a password' }]}
                   >
                     <Input.Password placeholder="Enter a secure password" size="large" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item 
-                    name="phone" 
-                    label={<span style={{ fontWeight: 600 }}>Phone Number</span>} 
+                  <Form.Item
+                    name="phone"
+                    label={<span style={{ fontWeight: 600 }}>Phone Number</span>}
                     rules={[{ required: true, message: 'Please enter a phone number' }]}
                   >
                     <Input placeholder="e.g. +91 9876543210" size="large" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item 
-                    name="address" 
-                    label={<span style={{ fontWeight: 600 }}>Address</span>} 
+                  <Form.Item
+                    name="address"
+                    label={<span style={{ fontWeight: 600 }}>Address</span>}
                     rules={[{ required: true, message: 'Please enter an address' }]}
                     style={{ marginBottom: 0 }}
                   >
@@ -621,10 +712,9 @@ const ClientsTab = () => {
               <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
                 Subscription
               </Text>
-              <Form.Item 
-                name="packageName" 
-                label={<span style={{ fontWeight: 600 }}>Assign Package</span>} 
-                rules={[{ required: true, message: 'Please select a package' }]}
+              <Form.Item
+                name="packageName"
+                label={<span style={{ fontWeight: 600 }}>Assign Package</span>}
                 style={{ marginBottom: 16 }}
               >
                 <Select placeholder="Select a package" size="large" style={{ borderRadius: 8 }}>
@@ -633,13 +723,13 @@ const ClientsTab = () => {
                   ))}
                 </Select>
               </Form.Item>
-              
+
               {selectedPackageName && (
                 <div>
                   <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 12, display: 'block' }}>
                     Included Modules
                   </Text>
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                     {allowedFeatures.map(feat => {
                       const isIncluded = includedFeatures.includes(feat.id);
                       return (
@@ -651,22 +741,43 @@ const ClientsTab = () => {
                       );
                     })}
                   </Row>
+
+                  <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 12, display: 'block' }}>
+                    Included Integrations
+                  </Text>
+                  {selectedPackageObj?.integrations && selectedPackageObj.integrations.length > 0 ? (
+                    <Row gutter={[16, 16]}>
+                      {selectedPackageObj.integrations.map(type => {
+                        const matched = rawIntegrations.find(i => i.type === type);
+                        const label = matched?.name || type;
+                        return (
+                          <Col span={12} key={type}>
+                            <Checkbox checked={true} disabled>
+                              {label}
+                            </Checkbox>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  ) : (
+                    <Text type="secondary" style={{ fontSize: 13 }}>No integrations included in this package.</Text>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <Button 
+            <Button
               onClick={() => setIsCreateModalOpen(false)}
               style={{ fontWeight: 600, borderRadius: 8, height: 44, padding: '0 24px' }}
             >
               Cancel
             </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading} 
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
               style={{ background: 'var(--accent-primary)', fontWeight: 700, borderRadius: 8, height: 44, padding: '0 24px' }}
             >
               Provision Workspace

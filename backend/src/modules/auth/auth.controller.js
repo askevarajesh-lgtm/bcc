@@ -89,7 +89,7 @@ exports.signin = async (req, res, next) => {
 
     const user = await User.findOne({ email })
       .populate('agencyId', 'companyName name logo logoDark status theme')
-      .populate('brandId', 'companyName name logo logoDark status features theme')
+      .populate('brandId', 'companyName name logo logoDark status features integrations theme')
       .populate('adminId', 'status');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email address' });
@@ -140,6 +140,11 @@ exports.signin = async (req, res, next) => {
     );
 
     let features = user.features || [];
+    // Package-level integration entitlements (Layer 2 -- see
+    // backend/src/utils/integrationAccess.js). Resolved the same way as
+    // `features` above: own snapshot first, falling back to the live
+    // Package.integrations when the snapshot is empty.
+    let integrations = user.integrations || [];
     let rolePermissions = {};
     let planDetails = null;
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
@@ -149,6 +154,12 @@ exports.signin = async (req, res, next) => {
           features = agency.features;
         } else if (agency.plan) {
           features = agency.plan.features || [];
+        }
+
+        if (agency.integrations && agency.integrations.length > 0) {
+          integrations = agency.integrations;
+        } else if (agency.plan) {
+          integrations = agency.plan.integrations || [];
         }
 
         if (agency.plan) {
@@ -173,6 +184,10 @@ exports.signin = async (req, res, next) => {
 
     if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
       features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
+    if (user.brandId && user.brandId.integrations && user.brandId.integrations.length > 0) {
+      integrations = Array.from(new Set([...integrations, ...user.brandId.integrations]));
     }
 
     const Package = require('../packages/package.model');
@@ -222,6 +237,7 @@ exports.signin = async (req, res, next) => {
         industry: user.industry,
         workspaceId: user.workspaceId,
         features: features,
+        integrations: integrations,
         permissions: rolePermissions,
         plan: planDetails,
         effectiveTheme
@@ -236,7 +252,7 @@ exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('agencyId', 'companyName name logo logoDark status theme')
-      .populate('brandId', 'companyName name logo logoDark domain contactEmail industry features theme')
+      .populate('brandId', 'companyName name logo logoDark domain contactEmail industry features integrations theme')
       .populate('adminId', 'status');
 
     if (!user) {
@@ -254,10 +270,16 @@ exports.me = async (req, res, next) => {
     }
 
     let features = user.features || [];
+    // Package-level integration entitlements (Layer 2 -- see
+    // backend/src/utils/integrationAccess.js). Resolved the same way as
+    // `features` above: own snapshot first, falling back to the live
+    // Package.integrations when the snapshot is empty.
+    let integrations = user.integrations || [];
     let rolePermissions = {};
     let planDetails = null;
     let brandPackageDetails = null;
     let agencyFeatures = [];
+    let agencyIntegrations = [];
 
     if (user.agencyId) {
       const agency = await User.findById(user.agencyId._id).populate('plan');
@@ -268,8 +290,15 @@ exports.me = async (req, res, next) => {
           agencyFeatures = agency.plan.features || [];
         }
 
+        if (agency.integrations && agency.integrations.length > 0) {
+          agencyIntegrations = agency.integrations;
+        } else if (agency.plan) {
+          agencyIntegrations = agency.plan.integrations || [];
+        }
+
         if (user.role === 'agency_manager' || user.role === 'agency_super_admin') {
           features = agencyFeatures;
+          integrations = agencyIntegrations;
           if (agency.plan) {
             planDetails = {
               name: agency.plan.name,
@@ -293,6 +322,10 @@ exports.me = async (req, res, next) => {
 
     if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
       features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
+    if (user.brandId && user.brandId.integrations && user.brandId.integrations.length > 0) {
+      integrations = Array.from(new Set([...integrations, ...user.brandId.integrations]));
     }
 
     const effectiveTheme = await getEffectiveTheme(user);
@@ -320,6 +353,8 @@ exports.me = async (req, res, next) => {
         workspaceId: user.workspaceId,
         features: features,
         agencyFeatures: agencyFeatures,
+        integrations: integrations,
+        agencyIntegrations: agencyIntegrations,
         packageName: user.packageName,
         createdAt: user.createdAt,
         permissions: rolePermissions,
@@ -350,7 +385,7 @@ exports.impersonate = async (req, res, next) => {
 
     const user = await User.findById(targetUserId)
       .populate('agencyId', 'companyName name logo logoDark status')
-      .populate('brandId', 'companyName name logo logoDark status features')
+      .populate('brandId', 'companyName name logo logoDark status features integrations')
       .populate('adminId', 'status');
 
     if (!user) {
@@ -396,12 +431,17 @@ exports.impersonate = async (req, res, next) => {
     );
 
     let features = user.features || [];
+    // Package-level integration entitlements (Layer 2 -- see
+    // backend/src/utils/integrationAccess.js), resolved the same way as
+    // `features` above.
+    let integrations = user.integrations || [];
     let rolePermissions = {};
     let planDetails = null;
     if (user.agencyId && (user.role === 'agency_manager' || user.role === 'agency_super_admin')) {
       const agency = await User.findById(user.agencyId._id).populate('plan');
       if (agency && agency.plan) {
         features = agency.plan.features || [];
+        integrations = agency.plan.integrations || [];
         planDetails = {
           name: agency.plan.name,
           price: agency.plan.price,
@@ -422,6 +462,10 @@ exports.impersonate = async (req, res, next) => {
 
     if (user.brandId && user.brandId.features && user.brandId.features.length > 0) {
       features = Array.from(new Set([...features, ...user.brandId.features]));
+    }
+
+    if (user.brandId && user.brandId.integrations && user.brandId.integrations.length > 0) {
+      integrations = Array.from(new Set([...integrations, ...user.brandId.integrations]));
     }
 
     const Package = require('../packages/package.model');
@@ -473,6 +517,7 @@ exports.impersonate = async (req, res, next) => {
         industry: user.industry || (user.brandId ? user.brandId.industry : null),
         workspaceId: user.workspaceId,
         features: features,
+        integrations: integrations,
         permissions: rolePermissions,
         plan: planDetails,
         effectiveTheme

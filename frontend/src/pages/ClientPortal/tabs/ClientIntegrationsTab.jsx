@@ -119,11 +119,12 @@ const ClientIntegrationsTab = ({ user }) => {
   const isActive = websiteIntegration?.isActive || false;
   const isConfigured = Boolean(websiteIntegration?.config && Object.keys(websiteIntegration.config).length > 0);
   const hasCrmLeads = user?.features?.includes('crm');
+  const hasWebsiteEntitlement = user?.integrations?.includes('website');
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ padding: '0' }}>
       <Row gutter={[24, 24]}>
-        {hasCrmLeads ? (
+        {(hasCrmLeads && hasWebsiteEntitlement) ? (
           <Col xs={24} sm={12} lg={6}>
             <motion.div variants={itemVariants} style={{ height: '100%' }}>
               <IntegrationCard 

@@ -1,6 +1,41 @@
 const Package = require('./package.model');
+const integrationService = require('../integrations/integration.service');
 
 const VALID_TYPES = ['agency', 'client', 'directClient'];
+
+// Validates selected package integrations against the database within the creator's company/platform scope.
+const validatePackageIntegrations = async (integrations, req) => {
+  if (integrations === undefined) return;
+  const normalized = normalizeIntegrations(integrations);
+  if (normalized.length === 0) return;
+
+  const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+  const allowedIntegrations = await integrationService.getAllIntegrations(companyId, req.user.role, req.user);
+  const allowedTypes = new Set(allowedIntegrations.map(i => i.type));
+
+  for (const type of normalized) {
+    if (!allowedTypes.has(type)) {
+      throw new Error(`Integration type "${type}" is invalid or not available in your scope.`);
+    }
+  }
+};
+
+// Sanitizes package-level integration entitlements before they hit the DB.
+// Accepts only an array of non-empty strings (stable Integration `type` values,
+// e.g. 'whatsapp', 'payment' -- never Integration document _id values), dedupes
+// them, and safely falls back to [] for anything malformed (non-array, null,
+// undefined, wrong element types). This keeps old packages (saved before this
+// field existed) and any bad client input from ever producing an invalid state --
+// `integrations` is always a clean array, never undefined/null/mixed-type.
+const normalizeIntegrations = (value) => {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(
+    value
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim())
+      .filter(Boolean)
+  )];
+};
 
 // Same helper as the old accounts/clientPackage.controller.js
 const getAgencyId = (req) => (req.user.role === 'agency_super_admin' ? req.user._id : req.user.agencyId);
@@ -127,7 +162,12 @@ exports.createPackage = async (req, res, next) => {
       const agencyId = getAgencyId(req);
       if (!agencyId) return res.status(400).json({ success: false, message: 'Agency context not found' });
 
-      const newPackage = new Package({ ...req.body, type: 'client', agencyId });
+      // Package-level integration entitlements are not part of Client Package
+      // behavior yet -- strip whatever was sent so this stays byte-for-byte
+      // the same as before this feature existed (schema default [] applies).
+      const { integrations, ...clientBody } = req.body;
+
+      const newPackage = new Package({ ...clientBody, type: 'client', agencyId });
       await newPackage.save();
       return res.status(201).json({ success: true, message: 'Package created successfully', data: newPackage });
     } catch (error) {
@@ -139,12 +179,14 @@ exports.createPackage = async (req, res, next) => {
     try {
       // Same fields as the legacy directClientPackage.controller.js createPackage
       // (billingInterval was never accepted on create there either -- schema default applies)
-      const { name, description, price, userCount, features } = req.body;
+      const { name, description, price, userCount, features, integrations } = req.body;
 
       const existingPkg = await Package.findOne({ type: 'directClient', name, createdBy: req.user._id });
       if (existingPkg) {
         return res.status(400).json({ success: false, message: 'Package with this name already exists' });
       }
+
+      await validatePackageIntegrations(integrations, req);
 
       const pkg = await Package.create({
         type: 'directClient',
@@ -153,6 +195,9 @@ exports.createPackage = async (req, res, next) => {
         price,
         userCount,
         features,
+        // Stable Integration `type` identifiers this Direct Brand Package entitles
+        // its holder to -- always normalized to a clean array, never trusted raw.
+        integrations: normalizeIntegrations(integrations),
         createdBy: req.user._id
       });
 
@@ -164,7 +209,15 @@ exports.createPackage = async (req, res, next) => {
 
   // type === 'agency'
   try {
-    const pkg = await Package.create({ ...req.body, type: 'agency' });
+    await validatePackageIntegrations(req.body.integrations, req);
+
+    const pkg = await Package.create({
+      ...req.body,
+      type: 'agency',
+      // Stable Integration `type` identifiers this Agency Package entitles its
+      // holder to -- always normalized to a clean array, never trusted raw.
+      integrations: normalizeIntegrations(req.body.integrations)
+    });
     return res.status(201).json({ success: true, data: pkg });
   } catch (error) {
     return res.status(400).json({ success: false, message: 'Failed to create package', error: error.message });
@@ -195,6 +248,14 @@ exports.updatePackage = async (req, res, next) => {
         });
       }
 
+      // Only sanitize integrations if the caller actually sent the field --
+      // leaving it untouched otherwise preserves the existing partial-update
+      // behavior (a PUT that omits `integrations` must not wipe it to []).
+      if (req.body.integrations !== undefined) {
+        req.body.integrations = normalizeIntegrations(req.body.integrations);
+        await validatePackageIntegrations(req.body.integrations, req);
+      }
+
       const pkg = await Package.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
       if (!pkg) {
         return res.status(404).json({ success: false, message: 'Package not found' });
@@ -208,6 +269,10 @@ exports.updatePackage = async (req, res, next) => {
   if (existing.type === 'client') {
     try {
       const agencyId = getAgencyId(req);
+
+      // Package-level integration entitlements are not part of Client Package
+      // behavior yet -- drop the field so an update can never introduce it.
+      delete req.body.integrations;
 
       const existingPkgForName = await Package.findOne({ _id: req.params.id, type: 'client', agencyId });
       if (existingPkgForName) {
@@ -244,6 +309,13 @@ exports.updatePackage = async (req, res, next) => {
           message: 'This package is already assigned to one or more organizations and cannot be edited.'
         });
       }
+    }
+
+    // Only sanitize integrations if the caller actually sent the field --
+    // leaving it untouched otherwise preserves existing partial-update behavior.
+    if (req.body.integrations !== undefined) {
+      req.body.integrations = normalizeIntegrations(req.body.integrations);
+      await validatePackageIntegrations(req.body.integrations, req);
     }
 
     const pkg = await Package.findOneAndUpdate(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Select } from 'antd';
 import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
@@ -17,6 +17,17 @@ const availableFeatures = [
   { id: 'benchmark', label: 'Benchmark' },
 ];
 
+
+
+// Mirrors the feature-gating already used on the Integrations page
+// (Ekta card only shown for hrms feature, Lead Management/website card
+// only shown for crm feature). Turning ON the linked feature here
+// auto-enables the corresponding integration toggle.
+const FEATURE_INTEGRATION_AUTO_MAP = {
+  hrms: 'ekta',
+  crm: 'website',
+};
+
 const AgencyPackagesTab = () => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,8 +43,18 @@ const AgencyPackagesTab = () => {
     users: '',
     clients: '',
     billingInterval: 'Monthly',
-    features: []
+    features: [],
+    integrations: []
   });
+
+  const availableIntegrations = [
+    { type: 'whatsapp', name: 'WhatsApp' },
+    { type: 'sms', name: 'SMS' },
+    { type: 'email', name: 'Email (SendPulse)' },
+    { type: 'website', name: 'Lead Management Integration' },
+    { type: 'payment', name: 'Payment Integration' },
+    { type: 'ekta', name: 'Ekta HR Integration' },
+  ];
 
   const fetchPackages = async () => {
     try {
@@ -61,7 +82,8 @@ const AgencyPackagesTab = () => {
         users: pkg.users || '',
         clients: pkg.clients || '',
         billingInterval: pkg.billingInterval || 'Monthly',
-        features: pkg.features || []
+        features: pkg.features || [],
+        integrations: pkg.integrations || []
       });
     } else {
       setEditingPkg(null);
@@ -72,7 +94,8 @@ const AgencyPackagesTab = () => {
         users: '',
         clients: '',
         billingInterval: 'Monthly',
-        features: []
+        features: [],
+        integrations: []
       });
     }
     setIsModalOpen(true);
@@ -115,11 +138,30 @@ const AgencyPackagesTab = () => {
   };
 
   const toggleFeature = (featureId, checked) => {
+    setFormData(prev => {
+      const nextFeatures = checked
+        ? [...prev.features, featureId]
+        : prev.features.filter(f => f !== featureId);
+
+      // Auto-enable the linked integration when its feature is turned ON
+      // (HRMS -> Ekta HR Integration, CRM & Leads -> Lead Management
+      // Integration). Only if it exists in the DB result (availableIntegrations).
+      const linkedIntegration = FEATURE_INTEGRATION_AUTO_MAP[featureId];
+      const existsInDb = linkedIntegration && availableIntegrations.some(i => i.type === linkedIntegration);
+      const nextIntegrations = (checked && linkedIntegration && existsInDb && !prev.integrations.includes(linkedIntegration))
+        ? [...prev.integrations, linkedIntegration]
+        : prev.integrations;
+
+      return { ...prev, features: nextFeatures, integrations: nextIntegrations };
+    });
+  };
+
+  const toggleIntegration = (integrationType, checked) => {
     setFormData(prev => ({
       ...prev,
-      features: checked
-        ? [...prev.features, featureId]
-        : prev.features.filter(f => f !== featureId)
+      integrations: checked
+        ? [...prev.integrations, integrationType]
+        : prev.integrations.filter(t => t !== integrationType)
     }));
   };
 
@@ -193,24 +235,24 @@ const AgencyPackagesTab = () => {
                   {pkg.name}
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Button 
-                    type="text" 
-                    size="small" 
-                    icon={<Edit size={14} />} 
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Edit size={14} />}
                     onClick={() => {
                       if (pkg.isAssigned) {
                         message.error("This package has already been assigned and cannot be modified or deleted.");
                       } else {
                         handleOpenModal(pkg);
                       }
-                    }} 
-                    style={{ color: '#666' }} 
+                    }}
+                    style={{ color: '#666' }}
                   />
-                  <Button 
-                    type="text" 
-                    danger 
-                    size="small" 
-                    icon={<Trash2 size={14} />} 
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<Trash2 size={14} />}
                     onClick={() => {
                       if (pkg.isAssigned) {
                         message.error("This package has already been assigned and cannot be modified or deleted.");
@@ -393,6 +435,34 @@ const AgencyPackagesTab = () => {
               ))}
             </div>
           </div>
+
+          <div style={{ marginTop: 8 }}>
+            <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Integrations</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {availableIntegrations.map(integration => {
+                const autoLinkedFeature = Object.entries(FEATURE_INTEGRATION_AUTO_MAP)
+                  .find(([, linkedType]) => linkedType === integration.type)?.[0];
+                const autoLinkedFeatureLabel = availableFeatures.find(f => f.id === autoLinkedFeature)?.label;
+                return (
+                  <div key={integration.type} style={{ display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{integration.name}</span>
+                      <Switch
+                        size="small"
+                        checked={formData.integrations.includes(integration.type)}
+                        onChange={(checked) => toggleIntegration(integration.type, checked)}
+                      />
+                    </div>
+                    {autoLinkedFeatureLabel && (
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        Auto-enabled when {autoLinkedFeatureLabel} is included
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -492,6 +562,34 @@ const AgencyPackagesTab = () => {
                   })}
                 </div>
               </div>
+
+              {viewingPkg.integrations && viewingPkg.integrations.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <Title level={5} style={{ marginBottom: 16, fontWeight: 700 }}>Integrations</Title>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {viewingPkg.integrations.map(type => {
+                      const matched = availableIntegrations.find(i => i.type === type);
+                      return (
+                        <div
+                          key={type}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            background: 'rgba(16, 185, 129, 0.05)',
+                            padding: '12px 16px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(16, 185, 129, 0.2)'
+                          }}
+                        >
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {matched?.name || type}
+                          </span>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
                 <Button onClick={() => setIsViewModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>

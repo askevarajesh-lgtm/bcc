@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Tabs, Table, Tag, Typography, Progress, Button, Spin } from 'antd';
+import { Tabs, Table, Tag, Typography, Progress, Button, Spin, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { CheckCircle, Download } from 'lucide-react';
 import TaskListView from '../../Tasks/TaskListView';
@@ -23,11 +23,13 @@ const ClientDetailContent = ({
   getStatusColor,
   getScoreColor,
   onTaskClick,
+  onClientUpdated,
 }) => {
   const [proposals, setProposals] = useState([]);
   const [projects, setProjects] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [togglingFeatureId, setTogglingFeatureId] = useState(null);
   const clientId = selectedClient?._id || selectedClient?.id;
 
   useEffect(() => {
@@ -324,34 +326,78 @@ const ClientDetailContent = ({
           {
             key: 'features',
             label: 'Features',
-            children: (
-              <div style={{ paddingTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Package</Text>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedClient.packageName || 'Custom'}</div>
+            children: (() => {
+              const handleFeatureToggle = async (featId, checked) => {
+                try {
+                  setTogglingFeatureId(featId);
+                  const currentFeatures = selectedClient.features || [];
+                  const updatedFeatures = checked
+                    ? [...currentFeatures, featId]
+                    : currentFeatures.filter(f => f !== featId);
+
+                  const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                  };
+
+                  const res = await fetch(`/api/brands/${clientId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({ features: updatedFeatures })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    message.success('Module access updated successfully');
+                    if (onClientUpdated) {
+                      onClientUpdated({
+                        ...selectedClient,
+                        features: data.data.features || []
+                      });
+                    }
+                  } else {
+                    message.error(data.message || 'Failed to update module access');
+                  }
+                } catch (e) {
+                  message.error('An error occurred while updating module access');
+                } finally {
+                  setTogglingFeatureId(null);
+                }
+              };
+
+              return (
+                <div style={{ paddingTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                    <div>
+                      <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Package</Text>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedClient.packageName || 'Custom'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {allowedFeatures.length > 0 ? allowedFeatures.map(feat => {
+                      const enabled = (selectedClient.features || []).includes(feat.id);
+                      return (
+                        <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: enabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)', opacity: 1 }}>
+                          <div style={{ color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}><CheckCircle size={15} /></div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
+                          <div style={{ marginLeft: 'auto' }}>
+                            <Switch
+                              size="small"
+                              checked={enabled}
+                              loading={togglingFeatureId === feat.id}
+                              onChange={(checked) => handleFeatureToggle(feat.id, checked)}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
+                        No modules configured.
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {allowedFeatures.length > 0 ? allowedFeatures.map(feat => {
-                    const enabled = (selectedClient.features || []).includes(feat.id);
-                    return (
-                      <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: enabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)', opacity: enabled ? 1 : 0.5 }}>
-                        <div style={{ color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}><CheckCircle size={15} /></div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
-                        <div style={{ marginLeft: 'auto' }}>
-                          <Tag color={enabled ? 'success' : 'default'} style={{ margin: 0, borderRadius: 8, fontWeight: 600, fontSize: 11 }}>{enabled ? 'Enabled' : 'Disabled'}</Tag>
-                        </div>
-                      </div>
-                    );
-                  }) : (
-                    <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
-                      No modules configured.
-                    </div>
-                  )}
-                </div>
-              </div>
-            ),
+              );
+            })(),
           },
           {
             key: 'activity',
