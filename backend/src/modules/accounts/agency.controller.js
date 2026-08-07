@@ -1,5 +1,33 @@
 const User = require('../auth/user.model');
 
+const normalizeIntegrations = (value) => {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(
+    value
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim())
+      .filter(Boolean)
+  )];
+};
+
+const validateIntegrationsArray = async (integrations, req) => {
+  if (integrations === undefined) return [];
+  const normalized = normalizeIntegrations(integrations);
+  if (normalized.length === 0) return [];
+
+  const integrationService = require('../integrations/integration.service');
+  const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+  const allowedIntegrations = await integrationService.getAllIntegrations(companyId, req.user.role, req.user);
+  const allowedTypes = new Set(allowedIntegrations.map(i => i.type));
+
+  for (const type of normalized) {
+    if (!allowedTypes.has(type)) {
+      throw new Error(`Integration type "${type}" is invalid or not available in your scope.`);
+    }
+  }
+  return normalized;
+};
+
 exports.getAgencies = async (req, res, next) => {
   try {
     const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
@@ -61,29 +89,64 @@ exports.createAgency = async (req, res, next) => {
 
     // Fetch the selected package to get features, integrations, and user limits
     let packageFeatures = [];
-    // Package-level integration entitlements (Layer 2 -- see integrationAccess.js).
-    // Snapshotted onto the agency User at assignment time, same as `features`.
     let packageIntegrations = [];
     let packageUsers = 5;
-    if (plan || packageId) {
+    const planOrId = plan || packageId;
+    if (planOrId) {
       const Package = require('../packages/package.model');
-      const pkg = await Package.findOne({ _id: plan || packageId, type: 'agency' });
-      if (pkg) {
-        packageFeatures = pkg.features || [];
-        packageIntegrations = pkg.integrations || [];
-        packageUsers = pkg.users || 5;
-        
-        const now = new Date();
-        req.body.subscriptionStartDate = now;
-        req.body.billingInterval = pkg.billingInterval || 'Monthly';
-        
-        if (req.body.billingInterval === 'Monthly') {
-          req.body.subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        } else if (req.body.billingInterval === 'Yearly') {
-          req.body.subscriptionEndDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-        } else {
-          req.body.subscriptionEndDate = null; // One Time
-        }
+      const pkg = await Package.findOne({ _id: planOrId, type: 'agency' });
+      if (!pkg) {
+        return res.status(400).json({ success: false, message: 'Selected package not found' });
+      }
+      packageFeatures = pkg.features || [];
+      packageIntegrations = pkg.integrations || [];
+      packageUsers = pkg.users || 5;
+      
+      const now = new Date();
+      req.body.subscriptionStartDate = now;
+      req.body.billingInterval = pkg.billingInterval || 'Monthly';
+      
+      if (req.body.billingInterval === 'Monthly') {
+        req.body.subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      } else if (req.body.billingInterval === 'Yearly') {
+        req.body.subscriptionEndDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      } else {
+        req.body.subscriptionEndDate = null; // One Time
+      }
+    }
+
+    // Enforce security: integrations must strictly be a subset of packageIntegrations, or default to packageIntegrations
+    let finalIntegrations = packageIntegrations;
+    if (req.body.integrations && Array.isArray(req.body.integrations)) {
+      const invalid = req.body.integrations.filter(i => !packageIntegrations.includes(i));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Privilege escalation prevented. Selected integrations not enabled in agency package: ${invalid.join(', ')}`
+        });
+      }
+      finalIntegrations = req.body.integrations;
+    }
+
+    let finalAdditional = [];
+    if (req.body.additionalIntegrations) {
+      try {
+        const validated = await validateIntegrationsArray(req.body.additionalIntegrations, req);
+        // filter out package integrations from additionalIntegrations
+        finalAdditional = validated.filter(i => !packageIntegrations.includes(i));
+      } catch (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+    }
+
+    let finalDisabled = [];
+    if (req.body.disabledPackageIntegrations) {
+      try {
+        const validated = await validateIntegrationsArray(req.body.disabledPackageIntegrations, req);
+        // exclusions can only apply to package integrations
+        finalDisabled = validated.filter(i => packageIntegrations.includes(i));
+      } catch (err) {
+        return res.status(400).json({ success: false, message: err.message });
       }
     }
 
@@ -99,7 +162,9 @@ exports.createAgency = async (req, res, next) => {
       logo: logo || null,
       logoDark: logoDark || null,
       features: req.body.features || packageFeatures,
-      integrations: req.body.integrations || packageIntegrations,
+      integrations: finalIntegrations,
+      additionalIntegrations: finalAdditional,
+      disabledPackageIntegrations: finalDisabled,
       allowedUsers: packageUsers,
       subscriptionStartDate: req.body.subscriptionStartDate,
       subscriptionEndDate: req.body.subscriptionEndDate,
@@ -144,6 +209,81 @@ exports.updateAgency = async (req, res, next) => {
     if (req.body.package && !req.body.plan) {
       req.body.plan = req.body.package;
       delete req.body.package;
+    }
+
+    const currentAgency = await User.findOne({ _id: req.params.id, role: { $in: [targetRole] } });
+    if (!currentAgency) {
+      return res.status(404).json({ success: false, message: 'Agency not found' });
+    }
+
+    const activePlanId = req.body.plan !== undefined ? req.body.plan : (currentAgency.plan?._id || currentAgency.plan);
+
+    let packageIntegrations = [];
+    let packageFeatures = [];
+    let packageUsers = 5;
+    if (activePlanId) {
+      const Package = require('../packages/package.model');
+      const pkg = await Package.findOne({ _id: activePlanId, type: 'agency' });
+      if (!pkg && req.body.plan !== undefined && req.body.plan !== null) {
+        return res.status(400).json({ success: false, message: 'Selected package not found' });
+      }
+      if (pkg) {
+        packageIntegrations = pkg.integrations || [];
+        packageFeatures = pkg.features || [];
+        packageUsers = pkg.users || 5;
+      }
+    }
+
+    if (req.body.plan !== undefined) {
+      req.body.features = req.body.features || packageFeatures;
+      req.body.integrations = packageIntegrations;
+      req.body.allowedUsers = packageUsers;
+
+      if (req.body.integrations !== undefined && Array.isArray(req.body.integrations)) {
+        const invalid = req.body.integrations.filter(i => !packageIntegrations.includes(i));
+        if (invalid.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Privilege escalation prevented. Selected integrations not enabled in agency package: ${invalid.join(', ')}`
+          });
+        }
+      }
+    } else {
+      if (req.body.integrations !== undefined) {
+        if (Array.isArray(req.body.integrations)) {
+          const invalid = req.body.integrations.filter(i => !packageIntegrations.includes(i));
+          if (invalid.length > 0) {
+            return res.status(400).json({
+              success: false,
+              message: `Privilege escalation prevented. Selected integrations not enabled in agency package: ${invalid.join(', ')}`
+            });
+          }
+        }
+      }
+    }
+
+    if (req.body.additionalIntegrations !== undefined) {
+      try {
+        const validated = await validateIntegrationsArray(req.body.additionalIntegrations, req);
+        req.body.additionalIntegrations = validated.filter(i => !packageIntegrations.includes(i));
+      } catch (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+    } else if (req.body.plan !== undefined) {
+      const currentAdditional = currentAgency.additionalIntegrations || [];
+      req.body.additionalIntegrations = currentAdditional.filter(i => !packageIntegrations.includes(i));
+    }
+
+    if (req.body.disabledPackageIntegrations !== undefined) {
+      try {
+        const validated = await validateIntegrationsArray(req.body.disabledPackageIntegrations, req);
+        req.body.disabledPackageIntegrations = validated.filter(i => packageIntegrations.includes(i));
+      } catch (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+    } else if (req.body.plan !== undefined) {
+      const currentDisabled = currentAgency.disabledPackageIntegrations || [];
+      req.body.disabledPackageIntegrations = currentDisabled.filter(i => packageIntegrations.includes(i));
     }
 
     if ((req.body.logo || req.body.logoDark) && req.user && req.user.role === 'commander_admin') {

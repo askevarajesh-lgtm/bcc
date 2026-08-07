@@ -1,6 +1,24 @@
 const Package = require('./package.model');
+const integrationService = require('../integrations/integration.service');
 
 const VALID_TYPES = ['agency', 'client', 'directClient'];
+
+// Validates selected package integrations against the database within the creator's company/platform scope.
+const validatePackageIntegrations = async (integrations, req) => {
+  if (integrations === undefined) return;
+  const normalized = normalizeIntegrations(integrations);
+  if (normalized.length === 0) return;
+
+  const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+  const allowedIntegrations = await integrationService.getAllIntegrations(companyId, req.user.role, req.user);
+  const allowedTypes = new Set(allowedIntegrations.map(i => i.type));
+
+  for (const type of normalized) {
+    if (!allowedTypes.has(type)) {
+      throw new Error(`Integration type "${type}" is invalid or not available in your scope.`);
+    }
+  }
+};
 
 // Sanitizes package-level integration entitlements before they hit the DB.
 // Accepts only an array of non-empty strings (stable Integration `type` values,
@@ -168,6 +186,8 @@ exports.createPackage = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Package with this name already exists' });
       }
 
+      await validatePackageIntegrations(integrations, req);
+
       const pkg = await Package.create({
         type: 'directClient',
         name,
@@ -189,6 +209,8 @@ exports.createPackage = async (req, res, next) => {
 
   // type === 'agency'
   try {
+    await validatePackageIntegrations(req.body.integrations, req);
+
     const pkg = await Package.create({
       ...req.body,
       type: 'agency',
@@ -231,6 +253,7 @@ exports.updatePackage = async (req, res, next) => {
       // behavior (a PUT that omits `integrations` must not wipe it to []).
       if (req.body.integrations !== undefined) {
         req.body.integrations = normalizeIntegrations(req.body.integrations);
+        await validatePackageIntegrations(req.body.integrations, req);
       }
 
       const pkg = await Package.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
@@ -292,6 +315,7 @@ exports.updatePackage = async (req, res, next) => {
     // leaving it untouched otherwise preserves existing partial-update behavior.
     if (req.body.integrations !== undefined) {
       req.body.integrations = normalizeIntegrations(req.body.integrations);
+      await validatePackageIntegrations(req.body.integrations, req);
     }
 
     const pkg = await Package.findOneAndUpdate(

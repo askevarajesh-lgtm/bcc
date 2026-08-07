@@ -19,6 +19,15 @@ const availableFeatures = [
   { id: 'benchmark', label: 'Benchmark' },
 ]; // Trigger hot reload
 
+const AGENCY_ACCOUNT_INTEGRATIONS = [
+  { type: 'whatsapp', name: 'WhatsApp' },
+  { type: 'sms', name: 'SMS' },
+  { type: 'email', name: 'Email (SendPulse)' },
+  { type: 'website', name: 'Lead Management Integration' },
+  { type: 'payment', name: 'Payment Integration' },
+  { type: 'ekta', name: 'Ekta HR Integration' },
+];
+
 
 const Accounts = () => {
   const [filter, setFilter] = useState('All');
@@ -28,7 +37,10 @@ const Accounts = () => {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgency, setEditingAgency] = useState(null);
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [form] = Form.useForm();
+
+  const selectedPackageObj = packages.find(p => p._id === selectedPackageId);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -40,10 +52,10 @@ const Accounts = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
@@ -70,16 +82,33 @@ const Accounts = () => {
   const handleOpenModal = (agency = null) => {
     if (agency) {
       setEditingAgency(agency);
+      const pkgId = agency.plan?._id || agency.plan;
+      setSelectedPackageId(pkgId);
+      
+      const selectedPkgObj = packages.find(p => p._id === pkgId);
+      const pkgIntegrations = selectedPkgObj?.integrations || [];
+      const disabledPackageIntegrations = agency.disabledPackageIntegrations || [];
+      const additionalIntegrations = agency.additionalIntegrations || [];
+      
+      const effectiveIntegrations = [
+        ...new Set([
+          ...pkgIntegrations.filter(i => !disabledPackageIntegrations.includes(i)),
+          ...additionalIntegrations
+        ])
+      ];
+
       form.setFieldsValue({
         name: agency.name,
         email: agency.email,
-        package: agency.plan?._id || agency.plan,
+        package: pkgId,
         features: agency.features || [],
+        integrations: effectiveIntegrations,
         extraUsers: agency.extraUsers || 0,
         extraClients: agency.extraClients || 0
       });
     } else {
       setEditingAgency(null);
+      setSelectedPackageId(null);
       form.resetFields();
     }
     setIsModalOpen(true);
@@ -88,11 +117,20 @@ const Accounts = () => {
   const handleCreateOrUpdate = async () => {
     try {
       const values = await form.validateFields();
+      const selectedPkgObj = packages.find(p => p._id === values.package);
+      const pkgIntegrations = selectedPkgObj?.integrations || [];
+      const userSelectedIntegrations = values.integrations || [];
+
+      const disabledPackageIntegrations = pkgIntegrations.filter(i => !userSelectedIntegrations.includes(i));
+      const additionalIntegrations = userSelectedIntegrations.filter(i => !pkgIntegrations.includes(i));
+
       if (editingAgency) {
         await api.put(`/agencies/${editingAgency._id}`, {
           name: values.name,
           package: values.package,
           features: values.features,
+          additionalIntegrations,
+          disabledPackageIntegrations,
           extraUsers: values.extraUsers || 0,
           extraClients: values.extraClients || 0
         });
@@ -103,7 +141,9 @@ const Accounts = () => {
           email: values.email,
           password: values.password,
           package: values.package,
-          features: values.features
+          features: values.features,
+          additionalIntegrations,
+          disabledPackageIntegrations
         });
         message.success("Agency created successfully");
       }
@@ -149,7 +189,7 @@ const Accounts = () => {
   const getActionMenu = (record) => {
     return [
       { key: 'edit', icon: <Edit2 size={16} />, label: 'Edit Agency' },
-      record.status === 'active' 
+      record.status === 'active'
         ? { key: 'suspend', icon: <ShieldOff size={16} />, label: 'Suspend Agency' }
         : { key: 'activate', icon: <ShieldCheck size={16} />, label: 'Activate Agency' },
       { type: 'divider' },
@@ -177,10 +217,10 @@ const Accounts = () => {
   };
 
   const columns = [
-    { 
-      title: 'AGENCY', 
-      dataIndex: 'name', 
-      key: 'name', 
+    {
+      title: 'AGENCY',
+      dataIndex: 'name',
+      key: 'name',
       render: (text, record) => {
         const initial = text.charAt(0).toUpperCase();
         return (
@@ -197,52 +237,52 @@ const Accounts = () => {
         );
       }
     },
-    { 
-      title: 'STATUS', 
-      dataIndex: 'status', 
-      key: 'status', 
+    {
+      title: 'STATUS',
+      dataIndex: 'status',
+      key: 'status',
       render: text => {
         let color = text === 'active' ? 'success' : 'warning';
         return <Tag color={color} style={{ borderRadius: 12, background: 'transparent', border: `1px solid var(--accent-${color === 'success' ? 'secondary' : 'warning'})`, color: `var(--accent-${color === 'success' ? 'secondary' : 'warning'})` }}>{text.toUpperCase()}</Tag>
-      } 
+      }
     },
-    { 
-      title: 'PACKAGE', 
-      dataIndex: 'plan', 
-      key: 'package', 
-      render: plan => <Text type="secondary" style={{ fontWeight: 600 }}>{plan?.name || 'Custom'}</Text> 
+    {
+      title: 'PACKAGE',
+      dataIndex: 'plan',
+      key: 'package',
+      render: plan => <Text type="secondary" style={{ fontWeight: 600 }}>{plan?.name || 'Custom'}</Text>
     },
-    { 
-      title: 'USERS', 
-      key: 'users', 
+    {
+      title: 'USERS',
+      key: 'users',
       render: (_, record) => {
         const limit = (record.plan?.users || record.allowedUsers || 5) + (record.extraUsers || 0);
         return <strong style={{ color: 'var(--text-primary)' }}>{record.usersCount || 0} / {limit}</strong>;
       }
     },
-    { 
-      title: 'CLIENTS', 
-      key: 'clients', 
+    {
+      title: 'CLIENTS',
+      key: 'clients',
       render: (_, record) => {
         const limit = (record.plan?.clients || 10) + (record.extraClients || 0);
         return <strong style={{ color: 'var(--text-primary)' }}>{record.clientsCount || 0} / {limit}</strong>;
       }
     },
-    { 
-      title: 'CREATED DATE', 
-      dataIndex: 'createdAt', 
-      key: 'createdAt', 
-      render: text => <Text type="secondary">{new Date(text).toLocaleDateString()}</Text> 
+    {
+      title: 'CREATED DATE',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: text => <Text type="secondary">{new Date(text).toLocaleDateString()}</Text>
     },
-    { 
-      title: '', 
-      key: 'action', 
+    {
+      title: '',
+      key: 'action',
       align: 'right',
       render: (_, record) => (
         <Dropdown menu={{ items: getActionMenu(record), onClick: (e) => handleActionClick(e, record) }} trigger={['click']} placement="bottomRight">
           <Button type="text" icon={<MoreVertical size={16} />} />
         </Dropdown>
-      ) 
+      )
     }
   ];
 
@@ -252,14 +292,14 @@ const Accounts = () => {
       if (filter !== 'All') {
         matchesFilter = agency.status === (filter === 'Active' ? 'active' : filter.toLowerCase());
       }
-      
+
       let matchesSearch = true;
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
-        matchesSearch = (agency.name && agency.name.toLowerCase().includes(query)) || 
-                        (agency.email && agency.email.toLowerCase().includes(query));
+        matchesSearch = (agency.name && agency.name.toLowerCase().includes(query)) ||
+          (agency.email && agency.email.toLowerCase().includes(query));
       }
-      
+
       return matchesFilter && matchesSearch;
     });
   }, [agencies, filter, searchQuery]);
@@ -283,13 +323,13 @@ const Accounts = () => {
         ].map((kpi, i) => (
           <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
             <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-              <Card 
-                className="glassmorphism" 
-                bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }} 
-                style={{ 
-                  borderRadius: 16, 
-                  height: '100%', 
-                  border: '1px solid var(--border-color)', 
+              <Card
+                className="glassmorphism"
+                bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }}
+                style={{
+                  borderRadius: 16,
+                  height: '100%',
+                  border: '1px solid var(--border-color)',
                   boxShadow: 'var(--shadow-md)',
                   background: `var(--glass-bg)`,
                   position: 'relative',
@@ -297,14 +337,14 @@ const Accounts = () => {
                 }}
               >
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: kpi.gradient, pointerEvents: 'none' }} />
-                
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, position: 'relative', zIndex: 1 }}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5 }}>{kpi.label}</Text>
                   <div style={{ padding: 8, borderRadius: 10, backgroundColor: 'var(--bg-secondary)', color: kpi.color, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                     {kpi.icon}
                   </div>
                 </div>
-                
+
                 <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
                   <Title level={2} style={{ margin: '0 0 4px', fontSize: 36, fontWeight: 800, color: kpi.isAlert ? 'var(--accent-danger)' : 'var(--text-primary)' }}>{kpi.val}</Title>
                   <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>{kpi.sub}</Text>
@@ -322,14 +362,14 @@ const Accounts = () => {
             { label: 'Active', count: agencies.filter(a => a.status === 'active').length },
             { label: 'Suspended', count: agencies.filter(a => a.status === 'suspended').length }
           ].map(f => (
-            <motion.div 
+            <motion.div
               key={f.label}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setFilter(f.label)}
-              style={{ 
-                padding: '6px 14px', 
-                borderRadius: 20, 
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
                 background: filter === f.label ? 'var(--text-primary)' : 'transparent',
@@ -346,24 +386,24 @@ const Accounts = () => {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
-          <Input.Search 
-            placeholder="Search agencies..." 
-            style={{ width: '100%', maxWidth: 360 }} 
+          <Input.Search
+            placeholder="Search agencies..."
+            style={{ width: '100%', maxWidth: 360 }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <Table 
-            columns={columns} 
-            dataSource={filteredAgencies} 
-            rowKey="_id" 
-            pagination={{ pageSize: 10 }} 
+          <Table
+            columns={columns}
+            dataSource={filteredAgencies}
+            rowKey="_id"
+            pagination={{ pageSize: 10 }}
             rowSelection={{ type: 'checkbox' }}
             size="middle"
             loading={loading}
-            scroll={{ x: 1000 }} 
+            scroll={{ x: 1000 }}
           />
         </div>
       </motion.div>
@@ -381,28 +421,32 @@ const Accounts = () => {
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Name</Text>} name="name" rules={[{ required: true, message: 'Please enter agency name' }]}>
             <Input placeholder="e.g. Acme Corp" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
-          
+
           {!editingAgency && (
             <>
               <Form.Item label={<Text style={{ fontWeight: 600 }}>Admin Email</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
                 <Input placeholder="admin@agency.com" style={{ borderRadius: 8 }} size="large" />
               </Form.Item>
-              
+
               <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true, message: 'Please set an initial password' }]}>
                 <Input.Password placeholder="Set admin password" style={{ borderRadius: 8 }} size="large" />
               </Form.Item>
             </>
           )}
-          
+
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Package Selection</Text>} name="package" rules={[{ required: true, message: 'Please select an agency package' }]}>
-            <Select 
-              style={{ borderRadius: 8 }} 
-              size="large" 
+            <Select
+              style={{ borderRadius: 8 }}
+              size="large"
               placeholder="Select a package"
               onChange={(value) => {
+                setSelectedPackageId(value);
                 const selectedPkg = packages.find(p => p._id === value);
                 if (selectedPkg) {
                   form.setFieldsValue({ features: selectedPkg.features || [] });
+                  
+                  const pkgIntegrations = selectedPkg.integrations || [];
+                  form.setFieldsValue({ integrations: pkgIntegrations });
                 }
               }}
             >
@@ -418,6 +462,20 @@ const Accounts = () => {
                 {availableFeatures.map(feat => (
                   <Col span={12} key={feat.id}>
                     <Checkbox value={feat.id}>{feat.label}</Checkbox>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
+          </Form.Item>
+
+          <Form.Item label={<Text style={{ fontWeight: 600 }}>Integrations</Text>} name="integrations">
+            <Checkbox.Group style={{ width: '100%' }}>
+              <Row gutter={[16, 16]}>
+                {AGENCY_ACCOUNT_INTEGRATIONS.map((integration) => (
+                  <Col span={12} key={integration.type}>
+                    <Checkbox value={integration.type}>
+                      {integration.name}
+                    </Checkbox>
                   </Col>
                 ))}
               </Row>

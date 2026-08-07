@@ -127,14 +127,29 @@ exports.createBrand = async (req, res, next) => {
     let packageIntegrations = [];
     if (packageName) {
       const Package = require('../packages/package.model');
+      let pkg;
       if (isDirect) {
-        const pkg = await Package.findOne({ type: 'directClient', name: packageName, createdBy: req.user._id });
-        if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
-        if (pkg) packageIntegrations = pkg.integrations || [];
+        pkg = await Package.findOne({ type: 'directClient', name: packageName, createdBy: req.user._id });
       } else {
-        const pkg = await Package.findOne({ type: 'client', name: packageName, agencyId: agencyId });
-        if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
-        if (pkg) packageIntegrations = pkg.integrations || [];
+        pkg = await Package.findOne({ type: 'client', name: packageName, agencyId: agencyId });
+      }
+
+      if (!pkg) {
+        return res.status(400).json({ success: false, message: `Package "${packageName}" not found in your scope.` });
+      }
+
+      if (pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
+      packageIntegrations = pkg.integrations || [];
+
+      // Validate client-supplied integrations (prevent privilege escalation)
+      if (req.body.integrations && Array.isArray(req.body.integrations)) {
+        const invalid = req.body.integrations.filter(i => !packageIntegrations.includes(i));
+        if (invalid.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
+          });
+        }
       }
     }
 
@@ -160,7 +175,7 @@ exports.createBrand = async (req, res, next) => {
       isDirect,
       packageName: packageName || null,
       features: features || [],
-      integrations: req.body.integrations || packageIntegrations,
+      integrations: packageIntegrations,
       mrr: mrr || 0,
       subscriptionStartDate: now,
       subscriptionEndDate,
@@ -292,16 +307,83 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, packageName, features, integrations, mrr, extraUsers } = req.body;
+    const { name, email, phone, address, packageName, features, integrations, mrr, extraUsers } = req.body;
     let updates = {};
-    if (name) updates.companyName = name;
-    if (packageName !== undefined) updates.packageName = packageName;
-    if (features !== undefined) updates.features = features;
-    // Package-level integration entitlements (Layer 2) -- same explicit,
-    // caller-controlled update pattern already used for `features` above.
-    if (integrations !== undefined) updates.integrations = integrations;
+    if (name) {
+      updates.companyName = name;
+      updates.name = name + ' Admin';
+    }
+    if (email) updates.email = email;
+    if (phone) updates.phone = phone;
+    if (address) updates.address = address;
     if (mrr !== undefined) updates.mrr = mrr;
     if (extraUsers !== undefined) updates.extraUsers = extraUsers;
+
+    const currentBrand = await User.findOne(filter);
+    if (!currentBrand) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    const activePackageName = packageName !== undefined ? packageName : currentBrand.packageName;
+
+    let packageIntegrations = [];
+    let packageFeatures = [];
+    let packagePrice = 0;
+    if (activePackageName) {
+      const Package = require('../packages/package.model');
+      let pkg;
+      if (currentBrand.isDirect) {
+        pkg = await Package.findOne({ type: 'directClient', name: activePackageName, createdBy: req.user._id });
+      } else {
+        const agencyId = currentBrand.agencyId || req.user.agencyId || req.user.adminId || (['agency_super_admin', 'agency_manager'].includes(req.user.role) ? req.user._id : null);
+        pkg = await Package.findOne({ type: 'client', name: activePackageName, agencyId });
+      }
+
+      if (!pkg && packageName !== undefined && packageName !== null) {
+        return res.status(400).json({ success: false, message: `Package "${activePackageName}" not found in your scope.` });
+      }
+
+      if (pkg) {
+        packageIntegrations = pkg.integrations || [];
+        packageFeatures = pkg.features || [];
+        packagePrice = pkg.price || 0;
+      }
+    }
+
+    if (packageName !== undefined) {
+      updates.packageName = packageName;
+      updates.features = packageFeatures;
+      updates.integrations = packageIntegrations;
+      if (packageName) {
+        updates.mrr = packagePrice || 0;
+      } else {
+        updates.mrr = 0;
+      }
+
+      // Validate client-supplied integrations if any (against the new package)
+      if (integrations !== undefined) {
+        const invalid = integrations.filter(i => !packageIntegrations.includes(i));
+        if (invalid.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
+          });
+        }
+      }
+    } else {
+      if (features !== undefined) updates.features = features;
+      if (integrations !== undefined) {
+        // Validate client-supplied integrations (against the current package)
+        const invalid = integrations.filter(i => !packageIntegrations.includes(i));
+        if (invalid.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
+          });
+        }
+        updates.integrations = integrations;
+      }
+    }
 
     const brand = await User.findOneAndUpdate(
       filter,

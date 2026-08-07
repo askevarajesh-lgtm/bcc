@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Typography, Button, Table, Modal, Input, Switch, Tag, message, Descriptions, Select } from 'antd';
 import { Plus, Edit, Trash2, Eye, Star, Users, Briefcase, Check } from 'lucide-react';
 import api from '../../../services/api';
-import { useGetIntegrationsQuery } from '../../../api/integrationApi';
 
 const { Title, Text } = Typography;
 
@@ -18,18 +17,7 @@ const availableFeatures = [
   { id: 'benchmark', label: 'Benchmark' },
 ];
 
-// Same 6 integration types/labels the Settings -> Integrations page
-// (IntegrationsTab.jsx) always renders as cards, whether or not that
-// company has configured them yet. Kept in sync with that page's own
-// title strings so the package modal matches what admins already see.
-const CANONICAL_INTEGRATIONS = [
-  { type: 'whatsapp', name: 'WhatsApp' },
-  { type: 'sms', name: 'SMS' },
-  { type: 'email', name: 'Email (SendPulse)' },
-  { type: 'website', name: 'Lead Management Integration' },
-  { type: 'payment', name: 'Payment Integration' },
-  { type: 'ekta', name: 'Ekta HR Integration' },
-];
+
 
 // Mirrors the feature-gating already used on the Integrations page
 // (Ekta card only shown for hrms feature, Lead Management/website card
@@ -47,7 +35,7 @@ const DirectPackagesTab = () => {
   const [editingPkg, setEditingPkg] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingPkg, setViewingPkg] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -58,32 +46,14 @@ const DirectPackagesTab = () => {
     integrations: []
   });
 
-  // Reuse the existing integrations API infrastructure — same query the
-  // Integrations settings tab uses — instead of a hardcoded/duplicate list.
-  const { data: integrationsData, isLoading: integrationsLoading } = useGetIntegrationsQuery();
-  const rawIntegrations = integrationsData?.data?.integrations || [];
-
-  // Start from the canonical 6 shown on the Integrations settings page
-  // (so package assignment always offers what admins see there, even
-  // for types not yet configured/active), then overlay real API data —
-  // actual record names win, and any additional configured type beyond
-  // the canonical 6 (e.g. Meta Ads, Facebook Leads) still surfaces
-  // instead of being silently dropped.
-  const availableIntegrations = useMemo(() => {
-    const byType = new Map();
-    CANONICAL_INTEGRATIONS.forEach(({ type, name }) => {
-      byType.set(type, { type, name });
-    });
-    rawIntegrations.forEach((integration) => {
-      if (integration?.type) {
-        byType.set(integration.type, {
-          type: integration.type,
-          name: integration.name || byType.get(integration.type)?.name || integration.type
-        });
-      }
-    });
-    return Array.from(byType.values());
-  }, [rawIntegrations]);
+  const availableIntegrations = [
+    { type: 'whatsapp', name: 'WhatsApp' },
+    { type: 'sms', name: 'SMS' },
+    { type: 'email', name: 'Email (SendPulse)' },
+    { type: 'website', name: 'Lead Management Integration' },
+    { type: 'payment', name: 'Payment Integration' },
+    { type: 'ekta', name: 'Ekta HR Integration' },
+  ];
 
   const fetchPackages = async () => {
     try {
@@ -183,10 +153,10 @@ const DirectPackagesTab = () => {
 
       // Auto-enable the linked integration when its feature is turned ON
       // (HRMS -> Ekta HR Integration, CRM & Leads -> Lead Management
-      // Integration). Turning the feature back OFF does not auto-remove
-      // the integration, in case it was also enabled independently.
+      // Integration). Only if it exists in the DB result (availableIntegrations).
       const linkedIntegration = FEATURE_INTEGRATION_AUTO_MAP[featureId];
-      const nextIntegrations = (checked && linkedIntegration && !prev.integrations.includes(linkedIntegration))
+      const existsInDb = linkedIntegration && availableIntegrations.some(i => i.type === linkedIntegration);
+      const nextIntegrations = (checked && linkedIntegration && existsInDb && !prev.integrations.includes(linkedIntegration))
         ? [...prev.integrations, linkedIntegration]
         : prev.integrations;
 
@@ -469,40 +439,30 @@ const DirectPackagesTab = () => {
 
           <div style={{ marginTop: 8 }}>
             <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Integrations</label>
-            {integrationsLoading ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                Loading integrations...
-              </div>
-            ) : availableIntegrations.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', background: 'var(--bg-tertiary)', borderRadius: 8, border: '1px dashed var(--border-color)' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>No integrations are currently configured for this company.</Text>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {availableIntegrations.map(integration => {
-                  const autoLinkedFeature = Object.entries(FEATURE_INTEGRATION_AUTO_MAP)
-                    .find(([, linkedType]) => linkedType === integration.type)?.[0];
-                  const autoLinkedFeatureLabel = availableFeatures.find(f => f.id === autoLinkedFeature)?.label;
-                  return (
-                    <div key={integration.type} style={{ display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>{integration.name}</span>
-                        <Switch
-                          size="small"
-                          checked={formData.integrations.includes(integration.type)}
-                          onChange={(checked) => toggleIntegration(integration.type, checked)}
-                        />
-                      </div>
-                      {autoLinkedFeatureLabel && (
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                          Auto-enabled when {autoLinkedFeatureLabel} is included
-                        </span>
-                      )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {availableIntegrations.map(integration => {
+                const autoLinkedFeature = Object.entries(FEATURE_INTEGRATION_AUTO_MAP)
+                  .find(([, linkedType]) => linkedType === integration.type)?.[0];
+                const autoLinkedFeatureLabel = availableFeatures.find(f => f.id === autoLinkedFeature)?.label;
+                return (
+                  <div key={integration.type} style={{ display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{integration.name}</span>
+                      <Switch
+                        size="small"
+                        checked={formData.integrations.includes(integration.type)}
+                        onChange={(checked) => toggleIntegration(integration.type, checked)}
+                      />
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    {autoLinkedFeatureLabel && (
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        Auto-enabled when {autoLinkedFeatureLabel} is included
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </Modal>

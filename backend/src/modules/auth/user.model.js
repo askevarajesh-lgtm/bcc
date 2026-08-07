@@ -80,6 +80,8 @@ const UserSchema = new mongoose.Schema({
   // same pattern as `features` above. Stable Integration `type` identifiers only
   // (e.g. 'whatsapp'), never Integration document _id values.
   integrations: [{ type: String }],
+  additionalIntegrations: [{ type: String }],
+  disabledPackageIntegrations: [{ type: String }],
   ga4PropertyId: { type: String, default: null },
   
   // Custom Overrides (For Agency and Direct Brand)

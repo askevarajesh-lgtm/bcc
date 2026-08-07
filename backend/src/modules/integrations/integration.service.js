@@ -28,7 +28,7 @@ const assertIntegrationEnabledForCompany = async (
     throw new Error("Company not found for integration validation");
   }
 
-  const integrations = resolveCompanyIntegrations(company);
+  const integrations = await resolveCompanyIntegrations(company);
   if (!integrations[integrationType]) {
     throw new Error(
       `${integrationType.toUpperCase()} integration is disabled for this company by Super Admin.`,
@@ -257,7 +257,7 @@ const getAllIntegrations = async (companyId, role, user) => {
   if (!company) {
     return [];
   }
-  const allowed = resolveCompanyIntegrations(company);
+  const allowed = await resolveCompanyIntegrations(company);
   const companyFiltered = integrations.filter((integration) =>
     Boolean(allowed[integration.type]),
   );
