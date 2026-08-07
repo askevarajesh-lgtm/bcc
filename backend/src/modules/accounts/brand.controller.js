@@ -124,15 +124,17 @@ exports.createBrand = async (req, res, next) => {
     }
 
     let packageBillingInterval = 'Monthly';
+    let packageIntegrations = [];
     if (packageName) {
+      const Package = require('../packages/package.model');
       if (isDirect) {
-        const Package = require('../packages/package.model');
         const pkg = await Package.findOne({ type: 'directClient', name: packageName, createdBy: req.user._id });
         if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
+        if (pkg) packageIntegrations = pkg.integrations || [];
       } else {
-        const Package = require('../packages/package.model');
         const pkg = await Package.findOne({ type: 'client', name: packageName, agencyId: agencyId });
         if (pkg && pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
+        if (pkg) packageIntegrations = pkg.integrations || [];
       }
     }
 
@@ -158,6 +160,7 @@ exports.createBrand = async (req, res, next) => {
       isDirect,
       packageName: packageName || null,
       features: features || [],
+      integrations: req.body.integrations || packageIntegrations,
       mrr: mrr || 0,
       subscriptionStartDate: now,
       subscriptionEndDate,
@@ -289,11 +292,14 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, packageName, features, mrr, extraUsers } = req.body;
+    const { name, packageName, features, integrations, mrr, extraUsers } = req.body;
     let updates = {};
     if (name) updates.companyName = name;
     if (packageName !== undefined) updates.packageName = packageName;
     if (features !== undefined) updates.features = features;
+    // Package-level integration entitlements (Layer 2) -- same explicit,
+    // caller-controlled update pattern already used for `features` above.
+    if (integrations !== undefined) updates.integrations = integrations;
     if (mrr !== undefined) updates.mrr = mrr;
     if (extraUsers !== undefined) updates.extraUsers = extraUsers;
 

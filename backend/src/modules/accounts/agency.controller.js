@@ -59,14 +59,18 @@ exports.createAgency = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
-    // Fetch the selected package to get features and user limits
+    // Fetch the selected package to get features, integrations, and user limits
     let packageFeatures = [];
+    // Package-level integration entitlements (Layer 2 -- see integrationAccess.js).
+    // Snapshotted onto the agency User at assignment time, same as `features`.
+    let packageIntegrations = [];
     let packageUsers = 5;
     if (plan || packageId) {
       const Package = require('../packages/package.model');
       const pkg = await Package.findOne({ _id: plan || packageId, type: 'agency' });
       if (pkg) {
         packageFeatures = pkg.features || [];
+        packageIntegrations = pkg.integrations || [];
         packageUsers = pkg.users || 5;
         
         const now = new Date();
@@ -95,6 +99,7 @@ exports.createAgency = async (req, res, next) => {
       logo: logo || null,
       logoDark: logoDark || null,
       features: req.body.features || packageFeatures,
+      integrations: req.body.integrations || packageIntegrations,
       allowedUsers: packageUsers,
       subscriptionStartDate: req.body.subscriptionStartDate,
       subscriptionEndDate: req.body.subscriptionEndDate,

@@ -21,6 +21,9 @@ const PackageSchema = new mongoose.Schema({
   price: { type: String, default: '' },
   description: { type: String, default: '' },
   features: [{ type: String }],
+
+  integrations: [{ type: String }],
+
   billingInterval: { type: String, enum: ['Monthly', 'Yearly', 'One Time'], default: 'Monthly' },
 
   // Fields previously only on AgencyPackage
