@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm } from 'antd';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useGetIntegrationsQuery } from '../../../api/integrationApi';
@@ -40,6 +40,7 @@ const ClientsTab = () => {
   const [clientProjects, setClientProjects] = useState([]);
   const [clientInvoices, setClientInvoices] = useState([]);
   const [clientDataLoading, setClientDataLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { features: agencyFeatures } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
@@ -280,6 +281,19 @@ const ClientsTab = () => {
     </div>
   );
 
+  // Filter clients by name or email against the search query.
+  // This is the piece that was missing: the Input had no value/onChange,
+  // so nothing ever consumed what the user typed.
+  const filteredClients = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return dbClients;
+    return dbClients.filter(c => {
+      const name = (c.name || '').toLowerCase();
+      const email = (c.adminEmail || c.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [dbClients, searchQuery]);
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
 
@@ -287,7 +301,7 @@ const ClientsTab = () => {
         <div>
           <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>All Clients</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
-            {dbClients.length} total active clients in your agency
+            {filteredClients.length} of {dbClients.length} total active clients in your agency
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -309,6 +323,10 @@ const ClientsTab = () => {
           <Input
             prefix={<Search size={18} style={{ color: 'var(--text-tertiary)' }} />}
             placeholder="Search clients by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+            onClear={() => setSearchQuery('')}
             style={{
               maxWidth: 400,
               background: 'transparent',
@@ -419,9 +437,10 @@ const ClientsTab = () => {
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}>
         <Table
           className="custom-table"
-          dataSource={dbClients}
+          dataSource={filteredClients}
           rowKey="_id"
           pagination={false}
+          locale={{ emptyText: searchQuery ? 'No clients match your search' : 'No clients found' }}
           columns={[
             {
               title: 'Client Name',
