@@ -108,6 +108,7 @@ exports.getTransactions = async (req, res) => {
 
     const transactions = await Transaction.find(query)
       .populate('invoiceId', 'invoiceNumber grandTotal totalPaid pendingAmount')
+      .populate('marketplacePurchaseId', 'moduleName')
       .populate('companyId', 'name email companyName')
       .populate('recordedBy', 'name email')
       .populate('verifiedBy', 'name email')

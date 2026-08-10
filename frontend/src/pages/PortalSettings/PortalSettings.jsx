@@ -20,6 +20,15 @@ const availableFeatures = [
   { id: 'benchmark', label: 'Benchmark' },
 ];
 
+const DIRECT_BRAND_INTEGRATIONS = [
+  { type: 'whatsapp', name: 'WhatsApp' },
+  { type: 'sms', name: 'SMS' },
+  { type: 'email', name: 'Email (SendPulse)' },
+  { type: 'website', name: 'Lead Management Integration' },
+  { type: 'payment', name: 'Payment Integration' },
+  { type: 'ekta', name: 'Ekta HR Integration' },
+];
+
 const PortalSettings = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,9 +80,17 @@ const PortalSettings = () => {
     try {
       setLoading(true);
 
+      const selectedPkgObj = packages.find(p => p.name === values.packageName);
+      const pkgIntegrations = selectedPkgObj?.integrations || [];
+      const userSelectedIntegrations = values.integrations || [];
+      const disabledPackageIntegrations = pkgIntegrations.filter(i => !userSelectedIntegrations.includes(i));
+      const additionalIntegrations = userSelectedIntegrations.filter(i => !pkgIntegrations.includes(i));
+
       const payload = {
         ...values,
-        features: values.features || []
+        features: values.features || [],
+        additionalIntegrations,
+        disabledPackageIntegrations
       };
 
       const res = await api.post('/brands', payload);
@@ -98,10 +115,18 @@ const PortalSettings = () => {
     try {
       setLoading(true);
 
+      const selectedPkgObj = packages.find(p => p.name === values.packageName);
+      const pkgIntegrations = selectedPkgObj?.integrations || [];
+      const userSelectedIntegrations = values.integrations || [];
+      const disabledPackageIntegrations = pkgIntegrations.filter(i => !userSelectedIntegrations.includes(i));
+      const additionalIntegrations = userSelectedIntegrations.filter(i => !pkgIntegrations.includes(i));
+
       const payload = {
         name: values.name,
         packageName: values.packageName,
         features: values.features || [],
+        additionalIntegrations,
+        disabledPackageIntegrations,
         extraUsers: values.extraUsers || 0
       };
 
@@ -260,10 +285,24 @@ const PortalSettings = () => {
                         icon: <Pencil size={16} />,
                         onClick: () => {
                           setEditingBrand(record);
+                          
+                          const selectedPkgObj = packages.find(p => p.name === record.packageName);
+                          const pkgIntegrations = selectedPkgObj?.integrations || [];
+                          const disabledPackageIntegrations = record.disabledPackageIntegrations || [];
+                          const additionalIntegrations = record.additionalIntegrations || [];
+                          
+                          const effectiveIntegrations = [
+                            ...new Set([
+                              ...pkgIntegrations.filter(i => !disabledPackageIntegrations.includes(i)),
+                              ...additionalIntegrations
+                            ])
+                          ];
+
                           editForm.setFieldsValue({
                             name: record.companyName || (record.name ? record.name.replace(' Admin', '') : ''),
                             packageName: record.packageName,
                             features: record.features || [],
+                            integrations: effectiveIntegrations,
                             extraUsers: record.extraUsers || 0
                           });
                           setIsEditModalOpen(true);
@@ -322,10 +361,13 @@ const PortalSettings = () => {
           onFinish={handleCreateBrand} 
           style={{ marginTop: 24 }}
           onValuesChange={(changedValues) => {
-            if (changedValues.packageName) {
+             if (changedValues.packageName) {
                const pkg = packages.find(p => p.name === changedValues.packageName);
-               if (pkg && pkg.features) {
-                 form.setFieldsValue({ features: pkg.features });
+               if (pkg) {
+                 form.setFieldsValue({ 
+                   features: pkg.features || [],
+                   integrations: pkg.integrations || [] 
+                 });
                }
             }
           }}
@@ -370,6 +412,21 @@ const PortalSettings = () => {
             </Form.Item>
           </div>
 
+          <div style={{ marginBottom: 24 }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 16 }}>Integrations</span>
+            <Form.Item name="integrations" valuePropName="value">
+              <Checkbox.Group style={{ width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  {DIRECT_BRAND_INTEGRATIONS.map(int => (
+                    <Checkbox key={int.type} value={int.type} style={{ fontWeight: 500 }}>
+                      {int.name}
+                    </Checkbox>
+                  ))}
+                </div>
+              </Checkbox.Group>
+            </Form.Item>
+          </div>
+
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={loading} block style={{ background: 'var(--accent-primary)', fontWeight: 700 }}>
               Create Brand
@@ -403,10 +460,13 @@ const PortalSettings = () => {
           onFinish={handleEditBrand} 
           style={{ marginTop: 24 }}
           onValuesChange={(changedValues) => {
-            if (changedValues.packageName) {
+             if (changedValues.packageName) {
                const pkg = packages.find(p => p.name === changedValues.packageName);
-               if (pkg && pkg.features) {
-                 editForm.setFieldsValue({ features: pkg.features });
+               if (pkg) {
+                 editForm.setFieldsValue({ 
+                   features: pkg.features || [],
+                   integrations: pkg.integrations || [] 
+                 });
                }
             }
           }}
@@ -431,6 +491,21 @@ const PortalSettings = () => {
                   {availableFeatures.map(feat => (
                     <Checkbox key={feat.id} value={feat.id} style={{ fontWeight: 500 }}>
                       {feat.label}
+                    </Checkbox>
+                  ))}
+                </div>
+              </Checkbox.Group>
+            </Form.Item>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 16 }}>Integrations</span>
+            <Form.Item name="integrations" valuePropName="value">
+              <Checkbox.Group style={{ width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  {DIRECT_BRAND_INTEGRATIONS.map(int => (
+                    <Checkbox key={int.type} value={int.type} style={{ fontWeight: 500 }}>
+                      {int.name}
                     </Checkbox>
                   ))}
                 </div>

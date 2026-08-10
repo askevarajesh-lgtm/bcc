@@ -104,6 +104,25 @@ const verifyPurchase = async (companyId, moduleName, razorpayOrderId, razorpayPa
     throw new Error('Purchase record not found for the given order ID');
   }
 
+  // Record the transaction
+  const Transaction = require('../transactions/transaction.model');
+  const existingTransaction = await Transaction.findOne({ razorpayOrderId });
+  if (!existingTransaction) {
+    await Transaction.create({
+      marketplacePurchaseId: purchase._id,
+      companyId: purchase.companyId,
+      amount: purchase.amount / 100, // stored in paise, convert to INR
+      paymentDate: new Date(),
+      paymentMethod: 'Razorpay',
+      referenceNumber: razorpayPaymentId,
+      status: 'Verified',
+      transactionType: 'Online',
+      razorpayPaymentId,
+      razorpayOrderId,
+      razorpaySignature
+    });
+  }
+
   return purchase;
 };
 

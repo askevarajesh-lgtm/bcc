@@ -86,7 +86,11 @@ const UserSchema = new mongoose.Schema({
   
   // Custom Overrides (For Agency and Direct Brand)
   extraUsers: { type: Number, default: 0 },
-  extraClients: { type: Number, default: 0 }
+  extraClients: { type: Number, default: 0 },
+
+  // Password Reset OTP
+  resetPasswordOtp: { type: String, default: null },
+  resetPasswordOtpExpiry: { type: Date, default: null }
 }, { timestamps: true });
 
 // Hash password before saving

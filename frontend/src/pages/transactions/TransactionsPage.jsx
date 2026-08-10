@@ -215,14 +215,20 @@ const TransactionsPage = () => {
     {
       title: "Invoice",
       key: "invoice",
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => navigate(`/agency/invoices/${record.invoiceId?._id}/view`)}
-        >
-          {record.invoiceId?.invoiceNumber || "N/A"}
-        </Button>
-      ),
+      render: (_, record) => {
+        if (record.marketplacePurchaseId) {
+          const modName = record.marketplacePurchaseId.moduleName || 'Module';
+          return <Tag color="blue">Marketplace - {modName.toUpperCase()}</Tag>;
+        }
+        return (
+          <Button
+            type="link"
+            onClick={() => navigate(`/agency/invoices/${record.invoiceId?._id}/view`)}
+          >
+            {record.invoiceId?.invoiceNumber || "N/A"}
+          </Button>
+        );
+      },
     },
     {
       title: "Company",

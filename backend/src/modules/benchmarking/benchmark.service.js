@@ -18,8 +18,8 @@ const getClientBenchmarkData = async (user, clientId, industryName = 'All Indust
         if (isSuperAdmin) {
             const allClients = await User.find({
                 $or: [
-                    { role: { $in: ['agency_super_admin', 'agency_manager'] } },
-                    { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+                    { role: 'agency_super_admin' },
+                    { role: 'brand_super_admin', isDirect: true }
                 ]
             }).select('_id');
             validBrandIds = allClients.map(c => c._id);
@@ -91,8 +91,8 @@ const getBenchmarkTableData = async (user, industryName = 'All Industries') => {
     if (isSuperAdmin) {
         const allClients = await User.find({
             $or: [
-                { role: { $in: ['agency_super_admin', 'agency_manager'] } },
-                { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+                { role: 'agency_super_admin' },
+                { role: 'brand_super_admin', isDirect: true }
             ]
         }).select('_id');
         validBrandIds = allClients.map(c => c._id);

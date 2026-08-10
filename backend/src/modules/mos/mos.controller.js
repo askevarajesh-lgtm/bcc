@@ -16,12 +16,11 @@ exports.getMosDashboard = async (req, res, next) => {
       // Super admin sees all agencies and direct brands
       const allClients = await User.find({
         $or: [
-          { role: { $in: ['agency_super_admin', 'agency_manager'] } },
-          { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+          { role: 'agency_super_admin' },
+          { role: 'brand_super_admin', isDirect: true }
         ]
       }).select('_id');
       validBrandIds = allClients.map(c => c._id.toString());
-      validBrandIds.push(req.user._id.toString());
     } else {
       const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
       if (isAgency) {
@@ -54,15 +53,21 @@ exports.getMosDashboard = async (req, res, next) => {
 
     let currentScores = await MosScoreHistory.find(historyQuery).populate('clientId', 'companyName name');
     
-    // If no scores for this month yet, calculate them on the fly
-    if (currentScores.length === 0) {
+    // If no scores for this month yet, or if we have missing clients, calculate them on the fly
+    const uniqueHistoryIds = new Set(currentScores.map(c => c.clientId && c.clientId._id ? c.clientId._id.toString() : ''));
+    const missingClients = validBrandIds.some(id => !uniqueHistoryIds.has(id.toString()));
+
+    if (currentScores.length === 0 || missingClients) {
       const targetClientId = (clientId && clientId !== 'all') ? clientId : null;
       const calculated = await mosService.calculateAgencyMOS(req.user, targetClientId);
+      
+      // We still want to map them similarly to what was loaded from history
       currentScores = calculated.map(c => ({
-        clientId: { _id: c.clientId, companyName: c.client },
+        clientId: { _id: c.clientId, companyName: c.client, name: c.client },
         overallMos: c.overallMos,
         signals: c.signals,
-        weakestSignals: c.weakestSignals
+        weakestSignals: c.weakestSignals,
+        actionPlan: c.actionPlan
       }));
     }
 

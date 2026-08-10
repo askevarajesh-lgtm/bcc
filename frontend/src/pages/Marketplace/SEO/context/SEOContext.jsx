@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { seoWorkspaceApi } from '../../../../api/seoWorkspaceApi';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const SEOContext = createContext(null);
 
-const STORAGE_KEY = 'seo_active_project_id';
-
 export const SEOProvider = ({ children }) => {
+  const { user } = useAuth();
+  const STORAGE_KEY = `seo_active_project_id_${user?._id || 'default'}`;
+
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) || null;
@@ -41,7 +43,7 @@ export const SEOProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [STORAGE_KEY]);
 
   useEffect(() => {
     fetchProjects();
@@ -69,14 +71,14 @@ export const SEOProvider = ({ children }) => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('seo_project_changed', handleCustomSync);
     };
-  }, [fetchProjects]);
+  }, [fetchProjects, STORAGE_KEY, activeProjectId]);
 
   const selectProject = useCallback((id) => {
     if (!id) return;
     setActiveProjectId(id);
     localStorage.setItem(STORAGE_KEY, id);
     window.dispatchEvent(new CustomEvent('seo_project_changed', { detail: { projectId: id } }));
-  }, []);
+  }, [STORAGE_KEY]);
 
   const createProject = useCallback(async (projectData) => {
     try {

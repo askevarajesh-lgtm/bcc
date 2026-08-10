@@ -307,11 +307,12 @@ const SignIn = () => {
                       />
                     </Form.Item>
 
-                    <div className="bcc-signin-form__meta">
+                    <div className="bcc-signin-form__meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span className="bcc-signin-form__hint">
                         <BadgeCheck size={14} />
                         Role-based access
                       </span>
+                      <a href="/forgot-password" style={{ fontSize: '0.875rem', color: '#034EA1', fontWeight: 500, textDecoration: 'none' }}>Forgot password?</a>
                     </div>
 
                     <Form.Item style={{ marginBottom: 0 }}>

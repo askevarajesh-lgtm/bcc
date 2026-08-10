@@ -8,6 +8,10 @@ const router = express.Router();
 router.get('/auth', facebookController.generateAuthUrl);
 router.get('/callback', facebookController.handleCallback);
 
+// Webhook routes (must be unprotected or have their own verification)
+router.get('/webhook', facebookController.verifyWebhook);
+router.post('/webhook', facebookController.handleWebhook);
+
 // API routes protected by standard authMiddleware
 router.use(authMiddleware);
 
@@ -17,5 +21,12 @@ router.post('/integrations/unsubscribe', facebookController.unsubscribePage);
 router.delete('/integrations/:pageId', facebookController.disconnectPage);
 router.get('/integrations/:pageId/logs', facebookController.getLogs);
 router.post('/integrations/sync-leads', facebookController.syncLeads);
+
+// Asset discovery routes
+router.get('/integrations/assets/ad-accounts', facebookController.getAdAccounts);
+router.get('/integrations/assets/campaigns', facebookController.getCampaigns);
+router.get('/integrations/assets/adsets', facebookController.getAdSets);
+router.get('/integrations/assets/ads', facebookController.getAds);
+router.get('/integrations/assets/forms', facebookController.getForms);
 
 module.exports = router;

@@ -141,16 +141,19 @@ exports.createBrand = async (req, res, next) => {
       if (pkg.billingInterval) packageBillingInterval = pkg.billingInterval;
       packageIntegrations = pkg.integrations || [];
 
-      // Validate client-supplied integrations (prevent privilege escalation)
-      if (req.body.integrations && Array.isArray(req.body.integrations)) {
-        const invalid = req.body.integrations.filter(i => !packageIntegrations.includes(i));
-        if (invalid.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
-          });
-        }
+      if (req.body.additionalIntegrations && Array.isArray(req.body.additionalIntegrations)) {
+        req.body.additionalIntegrations = req.body.additionalIntegrations.filter(i => !packageIntegrations.includes(i));
+      } else {
+        req.body.additionalIntegrations = [];
       }
+      if (req.body.disabledPackageIntegrations && Array.isArray(req.body.disabledPackageIntegrations)) {
+        req.body.disabledPackageIntegrations = req.body.disabledPackageIntegrations.filter(i => packageIntegrations.includes(i));
+      } else {
+        req.body.disabledPackageIntegrations = [];
+      }
+    } else {
+      req.body.additionalIntegrations = [];
+      req.body.disabledPackageIntegrations = [];
     }
 
     const now = new Date();
@@ -175,7 +178,9 @@ exports.createBrand = async (req, res, next) => {
       isDirect,
       packageName: packageName || null,
       features: features || [],
-      integrations: packageIntegrations,
+      integrations: [...new Set([...packageIntegrations.filter(i => !req.body.disabledPackageIntegrations.includes(i)), ...req.body.additionalIntegrations])],
+      additionalIntegrations: req.body.additionalIntegrations,
+      disabledPackageIntegrations: req.body.disabledPackageIntegrations,
       mrr: mrr || 0,
       subscriptionStartDate: now,
       subscriptionEndDate,
@@ -307,7 +312,7 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, email, phone, address, packageName, features, integrations, mrr, extraUsers } = req.body;
+    const { name, email, phone, address, packageName, features, additionalIntegrations, disabledPackageIntegrations, mrr, extraUsers } = req.body;
     let updates = {};
     if (name) {
       updates.companyName = name;
@@ -350,40 +355,29 @@ exports.updateBrand = async (req, res, next) => {
       }
     }
 
+    let finalAdditional = additionalIntegrations !== undefined ? additionalIntegrations : (currentBrand.additionalIntegrations || []);
+    let finalDisabled = disabledPackageIntegrations !== undefined ? disabledPackageIntegrations : (currentBrand.disabledPackageIntegrations || []);
+    
     if (packageName !== undefined) {
       updates.packageName = packageName;
       updates.features = packageFeatures;
-      updates.integrations = packageIntegrations;
-      if (packageName) {
-        updates.mrr = packagePrice || 0;
-      } else {
-        updates.mrr = 0;
-      }
-
-      // Validate client-supplied integrations if any (against the new package)
-      if (integrations !== undefined) {
-        const invalid = integrations.filter(i => !packageIntegrations.includes(i));
-        if (invalid.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
-          });
-        }
-      }
+      updates.mrr = packageName ? (packagePrice || 0) : 0;
+      
+      finalAdditional = finalAdditional.filter(i => !packageIntegrations.includes(i));
+      finalDisabled = finalDisabled.filter(i => packageIntegrations.includes(i));
     } else {
       if (features !== undefined) updates.features = features;
-      if (integrations !== undefined) {
-        // Validate client-supplied integrations (against the current package)
-        const invalid = integrations.filter(i => !packageIntegrations.includes(i));
-        if (invalid.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: `Privilege escalation prevented. The following integrations are not enabled in the assigned package: ${invalid.join(', ')}`
-          });
-        }
-        updates.integrations = integrations;
+      if (additionalIntegrations !== undefined) {
+        finalAdditional = additionalIntegrations.filter(i => !packageIntegrations.includes(i));
+      }
+      if (disabledPackageIntegrations !== undefined) {
+        finalDisabled = disabledPackageIntegrations.filter(i => packageIntegrations.includes(i));
       }
     }
+    
+    updates.additionalIntegrations = finalAdditional;
+    updates.disabledPackageIntegrations = finalDisabled;
+    updates.integrations = [...new Set([...packageIntegrations.filter(i => !finalDisabled.includes(i)), ...finalAdditional])];
 
     const brand = await User.findOneAndUpdate(
       filter,

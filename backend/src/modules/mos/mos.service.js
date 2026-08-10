@@ -22,11 +22,10 @@ exports.calculateAgencyMOS = async (user, targetClientId = null) => {
   if (isSuperAdmin) {
     brands = await User.find({
       $or: [
-        { role: { $in: ['agency_super_admin', 'agency_manager'] } },
-        { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] }, isDirect: true }
+        { role: 'agency_super_admin' },
+        { role: 'brand_super_admin', isDirect: true }
       ]
     });
-    brands.push(user);
   } else {
     const query = { role: { $in: ['brand_super_admin', 'brand_manager', 'agency_client'] } };
     

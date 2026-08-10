@@ -1343,7 +1343,19 @@ const getProfitLoss = async (companyId, startDate, endDate) => {
   // As per requirement: Revenue is calculated using only the actual handling amount
   tunepathRevenueFinal = tunepathRevenue;
   includeGstRevenueFinal = includeGstRevenue;
+  // ========== MARKETPLACE PURCHASES CALCULATION ==========
+  const MarketplacePurchase = require('../marketplace/marketplace.model');
+  const marketplacePurchases = await MarketplacePurchase.find({
+    companyId,
+    status: 'completed',
+    createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) }
+  });
+  
+  const totalMarketplaceRevenue = marketplacePurchases.reduce((sum, mp) => sum + (mp.amount / 100), 0);
+  tunepathRevenueFinal += totalMarketplaceRevenue;
+  
   totalRevenue = tunepathRevenueFinal + includeGstRevenueFinal;
+  totalCollectedAmount += totalMarketplaceRevenue;
 
   // Finalise total GST (Transaction-based)
   const totalGST = totalInvoiceGST + totalDomainPurchaseGST;

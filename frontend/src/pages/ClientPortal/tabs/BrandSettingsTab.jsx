@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Typography, Tabs, Card, Form, Input, Button, Upload, Select, message, Tag, Modal, Checkbox, ColorPicker } from 'antd';
 import { motion } from 'framer-motion';
-import { Upload as UploadIcon, Building, Package, Shield, ExternalLink } from 'lucide-react';
+import { Upload as UploadIcon, Building, Package, Shield, ExternalLink, Plug } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
 
 const { Title, Text } = Typography;
 
@@ -384,6 +385,7 @@ const BrandSettingsTab = () => {
           items={[
             { key: 'details', label: <span><Building size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Brand Details</span>, children: brandDetailsContent },
             { key: 'plans', label: <span><Package size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Brand Plans</span>, children: brandPlansContent },
+            { key: 'integrations', label: <span><Plug size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Integrations</span>, children: <IntegrationsTab /> },
           ]}
         />
       </motion.div>

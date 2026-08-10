@@ -15,6 +15,10 @@ const transactionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DomainPurchase',
   },
+  marketplacePurchaseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MarketplacePurchase',
+  },
   amount: {
     type: Number,
     required: true,

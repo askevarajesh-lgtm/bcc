@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LayoutProvider } from './contexts/LayoutContext';
 import { FeatureProvider } from './contexts/FeatureContext';
 import SignIn from './pages/SignIn/SignIn';
+import ForgotPassword from './pages/SignIn/ForgotPassword';
 
 // Layouts
 import AppLayout from './layouts/AppLayout';
@@ -244,6 +245,7 @@ const AppRoutes = () => {
           '/user/dashboard'
         } replace />
       ) : <SignIn />} />
+      <Route path="/forgot-password" element={role ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
       
       {/* Public / Embed Routes */}
       <Route path="/embed/form/:formId" element={<FormEmbedView />} />

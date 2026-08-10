@@ -87,6 +87,11 @@ export const useGetFacebookIntegrationsQuery = createQueryHook((clientId) => `/f
 export const useEnableFacebookSyncMutation = createMutationHook((data) => ({ url: "/facebook/integrations/subscribe", method: "POST", body: data }));
 export const useDisableFacebookSyncMutation = createMutationHook((data) => ({ url: "/facebook/integrations/unsubscribe", method: "POST", body: data }));
 export const useDisconnectFacebookPageMutation = createMutationHook(({ pageId, clientId }) => ({ url: `/facebook/integrations/${pageId}${clientId ? `?clientId=${clientId}` : ""}`, method: "DELETE" }));
+export const useGetFacebookAdAccountsQuery = createQueryHook(() => `/facebook/integrations/assets/ad-accounts`);
+export const useGetFacebookCampaignsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/campaigns`, params }));
+export const useGetFacebookAdSetsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/adsets`, params }));
+export const useGetFacebookAdsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/ads`, params }));
+export const useGetFacebookFormsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/forms`, params }));
 export const useGetFacebookSyncLogsQuery = createQueryHook(({ pageId, clientId }) => `/facebook/integrations/${pageId}/logs${clientId ? `?clientId=${clientId}` : ""}`);
 export const useLazyGetFacebookSyncLogsQuery = () => {
   const [params, setParams] = useState(null);

@@ -160,8 +160,8 @@ const Marketplace = () => {
 
   const purchasedPlans = React.useMemo(() => {
     const plans = { seo: false, content: false, design: false };
-    if (purchasesData?.data?.modules) {
-      purchasesData.data.modules.forEach(m => {
+    if (purchasesData?.modules) {
+      purchasesData.modules.forEach(m => {
         plans[m] = true;
       });
     }
@@ -184,19 +184,12 @@ const Marketplace = () => {
   };
 
   const handlePurchase = async (plan, amountInInr) => {
-    // TEMPORARY MOCK FLOW
     setPurchasingPlan(plan);
-    setTimeout(() => {
-      setMockPurchased(prev => [...prev, plan]);
-      message.success("Payment successful! Module unlocked.");
-      setPurchasingPlan(null);
-    }, 3000);
-
-    /* --- ORIGINAL PAYMENT INTEGRATION (UNDER DEVELOPMENT) ---
     try {
       const res = await loadRazorpayScript();
       if (!res) {
         message.error("Razorpay SDK failed to load. Are you online?");
+        setPurchasingPlan(null);
         return;
       }
 
@@ -232,6 +225,8 @@ const Marketplace = () => {
             refetchPurchases();
           } catch (err) {
             message.error(err.message);
+          } finally {
+            setPurchasingPlan(null);
           }
         },
         prefill: {
@@ -248,8 +243,8 @@ const Marketplace = () => {
 
     } catch (err) {
       message.error(err.message || "Something went wrong during checkout");
+      setPurchasingPlan(null);
     }
-    ---------------------------------------------------------- */
   };
 
   const PricingCard = ({ title, subtitle, price, features, onPurchase, loading }) => {

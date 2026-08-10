@@ -41,6 +41,7 @@
     "pdfkit": "^0.19.1",
     "razorpay": "^2.9.8",
     "robots-parser": "^3.0.1",
+    "sendpulse-api": "^1.1.7",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {

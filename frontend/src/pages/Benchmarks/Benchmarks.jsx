@@ -215,9 +215,7 @@ const Benchmarks = () => {
               </Option>
             ))}
           </Select>
-          <Select value={selectedIndustry} onChange={setSelectedIndustry} style={{ width: 180, height: 40 }} className="custom-select">
-            {industries.map(ind => <Option key={ind} value={ind}>{ind}</Option>)}
-          </Select>
+
           <Button 
             icon={<RefreshCw size={16} />} 
             onClick={handleSync} 

@@ -286,6 +286,13 @@ exports.updateAgency = async (req, res, next) => {
       req.body.disabledPackageIntegrations = currentDisabled.filter(i => packageIntegrations.includes(i));
     }
 
+    const finalDisabled = req.body.disabledPackageIntegrations !== undefined ? req.body.disabledPackageIntegrations : (currentAgency.disabledPackageIntegrations || []);
+    const finalAdditional = req.body.additionalIntegrations !== undefined ? req.body.additionalIntegrations : (currentAgency.additionalIntegrations || []);
+    const finalIntegrations = packageIntegrations.filter(i => !finalDisabled.includes(i));
+    finalIntegrations.push(...finalAdditional);
+    req.body.integrations = [...new Set(finalIntegrations)];
+
+
     if ((req.body.logo || req.body.logoDark) && req.user && req.user.role === 'commander_admin') {
       const updateData = {};
       if (req.body.logo) updateData.logo = req.body.logo;
