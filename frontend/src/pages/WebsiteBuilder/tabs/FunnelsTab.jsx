@@ -537,7 +537,13 @@ const FunnelsTab = ({ itemVariants }) => {
       <Table scroll={{ x: 800 }} 
         columns={columns}
         dataSource={funnels}
-        pagination={false}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          position: ['bottomCenter']
+        }}
         size="middle"
         rowKey="key"
         locale={{

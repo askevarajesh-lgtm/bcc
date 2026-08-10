@@ -399,7 +399,13 @@ const Accounts = () => {
             columns={columns}
             dataSource={filteredAgencies}
             rowKey="_id"
-            pagination={{ pageSize: 10 }}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              position: ['bottomCenter']
+            }}
             rowSelection={{ type: 'checkbox' }}
             size="middle"
             loading={loading}

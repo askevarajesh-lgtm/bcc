@@ -162,4 +162,7 @@ router.use('/sidebar', require('../modules/sidebar/sidebar.routes'));
 // Marketplace Mount
 router.use('/marketplace', require('../modules/marketplace/marketplace.routes'));
 
+// WordPress Integration Mount
+router.use('/wordpress', require('../modules/wordpress/wordpress.routes'));
+
 module.exports = router;

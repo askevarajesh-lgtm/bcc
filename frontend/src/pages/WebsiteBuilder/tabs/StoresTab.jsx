@@ -213,7 +213,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table scroll={{ x: 800 }}  columns={columns} dataSource={products} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={products} pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50'], showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`, position: ['bottomCenter'] }} size="middle" />
         </Card>
       </motion.div>
     );
@@ -271,7 +271,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
         </div>
 
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table scroll={{ x: 800 }}  columns={columns} dataSource={pages} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={pages} pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50'], showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`, position: ['bottomCenter'] }} size="middle" />
         </Card>
 
         <div style={{ color: "var(--text-tertiary)", fontSize: 12, fontWeight: 500, marginTop: 16, textAlign: 'center' }}>
@@ -355,7 +355,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
             { title: "REVENUE", key: "revenue", align: "right" }
           ]} 
           dataSource={[]} 
-          pagination={false}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`, position: ['bottomCenter'] }}
           locale={{
             emptyText: <div style={{ padding: "40px 0", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No paid orders in this window yet.</div>
           }}
@@ -402,7 +402,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table scroll={{ x: 800 }}  columns={columns} dataSource={collections} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={collections} pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50'], showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`, position: ['bottomCenter'] }} size="middle" />
         </Card>
       </motion.div>
     );
@@ -445,7 +445,7 @@ const ManageStoreView = ({ activeStore, setView, itemVariants }) => {
     return (
       <motion.div variants={itemVariants} className="store-manage-content">
         <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border-color)", background: 'var(--bg-secondary)' }}>
-          <Table scroll={{ x: 800 }}  columns={columns} dataSource={discounts} pagination={false} size="middle" />
+          <Table scroll={{ x: 800 }}  columns={columns} dataSource={discounts} pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '20', '50'], showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`, position: ['bottomCenter'] }} size="middle" />
         </Card>
       </motion.div>
     );

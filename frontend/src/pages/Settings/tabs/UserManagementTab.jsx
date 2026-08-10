@@ -493,7 +493,13 @@ const UserManagementTab = () => {
                     columns={userColumns} 
                     dataSource={filteredUsers} 
                     rowKey="_id" 
-                    pagination={{ pageSize: 10 }} 
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      pageSizeOptions: ['10', '20', '50'],
+                      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                      position: ['bottomCenter']
+                    }} 
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
@@ -521,7 +527,13 @@ const UserManagementTab = () => {
                     columns={deptColumns} 
                     dataSource={departments} 
                     rowKey="_id" 
-                    pagination={{ pageSize: 10 }} 
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      pageSizeOptions: ['10', '20', '50'],
+                      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                      position: ['bottomCenter']
+                    }} 
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
@@ -549,7 +561,13 @@ const UserManagementTab = () => {
                     columns={roleColumns} 
                     dataSource={roles} 
                     rowKey="_id" 
-                    pagination={{ pageSize: 10 }} 
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      pageSizeOptions: ['10', '20', '50'],
+                      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                      position: ['bottomCenter']
+                    }} 
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}

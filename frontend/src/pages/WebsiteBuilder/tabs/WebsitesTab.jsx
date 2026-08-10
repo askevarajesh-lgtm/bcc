@@ -19,15 +19,60 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
   const [description, setDescription] = useState("");
   const [tone, setTone] = useState("Professional");
 
+  // WordPress Specific State
+  const [wpUrl, setWpUrl] = useState("");
+  const [wpApiUrl, setWpApiUrl] = useState("");
+  const [wpUsername, setWpUsername] = useState("");
+  const [wpPassword, setWpPassword] = useState("");
+  const [wpTesting, setWpTesting] = useState(false);
+  const [wpTestSuccess, setWpTestSuccess] = useState(null);
+
+  const handleTestWp = async () => {
+    setWpTesting(true);
+    setWpTestSuccess(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/wordpress/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": token ? `Bearer ${token}` : "" },
+        body: JSON.stringify({ apiUrl: wpApiUrl, username: wpUsername, password: wpPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWpTestSuccess(true);
+        message.success("WordPress connected successfully!");
+      } else {
+        setWpTestSuccess(false);
+        message.error(data.message || "Failed to connect to WordPress");
+      }
+    } catch (err) {
+      setWpTestSuccess(false);
+      message.error("Error connecting to WordPress API");
+    } finally {
+      setWpTesting(false);
+    }
+  };
+
   const handleCreate = () => {
-    onCreate({ name: websiteName, type: selectedType, description });
+    if (selectedType === "wordpress") {
+      onCreate({ name: websiteName, type: selectedType, wpUrl, wpApiUrl, wpUsername, wpPassword });
+    } else {
+      onCreate({ name: websiteName, type: selectedType, description });
+    }
     setWebsiteName("");
     setIndustry("");
     setDescription("");
     setSelectedType("blank");
+    setWpUrl("");
+    setWpApiUrl("");
+    setWpUsername("");
+    setWpPassword("");
+    setWpTestSuccess(null);
   };
 
-  const isFormValid = websiteName.trim().length > 0 && (selectedType !== "ai" || description.trim().length > 0);
+  const isFormValid = websiteName.trim().length > 0 && 
+    (selectedType !== "ai" || description.trim().length > 0) &&
+    (selectedType !== "wordpress" || (wpUrl && wpApiUrl && wpUsername && wpPassword && wpTestSuccess));
 
   return (
     <Modal
@@ -130,6 +175,35 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
             100+<br /><span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Templates</span>
           </div>
         </div>
+
+        {/* Connect WordPress */}
+        <div 
+          onClick={() => setSelectedType("wordpress")}
+          style={{
+            flex: 1,
+            border: selectedType === "wordpress" ? '2px solid #0073AA' : '1px solid var(--border-color)',
+            background: selectedType === "wordpress" ? 'rgba(0, 115, 170, 0.05)' : 'var(--bg-secondary)',
+            borderRadius: 16,
+            padding: 24,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: selectedType === "wordpress" ? 'var(--shadow-md)' : 'none',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+          className="hover-shadow-md"
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}><Link2 size={18} color="#0073AA" /> WordPress</div>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', border: selectedType === 'wordpress' ? '6px solid #0073AA' : '2px solid var(--border-color)', background: '#fff' }}></div>
+          </div>
+          <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, minHeight: 40, fontWeight: 500 }}>
+            Connect to an existing WordPress site via API
+          </div>
+          <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border-color)", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 15, color: "var(--text-primary)", marginTop: 'auto' }}>
+            Manage<br /><span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Externally</span>
+          </div>
+        </div>
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -179,6 +253,40 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
         </div>
       )}
 
+      {selectedType === "wordpress" && (
+        <div style={{ border: "2px solid rgba(0, 115, 170, 0.2)", background: "rgba(0, 115, 170, 0.05)", borderRadius: 16, padding: 24, marginBottom: 24 }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: "#0073AA" }}>WEBSITE URL <span style={{ color: "var(--accent-danger)" }}>*</span></div>
+            <Input size="large" placeholder="https://mywordpress.com" value={wpUrl} onChange={(e) => setWpUrl(e.target.value)} style={{ borderRadius: 8 }} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: "#0073AA" }}>WORDPRESS API URL <span style={{ color: "var(--accent-danger)" }}>*</span></div>
+            <Input size="large" placeholder="https://mywordpress.com/wp-json" value={wpApiUrl} onChange={(e) => setWpApiUrl(e.target.value)} style={{ borderRadius: 8 }} />
+          </div>
+          <Row gutter={16}>
+            <Col span={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: "#0073AA" }}>WP USERNAME <span style={{ color: "var(--accent-danger)" }}>*</span></div>
+                <Input size="large" placeholder="admin" value={wpUsername} onChange={(e) => setWpUsername(e.target.value)} style={{ borderRadius: 8 }} />
+              </div>
+            </Col>
+            <Col span={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: "#0073AA" }}>APPLICATION PASSWORD <span style={{ color: "var(--accent-danger)" }}>*</span></div>
+                <Input.Password size="large" placeholder="abcd efgh ijkl mnop" value={wpPassword} onChange={(e) => setWpPassword(e.target.value)} style={{ borderRadius: 8 }} />
+              </div>
+            </Col>
+          </Row>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 16 }}>
+            <Button size="large" onClick={handleTestWp} loading={wpTesting} disabled={!wpApiUrl || !wpUsername || !wpPassword} style={{ background: '#0073AA', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700 }}>
+              Test Connection
+            </Button>
+            {wpTestSuccess === true && <Badge status="success" text={<span style={{ fontWeight: 700, color: 'var(--accent-success)' }}>Connection Successful</span>} />}
+            {wpTestSuccess === false && <Badge status="error" text={<span style={{ fontWeight: 700, color: 'var(--accent-danger)' }}>Connection Failed</span>} />}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
         <Button size="large" onClick={onCancel} style={{ borderRadius: 8, fontWeight: 700, padding: "0 32px", borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
         <Button 
@@ -187,12 +295,12 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           onClick={handleCreate}
           disabled={!isFormValid}
           style={{ 
-            background: selectedType === "ai" ? "var(--accent-secondary)" : (selectedType === "templates" ? "var(--accent-info)" : "var(--accent-primary)"), 
+            background: selectedType === "ai" ? "var(--accent-secondary)" : (selectedType === "templates" ? "var(--accent-info)" : (selectedType === "wordpress" ? "#0073AA" : "var(--accent-primary)")), 
             border: "none", 
             borderRadius: 8, fontWeight: 800, padding: "0 32px" 
           }}
         >
-          {selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : "Create Empty Site")}
+          {selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : (selectedType === "wordpress" ? "Connect WordPress" : "Create Empty Site"))}
         </Button>
       </div>
     </Modal>
@@ -1019,24 +1127,60 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const fetchWebsites = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/websites", {
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : ""
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        const mapped = data.data.map(w => ({
+      const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+      
+      const [webRes, wpRes] = await Promise.all([
+        fetch("/api/websites", { headers }),
+        fetch("/api/wordpress", { headers })
+      ]);
+      
+      const webData = await webRes.json();
+      const wpData = await wpRes.json();
+      
+      let mapped = [];
+      if (webData.success && webData.data) {
+        mapped = [...mapped, ...webData.data.map(w => ({
           key: w._id,
           name: w.name,
           description: w.description,
           lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
           pages: w.pagesCount || 1,
           blogs: w.blogsCount || 0,
-          isNew: false
-        }));
-        setWebsites(mapped);
+          isNew: false,
+          isWordpress: false
+        }))];
       }
+      if (wpData.success && wpData.data) {
+        const wpMapped = wpData.data.map(w => ({
+          key: w._id,
+          name: w.name,
+          description: "WordPress Site (" + w.websiteUrl + ")",
+          lastUpdated: new Date(w.updatedAt).toLocaleDateString(),
+          pages: w.pagesCount !== undefined ? w.pagesCount : "...",
+          blogs: w.blogsCount !== undefined ? w.blogsCount : "...",
+          isNew: false,
+          isWordpress: true
+        }));
+        mapped = [...mapped, ...wpMapped];
+        
+        // Fetch WP counts asynchronously so we don't block the list load
+        wpMapped.forEach(w => {
+          fetch(`/api/wordpress/${w.key}/counts`, { headers })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                setWebsites(prev => prev.map(pw => pw.key === w.key ? { ...pw, pages: data.pagesCount, blogs: data.blogsCount } : pw));
+              } else {
+                setWebsites(prev => prev.map(pw => pw.key === w.key ? { ...pw, pages: "—", blogs: "—" } : pw));
+              }
+            })
+            .catch(() => {
+              setWebsites(prev => prev.map(pw => pw.key === w.key ? { ...pw, pages: "—", blogs: "—" } : pw));
+            });
+        });
+      }
+      
+      setWebsites(mapped);
     } catch (err) {
       console.error("Failed to fetch websites", err);
     }
@@ -1046,10 +1190,11 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
     fetchWebsites();
   }, [view]);
 
-  const handleDeleteWebsite = async (id) => {
+  const handleDeleteWebsite = async (id, isWordpress = false) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/websites/${id}`, {
+      const endpoint = isWordpress ? `/api/wordpress/${id}` : `/api/websites/${id}`;
+      const res = await fetch(endpoint, {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : ""
@@ -1057,13 +1202,13 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       });
       const data = await res.json();
       if (data.success) {
-        message.success("Website deleted successfully");
+        message.success(isWordpress ? "WordPress connection deleted" : "Website deleted successfully");
         fetchWebsites();
       } else {
-        message.error(data.error || "Failed to delete website");
+        message.error(data.error || "Failed to delete");
       }
     } catch (err) {
-      message.error("Error deleting website");
+      message.error("Error deleting");
     }
   };
 
@@ -1131,6 +1276,46 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       } catch (err) {
         console.error(err);
       }
+    } else if (data.type === "wordpress") {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/wordpress/connect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+          },
+          body: JSON.stringify({
+            name: data.name,
+            websiteUrl: data.wpUrl,
+            apiUrl: data.wpApiUrl,
+            username: data.wpUsername,
+            password: data.wpPassword
+          })
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          const newWebsite = {
+            key: resData.data._id,
+            name: resData.data.name,
+            description: "WordPress Site (" + resData.data.websiteUrl + ")",
+            lastUpdated: "Just now",
+            pages: "—",
+            blogs: "—",
+            isNew: true,
+            isWordpress: true
+          };
+          setWebsites([newWebsite, ...websites]);
+          setIsModalOpen(false);
+          const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
+          navigate(`${basePath}/wordpress/${newWebsite.key}/dashboard`);
+        } else {
+          message.error(resData.message || "Failed to connect to WordPress");
+        }
+      } catch (err) {
+        console.error(err);
+        message.error("Error connecting to WordPress");
+      }
     } else if (data.type === "templates") {
       setPendingWebsiteName(data.name);
       setIsModalOpen(false);
@@ -1179,24 +1364,30 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
       render: (_, r) => {
         const handleManage = () => {
           const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
-          navigate(`${basePath}/${r.key}`);
+          if (r.isWordpress) {
+            navigate(`${basePath}/wordpress/${r.key}/dashboard`);
+          } else {
+            navigate(`${basePath}/${r.key}`);
+          }
         };
 
         const menuItems = [
           {
             key: 'edit',
             icon: <Edit2 size={16} />,
-            label: 'Edit',
+            label: 'Manage',
             onClick: handleManage,
             style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
           },
-          {
-            key: 'clone',
-            icon: <Copy size={16} />,
-            label: 'Clone',
-            onClick: () => handleCloneWebsite(r.key),
-            style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
-          },
+          ...(r.isWordpress ? [] : [
+            {
+              key: 'clone',
+              icon: <Copy size={16} />,
+              label: 'Clone',
+              onClick: () => handleCloneWebsite(r.key),
+              style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
+            }
+          ]),
           {
             key: 'folder',
             icon: <FolderInput size={16} />,
@@ -1297,18 +1488,8 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         </Space>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', gap: 12, borderBottom: '2px solid var(--border-color)' }}>
-          <div style={{ padding: '8px 16px', fontWeight: folderView === 'home' ? 800 : 600, color: folderView === 'home' ? 'var(--text-primary)' : 'var(--text-secondary)', borderBottom: folderView === 'home' ? '3px solid var(--accent-primary)' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setFolderView("home")}>Home</div>
-          <div style={{ padding: '8px 16px', fontWeight: folderView === 'unfiled' ? 800 : 600, color: folderView === 'unfiled' ? 'var(--text-primary)' : 'var(--text-secondary)', borderBottom: folderView === 'unfiled' ? '3px solid var(--accent-primary)' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setFolderView("unfiled")}>Unfiled</div>
-        </div>
-
+      <div style={{ display: 'flex', justifyContent: 'end', marginBottom: 24, alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <Space>
-          <Radio.Group value={viewType} onChange={(e) => setViewType(e.target.value)} size="large" style={{ background: 'var(--bg-secondary)', padding: 4, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-            <Radio.Button value="recent" style={{ borderRadius: 8, border: 'none', background: viewType === 'recent' ? 'var(--bg-primary)' : 'transparent', color: viewType === 'recent' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 700, boxShadow: viewType === 'recent' ? 'var(--shadow-sm)' : 'none' }}>Recent</Radio.Button>
-            <Radio.Button value="list" style={{ borderRadius: 8, border: 'none', background: viewType === 'list' ? 'var(--bg-primary)' : 'transparent', color: viewType === 'list' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 700, boxShadow: viewType === 'list' ? 'var(--shadow-sm)' : 'none' }}>List</Radio.Button>
-          </Radio.Group>
-
           <Input
             size="large"
             placeholder="Search for Websites"
@@ -1324,7 +1505,13 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         <Table scroll={{ x: 800 }} 
           columns={columns}
           dataSource={websites.filter(w => w.name.toLowerCase().includes(searchText.toLowerCase()))}
-          pagination={{ pageSize: 10, position: ['bottomRight'] }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            position: ['bottomCenter']
+          }}
           locale={{
             emptyText: (
               <div style={{ padding: "80px 0", textAlign: "center" }}>

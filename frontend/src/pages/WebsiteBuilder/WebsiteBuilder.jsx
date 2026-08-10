@@ -14,6 +14,12 @@ import BlogsTab from './tabs/BlogsTab';
 import QRLinksTab from './tabs/QRLinksTab';
 import ChatWidgetsTab from './tabs/ChatWidgetsTab';
 import DomainsTab from './tabs/DomainsTab';
+import WordPressDashboard from './wordpress/WordPressDashboard';
+import WordPressPages from './wordpress/WordPressPages';
+import WordPressPosts from './wordpress/WordPressPosts';
+import WordPressMedia from './wordpress/WordPressMedia';
+import WordPressProducts from './wordpress/WordPressProducts';
+import WordPressOrders from './wordpress/WordPressOrders';
 
 const { Title, Text } = Typography;
 
@@ -285,6 +291,12 @@ const WebsiteBuilder = () => {
       >
         <Routes>
           <Route path="funnels" element={<FunnelsTab itemVariants={itemVariants} />} />
+          <Route path="websites/wordpress/:id/dashboard" element={<WordPressDashboard />} />
+          <Route path="websites/wordpress/:id/pages" element={<WordPressPages />} />
+          <Route path="websites/wordpress/:id/posts" element={<WordPressPosts />} />
+          <Route path="websites/wordpress/:id/media" element={<WordPressMedia />} />
+          <Route path="websites/wordpress/:id/products" element={<WordPressProducts />} />
+          <Route path="websites/wordpress/:id/orders" element={<WordPressOrders />} />
           <Route path="websites/*" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
           <Route path="stores" element={<StoresTab itemVariants={itemVariants} />} />
           <Route path="forms" element={<FormsTab itemVariants={itemVariants} />} />

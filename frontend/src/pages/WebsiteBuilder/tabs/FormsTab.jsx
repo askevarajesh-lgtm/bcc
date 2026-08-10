@@ -248,7 +248,13 @@ const FormsTab = ({ itemVariants }) => {
             columns={columns}
             dataSource={forms}
             loading={isLoadingForms}
-            pagination={false}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              position: ['bottomCenter']
+            }}
             scroll={{ x: 800 }}
             locale={{
               emptyText: (
@@ -307,7 +313,13 @@ const FormsTab = ({ itemVariants }) => {
             dataSource={analytics.submissionsPerForm || []}
             loading={isLoadingAnalytics}
             rowKey="form"
-            pagination={false}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              position: ['bottomCenter']
+            }}
             scroll={{ x: 800 }}
             locale={{ emptyText: <div style={{ padding: '40px 0', color: 'var(--text-secondary)', fontWeight: 500 }}>No analytics data yet.</div> }}
           />
@@ -408,7 +420,13 @@ const FormsTab = ({ itemVariants }) => {
             columns={columns}
             dataSource={submissions}
             loading={isLoadingSubmissions}
-            pagination={{ pageSize: 20 }}
+            pagination={{
+              pageSize: 20,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              position: ['bottomCenter']
+            }}
             scroll={{ x: 1000 }}
             locale={{ emptyText: <div style={{ padding: '40px 0', color: 'var(--text-secondary)', fontWeight: 500 }}>No submissions yet.</div> }}
           />

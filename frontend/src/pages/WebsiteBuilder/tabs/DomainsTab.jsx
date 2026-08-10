@@ -453,7 +453,13 @@ const DomainsTab = ({ itemVariants }) => {
           <Table
             columns={columns}
             dataSource={filtered}
-            pagination={false}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              position: ['bottomCenter']
+            }}
             scroll={{ x: 800 }}
             locale={{
               emptyText: (
