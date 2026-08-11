@@ -367,8 +367,61 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
     } catch (err) {
       console.error(err);
       message.error("Error applying AI edits.");
-    } finally {
       setIsAiEditing(false);
+    }
+  };
+
+  // Blog AI Edit Modal State
+  const [isBlogAiEditModalOpen, setIsBlogAiEditModalOpen] = useState(false);
+  const [blogAiEditTarget, setBlogAiEditTarget] = useState(null);
+  const [blogAiEditPrompt, setBlogAiEditPrompt] = useState("");
+  const [isBlogAiEditing, setIsBlogAiEditing] = useState(false);
+
+  const handleBlogAiEdit = async () => {
+    if (!blogAiEditPrompt.trim() || !blogAiEditTarget) return;
+    setIsBlogAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const { blogId, postId } = blogAiEditTarget;
+      
+      const res = await fetch(`/api/blogs/${blogId}/posts/${postId}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ prompt: blogAiEditPrompt })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Blog page updated successfully.");
+        setIsBlogAiEditModalOpen(false);
+        setBlogAiEditPrompt("");
+        // Reload blogs
+        const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+        const blogsRes = await fetch(`/api/blogs?websiteId=${activeWebsite.key}`, { headers });
+        const blogsData = await blogsRes.json();
+        if (blogsData.success) {
+          const blogsList = blogsData.data || [];
+          const blogsWithPosts = await Promise.all(blogsList.map(async (b) => {
+            try {
+              const postsRes = await fetch(`/api/blogs/${b._id}/posts`, { headers });
+              const postsData = await postsRes.json();
+              return { ...b, postsList: postsData.success ? (postsData.data || []) : [] };
+            } catch (err) {
+              return { ...b, postsList: [] };
+            }
+          }));
+          setWebsiteBlogs(blogsWithPosts);
+        }
+      } else {
+        message.error(data.error || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsBlogAiEditing(false);
     }
   };
   const [newPageTitle, setNewPageTitle] = useState("");
@@ -1069,19 +1122,33 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
                                       {role !== 'agency_client' && (
-                                        <Button
-                                          size="small"
-                                          type="primary"
-                                          icon={<PenTool size={12} />}
-                                          style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
-                                          onClick={() => {
-                                            const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
-                                            const basePath = match ? match[0] : '/workspace/website';
-                                            navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
-                                          }}
-                                        >
-                                          Edit in Builder
-                                        </Button>
+                                        <>
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            icon={<PenTool size={12} />}
+                                            style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
+                                            onClick={() => {
+                                              const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                              const basePath = match ? match[0] : '/workspace/website';
+                                              navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
+                                            }}
+                                          >
+                                            Edit in Builder
+                                          </Button>
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            icon={<Sparkles size={12} />}
+                                            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: "none", borderRadius: 6, fontWeight: 700 }}
+                                            onClick={() => {
+                                              setBlogAiEditTarget({ blogId: blog._id, postId: post._id });
+                                              setIsBlogAiEditModalOpen(true);
+                                            }}
+                                          >
+                                            ✨ AI Edit
+                                          </Button>
+                                        </>
                                       )}
                                       <Button
                                         size="small"
@@ -1144,6 +1211,37 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <Button size="large" onClick={handleCloseScriptModal} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
           <Button size="large" type="primary" loading={savingScript} onClick={handleSaveScript} style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Code</Button>
+        </div>
+      </Modal>
+
+      {/* Blog AI Edit Modal */}
+      <Modal
+        open={isBlogAiEditModalOpen}
+        onCancel={() => !isBlogAiEditing && setIsBlogAiEditModalOpen(false)}
+        footer={null}
+        width={500}
+        title={<div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={18} color="#8b5cf6" /> ✨ AI Edit Blog Page</div>}
+        className="glassmorphism-modal"
+        closable={!isBlogAiEditing}
+        maskClosable={!isBlogAiEditing}
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Describe what you want to change on this blog page.
+        </div>
+        
+        <div style={{ marginBottom: 24 }}>
+          <TextArea
+            placeholder="Example: Change the article heading to '10 Essential Tips for a Healthier Smile' and add a short introductory paragraph below it."
+            value={blogAiEditPrompt}
+            onChange={(e) => setBlogAiEditPrompt(e.target.value)}
+            style={{ borderRadius: 8, minHeight: 120, fontSize: 14 }}
+            disabled={isBlogAiEditing}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" onClick={() => setIsBlogAiEditModalOpen(false)} disabled={isBlogAiEditing} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={isBlogAiEditing} onClick={handleBlogAiEdit} disabled={!blogAiEditPrompt.trim()} style={{ background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", border: "none", borderRadius: 8, fontWeight: 800 }}>Apply Changes</Button>
         </div>
       </Modal>
 
