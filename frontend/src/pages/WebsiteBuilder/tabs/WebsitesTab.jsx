@@ -116,7 +116,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
         </div>
 
         {/* Create with AI */}
-        {/* <div 
+         <div 
           onClick={() => setSelectedType("ai")}
           style={{
             flex: 1,
@@ -145,7 +145,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           <div style={{ background: 'var(--accent-primary)', color: "#fff", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 13, marginTop: 'auto' }}>
             Home + Contact + About pages
           </div>
-        </div> */}
+        </div> 
 
         {/* From templates */}
         <div 
