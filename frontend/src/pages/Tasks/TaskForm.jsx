@@ -1256,9 +1256,6 @@ const TaskForm = () => {
                 >
                   <DatePicker
                     style={{ width: "100%" }}
-                    disabledDate={(current) =>
-                      current && current < dayjs().startOf("day")
-                    }
                   />
                 </Form.Item>
               </div>
@@ -1273,9 +1270,7 @@ const TaskForm = () => {
                   disabledDate={(current) => {
                     const startDate = form.getFieldValue("startDate");
                     return (
-                      current &&
-                      (current < dayjs().startOf("day") ||
-                        (startDate && current < startDate.startOf("day")))
+                      current && startDate && current < startDate.startOf("day")
                     );
                   }}
                 />

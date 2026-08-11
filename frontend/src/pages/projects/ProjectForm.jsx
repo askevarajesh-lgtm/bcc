@@ -1082,11 +1082,6 @@ const ProjectForm = () => {
             <DatePicker
               style={{ width: "100%" }}
               placeholder="Select end date"
-              disabledDate={(current) => {
-                const startDate = form.getFieldValue("startDate");
-                if (!startDate) return false;
-                return current && current < dayjs(startDate).startOf("day");
-              }}
               onChange={(date) => {
                 if (date) {
                   form.setFieldsValue({

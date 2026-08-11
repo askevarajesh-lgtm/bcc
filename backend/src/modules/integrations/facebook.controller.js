@@ -30,8 +30,7 @@ exports.generateAuthUrl = async (req, res, next) => {
     // Embed both companyId and redirectPath in the state parameter
     const stateObj = { companyId, redirectPath };
     const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
-    
-    const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'ads_read'].join(',');
+    const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read'].join(',');
     
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&state=${state}&scope=${scopes}`;
     
@@ -125,7 +124,7 @@ exports.getIntegrations = async (req, res, next) => {
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
     
     if (!integration || !integration.config || !integration.config.accessToken) {
-      return res.status(200).json({ success: true, data: { integrations: [] } });
+      return res.status(200).json({ success: true, data: { isConnected: false, integrations: [] } });
     }
 
     const { accessToken } = integration.config;
@@ -152,7 +151,7 @@ exports.getIntegrations = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: { integrations }
+      data: { isConnected: true, integrations }
     });
   } catch (error) {
     console.error('Fetch Facebook Pages Error:', error.response?.data || error.message);
