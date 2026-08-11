@@ -367,9 +367,11 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
     } catch (err) {
       console.error(err);
       message.error("Error applying AI edits.");
+    } finally {
       setIsAiEditing(false);
     }
   };
+
 
   // Blog AI Edit Modal State
   const [isBlogAiEditModalOpen, setIsBlogAiEditModalOpen] = useState(false);
