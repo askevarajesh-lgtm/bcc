@@ -87,6 +87,7 @@ const BlogPostEmbedView = () => {
   const siteHeaderHtml = blogData.siteHeaderHtml || "";
   const siteFooterHtml = blogData.siteFooterHtml || "";
   const siteStylesheetUrls = blogData.siteStylesheetUrls || [];
+  const siteHomePageCss = blogData.siteHomePageCss || "";
   const hasBuiltLayout = !!postData.html;
 
   return (
@@ -96,6 +97,9 @@ const BlogPostEmbedView = () => {
       {siteStylesheetUrls.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
+      {siteHomePageCss && (
+        <style id="bcc-home-page-css">{siteHomePageCss}</style>
+      )}
       <style>{`
         [data-post-field="faq"], [data-post-field="faq"] *, .faq-item, .faq-item * { font-family: var(--site-font) !important; }
         [data-post-field="faq"] > div:first-child > span:first-child > span:first-child,

@@ -104,7 +104,7 @@ function extractStylesheetUrls(html) {
 }
 
 async function getSiteChrome(websiteId) {
-  const empty = { headerHtml: '', footerHtml: '', stylesheetUrls: [] };
+  const empty = { headerHtml: '', footerHtml: '', stylesheetUrls: [], homePageCss: '' };
   if (!websiteId) return empty;
 
   try {
@@ -124,7 +124,8 @@ async function getSiteChrome(websiteId) {
     return {
       headerHtml: header,
       footerHtml: footer,
-      stylesheetUrls
+      stylesheetUrls,
+      homePageCss: homePage.css || ''   // needed so header/footer class selectors resolve in previews
     };
   } catch (err) {
     console.error('Failed to compute site chrome for website', websiteId, err);

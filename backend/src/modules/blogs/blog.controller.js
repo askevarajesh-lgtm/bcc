@@ -16,12 +16,13 @@ async function getLinkedWebsiteTheme(websiteId) {
 }
 
 async function getLinkedWebsiteChrome(websiteId) {
-  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [] };
+  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [], siteHomePageCss: '' };
   const chrome = await getSiteChrome(websiteId);
   return {
     siteHeaderHtml: chrome.headerHtml,
     siteFooterHtml: chrome.footerHtml,
-    siteStylesheetUrls: chrome.stylesheetUrls
+    siteStylesheetUrls: chrome.stylesheetUrls,
+    siteHomePageCss: chrome.homePageCss   // home page CSS for header/footer selector resolution
   };
 }
 
@@ -328,14 +329,17 @@ exports.getPostDetails = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Parent blog not found' });
     }
 
-    const websiteTheme = await getLinkedWebsiteTheme(post.websiteId || blog.websiteId);
+    const linkedWebsiteId = post.websiteId || blog.websiteId;
+    const websiteTheme = await getLinkedWebsiteTheme(linkedWebsiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(linkedWebsiteId);
 
     res.json({
       success: true,
       data: {
         ...post.toObject(),
         blog: blog.toObject(),
-        websiteTheme
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {
