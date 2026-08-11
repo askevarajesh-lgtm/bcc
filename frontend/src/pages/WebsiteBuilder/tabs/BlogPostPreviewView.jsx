@@ -169,6 +169,9 @@ const BlogPostPreviewView = () => {
               background: #fff;
               font-family: var(--site-font);
             }
+          </style>
+          ${postData.siteHomePageCss ? `<style id="bcc-home-page-css">${postData.siteHomePageCss}</style>` : ""}
+          <style>
             ${postData.css || ""}
 
             /* --- Render-time overrides, kept after the post's own CSS so they win --- */

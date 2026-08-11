@@ -12,7 +12,7 @@ const { TextArea } = Input;
 
 // Removed basic WebsiteBuilderView in favor of GrapesJSBuilder
 
-const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
+const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
   const [selectedType, setSelectedType] = useState("blank");
   const [websiteName, setWebsiteName] = useState("");
   const [industry, setIndustry] = useState("");
@@ -57,7 +57,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
     if (selectedType === "wordpress") {
       onCreate({ name: websiteName, type: selectedType, wpUrl, wpApiUrl, wpUsername, wpPassword });
     } else {
-      onCreate({ name: websiteName, type: selectedType, description });
+      onCreate({ name: websiteName, type: selectedType, description, industry, tone });
     }
     setWebsiteName("");
     setIndustry("");
@@ -74,16 +74,23 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
     (selectedType !== "ai" || description.trim().length > 0) &&
     (selectedType !== "wordpress" || (wpUrl && wpApiUrl && wpUsername && wpPassword && wpTestSuccess));
 
+  const handleModalCancel = () => {
+    if (loading) return;
+    onCancel();
+  };
+
   return (
     <Modal
       open={open}
-      onCancel={onCancel}
+      onCancel={handleModalCancel}
       footer={null}
       width={900}
       title={<div style={{ fontSize: 24, fontWeight: 900, paddingBottom: 16, borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>Create New Website</div>}
       className="glassmorphism-modal"
       bodyStyle={{ maxHeight: "75vh", overflowY: "auto", padding: '24px 0' }}
       closeIcon={<span style={{ color: 'var(--text-secondary)' }}>✕</span>}
+      closable={!loading}
+      maskClosable={!loading}
     >
       <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
         {/* From blank */}
@@ -116,7 +123,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
         </div>
 
         {/* Create with AI */}
-        {/* <div 
+         <div 
           onClick={() => setSelectedType("ai")}
           style={{
             flex: 1,
@@ -145,7 +152,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           <div style={{ background: 'var(--accent-primary)', color: "#fff", padding: "16px", textAlign: "center", borderRadius: 12, fontWeight: 800, fontSize: 13, marginTop: 'auto' }}>
             Home + Contact + About pages
           </div>
-        </div> */}
+        </div> 
 
         {/* From templates */}
         <div 
@@ -293,14 +300,15 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           size="large"
           type="primary" 
           onClick={handleCreate}
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
+          loading={loading && selectedType === "ai"}
           style={{ 
             background: selectedType === "ai" ? "var(--accent-secondary)" : (selectedType === "templates" ? "var(--accent-info)" : (selectedType === "wordpress" ? "#0073AA" : "var(--accent-primary)")), 
             border: "none", 
             borderRadius: 8, fontWeight: 800, padding: "0 32px" 
           }}
         >
-          {selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : (selectedType === "wordpress" ? "Connect WordPress" : "Create Empty Site"))}
+          {loading && selectedType === "ai" ? "Generating Website..." : (selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : (selectedType === "wordpress" ? "Connect WordPress" : "Create Empty Site")))}
         </Button>
       </div>
     </Modal>
@@ -311,6 +319,113 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [pages, setPages] = useState(activeWebsite.pages || []);
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const pagesPageSize = 10;
+
+  // AI Edit Modal State
+  const [isAiEditModalOpen, setIsAiEditModalOpen] = useState(false);
+  const [aiEditContextPage, setAiEditContextPage] = useState(null);
+  const [aiEditPrompt, setAiEditPrompt] = useState("");
+  const [isAiEditing, setIsAiEditing] = useState(false);
+
+  const handleAiEdit = async () => {
+    if (!aiEditPrompt.trim()) return;
+    setIsAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload = { prompt: aiEditPrompt };
+      if (aiEditContextPage) {
+        payload.pageId = aiEditContextPage._id || aiEditContextPage.key;
+        payload.pageSlug = aiEditContextPage.path;
+      }
+      
+      const res = await fetch(`/api/websites/${activeWebsite.key}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("AI changes applied successfully.");
+        // Refresh website details
+        const refreshRes = await fetch(`/api/websites/${activeWebsite.key}`, {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.success) {
+          activeWebsite.theme = refreshData.data.theme;
+          setFontFamily(activeWebsite.theme?.fontFamily || "Inter");
+          setPrimaryColor(activeWebsite.theme?.primaryColor || "var(--accent-primary)");
+          setPages(refreshData.data.pages || []);
+        }
+        setIsAiEditModalOpen(false);
+        setAiEditPrompt("");
+      } else {
+        message.error(data.error || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsAiEditing(false);
+    }
+  };
+
+
+  // Blog AI Edit Modal State
+  const [isBlogAiEditModalOpen, setIsBlogAiEditModalOpen] = useState(false);
+  const [blogAiEditTarget, setBlogAiEditTarget] = useState(null);
+  const [blogAiEditPrompt, setBlogAiEditPrompt] = useState("");
+  const [isBlogAiEditing, setIsBlogAiEditing] = useState(false);
+
+  const handleBlogAiEdit = async () => {
+    if (!blogAiEditPrompt.trim() || !blogAiEditTarget) return;
+    setIsBlogAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const { blogId, postId } = blogAiEditTarget;
+      
+      const res = await fetch(`/api/blogs/${blogId}/posts/${postId}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ prompt: blogAiEditPrompt })
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Blog page updated successfully.");
+        setIsBlogAiEditModalOpen(false);
+        setBlogAiEditPrompt("");
+        // Reload blogs
+        const headers = { "Authorization": token ? `Bearer ${token}` : "" };
+        const blogsRes = await fetch(`/api/blogs?websiteId=${activeWebsite.key}`, { headers });
+        const blogsData = await blogsRes.json();
+        if (blogsData.success) {
+          const blogsList = blogsData.data || [];
+          const blogsWithPosts = await Promise.all(blogsList.map(async (b) => {
+            try {
+              const postsRes = await fetch(`/api/blogs/${b._id}/posts`, { headers });
+              const postsData = await postsRes.json();
+              return { ...b, postsList: postsData.success ? (postsData.data || []) : [] };
+            } catch (err) {
+              return { ...b, postsList: [] };
+            }
+          }));
+          setWebsiteBlogs(blogsWithPosts);
+        }
+      } else {
+        message.error(data.error || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsBlogAiEditing(false);
+    }
+  };
   const [newPageTitle, setNewPageTitle] = useState("");
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
   const [description, setDescription] = useState(activeWebsite.description || "");
@@ -627,6 +742,21 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>{websiteName}</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Manage pages, settings, and tracking for this website.</Text>
         </div>
+        {role !== 'agency_client' && (
+          <Button 
+            size="large" 
+            type="primary" 
+            icon={<Sparkles size={16} />} 
+            onClick={() => {
+              setAiEditContextPage(null);
+              setAiEditPrompt("");
+              setIsAiEditModalOpen(true);
+            }} 
+            style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}
+          >
+            ✨ AI Edit Website
+          </Button>
+        )}
       </div>
 
       <div>
@@ -911,6 +1041,19 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                 navigate(`${basePath}/${activeWebsite.key}/pages/${page._id}/edit`);
                               }}>Edit in Builder</Button>}
                               <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
+                              {role !== 'agency_client' && (
+                                <Button 
+                                  style={{ background: "rgba(13, 148, 136, 0.1)", borderColor: "transparent", color: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, padding: "0 20px" }} 
+                                  icon={<Sparkles size={14} />} 
+                                  onClick={() => {
+                                    setAiEditContextPage(page);
+                                    setAiEditPrompt("");
+                                    setIsAiEditModalOpen(true);
+                                  }}
+                                >
+                                  AI Edit
+                                </Button>
+                              )}
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
                               {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
@@ -981,19 +1124,33 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
                                       {role !== 'agency_client' && (
-                                        <Button
-                                          size="small"
-                                          type="primary"
-                                          icon={<PenTool size={12} />}
-                                          style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
-                                          onClick={() => {
-                                            const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
-                                            const basePath = match ? match[0] : '/workspace/website';
-                                            navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
-                                          }}
-                                        >
-                                          Edit in Builder
-                                        </Button>
+                                        <>
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            icon={<PenTool size={12} />}
+                                            style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
+                                            onClick={() => {
+                                              const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                              const basePath = match ? match[0] : '/workspace/website';
+                                              navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
+                                            }}
+                                          >
+                                            Edit in Builder
+                                          </Button>
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            icon={<Sparkles size={12} />}
+                                            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: "none", borderRadius: 6, fontWeight: 700 }}
+                                            onClick={() => {
+                                              setBlogAiEditTarget({ blogId: blog._id, postId: post._id });
+                                              setIsBlogAiEditModalOpen(true);
+                                            }}
+                                          >
+                                            ✨ AI Edit
+                                          </Button>
+                                        </>
                                       )}
                                       <Button
                                         size="small"
@@ -1058,6 +1215,76 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           <Button size="large" type="primary" loading={savingScript} onClick={handleSaveScript} style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Code</Button>
         </div>
       </Modal>
+
+      {/* Blog AI Edit Modal */}
+      <Modal
+        open={isBlogAiEditModalOpen}
+        onCancel={() => !isBlogAiEditing && setIsBlogAiEditModalOpen(false)}
+        footer={null}
+        width={500}
+        title={<div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={18} color="#8b5cf6" /> ✨ AI Edit Blog Page</div>}
+        className="glassmorphism-modal"
+        closable={!isBlogAiEditing}
+        maskClosable={!isBlogAiEditing}
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Describe what you want to change on this blog page.
+        </div>
+        
+        <div style={{ marginBottom: 24 }}>
+          <TextArea
+            placeholder="Example: Change the article heading to '10 Essential Tips for a Healthier Smile' and add a short introductory paragraph below it."
+            value={blogAiEditPrompt}
+            onChange={(e) => setBlogAiEditPrompt(e.target.value)}
+            style={{ borderRadius: 8, minHeight: 120, fontSize: 14 }}
+            disabled={isBlogAiEditing}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" onClick={() => setIsBlogAiEditModalOpen(false)} disabled={isBlogAiEditing} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={isBlogAiEditing} onClick={handleBlogAiEdit} disabled={!blogAiEditPrompt.trim()} style={{ background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", border: "none", borderRadius: 8, fontWeight: 800 }}>Apply Changes</Button>
+        </div>
+      </Modal>
+
+      {/* AI Edit Modal */}
+      <Modal
+        open={isAiEditModalOpen}
+        onCancel={() => { if (!isAiEditing) setIsAiEditModalOpen(false); }}
+        footer={null}
+        width={640}
+        title={
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={20} color="var(--accent-secondary)" /> 
+            {aiEditContextPage ? `AI Edit: ${aiEditContextPage.title}` : 'AI Edit Website'}
+          </div>
+        }
+        className="glassmorphism-modal"
+        closable={!isAiEditing}
+        maskClosable={!isAiEditing}
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Describe what you want to change. Claude will automatically generate or update the necessary content, design, and settings.
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <TextArea
+            placeholder="e.g. Add a testimonials section to the home page, Create a Services page, Change the primary color to dark blue..."
+            value={aiEditPrompt}
+            onChange={(e) => setAiEditPrompt(e.target.value)}
+            style={{ borderRadius: 8, minHeight: 120, fontSize: 14 }}
+            disabled={isAiEditing}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" disabled={isAiEditing} onClick={() => setIsAiEditModalOpen(false)} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={isAiEditing} disabled={!aiEditPrompt.trim()} onClick={handleAiEdit} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800 }}>
+            {isAiEditing ? "Generating Changes..." : "Apply Changes"}
+          </Button>
+        </div>
+      </Modal>
+
     </motion.div>
   );
 };
@@ -1069,8 +1296,10 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isAiSettingsModalOpen, setIsAiSettingsModalOpen] = useState(false);
   const [pendingWebsiteName, setPendingWebsiteName] = useState("");
   const [isCloning, setIsCloning] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   
   const [websites, setWebsites] = useState([]);
   const [activeWebsite, setActiveWebsite] = useState(null);
@@ -1239,6 +1468,8 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const handleCreateWebsite = async (data) => {
     if (data.type === "blank" || data.type === "template" || data.type === "ai") {
       try {
+        if (data.type === "ai") setIsGeneratingAi(true);
+
         const token = localStorage.getItem("token");
         const res = await fetch("/api/websites", {
           method: "POST",
@@ -1250,10 +1481,15 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
             name: data.name,
             description: data.description || (data.template ? `Created from ${data.template} template` : ""),
             type: data.type,
-            templateName: data.template
+            templateName: data.template,
+            industry: data.industry,
+            tone: data.tone
           })
         });
         const resData = await res.json();
+        
+        if (data.type === "ai") setIsGeneratingAi(false);
+
         if (resData.success) {
           if (resData.warning) {
             message.warning(resData.warning, 8);
@@ -1272,9 +1508,13 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           // Navigate to the new website to load it properly
           const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
           navigate(`${basePath}/${newWebsite.key}`);
+        } else {
+           message.error(resData.error || "Failed to create website");
         }
       } catch (err) {
         console.error(err);
+        if (data.type === "ai") setIsGeneratingAi(false);
+        message.error("Failed to create website");
       }
     } else if (data.type === "wordpress") {
       try {
@@ -1453,6 +1693,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   return (
     <motion.div variants={itemVariants}>
       <Spin fullscreen spinning={isCloning} tip="Cloning website..." size="large" />
+      <Spin fullscreen spinning={isGeneratingAi} tip={<div style={{ marginTop: 16 }}><b>Generating Website with AI...</b><br /><small>This may take up to 30 seconds.</small></div>} size="large" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 8px', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1465,7 +1706,14 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         <Space>
           {role !== 'agency_client' && (
             <>
-              {/* <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button> */}
+              <Button 
+                size="large"
+                icon={<Sparkles size={18} />} 
+                onClick={() => setIsAiSettingsModalOpen(true)}
+                style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
+              >
+                AI Settings
+              </Button>
               {/* <Button 
                 size="large"
                 icon={<Sparkles size={18} />} 
@@ -1533,6 +1781,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         onCreate={handleCreateWebsite}
+        loading={isGeneratingAi}
       />
 
       <WebsiteTemplateLibraryModal 
@@ -1544,7 +1793,109 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         }}
         onCreate={handleCreateWebsite}
       />
+
+      <AiSettingsModal 
+        open={isAiSettingsModalOpen}
+        onCancel={() => setIsAiSettingsModalOpen(false)}
+      />
     </motion.div>
+  );
+};
+
+const AiSettingsModal = ({ open, onCancel }) => {
+  const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const fetchSettings = async () => {
+        setFetching(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch("/api/ai-studio/settings", {
+            headers: { "Authorization": token ? `Bearer ${token}` : "" }
+          });
+          const data = await res.json();
+          if (data.success && data.data.isAnthropicConfigured) {
+            setAnthropicApiKey(data.data.maskedAnthropicKey || "sk-ant-...");
+          } else {
+            setAnthropicApiKey("");
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        setFetching(false);
+      };
+      fetchSettings();
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      const payload = {};
+      if (anthropicApiKey && !anthropicApiKey.includes("...")) {
+        payload.anthropicApiKey = anthropicApiKey;
+      }
+
+      const res = await fetch("/api/ai-studio/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("AI Settings saved successfully");
+        onCancel();
+      } else {
+        message.error(data.message || "Failed to save settings");
+      }
+    } catch (err) {
+      message.error("Error saving AI settings");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onCancel}
+      footer={null}
+      title={<div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={18} color="var(--accent-secondary)" /> AI Configuration</div>}
+      className="glassmorphism-modal"
+    >
+      <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+        Configure your AI API keys to generate websites with AI. These settings are shared across your workspace.
+      </div>
+      
+      {fetching ? (
+        <div style={{ textAlign: "center", padding: 24 }}><Spin /></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CLAUDE API KEY (ANTHROPIC)</div>
+            <Input.Password
+              size="large"
+              placeholder="sk-ant-..."
+              value={anthropicApiKey}
+              onChange={(e) => setAnthropicApiKey(e.target.value)}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <Button size="large" onClick={onCancel} style={{ borderRadius: 8, fontWeight: 700 }}>Cancel</Button>
+        <Button size="large" type="primary" loading={loading} onClick={handleSave} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Settings</Button>
+      </div>
+    </Modal>
   );
 };
 

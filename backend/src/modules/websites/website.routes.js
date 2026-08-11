@@ -14,6 +14,7 @@ router.put('/:id', websiteController.updateWebsite);
 router.delete('/:id', websiteController.deleteWebsite);
 router.post('/:id/clone', websiteController.cloneWebsite);
 router.post('/:id/sync-theme', websiteController.syncWebsiteTheme);
+router.post('/:websiteId/ai-edit', websiteController.aiEditWebsite);
 
 // Page actions
 router.get('/:websiteId/pages/:pageId', websiteController.getPage);

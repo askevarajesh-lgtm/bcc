@@ -3,6 +3,7 @@ const BlogPost = require('./blog-post.model');
 const BlogCategory = require('./blog-category.model');
 const Website = require('../websites/website.model');
 const { getSiteChrome } = require('../websites/website.chrome');
+const { aiEditBlogPage } = require('./services/blogPageAiEdit.service');
 
 async function getLinkedWebsiteTheme(websiteId) {
   if (!websiteId) return null;
@@ -15,12 +16,13 @@ async function getLinkedWebsiteTheme(websiteId) {
 }
 
 async function getLinkedWebsiteChrome(websiteId) {
-  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [] };
+  if (!websiteId) return { siteHeaderHtml: '', siteFooterHtml: '', siteStylesheetUrls: [], siteHomePageCss: '' };
   const chrome = await getSiteChrome(websiteId);
   return {
     siteHeaderHtml: chrome.headerHtml,
     siteFooterHtml: chrome.footerHtml,
-    siteStylesheetUrls: chrome.stylesheetUrls
+    siteStylesheetUrls: chrome.stylesheetUrls,
+    siteHomePageCss: chrome.homePageCss   // home page CSS for header/footer selector resolution
   };
 }
 
@@ -327,14 +329,17 @@ exports.getPostDetails = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Parent blog not found' });
     }
 
-    const websiteTheme = await getLinkedWebsiteTheme(post.websiteId || blog.websiteId);
+    const linkedWebsiteId = post.websiteId || blog.websiteId;
+    const websiteTheme = await getLinkedWebsiteTheme(linkedWebsiteId);
+    const websiteChrome = await getLinkedWebsiteChrome(linkedWebsiteId);
 
     res.json({
       success: true,
       data: {
         ...post.toObject(),
         blog: blog.toObject(),
-        websiteTheme
+        websiteTheme,
+        ...websiteChrome
       }
     });
   } catch (error) {
@@ -432,5 +437,48 @@ exports.deleteCategory = async (req, res, next) => {
     res.json({ success: true, message: 'Category deleted' });
   } catch (error) {
     next(error);
+  }
+};
+
+exports.aiEditPost = async (req, res, next) => {
+  try {
+    const { blogId, postId } = req.params;
+    const { prompt } = req.body;
+    const workspaceId = req.workspaceId;
+
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: 'Prompt is required.' });
+    }
+
+    // Verify blog belongs to workspace
+    const blog = await Blog.findOne({ _id: blogId, workspaceId, isDeleted: false });
+    if (!blog) {
+      return res.status(403).json({ success: false, error: 'Blog not found or access denied.' });
+    }
+
+    // Verify post belongs to blog
+    const post = await BlogPost.findOne({ _id: postId, blogId, isDeleted: false });
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Blog post not found.' });
+    }
+
+    const aiResult = await aiEditBlogPage({
+      workspaceId,
+      user: req.user,
+      blogPost: post,
+      prompt
+    });
+
+    if (aiResult.html !== undefined) post.html = aiResult.html;
+    if (aiResult.css !== undefined) post.css = aiResult.css;
+
+    post.updatedBy = req.user?._id;
+    await post.save();
+
+    res.json({ success: true, data: post });
+  } catch (error) {
+    console.error("AI Edit Post Error:", error);
+    // Send back the actual error message as requested
+    res.status(500).json({ success: false, error: error.message || "Failed to process AI edit." });
   }
 };

@@ -24,6 +24,9 @@ router.get('/posts/:postId', blogController.getPostDetails);
 router.put('/posts/:postId', blogController.updatePost);
 router.delete('/posts/:postId', blogController.deletePost);
 
+// Blog Post AI Edit
+router.post('/:blogId/posts/:postId/ai-edit', blogController.aiEditPost);
+
 // Blog Categories CRUD
 router.get('/:blogId/categories', blogController.getCategories);
 router.post('/:blogId/categories', blogController.addCategory);

@@ -212,13 +212,15 @@ const parseHeaderFooterFromHtml = (html) => {
 };
 
 const getSiteHeaderFooter = (website) => {
-  if (!website || !Array.isArray(website.pages)) return { header: "", footer: "" };
+  if (!website || !Array.isArray(website.pages)) return { header: "", footer: "", css: "" };
   const homePage =
     website.pages.find((p) => p.isHome) ||
     website.pages.find((p) => p.html) ||
     null;
-  if (!homePage || !homePage.html) return { header: "", footer: "" };
-  return parseHeaderFooterFromHtml(homePage.html);
+  if (!homePage || !homePage.html) return { header: "", footer: "", css: "" };
+  const { header, footer } = parseHeaderFooterFromHtml(homePage.html);
+  // Carry the home page CSS so header/footer class selectors resolve in all pages
+  return { header, footer, css: homePage.css || "" };
 };
 
 const DEFAULT_FEATURED_IMAGE_ASPECT_RATIO = "16/9";
@@ -337,6 +339,28 @@ const GrapesJSBuilder = ({
       },
     });
 
+    // Extract header/footer HTML and home-page CSS BEFORE registering the "load" event
+    // so the closure captures the correct values when the event fires.
+    const { header: siteHeaderHtml, footer: siteFooterHtml, css: siteHeaderFooterCss } = getSiteHeaderFooter(activeWebsite);
+    const siteName = activeWebsite?.name || "Your Site";
+
+    const fallbackHeaderHtml = `<header style="display:flex; align-items:center; justify-content:space-between; padding:20px 40px; font-family:var(--site-font, '${siteFont}'), sans-serif; border-bottom:1px solid #e2e8f0;"><div style="font-weight:800; font-size:20px; color:#0f172a;">${siteName}</div><nav style="display:flex; gap:24px; font-size:15px; font-weight:600; color:#334155;"><span>Home</span><span>About</span><span>Contact</span></nav></header>`;
+    const fallbackFooterHtml = `<footer style="padding:32px 40px; text-align:center; font-family:var(--site-font, '${siteFont}'), sans-serif; color:#64748b; font-size:14px; border-top:1px solid #e2e8f0;">© ${new Date().getFullYear()} ${siteName}. All rights reserved.</footer>`;
+
+    // Helper to (re-)inject home-page CSS into the canvas iframe head.
+    // This is a separate <style> tag so editor.getCss() never includes it —
+    // keeping saves clean and avoiding duplication on disk.
+    const ensureHomePageCssInCanvas = (canvasDoc) => {
+      if (!siteHeaderFooterCss || !canvasDoc) return;
+      let homeStyleEl = canvasDoc.getElementById("bcc-home-page-css");
+      if (!homeStyleEl) {
+        homeStyleEl = canvasDoc.createElement("style");
+        homeStyleEl.id = "bcc-home-page-css";
+        canvasDoc.head.appendChild(homeStyleEl);
+      }
+      homeStyleEl.textContent = siteHeaderFooterCss;
+    };
+
     e.on("load", () => {
       const canvasDoc = e.Canvas.getDocument();
       if (!canvasDoc) return;
@@ -373,13 +397,10 @@ const GrapesJSBuilder = ({
         `
         : "";
       styleEl.innerHTML = `:root { --site-font: '${siteFont}', sans-serif; --brand-color: ${brandColor}; } ${postRenderOverrides}`;
+
+      // Inject home-page CSS as a separate style tag (outside GrapesJS CSS Composer).
+      ensureHomePageCssInCanvas(canvasDoc);
     });
-
-    const { header: siteHeaderHtml, footer: siteFooterHtml } = getSiteHeaderFooter(activeWebsite);
-    const siteName = activeWebsite?.name || "Your Site";
-
-    const fallbackHeaderHtml = `<header style="display:flex; align-items:center; justify-content:space-between; padding:20px 40px; font-family:var(--site-font, '${siteFont}'), sans-serif; border-bottom:1px solid #e2e8f0;"><div style="font-weight:800; font-size:20px; color:#0f172a;">${siteName}</div><nav style="display:flex; gap:24px; font-size:15px; font-weight:600; color:#334155;"><span>Home</span><span>About</span><span>Contact</span></nav></header>`;
-    const fallbackFooterHtml = `<footer style="padding:32px 40px; text-align:center; font-family:var(--site-font, '${siteFont}'), sans-serif; color:#64748b; font-size:14px; border-top:1px solid #e2e8f0;">© ${new Date().getFullYear()} ${siteName}. All rights reserved.</footer>`;
 
     if (sourceContent.html || sourceContent.css) {
       e.setComponents(
@@ -409,6 +430,9 @@ const GrapesJSBuilder = ({
 
     setEditor(e);
 
+    // Use plain HTML strings for block content so GrapesJS does NOT add the
+    // home CSS to getCss(). The home CSS is already available via the
+    // <style id="bcc-home-page-css"> tag injected in the canvas head on load.
     e.BlockManager.add("site-header-block", {
       label: "Header",
       category: "Basic",
@@ -420,6 +444,16 @@ const GrapesJSBuilder = ({
       category: "Basic",
       content: siteFooterHtml || fallbackFooterHtml,
       attributes: { class: "fa fa-window-minimize" },
+    });
+
+    // When a header/footer block is dragged in, ensure the home CSS style tag
+    // is still present (GrapesJS canvas resets can sometimes clear head tags).
+    e.on("block:drag:stop", (component, block) => {
+      const blockId = block?.get ? block.get("id") : block?.id;
+      if (blockId === "site-header-block" || blockId === "site-footer-block") {
+        const canvasDoc = e.Canvas.getDocument();
+        if (canvasDoc) ensureHomePageCssInCanvas(canvasDoc);
+      }
     });
 
     // Fetch forms and register them as GrapesJS blocks

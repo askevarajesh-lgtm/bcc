@@ -14,7 +14,7 @@ class AiClientWrapper {
       completions: {
         create: async (params) => {
           if (this.provider === 'openai') {
-            return await this.openai.chat.completions.create(params, { timeout: 45000 });
+            return await this.openai.chat.completions.create(params, { timeout: params.timeout || 120000 });
           } else {
             // Anthropic logic
             let systemPrompt = '';
@@ -42,17 +42,58 @@ class AiClientWrapper {
             if (systemPrompt) anthropicParams.system = systemPrompt.trim();
             // Temperature is deprecated for this model, omitting it
 
-            const msg = await this.anthropic.messages.create(anthropicParams, { timeout: 45000 });
+            console.log("=== ANTHROPIC REQUEST PAYLOAD ===");
+            console.log({
+              provider: "anthropic",
+              model: anthropicParams.model,
+              max_tokens: anthropicParams.max_tokens,
+              systemLength: anthropicParams.system?.length,
+              messageCount: anthropicParams.messages?.length,
+              userMessageLength: anthropicParams.messages?.[0]?.content?.length
+            });
+            console.log("=================================");
 
-            let textContent = '';
-            if (msg && msg.content && msg.content.length > 0) {
-              const textObj = msg.content.find(c => c.type === 'text');
-              if (textObj) {
-                textContent = textObj.text || '';
-              } else {
-                textContent = msg.content[0].text || ''; // fallback
-              }
+            let msg;
+            try {
+              msg = await this.anthropic.messages.create(anthropicParams, { timeout: params.timeout || 120000 });
+            } catch (err) {
+              console.error("=== ANTHROPIC API ERROR ===");
+              console.error("message:", err.message);
+              console.error("status:", err.status);
+              console.error("type:", err.type);
+              console.error("error:", err.error);
+              console.error("===========================");
+              throw err;
             }
+
+            console.log("=== ANTHROPIC WEBSITE DEBUG ===");
+            console.log("model:", anthropicParams.model);
+            console.log("max_tokens:", anthropicParams.max_tokens);
+            console.log("stop_reason:", msg?.stop_reason);
+            console.log("stop_sequence:", msg?.stop_sequence);
+            console.log("content_length:", msg?.content?.length);
+            console.log("content_types:", msg?.content?.map(c => c?.type));
+            console.log("usage:", msg?.usage);
+            console.log("================================");
+
+            const textBlocks = Array.isArray(msg?.content)
+              ? msg.content.filter(block => block?.type === "text")
+              : [];
+
+            let textContent = textBlocks
+              .map(block => block.text || "")
+              .join("")
+              .trim();
+
+            if (!textContent) {
+              console.error("Claude returned no text content");
+              console.error("content_types:", msg?.content?.map(c => c?.type));
+              console.error("content_blocks:", msg?.content?.length);
+              console.error("stop_reason:", msg?.stop_reason);
+              console.error("usage:", msg?.usage);
+              throw new Error("Claude returned no text content.");
+            }
+
             if (params.response_format && params.response_format.type === 'json_object' && textContent) {
               textContent = textContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
             }
@@ -65,7 +106,13 @@ class AiClientWrapper {
                     content: textContent
                   }
                 }
-              ]
+              ],
+              _anthropic: {
+                model: msg?.model,
+                stop_reason: msg?.stop_reason,
+                stop_sequence: msg?.stop_sequence,
+                usage: msg?.usage
+              }
             };
           }
         }

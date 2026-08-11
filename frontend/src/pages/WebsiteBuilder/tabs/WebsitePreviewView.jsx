@@ -170,6 +170,7 @@ const WebsitePreviewView = () => {
   const { websiteId, pageId } = useParams();
   const [pageData, setPageData] = useState(null);
   const [widgetData, setWidgetData] = useState(null);
+  const [websiteTheme, setWebsiteTheme] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -184,6 +185,11 @@ const WebsitePreviewView = () => {
             (p) => p._id === pageId || p.key === pageId,
           );
           setPageData(page);
+
+          // Capture the website theme for CSS variable injection
+          if (data.data.theme) {
+            setWebsiteTheme(data.data.theme);
+          }
 
           if (data.data.chatWidgetId) {
             const widgetRes = await fetch(
@@ -203,6 +209,7 @@ const WebsitePreviewView = () => {
     };
     fetchPage();
   }, [websiteId, pageId]);
+
 
   useEffect(() => {
     // Inject Inter font just in case
@@ -257,7 +264,11 @@ const WebsitePreviewView = () => {
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
           ${(pageData.stylesheetUrls || []).map((url) => `<link rel="stylesheet" href="${url}">`).join("\n          ")}
           <style>
-            body { margin: 0; padding: 0; background: #fff; }
+            :root {
+              --brand-color: ${websiteTheme?.primaryColor || '#3b82f6'};
+              --site-font: '${websiteTheme?.fontFamily || 'Inter'}', sans-serif;
+            }
+            body { margin: 0; padding: 0; background: #fff; font-family: var(--site-font); }
             ${pageData.css || ""}
             /* Hide preloaders exactly like the builder view */
             #spinner, #preloader, .preloader, .loader-wrapper, .loader, .td-preloader-wrap {
