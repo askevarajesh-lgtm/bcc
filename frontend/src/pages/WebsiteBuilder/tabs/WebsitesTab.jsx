@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin, Pagination } from "antd";
+import { Button, Input, Radio, Table, Typography, Space, Modal, Card, Select, Row, Col, Badge, Tag, Divider, Popconfirm, Dropdown, Menu, message, Spin, Pagination, Grid, Tooltip } from "antd";
 import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileText, Monitor, Smartphone, UploadCloud, ChevronRight, PenTool, ExternalLink, ArrowLeft, ArrowRight, Info, Activity, Trash2, ArrowUp, ArrowDown, MoreVertical, Copy, FolderInput, Share2, Edit2, Code2, Newspaper } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -12,8 +12,8 @@ const { TextArea } = Input;
 
 // Removed basic WebsiteBuilderView in favor of GrapesJSBuilder
 
-const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
-  const [selectedType, setSelectedType] = useState("blank");
+const CreateWebsiteModal = ({ open, onCancel, onCreate, loading, initialType = "blank" }) => {
+  const [selectedType, setSelectedType] = useState(initialType);
   const [websiteName, setWebsiteName] = useState("");
   const [industry, setIndustry] = useState("");
   const [description, setDescription] = useState("");
@@ -53,6 +53,12 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
     }
   };
 
+  useEffect(() => {
+    if (open) {
+      setSelectedType(initialType);
+    }
+  }, [open, initialType]);
+
   const handleCreate = () => {
     if (selectedType === "wordpress") {
       onCreate({ name: websiteName, type: selectedType, wpUrl, wpApiUrl, wpUsername, wpPassword });
@@ -84,7 +90,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
       open={open}
       onCancel={handleModalCancel}
       footer={null}
-      width={900}
+      width={1200}
       title={<div style={{ fontSize: 24, fontWeight: 900, paddingBottom: 16, borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>Create New Website</div>}
       className="glassmorphism-modal"
       bodyStyle={{ maxHeight: "75vh", overflowY: "auto", padding: '24px 0' }}
@@ -92,12 +98,13 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
       closable={!loading}
       maskClosable={!loading}
     >
-      <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
+      <div style={{ display: "flex", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
         {/* From blank */}
         <div 
           onClick={() => setSelectedType("blank")}
           style={{
-            flex: 1,
+            flex: "1 1 180px",
+            minWidth: 180,
             border: selectedType === "blank" ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
             background: selectedType === "blank" ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-secondary)',
             borderRadius: 16,
@@ -126,7 +133,8 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
          <div 
           onClick={() => setSelectedType("ai")}
           style={{
-            flex: 1,
+            flex: "1 1 180px",
+            minWidth: 180,
             border: selectedType === "ai" ? '2px solid var(--accent-secondary)' : '1px solid var(--border-color)',
             background: selectedType === "ai" ? 'rgba(13, 148, 136, 0.05)' : 'var(--bg-secondary)',
             borderRadius: 16,
@@ -158,7 +166,8 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
         <div 
           onClick={() => setSelectedType("templates")}
           style={{
-            flex: 1,
+            flex: "1 1 180px",
+            minWidth: 180,
             border: selectedType === "templates" ? '2px solid var(--accent-info)' : '1px solid var(--border-color)',
             background: selectedType === "templates" ? 'rgba(14, 165, 233, 0.05)' : 'var(--bg-secondary)',
             borderRadius: 16,
@@ -187,7 +196,8 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
         <div 
           onClick={() => setSelectedType("wordpress")}
           style={{
-            flex: 1,
+            flex: "1 1 180px",
+            minWidth: 180,
             border: selectedType === "wordpress" ? '2px solid #0073AA' : '1px solid var(--border-color)',
             background: selectedType === "wordpress" ? 'rgba(0, 115, 170, 0.05)' : 'var(--bg-secondary)',
             borderRadius: 16,
@@ -316,6 +326,9 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
 };
 
 const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
+  const screens = Grid.useBreakpoint();
+  const hideText = !screens.xl; // hide text on smaller screens to save horizontal space
+
   const [pages, setPages] = useState(activeWebsite.pages || []);
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const pagesPageSize = 10;
@@ -1034,29 +1047,49 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                 <Option value="Published">Published</Option>
                               </Select>
                             </div>
-                            <div style={{ display: 'flex', gap: 12, paddingLeft: 64 }}>
-                              {role !== 'agency_client' && <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<PenTool size={14} />} onClick={() => {
-                                const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
-                                const basePath = match ? match[0] : '/workspace/website';
-                                navigate(`${basePath}/${activeWebsite.key}/pages/${page._id}/edit`);
-                              }}>Edit in Builder</Button>}
-                              <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
+                            <div style={{ display: 'flex', gap: 12, paddingLeft: hideText ? 16 : 64, flexWrap: 'wrap' }}>
                               {role !== 'agency_client' && (
-                                <Button 
-                                  style={{ background: "rgba(13, 148, 136, 0.1)", borderColor: "transparent", color: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, padding: "0 20px" }} 
-                                  icon={<Sparkles size={14} />} 
-                                  onClick={() => {
-                                    setAiEditContextPage(page);
-                                    setAiEditPrompt("");
-                                    setIsAiEditModalOpen(true);
-                                  }}
-                                >
-                                  AI Edit
-                                </Button>
+                                <Tooltip title={hideText ? "Edit in Builder" : ""}>
+                                  <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} icon={<PenTool size={14} />} onClick={() => {
+                                    const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                    const basePath = match ? match[0] : '/workspace/website';
+                                    navigate(`${basePath}/${activeWebsite.key}/pages/${page._id}/edit`);
+                                  }}>{!hideText && "Edit in Builder"}</Button>
+                                </Tooltip>
                               )}
-                              {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
-                              {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
-                              {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
+                              <Tooltip title={hideText ? "Preview" : ""}>
+                                <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>{!hideText && "Preview"}</Button>
+                              </Tooltip>
+                              {role !== 'agency_client' && (
+                                <Tooltip title={hideText ? "AI Edit" : ""}>
+                                  <Button 
+                                    style={{ background: "rgba(13, 148, 136, 0.1)", borderColor: "transparent", color: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} 
+                                    icon={<Sparkles size={14} />} 
+                                    onClick={() => {
+                                      setAiEditContextPage(page);
+                                      setAiEditPrompt("");
+                                      setIsAiEditModalOpen(true);
+                                    }}
+                                  >
+                                    {!hideText && "AI Edit"}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              {role !== 'agency_client' && (
+                                <Tooltip title={hideText ? "Duplicate" : ""}>
+                                  <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Copy size={14} />} onClick={() => handleDuplicatePage(page._id)}>{!hideText && "Duplicate"}</Button>
+                                </Tooltip>
+                              )}
+                              {role !== 'agency_client' && (
+                                <Tooltip title={hideText ? "Script" : ""}>
+                                  <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>{!hideText && "Script"}</Button>
+                                </Tooltip>
+                              )}
+                              {(role !== 'agency_client' && !page.isHome) && (
+                                <Tooltip title={hideText ? "Delete" : ""}>
+                                  <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>{!hideText && "Delete"}</Button>
+                                </Tooltip>
+                              )}
                             </div>
                           </div>
                         ));
@@ -1125,41 +1158,47 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                     <div style={{ display: 'flex', gap: 8 }}>
                                       {role !== 'agency_client' && (
                                         <>
-                                          <Button
-                                            size="small"
-                                            type="primary"
-                                            icon={<PenTool size={12} />}
-                                            style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700 }}
-                                            onClick={() => {
-                                              const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
-                                              const basePath = match ? match[0] : '/workspace/website';
-                                              navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
-                                            }}
-                                          >
-                                            Edit in Builder
-                                          </Button>
-                                          <Button
-                                            size="small"
-                                            type="primary"
-                                            icon={<Sparkles size={12} />}
-                                            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: "none", borderRadius: 6, fontWeight: 700 }}
-                                            onClick={() => {
-                                              setBlogAiEditTarget({ blogId: blog._id, postId: post._id });
-                                              setIsBlogAiEditModalOpen(true);
-                                            }}
-                                          >
-                                            ✨ AI Edit
-                                          </Button>
+                                          <Tooltip title={hideText ? "Edit in Builder" : ""}>
+                                            <Button
+                                              size="small"
+                                              type="primary"
+                                              icon={<PenTool size={12} />}
+                                              style={{ background: "var(--accent-primary)", border: "none", borderRadius: 6, fontWeight: 700, padding: hideText ? "0 8px" : undefined }}
+                                              onClick={() => {
+                                                const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
+                                                const basePath = match ? match[0] : '/workspace/website';
+                                                navigate(`${basePath}/${activeWebsite.key}/blogs/${blog._id}/posts/${post._id}/edit`);
+                                              }}
+                                            >
+                                              {!hideText && "Edit in Builder"}
+                                            </Button>
+                                          </Tooltip>
+                                          <Tooltip title={hideText ? "AI Edit" : ""}>
+                                            <Button
+                                              size="small"
+                                              type="primary"
+                                              icon={<Sparkles size={12} />}
+                                              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: "none", borderRadius: 6, fontWeight: 700, padding: hideText ? "0 8px" : undefined }}
+                                              onClick={() => {
+                                                setBlogAiEditTarget({ blogId: blog._id, postId: post._id });
+                                                setIsBlogAiEditModalOpen(true);
+                                              }}
+                                            >
+                                              {!hideText && "✨ AI Edit"}
+                                            </Button>
+                                          </Tooltip>
                                         </>
                                       )}
-                                      <Button
-                                        size="small"
-                                        icon={<Monitor size={12} />}
-                                        style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 6, fontWeight: 600 }}
-                                        onClick={() => window.open(`/preview/website/${activeWebsite.key}/blog-post/${post._id}`, '_blank')}
-                                      >
-                                        Preview
-                                      </Button>
+                                      <Tooltip title={hideText ? "Preview" : ""}>
+                                        <Button
+                                          size="small"
+                                          icon={<Monitor size={12} />}
+                                          style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 6, fontWeight: 600, padding: hideText ? "0 8px" : undefined }}
+                                          onClick={() => window.open(`/preview/website/${activeWebsite.key}/blog-post/${post._id}`, '_blank')}
+                                        >
+                                          {!hideText && "Preview"}
+                                        </Button>
+                                      </Tooltip>
                                     </div>
                                   </div>
                                 ))}
@@ -1295,7 +1334,9 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [folderView, setFolderView] = useState("home");
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [createModalInitialType, setCreateModalInitialType] = useState("blank");
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templateModalInitialUpload, setTemplateModalInitialUpload] = useState(false);
   const [isAiSettingsModalOpen, setIsAiSettingsModalOpen] = useState(false);
   const [pendingWebsiteName, setPendingWebsiteName] = useState("");
   const [isCloning, setIsCloning] = useState(false);
@@ -1348,6 +1389,15 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
 
   useEffect(() => {
     if (initialAction === 'openTemplates') {
+      setTemplateModalInitialUpload(false);
+      setIsTemplateModalOpen(true);
+      if (onActionComplete) onActionComplete();
+    } else if (initialAction === 'openAiGenerate') {
+      setCreateModalInitialType("ai");
+      setIsModalOpen(true);
+      if (onActionComplete) onActionComplete();
+    } else if (initialAction === 'openUpload') {
+      setTemplateModalInitialUpload(true);
       setIsTemplateModalOpen(true);
       if (onActionComplete) onActionComplete();
     }
@@ -1779,14 +1829,20 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
 
       <CreateWebsiteModal 
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          // reset to default for next open
+          setTimeout(() => setCreateModalInitialType("blank"), 200);
+        }}
         onCreate={handleCreateWebsite}
         loading={isGeneratingAi}
+        initialType={createModalInitialType}
       />
 
       <WebsiteTemplateLibraryModal 
         open={isTemplateModalOpen}
         initialWebsiteName={pendingWebsiteName}
+        initialShowUploadBox={templateModalInitialUpload}
         onCancel={() => {
           setIsTemplateModalOpen(false);
           setIsModalOpen(true);

@@ -5,7 +5,7 @@ import { Globe, X as CloseIcon, Search as SearchIcon, CheckCircle, Upload as Upl
 
 const { Title, Text } = Typography;
 
-const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteName }) => {
+const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteName, initialShowUploadBox = false }) => {
   const [websiteName, setWebsiteName] = useState(initialWebsiteName || "");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,7 +15,7 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
-  const [showUploadBox, setShowUploadBox] = useState(false);
+  const [showUploadBox, setShowUploadBox] = useState(initialShowUploadBox);
   const [uploadTemplateName, setUploadTemplateName] = useState("");
   const [selectedUploadFile, setSelectedUploadFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -29,8 +29,9 @@ const WebsiteTemplateLibraryModal = ({ open, onCancel, onCreate, initialWebsiteN
   useEffect(() => {
     if (open) {
       fetchTemplates();
+      setShowUploadBox(initialShowUploadBox);
     }
-  }, [open]);
+  }, [open, initialShowUploadBox]);
 
   const fetchTemplates = async () => {
     try {
