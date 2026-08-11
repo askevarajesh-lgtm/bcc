@@ -55,8 +55,8 @@ const WordPressPages = () => {
   const openDrawer = (page = null) => {
     if (page) {
       setEditingPage(page);
-      setTitle(page.title?.rendered || "");
-      setContent(page.content?.rendered || "");
+      setTitle(page.title?.raw || page.title?.rendered || "");
+      setContent(page.content?.raw || page.content?.rendered || "");
       setStatus(page.status || "publish");
     } else {
       setEditingPage(null);

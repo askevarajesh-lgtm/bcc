@@ -81,8 +81,8 @@ const WordPressPosts = () => {
   const openDrawer = (post = null) => {
     if (post) {
       setEditingPost(post);
-      setTitle(post.title?.rendered || "");
-      setContent(post.content?.rendered || "");
+      setTitle(post.title?.raw || post.title?.rendered || "");
+      setContent(post.content?.raw || post.content?.rendered || "");
       setExcerpt(post.excerpt?.rendered || "");
       setStatus(post.status || "publish");
       setAuthorId(post.author || (authors.length > 0 ? authors[0].id : null));

@@ -167,7 +167,7 @@ exports.getPages = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Connection not found.' });
     }
 
-    const params = { status: 'any', ...req.query };
+    const params = { status: 'any', context: 'edit', ...req.query };
     const result = await wordpressService.getPages(connection, params);
 
     return res.status(200).json({ success: true, data: result.data, total: result.total, totalPages: result.totalPages });
@@ -269,7 +269,7 @@ exports.getPosts = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Connection not found.' });
     }
 
-    const params = { status: 'any', ...req.query };
+    const params = { status: 'any', context: 'edit', ...req.query };
     const result = await wordpressService.getPosts(connection, params);
 
     return res.status(200).json({ success: true, data: result.data, total: result.total, totalPages: result.totalPages });
