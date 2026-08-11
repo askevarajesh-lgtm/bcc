@@ -15,7 +15,8 @@ const WebsiteSchema = new mongoose.Schema({
   chatWidgetId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatWidget', default: null },
   theme: {
     fontFamily: { type: String, default: 'Inter' },
-    primaryColor: { type: String, default: '#3b82f6' }
+    primaryColor: { type: String, default: '#3b82f6' },
+    tagline: { type: String, default: "" }
   },
   domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'Domain' },
   isDeleted: { type: Boolean, default: false, required: true },

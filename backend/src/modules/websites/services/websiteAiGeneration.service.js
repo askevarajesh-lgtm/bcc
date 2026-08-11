@@ -280,4 +280,11 @@ Remember to return ONLY valid JSON.`;
   return websiteData;
 }
 
-module.exports = { generateWebsite };
+module.exports = { 
+  generateWebsite,
+  getClaudeClient,
+  sanitizeHtml,
+  sanitizeCss,
+  validateImageUrl,
+  isSafeUrl
+};

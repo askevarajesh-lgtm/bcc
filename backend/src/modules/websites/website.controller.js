@@ -10,6 +10,7 @@ const os = require('os');
 const axios = require('axios');
 const cloudinary = require('../../config/cloudinary');
 const aiGenerationService = require('./services/websiteAiGeneration.service');
+const aiEditService = require('./services/websiteAiEdit.service');
 
 function detectThemeFromContent(htmlContents, cssContents) {
   let fontFamily = null;
@@ -1055,6 +1056,196 @@ exports.deletePage = async (req, res, next) => {
     await page.save();
 
     res.json({ success: true, message: 'Page deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.aiEditWebsite = async (req, res, next) => {
+  try {
+    const { websiteId } = req.params;
+    const { prompt, pageId, pageSlug } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: 'Prompt is required' });
+    }
+
+    const query = buildWebsiteAuthQuery(req, { _id: websiteId });
+    const website = await Website.findOne(query);
+    if (!website) {
+      return res.status(404).json({ success: false, error: 'Website not found' });
+    }
+
+    let pages = [];
+    let targetPage = null;
+
+    if (pageId || pageSlug) {
+      const pageQuery = { websiteId: website._id, isDeleted: false };
+      if (pageId) pageQuery._id = pageId;
+      else if (pageSlug) {
+        const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+        pageQuery.path = cleanPath;
+      }
+      targetPage = await Page.findOne(pageQuery);
+      if (!targetPage) {
+        return res.status(404).json({ success: false, error: 'Target page not found' });
+      }
+    } else {
+      pages = await Page.find({ websiteId: website._id, isDeleted: false });
+    }
+
+    const result = await aiEditService.aiEditWebsite({
+      workspaceId: req.workspaceId,
+      user: req.user,
+      website,
+      pages,
+      targetPage,
+      prompt
+    });
+
+    // Apply the operation
+    const { operation } = result;
+    
+    if (operation === 'CREATE_PAGE') {
+      const { title, slug, isHome, metaTitle, metaDescription, html, css } = result.page;
+      const cleanPath = slug.startsWith('/') ? slug : `/${slug}`;
+      const existingPage = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (existingPage) {
+        return res.status(400).json({ success: false, error: `A page with slug ${slug} already exists.` });
+      }
+      
+      const newPage = new Page({
+        websiteId: website._id,
+        title,
+        path: cleanPath,
+        isHome: isHome || false,
+        metaTitle: metaTitle || '',
+        metaDescription: metaDescription || '',
+        html: html || '',
+        css: css || '',
+        status: 'Draft'
+      });
+      await newPage.save();
+      return res.json({ success: true, operation, data: newPage });
+    }
+    
+    if (operation === 'MODIFY_PAGE') {
+      const { pageSlug, html, css, metaTitle, metaDescription } = result;
+      const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+      const pageToUpdate = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (!pageToUpdate) {
+        return res.status(404).json({ success: false, error: `Page ${pageSlug} not found.` });
+      }
+      
+      if (html !== undefined) pageToUpdate.html = html;
+      if (css !== undefined) pageToUpdate.css = css;
+      if (metaTitle !== undefined) pageToUpdate.metaTitle = metaTitle;
+      if (metaDescription !== undefined) pageToUpdate.metaDescription = metaDescription;
+      
+      await pageToUpdate.save();
+      return res.json({ success: true, operation, data: pageToUpdate });
+    }
+    
+    if (operation === 'MODIFY_SECTION') {
+      const { pageSlug, sectionIdentifier, action, html, css } = result;
+      const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+      const pageToUpdate = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (!pageToUpdate) {
+        return res.status(404).json({ success: false, error: `Page ${pageSlug} not found.` });
+      }
+      
+      pageToUpdate.html = aiEditService.applyModifySection(pageToUpdate.html, sectionIdentifier, action, html);
+      // We don't have a safe way to merge CSS without a parser, so we'll append if provided.
+      // A more robust solution would be needed if CSS is heavily edited, but this matches generation flow.
+      if (css) {
+         pageToUpdate.css += '\n' + css;
+      }
+      
+      await pageToUpdate.save();
+      return res.json({ success: true, operation, data: pageToUpdate });
+    }
+    
+    if (operation === 'UPDATE_CONTENT') {
+      const { pageSlug, changes } = result;
+      const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+      const pageToUpdate = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (!pageToUpdate) {
+        return res.status(404).json({ success: false, error: `Page ${pageSlug} not found.` });
+      }
+      
+      pageToUpdate.html = aiEditService.applyUpdateContent(pageToUpdate.html, changes);
+      await pageToUpdate.save();
+      return res.json({ success: true, operation, data: pageToUpdate });
+    }
+    
+    if (operation === 'UPDATE_SEO') {
+      const { pageSlug, metaTitle, metaDescription } = result;
+      const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+      const pageToUpdate = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (!pageToUpdate) {
+        return res.status(404).json({ success: false, error: `Page ${pageSlug} not found.` });
+      }
+      
+      if (metaTitle !== undefined) pageToUpdate.metaTitle = metaTitle;
+      if (metaDescription !== undefined) pageToUpdate.metaDescription = metaDescription;
+      
+      await pageToUpdate.save();
+      return res.json({ success: true, operation, data: pageToUpdate });
+    }
+    
+    if (operation === 'UPDATE_THEME') {
+      const { theme } = result;
+      if (theme && typeof theme === 'object') {
+        let hasChanges = false;
+        
+        if (theme.primaryColor !== undefined) {
+          website.theme.primaryColor = theme.primaryColor;
+          hasChanges = true;
+        }
+        
+        if (theme.fontFamily !== undefined) {
+          website.theme.fontFamily = theme.fontFamily;
+          hasChanges = true;
+        }
+        
+        if (theme.tagline !== undefined) {
+          website.theme.tagline = theme.tagline;
+          hasChanges = true;
+        }
+        
+        if (hasChanges) {
+          website.updatedBy = req.user?._id;
+          await website.save();
+        }
+      }
+      return res.json({ success: true, operation, data: website });
+    }
+    
+    if (operation === 'DELETE_PAGE') {
+      const { pageSlug } = result;
+      const cleanPath = pageSlug.startsWith('/') ? pageSlug : `/${pageSlug}`;
+      const pageToUpdate = await Page.findOne({ websiteId: website._id, path: cleanPath, isDeleted: false });
+      
+      if (!pageToUpdate) {
+        return res.status(404).json({ success: false, error: `Page ${pageSlug} not found.` });
+      }
+      
+      if (pageToUpdate.isHome) {
+        return res.status(400).json({ success: false, error: 'Cannot delete the home page.' });
+      }
+      
+      pageToUpdate.isDeleted = true;
+      await pageToUpdate.save();
+      return res.json({ success: true, operation, data: { deletedId: pageToUpdate._id } });
+    }
+
+    return res.status(400).json({ success: false, error: 'Unsupported operation returned by AI.' });
+
   } catch (error) {
     next(error);
   }

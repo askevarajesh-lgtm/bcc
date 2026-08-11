@@ -319,6 +319,58 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
   const [pages, setPages] = useState(activeWebsite.pages || []);
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const pagesPageSize = 10;
+
+  // AI Edit Modal State
+  const [isAiEditModalOpen, setIsAiEditModalOpen] = useState(false);
+  const [aiEditContextPage, setAiEditContextPage] = useState(null);
+  const [aiEditPrompt, setAiEditPrompt] = useState("");
+  const [isAiEditing, setIsAiEditing] = useState(false);
+
+  const handleAiEdit = async () => {
+    if (!aiEditPrompt.trim()) return;
+    setIsAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload = { prompt: aiEditPrompt };
+      if (aiEditContextPage) {
+        payload.pageId = aiEditContextPage._id || aiEditContextPage.key;
+        payload.pageSlug = aiEditContextPage.path;
+      }
+      
+      const res = await fetch(`/api/websites/${activeWebsite.key}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("AI changes applied successfully.");
+        // Refresh website details
+        const refreshRes = await fetch(`/api/websites/${activeWebsite.key}`, {
+          headers: { "Authorization": token ? `Bearer ${token}` : "" }
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.success) {
+          activeWebsite.theme = refreshData.data.theme;
+          setFontFamily(activeWebsite.theme?.fontFamily || "Inter");
+          setPrimaryColor(activeWebsite.theme?.primaryColor || "var(--accent-primary)");
+          setPages(refreshData.data.pages || []);
+        }
+        setIsAiEditModalOpen(false);
+        setAiEditPrompt("");
+      } else {
+        message.error(data.error || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsAiEditing(false);
+    }
+  };
   const [newPageTitle, setNewPageTitle] = useState("");
   const [websiteName, setWebsiteName] = useState(activeWebsite.name || "");
   const [description, setDescription] = useState(activeWebsite.description || "");
@@ -635,6 +687,21 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>{websiteName}</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Manage pages, settings, and tracking for this website.</Text>
         </div>
+        {role !== 'agency_client' && (
+          <Button 
+            size="large" 
+            type="primary" 
+            icon={<Sparkles size={16} />} 
+            onClick={() => {
+              setAiEditContextPage(null);
+              setAiEditPrompt("");
+              setIsAiEditModalOpen(true);
+            }} 
+            style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}
+          >
+            ✨ AI Edit Website
+          </Button>
+        )}
       </div>
 
       <div>
@@ -919,6 +986,19 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                 navigate(`${basePath}/${activeWebsite.key}/pages/${page._id}/edit`);
                               }}>Edit in Builder</Button>}
                               <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>Preview</Button>
+                              {role !== 'agency_client' && (
+                                <Button 
+                                  style={{ background: "rgba(13, 148, 136, 0.1)", borderColor: "transparent", color: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, padding: "0 20px" }} 
+                                  icon={<Sparkles size={14} />} 
+                                  onClick={() => {
+                                    setAiEditContextPage(page);
+                                    setAiEditPrompt("");
+                                    setIsAiEditModalOpen(true);
+                                  }}
+                                >
+                                  AI Edit
+                                </Button>
+                              )}
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} onClick={() => handleDuplicatePage(page._id)}>Duplicate</Button>}
                               {role !== 'agency_client' && <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>Script</Button>}
                               {(role !== 'agency_client' && !page.isHome) && <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>Delete</Button>}
@@ -1066,6 +1146,45 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           <Button size="large" type="primary" loading={savingScript} onClick={handleSaveScript} style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Code</Button>
         </div>
       </Modal>
+
+      {/* AI Edit Modal */}
+      <Modal
+        open={isAiEditModalOpen}
+        onCancel={() => { if (!isAiEditing) setIsAiEditModalOpen(false); }}
+        footer={null}
+        width={640}
+        title={
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={20} color="var(--accent-secondary)" /> 
+            {aiEditContextPage ? `AI Edit: ${aiEditContextPage.title}` : 'AI Edit Website'}
+          </div>
+        }
+        className="glassmorphism-modal"
+        closable={!isAiEditing}
+        maskClosable={!isAiEditing}
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Describe what you want to change. Claude will automatically generate or update the necessary content, design, and settings.
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <TextArea
+            placeholder="e.g. Add a testimonials section to the home page, Create a Services page, Change the primary color to dark blue..."
+            value={aiEditPrompt}
+            onChange={(e) => setAiEditPrompt(e.target.value)}
+            style={{ borderRadius: 8, minHeight: 120, fontSize: 14 }}
+            disabled={isAiEditing}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" disabled={isAiEditing} onClick={() => setIsAiEditModalOpen(false)} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={isAiEditing} disabled={!aiEditPrompt.trim()} onClick={handleAiEdit} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800 }}>
+            {isAiEditing ? "Generating Changes..." : "Apply Changes"}
+          </Button>
+        </div>
+      </Modal>
+
     </motion.div>
   );
 };
