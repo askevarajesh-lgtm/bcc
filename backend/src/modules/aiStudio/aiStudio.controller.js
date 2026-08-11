@@ -40,6 +40,14 @@ const saveSettings = async (req, res) => {
       }
     }
 
+    if (anthropicApiKey !== undefined) {
+      if (anthropicApiKey.trim() !== '') {
+        updateFields.anthropicApiKey = cryptoUtils.encrypt(anthropicApiKey.trim());
+      } else {
+        updateFields.anthropicApiKey = null;
+      }
+    }
+
     if (aiProvider !== undefined) {
       updateFields.aiProvider = aiProvider;
     }
@@ -74,7 +82,9 @@ const getSettingsStatus = async (req, res) => {
 
     const settings = await AiSettings.findOne({ workspaceId });
     let isConfigured = false;
+    let isAnthropicConfigured = false;
     let maskedKey = '';
+    let maskedAnthropicKey = '';
     let isEnabled = true;
     let model = DEFAULT_AI_MODEL;
     let aiProvider = DEFAULT_AI_PROVIDER;
@@ -93,13 +103,25 @@ const getSettingsStatus = async (req, res) => {
           maskedKey = 'sk-...';
         }
       }
+
+      if (settings.anthropicApiKey) {
+        isAnthropicConfigured = true;
+        const decrypted = cryptoUtils.decrypt(settings.anthropicApiKey);
+        if (decrypted && decrypted.length > 8) {
+          maskedAnthropicKey = decrypted.substring(0, 4) + '...' + decrypted.substring(decrypted.length - 4);
+        } else {
+          maskedAnthropicKey = 'sk-ant-...';
+        }
+      }
     }
 
     return res.status(200).json({ 
       success: true, 
       data: { 
         isConfigured, 
+        isAnthropicConfigured,
         maskedKey, 
+        maskedAnthropicKey,
         aiProvider,
         isEnabled, 
         model 

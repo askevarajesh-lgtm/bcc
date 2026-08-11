@@ -9,6 +9,7 @@ const path = require('path');
 const os = require('os');
 const axios = require('axios');
 const cloudinary = require('../../config/cloudinary');
+const aiGenerationService = require('./services/websiteAiGeneration.service');
 
 function detectThemeFromContent(htmlContents, cssContents) {
   let fontFamily = null;
@@ -230,6 +231,23 @@ exports.createWebsite = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Website name is required' });
     }
 
+    let aiGeneratedData = null;
+    if (type === 'ai') {
+      try {
+        const canonicalBrief = businessBrief || description;
+        aiGeneratedData = await aiGenerationService.generateWebsite({
+          workspaceId,
+          user: req.user,
+          name,
+          industry,
+          businessBrief: canonicalBrief,
+          tone
+        });
+      } catch (error) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
+    }
+
     const website = new Website({
       workspaceId,
       name,
@@ -241,11 +259,46 @@ exports.createWebsite = async (req, res, next) => {
       brandId: req.user?.brandId || null
     });
 
+    if (aiGeneratedData && aiGeneratedData.site) {
+      if (aiGeneratedData.site.fontFamily || aiGeneratedData.site.primaryColor) {
+        website.theme = {
+          fontFamily: aiGeneratedData.site.fontFamily || website.theme.fontFamily,
+          primaryColor: aiGeneratedData.site.primaryColor || website.theme.primaryColor
+        };
+      }
+    }
+
     const savedWebsite = await website.save();
 
     // Initialize default pages
     let newPages = [];
     let templateImportWarning = null;
+
+    try {
+      if (type === 'ai' && aiGeneratedData && aiGeneratedData.pages) {
+        for (const aiPage of aiGeneratedData.pages) {
+          const newPage = new Page({
+            websiteId: savedWebsite._id,
+            title: aiPage.title,
+            path: aiPage.slug === 'home' ? '/home' : `/${aiPage.slug.toLowerCase()}`,
+            status: 'Draft',
+            isHome: aiPage.isHome || aiPage.slug === 'home',
+            html: aiPage.html,
+            css: aiPage.css,
+            metaTitle: aiPage.metaTitle || '',
+            metaDescription: aiPage.metaDescription || '',
+            layoutJson: { sections: [] }
+          });
+          await newPage.save();
+          newPages.push(newPage);
+        }
+      }
+    } catch (pageError) {
+      // Cleanup on failure
+      await Page.deleteMany({ websiteId: savedWebsite._id });
+      await Website.deleteOne({ _id: savedWebsite._id });
+      return res.status(500).json({ success: false, error: 'Failed to save generated pages. Please try again.' });
+    }
 
     // If template is provided, extract zip and read all html
     if (type === 'template' && templateName) {
@@ -526,7 +579,7 @@ exports.createWebsite = async (req, res, next) => {
     }
 
     // If no template or extraction failed, create default home page
-    if (newPages.length === 0) {
+    if (newPages.length === 0 && type !== 'ai') {
       const homePage = new Page({
         websiteId: savedWebsite._id,
         title: 'Home',
@@ -543,24 +596,6 @@ exports.createWebsite = async (req, res, next) => {
       });
       await homePage.save();
       newPages.push(homePage);
-
-      if (type === 'ai') {
-        const contactPage = new Page({
-          websiteId: savedWebsite._id,
-          title: 'Contact',
-          path: '/contact',
-          status: 'Draft',
-          isHome: false,
-          html: '<div style="padding: 50px; text-align: center;"><h1>Contact Us</h1></div>',
-          layoutJson: {
-            sections: [
-              { type: 'contact-form', content: { title: 'Contact Us', subtitle: `Get in touch with ${name}` } }
-            ]
-          }
-        });
-        await contactPage.save();
-        newPages.push(contactPage);
-      }
     }
 
     res.status(201).json({

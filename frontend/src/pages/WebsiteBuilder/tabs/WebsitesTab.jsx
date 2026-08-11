@@ -12,7 +12,7 @@ const { TextArea } = Input;
 
 // Removed basic WebsiteBuilderView in favor of GrapesJSBuilder
 
-const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
+const CreateWebsiteModal = ({ open, onCancel, onCreate, loading }) => {
   const [selectedType, setSelectedType] = useState("blank");
   const [websiteName, setWebsiteName] = useState("");
   const [industry, setIndustry] = useState("");
@@ -57,7 +57,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
     if (selectedType === "wordpress") {
       onCreate({ name: websiteName, type: selectedType, wpUrl, wpApiUrl, wpUsername, wpPassword });
     } else {
-      onCreate({ name: websiteName, type: selectedType, description });
+      onCreate({ name: websiteName, type: selectedType, description, industry, tone });
     }
     setWebsiteName("");
     setIndustry("");
@@ -74,16 +74,23 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
     (selectedType !== "ai" || description.trim().length > 0) &&
     (selectedType !== "wordpress" || (wpUrl && wpApiUrl && wpUsername && wpPassword && wpTestSuccess));
 
+  const handleModalCancel = () => {
+    if (loading) return;
+    onCancel();
+  };
+
   return (
     <Modal
       open={open}
-      onCancel={onCancel}
+      onCancel={handleModalCancel}
       footer={null}
       width={900}
       title={<div style={{ fontSize: 24, fontWeight: 900, paddingBottom: 16, borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>Create New Website</div>}
       className="glassmorphism-modal"
       bodyStyle={{ maxHeight: "75vh", overflowY: "auto", padding: '24px 0' }}
       closeIcon={<span style={{ color: 'var(--text-secondary)' }}>✕</span>}
+      closable={!loading}
+      maskClosable={!loading}
     >
       <div style={{ display: "flex", gap: 24, marginBottom: 32 }}>
         {/* From blank */}
@@ -293,14 +300,15 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate }) => {
           size="large"
           type="primary" 
           onClick={handleCreate}
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
+          loading={loading && selectedType === "ai"}
           style={{ 
             background: selectedType === "ai" ? "var(--accent-secondary)" : (selectedType === "templates" ? "var(--accent-info)" : (selectedType === "wordpress" ? "#0073AA" : "var(--accent-primary)")), 
             border: "none", 
             borderRadius: 8, fontWeight: 800, padding: "0 32px" 
           }}
         >
-          {selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : (selectedType === "wordpress" ? "Connect WordPress" : "Create Empty Site"))}
+          {loading && selectedType === "ai" ? "Generating Website..." : (selectedType === "ai" ? "Generate Website with AI" : (selectedType === "templates" ? "Browse Templates" : (selectedType === "wordpress" ? "Connect WordPress" : "Create Empty Site")))}
         </Button>
       </div>
     </Modal>
@@ -1069,8 +1077,10 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isAiSettingsModalOpen, setIsAiSettingsModalOpen] = useState(false);
   const [pendingWebsiteName, setPendingWebsiteName] = useState("");
   const [isCloning, setIsCloning] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   
   const [websites, setWebsites] = useState([]);
   const [activeWebsite, setActiveWebsite] = useState(null);
@@ -1239,6 +1249,8 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const handleCreateWebsite = async (data) => {
     if (data.type === "blank" || data.type === "template" || data.type === "ai") {
       try {
+        if (data.type === "ai") setIsGeneratingAi(true);
+
         const token = localStorage.getItem("token");
         const res = await fetch("/api/websites", {
           method: "POST",
@@ -1250,10 +1262,15 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
             name: data.name,
             description: data.description || (data.template ? `Created from ${data.template} template` : ""),
             type: data.type,
-            templateName: data.template
+            templateName: data.template,
+            industry: data.industry,
+            tone: data.tone
           })
         });
         const resData = await res.json();
+        
+        if (data.type === "ai") setIsGeneratingAi(false);
+
         if (resData.success) {
           if (resData.warning) {
             message.warning(resData.warning, 8);
@@ -1272,9 +1289,13 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           // Navigate to the new website to load it properly
           const basePath = location.pathname.substring(0, location.pathname.indexOf('/websites') + 9);
           navigate(`${basePath}/${newWebsite.key}`);
+        } else {
+           message.error(resData.error || "Failed to create website");
         }
       } catch (err) {
         console.error(err);
+        if (data.type === "ai") setIsGeneratingAi(false);
+        message.error("Failed to create website");
       }
     } else if (data.type === "wordpress") {
       try {
@@ -1453,6 +1474,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   return (
     <motion.div variants={itemVariants}>
       <Spin fullscreen spinning={isCloning} tip="Cloning website..." size="large" />
+      <Spin fullscreen spinning={isGeneratingAi} tip={<div style={{ marginTop: 16 }}><b>Generating Website with AI...</b><br /><small>This may take up to 30 seconds.</small></div>} size="large" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 8px', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1465,7 +1487,14 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         <Space>
           {role !== 'agency_client' && (
             <>
-              {/* <Button size="large" icon={<Folder size={18} />} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)', height: 44 }}>Folders</Button> */}
+              <Button 
+                size="large"
+                icon={<Sparkles size={18} />} 
+                onClick={() => setIsAiSettingsModalOpen(true)}
+                style={{ color: "var(--accent-secondary)", borderColor: "var(--accent-secondary)", background: "rgba(13, 148, 136, 0.05)", borderRadius: 8, fontWeight: 800, height: 44, padding: '0 20px' }}
+              >
+                AI Settings
+              </Button>
               {/* <Button 
                 size="large"
                 icon={<Sparkles size={18} />} 
@@ -1533,6 +1562,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         onCreate={handleCreateWebsite}
+        loading={isGeneratingAi}
       />
 
       <WebsiteTemplateLibraryModal 
@@ -1544,7 +1574,109 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
         }}
         onCreate={handleCreateWebsite}
       />
+
+      <AiSettingsModal 
+        open={isAiSettingsModalOpen}
+        onCancel={() => setIsAiSettingsModalOpen(false)}
+      />
     </motion.div>
+  );
+};
+
+const AiSettingsModal = ({ open, onCancel }) => {
+  const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const fetchSettings = async () => {
+        setFetching(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch("/api/ai-studio/settings", {
+            headers: { "Authorization": token ? `Bearer ${token}` : "" }
+          });
+          const data = await res.json();
+          if (data.success && data.data.isAnthropicConfigured) {
+            setAnthropicApiKey(data.data.maskedAnthropicKey || "sk-ant-...");
+          } else {
+            setAnthropicApiKey("");
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        setFetching(false);
+      };
+      fetchSettings();
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      const payload = {};
+      if (anthropicApiKey && !anthropicApiKey.includes("...")) {
+        payload.anthropicApiKey = anthropicApiKey;
+      }
+
+      const res = await fetch("/api/ai-studio/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("AI Settings saved successfully");
+        onCancel();
+      } else {
+        message.error(data.message || "Failed to save settings");
+      }
+    } catch (err) {
+      message.error("Error saving AI settings");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onCancel}
+      footer={null}
+      title={<div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={18} color="var(--accent-secondary)" /> AI Configuration</div>}
+      className="glassmorphism-modal"
+    >
+      <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+        Configure your AI API keys to generate websites with AI. These settings are shared across your workspace.
+      </div>
+      
+      {fetching ? (
+        <div style={{ textAlign: "center", padding: 24 }}><Spin /></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>CLAUDE API KEY (ANTHROPIC)</div>
+            <Input.Password
+              size="large"
+              placeholder="sk-ant-..."
+              value={anthropicApiKey}
+              onChange={(e) => setAnthropicApiKey(e.target.value)}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <Button size="large" onClick={onCancel} style={{ borderRadius: 8, fontWeight: 700 }}>Cancel</Button>
+        <Button size="large" type="primary" loading={loading} onClick={handleSave} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800 }}>Save Settings</Button>
+      </div>
+    </Modal>
   );
 };
 
