@@ -118,12 +118,12 @@ const SYSTEM_PROMPT = `You are an expert web designer, UX architect, and convers
 Your task is to generate a complete, production-ready website based on the provided business details.
 
 CRITICAL RULES:
-1. OUTPUT STRICT JSON ONLY. No markdown formatting, no explanations, no \`\`\`json blocks. Just the raw JSON object.
-2. DO NOT use Lorem Ipsum or placeholder text like "Your Company Here" or "Add text". Write real, compelling copy specific to the business.
-3. Use HTTPS image URLs only (e.g. from Unsplash or other public sources). Do NOT use data:, base64, blob:, or local file paths.
-4. The generated HTML MUST be directly compatible with GrapesJS. DO NOT include <html>, <head>, or <body> tags. Output semantic HTML sections (e.g., <header>, <main>, <section>, <footer>).
-5. CSS must be standalone and directly loadable. Do NOT use Tailwind classes, React, Vue, or custom JavaScript.
-6. Make the design visually stunning, responsive, and appropriate for the given industry and tone.
+1. Return strict JSON only. No markdown. No explanations. No code fences.
+2. No Lorem Ipsum. No placeholder content. Generate real business-specific content using the supplied Industry, Business Description, and Tone.
+3. Use remote image URLs only. Image URLs must be HTTP/HTTPS. No base64. No data URLs. No blob URLs. No local files.
+4. HTML must be GrapesJS-compatible. Do not include <html>. Do not include <head>. Do not include <body>. Use semantic HTML.
+5. CSS must be standalone. Do not use React. Do not use Vue. Do not use Tailwind. Do not use JavaScript. Do not use <script>.
+6. Make the website responsive. Generate at least Home, About, and Contact.
 
 EXPECTED JSON STRUCTURE:
 {
@@ -189,7 +189,7 @@ Remember to return ONLY valid JSON.`;
     const res = await client.chat.completions.create({
       model,
       messages,
-      max_tokens: 8192,
+      max_tokens: 16000,
       response_format: { type: 'json_object' }
     });
 
@@ -199,8 +199,7 @@ Remember to return ONLY valid JSON.`;
     console.log("choices:", res?.choices?.length);
     console.log("content type:", typeof res?.choices?.[0]?.message?.content);
     console.log("content length:", res?.choices?.[0]?.message?.content?.length);
-    console.log("raw content:");
-    console.log(res?.choices?.[0]?.message?.content);
+    console.log("anthropic_metadata:", res?._anthropic);
     console.log("==================================");
 
     return res.choices[0].message.content;
@@ -234,8 +233,12 @@ Remember to return ONLY valid JSON.`;
   try {
     websiteData = parseJson(responseText);
   } catch (e) {
-    console.error("AI WEBSITE JSON PARSE ERROR:", e.message);
-    console.error("AI WEBSITE RESPONSE LENGTH:", responseText?.length);
+    console.error("=== AI WEBSITE JSON PARSE ERROR ===");
+    console.error("error:", e.message);
+    console.error("response_length:", responseText?.length);
+    console.error("response_start:", responseText?.slice(0, 500));
+    console.error("response_end:", responseText?.slice(-1000));
+    console.error("===================================");
     
     // Retry once
     try {

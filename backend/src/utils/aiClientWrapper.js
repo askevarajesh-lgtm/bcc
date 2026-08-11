@@ -85,6 +85,15 @@ class AiClientWrapper {
               .join("")
               .trim();
 
+            if (!textContent) {
+              console.error("Claude returned no text content");
+              console.error("content_types:", msg?.content?.map(c => c?.type));
+              console.error("content_blocks:", msg?.content?.length);
+              console.error("stop_reason:", msg?.stop_reason);
+              console.error("usage:", msg?.usage);
+              throw new Error("Claude returned no text content.");
+            }
+
             if (params.response_format && params.response_format.type === 'json_object' && textContent) {
               textContent = textContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
             }
@@ -97,7 +106,13 @@ class AiClientWrapper {
                     content: textContent
                   }
                 }
-              ]
+              ],
+              _anthropic: {
+                model: msg?.model,
+                stop_reason: msg?.stop_reason,
+                stop_sequence: msg?.stop_sequence,
+                usage: msg?.usage
+              }
             };
           }
         }
