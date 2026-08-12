@@ -92,6 +92,11 @@ export const useGetFacebookCampaignsQuery = createQueryHook((params) => ({ url: 
 export const useGetFacebookAdSetsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/adsets`, params }));
 export const useGetFacebookAdsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/ads`, params }));
 export const useGetFacebookFormsQuery = createQueryHook((params) => ({ url: `/facebook/integrations/assets/forms`, params }));
+export const useLazyGetFacebookFormsQuery = () => {
+  const [params, setParams] = useState(null);
+  const queryResult = useGetFacebookFormsQuery(params || {}, { skip: !params });
+  return [setParams, { ...queryResult, isFetching: queryResult.isLoading }];
+};
 export const useGetFacebookSyncLogsQuery = createQueryHook(({ pageId, clientId }) => `/facebook/integrations/${pageId}/logs${clientId ? `?clientId=${clientId}` : ""}`);
 export const useLazyGetFacebookSyncLogsQuery = () => {
   const [params, setParams] = useState(null);

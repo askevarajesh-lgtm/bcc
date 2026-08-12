@@ -314,6 +314,7 @@ exports.getLogs = async (req, res, next) => {
       status: 'success',
       message: `Successfully imported lead from Facebook Lead Ads`,
       leadgenId: lead.customData?.leadgenId || 'N/A',
+      formName: lead.customData?.formName || 'Unknown Form',
       timestamp: lead.createdAt
     }));
 
@@ -327,11 +328,10 @@ exports.getLogs = async (req, res, next) => {
 exports.syncLeads = async (req, res, next) => {
   try {
     const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
-    const { pageId, formId } = req.body;
+    const { pageId, formIds } = req.body;
     
-    const targetId = formId || pageId;
-    if (!targetId) {
-      return res.status(400).json({ success: false, message: 'pageId or formId is required to sync leads' });
+    if (!pageId) {
+      return res.status(400).json({ success: false, message: 'pageId is required to sync leads' });
     }
 
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
@@ -360,12 +360,10 @@ exports.syncLeads = async (req, res, next) => {
     }
 
     let forms = [];
-    if (formId) {
-      forms.push({ id: formId });
-    } else if (pageId) {
+    if (pageId) {
       try {
         const formsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/leadgen_forms`, {
-          params: { access_token: targetAccessToken, limit: 100 }
+          params: { access_token: targetAccessToken, limit: 100, fields: 'id,name' }
         });
         if (formsRes.data && formsRes.data.data) {
           forms = formsRes.data.data;
@@ -377,6 +375,10 @@ exports.syncLeads = async (req, res, next) => {
           meta: { error: err.response?.data || err.message } 
         });
       }
+    }
+
+    if (formIds && Array.isArray(formIds) && formIds.length > 0) {
+      forms = forms.filter(f => formIds.includes(f.id));
     }
 
     const Lead = require('../leads/lead.model');
@@ -445,6 +447,7 @@ exports.syncLeads = async (req, res, next) => {
               customData: {
                 leadgenId,
                 formId: form.id,
+                formName: form.name || 'Unknown Form',
                 pageId: pageId,
                 adId: fbLead.ad_id,
                 adSetId: fbLead.adset_id,
@@ -460,6 +463,7 @@ exports.syncLeads = async (req, res, next) => {
         
         formResults.push({
           formId: form.id,
+          formName: form.name || 'Unknown Form',
           status: 'success',
           syncedCount,
           duplicateCount
@@ -476,14 +480,14 @@ exports.syncLeads = async (req, res, next) => {
       }
     }
     
-    // If we were syncing a single form and it failed, return a 400 error
-    if (formId && formResults.length > 0 && formResults[0].status === 'error') {
+    // If we were syncing specific forms and they all failed, return a 400 error
+    if (formIds && formIds.length > 0 && formResults.length > 0 && formResults.every(r => r.status === 'error')) {
       return res.status(400).json({
         success: false,
         message: 'Failed to retrieve leads',
         meta: {
-          formId,
-          error: formResults[0].error
+          formIds,
+          errors: formResults.map(r => r.error)
         }
       });
     }
@@ -505,7 +509,7 @@ exports.syncLeads = async (req, res, next) => {
 // Asset Discovery Endpoints
 exports.getAdAccounts = async (req, res, next) => {
   try {
-    const companyId = req.companyId;
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
@@ -520,7 +524,7 @@ exports.getAdAccounts = async (req, res, next) => {
 
 exports.getCampaigns = async (req, res, next) => {
   try {
-    const companyId = req.companyId;
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const { adAccountId } = req.query;
     if (!adAccountId) return res.status(400).json({ success: false, message: 'adAccountId is required' });
     
@@ -538,7 +542,7 @@ exports.getCampaigns = async (req, res, next) => {
 
 exports.getAdSets = async (req, res, next) => {
   try {
-    const companyId = req.companyId;
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const { campaignId } = req.query;
     if (!campaignId) return res.status(400).json({ success: false, message: 'campaignId is required' });
     
@@ -556,7 +560,7 @@ exports.getAdSets = async (req, res, next) => {
 
 exports.getAds = async (req, res, next) => {
   try {
-    const companyId = req.companyId;
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const { adSetId } = req.query;
     if (!adSetId) return res.status(400).json({ success: false, message: 'adSetId is required' });
     
@@ -574,24 +578,29 @@ exports.getAds = async (req, res, next) => {
 
 exports.getForms = async (req, res, next) => {
   try {
-    const companyId = req.companyId;
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const { pageId } = req.query;
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
     
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
-    // Try to get page token
     let targetAccessToken = integration.config.accessToken;
-    try {
-      const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
-        params: { access_token: targetAccessToken, fields: 'id,access_token' }
-      });
-      const page = pagesRes.data.data.find(p => p.id === pageId);
-      if (page && page.access_token) {
-        targetAccessToken = page.access_token;
-      }
-    } catch (e) {}
+    const manualPage = (integration.config.pages || []).find(p => p.pageId === pageId);
+    
+    if (manualPage && manualPage.accessToken) {
+      targetAccessToken = manualPage.accessToken;
+    } else {
+      try {
+        const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+          params: { access_token: targetAccessToken, fields: 'id,access_token' }
+        });
+        const page = pagesRes.data.data.find(p => p.id === pageId);
+        if (page && page.access_token) {
+          targetAccessToken = page.access_token;
+        }
+      } catch (e) {}
+    }
 
     const formsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/leadgen_forms`, {
       params: { access_token: targetAccessToken, fields: 'id,name,status', limit: 100 }

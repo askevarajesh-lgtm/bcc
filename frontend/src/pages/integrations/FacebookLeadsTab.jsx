@@ -34,7 +34,8 @@ import {
   useDisconnectFacebookPageMutation,
   useLazyGetFacebookSyncLogsQuery,
   useSyncFacebookLeadsMutation,
-  useConnectFacebookManualPageMutation
+  useConnectFacebookManualPageMutation,
+  useLazyGetFacebookFormsQuery
 } from "../../api/integrationApi";
 
 const { Title, Text, Paragraph } = Typography;
@@ -63,6 +64,12 @@ const FacebookLeadsTab = () => {
   const [selectedPage, setSelectedPage] = useState(null);
   const [isSyncingPageId, setIsSyncingPageId] = useState(null);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  
+  const [fetchForms, { data: formsRes, isFetching: isFetchingForms }] = useLazyGetFacebookFormsQuery();
+  const [isFormsModalOpen, setIsFormsModalOpen] = useState(false);
+  const [selectedFormIds, setSelectedFormIds] = useState([]);
+  const [pageForForms, setPageForForms] = useState(null);
+
   const [connectManualPage, { isLoading: isConnectingManual }] = useConnectFacebookManualPageMutation();
 
   // Parse callback outcomes from OAuth redirect parameters
@@ -96,11 +103,24 @@ const FacebookLeadsTab = () => {
     window.location.href = `${backendUrl}/api/facebook/auth?token=${token}&redirectPath=${encodeURIComponent(redirectPath)}${clientIdParam}`;
   };
 
-  const handleManualSync = async (page) => {
-    setIsSyncingPageId(page.pageId);
+  const handleOpenSyncModal = (page) => {
+    setPageForForms(page);
+    setSelectedFormIds([]);
+    setIsFormsModalOpen(true);
+    fetchForms({
+      pageId: page.pageId,
+      ...(selectedClientId ? { clientId: selectedClientId } : {}),
+    });
+  };
+
+  const handleManualSync = async () => {
+    if (!pageForForms) return;
+    setIsSyncingPageId(pageForForms.pageId);
+    setIsFormsModalOpen(false);
     try {
       const res = await syncLeads({
-        pageId: page.pageId,
+        pageId: pageForForms.pageId,
+        formIds: selectedFormIds,
         ...(selectedClientId ? { clientId: selectedClientId } : {}),
       }).unwrap();
       const { syncedCount, duplicateCount } = res?.data || {};
@@ -186,7 +206,7 @@ const FacebookLeadsTab = () => {
             size="small"
             icon={<SyncOutlined />}
             loading={isSyncingPageId === record.pageId}
-            onClick={() => handleManualSync(record)}
+            onClick={() => handleOpenSyncModal(record)}
             style={{ backgroundColor: "#10b981", borderColor: "#10b981" }}
           >
             Sync Leads
@@ -409,13 +429,83 @@ const FacebookLeadsTab = () => {
                     <Space direction="vertical" size={2} style={{ width: "100%" }}>
                       <Text style={{ display: "block" }}>{item.message}</Text>
                       <Text type="secondary" style={{ fontSize: "11px" }}>
-                        Leadgen ID: {item.leadgenId} | {new Date(item.timestamp).toLocaleString()}
+                        Form: {item.formName || 'N/A'} | Leadgen ID: {item.leadgenId} | {new Date(item.timestamp).toLocaleString()}
                       </Text>
                     </Space>
                   }
                 />
               </List.Item>
             )}
+          />
+        )}
+      </Modal>
+
+      {/* Sync Forms Selection Modal */}
+      <Modal
+        title={
+          <Space>
+            <SyncOutlined />
+            <span>Sync Leads — {pageForForms?.pageName}</span>
+          </Space>
+        }
+        open={isFormsModalOpen}
+        onCancel={() => setIsFormsModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsFormsModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="sync"
+            type="primary"
+            loading={isSyncingPageId === pageForForms?.pageId}
+            onClick={handleManualSync}
+            disabled={formsRes?.data && formsRes.data.length > 0 && selectedFormIds.length === 0}
+          >
+            Sync Selected ({selectedFormIds.length})
+          </Button>
+        ]}
+      >
+        <div style={{ marginBottom: "16px" }}>
+          <Text>Select the specific forms you want to sync leads from. You can sync from multiple forms at once.</Text>
+        </div>
+        
+        {isFetchingForms ? (
+          <Skeleton active paragraph={{ rows: 4 }} />
+        ) : formsRes?.data && formsRes.data.length > 0 ? (
+          <Table
+            dataSource={formsRes.data}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            scroll={{ y: 350 }}
+            rowSelection={{
+              selectedRowKeys: selectedFormIds,
+              onChange: (selectedRowKeys) => setSelectedFormIds(selectedRowKeys),
+              selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE]
+            }}
+            columns={[
+              {
+                title: 'Form Name',
+                dataIndex: 'name',
+                key: 'name',
+                render: (text) => <Text strong>{text}</Text>
+              },
+              {
+                title: 'Status',
+                dataIndex: 'status',
+                key: 'status',
+                render: (status) => (
+                  <Tag color={status === 'ACTIVE' ? 'success' : 'default'}>{status}</Tag>
+                )
+              }
+            ]}
+          />
+        ) : (
+          <Alert
+            message="No forms found"
+            description="We couldn't find any lead generation forms associated with this page."
+            type="warning"
+            showIcon
           />
         )}
       </Modal>
