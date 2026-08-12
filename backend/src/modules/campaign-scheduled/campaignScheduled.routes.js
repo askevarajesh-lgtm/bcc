@@ -272,8 +272,17 @@ router.get("/auth/facebook", (req, res) => {
       return;
     }
 
-    const state = randomUUID();
-    req.session.campaignScheduledOauthState = state;
+    const context = {
+      companyId: scope.companyId,
+      clientCompanyId: scope.clientCompanyId || null,
+      redirectUri: REDIRECT_URI,
+    };
+    const encodedState = Buffer.from(JSON.stringify(context)).toString(
+      "base64",
+    );
+    
+    // We can still keep the session variables for fallback just in case
+    req.session.campaignScheduledOauthState = encodedState;
     req.session.campaignScheduledOauthRedirectUri = REDIRECT_URI;
     req.session.campaignScheduledCompanyId = scope.companyId;
     req.session.campaignScheduledClientCompanyId =
@@ -283,7 +292,7 @@ router.get("/auth/facebook", (req, res) => {
     url.searchParams.set("client_id", process.env.META_APP_ID);
     url.searchParams.set("redirect_uri", REDIRECT_URI);
     url.searchParams.set("scope", FB_SCOPES);
-    url.searchParams.set("state", state);
+    url.searchParams.set("state", encodedState);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("auth_type", "rerequest");
 
@@ -359,12 +368,6 @@ router.get("/auth/instagram/direct/callback", async (req, res) => {
     );
     return;
   }
-  if (!state || state !== req.session.campaignScheduledOauthState) {
-    res.redirect(
-      `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=state_mismatch`,
-    );
-    return;
-  }
 
   try {
     // Exchange code for short-lived token
@@ -436,8 +439,6 @@ router.get("/auth/instagram/direct/callback", async (req, res) => {
 
 router.get("/auth/facebook/callback", async (req, res) => {
   const { code, state, error } = req.query;
-  const companyId = req.session.campaignScheduledCompanyId || null;
-  const clientCompanyId = req.session.campaignScheduledClientCompanyId || null;
 
   if (error) {
     res.redirect(
@@ -445,12 +446,28 @@ router.get("/auth/facebook/callback", async (req, res) => {
     );
     return;
   }
-  if (!state || state !== req.session.campaignScheduledOauthState) {
+
+  if (!state) {
     res.redirect(
-      `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=state_mismatch`,
+      `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=missing_state`,
     );
     return;
   }
+
+  let decodedContext;
+  try {
+    const jsonStr = Buffer.from(state, "base64").toString("utf8");
+    decodedContext = JSON.parse(jsonStr);
+  } catch (e) {
+    res.redirect(
+      `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=invalid_state_format`,
+    );
+    return;
+  }
+
+  const companyId = decodedContext.companyId;
+  const clientCompanyId = decodedContext.clientCompanyId || null;
+
   if (!companyId) {
     res.redirect(
       `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=missing_company_context`,
@@ -459,8 +476,7 @@ router.get("/auth/facebook/callback", async (req, res) => {
   }
 
   try {
-    const redirectUriUsedInDialog =
-      req.session.campaignScheduledOauthRedirectUri || REDIRECT_URI;
+    const redirectUriUsedInDialog = decodedContext.redirectUri || REDIRECT_URI;
     const requestToken = (redirectUriValue) =>
       axios.get(`${META_GRAPH}/oauth/access_token`, {
         params: {
@@ -525,92 +541,22 @@ router.get("/auth/facebook/callback", async (req, res) => {
       );
     }
 
-    const pagesRes = await axios.get(`${META_GRAPH}/me/accounts`, {
-      params: {
-        access_token: longToken,
-        fields: "id,name,access_token,instagram_business_account",
+    // Save the User Access Token to the Discovery DB so the frontend API can retrieve it later
+    // We use Discovery instead of session because cross-origin API calls don't send cookies reliably
+    await Discovery.findOneAndUpdate(
+      { id: `fb_temp_${companyId}` },
+      {
+        id: `fb_temp_${companyId}`,
+        data: { longToken, expiresAt },
+        createdAt: new Date(),
       },
-    });
-    const pages = pagesRes.data.data || [];
-    if (pages.length === 0) {
-      delete req.session.campaignScheduledOauthState;
-      delete req.session.campaignScheduledOauthRedirectUri;
-      res.redirect(
-        `${FRONTEND_URL}/campaigns-scheduled?oauth=error&reason=${encodeURIComponent(
-          "No Facebook Pages found for this account. Create/select a Page and ensure pages_show_list, pages_manage_posts, and pages_read_engagement are granted.",
-        )}`,
-      );
-      return;
-    }
+      { upsert: true, new: true }
+    );
 
-    for (const page of pages) {
-      const facebookAccountId = buildScopedAccountId("fb", companyId, page.id);
-      await upsertAccount(
-        {
-          id: facebookAccountId,
-          platform: "facebook",
-          page_id: page.id,
-          page_name: page.name,
-          ig_user_id: page.instagram_business_account?.id || null,
-          username: page.name,
-          access_token: page.access_token,
-          token_type: "page",
-          expires_at: expiresAt,
-          connected_at: new Date().toISOString(),
-        },
-        companyId,
-        clientCompanyId,
-      );
-
-      if (page.instagram_business_account?.id) {
-        const igId = page.instagram_business_account.id;
-        const instagramAccountId = buildScopedAccountId("ig", companyId, igId);
-        let igUsername = igId;
-        try {
-          const igRes = await axios.get(`${META_GRAPH}/${igId}`, {
-            params: {
-              fields: "username,name",
-              access_token: page.access_token,
-            },
-          });
-          igUsername = igRes.data.username || igRes.data.name || igId;
-        } catch {
-          // no-op
-        }
-
-        await upsertAccount(
-          {
-            id: instagramAccountId,
-            platform: "instagram",
-            page_id: page.id,
-            page_name: page.name,
-            ig_user_id: igId,
-            username: igUsername,
-            access_token: page.access_token,
-            token_type: "page",
-            expires_at: expiresAt,
-            connected_at: new Date().toISOString(),
-          },
-          companyId,
-          clientCompanyId,
-        );
-      }
-    }
-
-    const accounts = await getAllAccounts(companyId, clientCompanyId);
-    const scope = { companyId, clientCompanyId };
-    broadcastSSE("accounts_sync", accounts, scope);
-    broadcastSSE("connection_changed", buildConnectionStatus(accounts), scope);
-    delete req.session.campaignScheduledOauthState;
-    delete req.session.campaignScheduledOauthRedirectUri;
-    delete req.session.campaignScheduledCompanyId;
-    delete req.session.campaignScheduledClientCompanyId;
     res.redirect(
-      `${FRONTEND_URL}/campaigns-scheduled?oauth=success&pages=${pages.length}`,
+      `${FRONTEND_URL}/campaigns-scheduled?oauth=facebook_manual_setup`,
     );
   } catch (err) {
-    delete req.session.campaignScheduledCompanyId;
-    delete req.session.campaignScheduledClientCompanyId;
     const msg =
       err?.response?.data?.error?.message || err?.message || "Unknown error";
     res.redirect(
@@ -2768,4 +2714,111 @@ router.get("/pinterest/boards/:accountId", async (req, res) => {
   }
 });
 
+
+router.post("/auth/facebook/manual-page", authMiddleware, async (req, res) => {
+  try {
+    const { pageId, instaId } = req.body;
+    const companyId = req.companyId;
+    const clientCompanyId = req.clientCompanyId || null;
+
+    if (!pageId) throw new Error("Page ID is required");
+
+    // Retrieve the temp token from the Discovery DB
+    const tempDoc = await Discovery.findOne({ id: `fb_temp_${companyId}` });
+    if (!tempDoc || !tempDoc.data || !tempDoc.data.longToken) {
+      throw new Error("OAuth session expired. Please connect again.");
+    }
+
+    const { longToken, expiresAt } = tempDoc.data;
+
+    const manualPageRes = await axios.get(`${META_GRAPH}/${pageId}`, {
+      params: {
+        access_token: longToken,
+        fields: "id,name,access_token,instagram_business_account",
+      },
+    });
+
+    const page = manualPageRes.data;
+    if (!page || !page.id) {
+      throw new Error("Invalid Page ID or missing permissions");
+    }
+
+    const facebookAccountId = buildScopedAccountId("fb", companyId, page.id);
+    await upsertAccount(
+      {
+        id: facebookAccountId,
+        platform: "facebook",
+        page_id: page.id,
+        page_name: page.name,
+        ig_user_id: page.instagram_business_account?.id || null,
+        username: page.name,
+        access_token: page.access_token,
+        token_type: "page",
+        expires_at: expiresAt,
+        connected_at: new Date().toISOString(),
+      },
+      companyId,
+      clientCompanyId,
+    );
+
+    let finalIgId = null;
+
+    if (instaId) {
+      finalIgId = instaId;
+    } else if (page.instagram_business_account?.id) {
+      finalIgId = page.instagram_business_account.id;
+    }
+
+    if (finalIgId) {
+      const instagramAccountId = buildScopedAccountId("ig", companyId, finalIgId);
+      let igUsername = finalIgId;
+      try {
+        const igRes = await axios.get(`${META_GRAPH}/${finalIgId}`, {
+          params: {
+            fields: "username,name",
+            access_token: page.access_token,
+          },
+        });
+        igUsername = igRes.data.username || igRes.data.name || finalIgId;
+      } catch (err) {
+        console.warn(`[FB Manual Page] Failed to fetch explicit IG details for ${finalIgId}:`, err.message);
+      }
+
+      await upsertAccount(
+        {
+          id: instagramAccountId,
+          platform: "instagram",
+          page_id: page.id,
+          page_name: page.name,
+          ig_user_id: finalIgId,
+          username: igUsername,
+          access_token: page.access_token,
+          token_type: "page",
+          expires_at: expiresAt,
+          connected_at: new Date().toISOString(),
+        },
+        companyId,
+        clientCompanyId,
+      );
+    }
+
+    // Cleanup temp token
+    await Discovery.deleteOne({ id: `fb_temp_${companyId}` });
+
+    const accounts = await getAllAccounts(companyId, clientCompanyId);
+    const scope = { companyId, clientCompanyId };
+    broadcastSSE("accounts_sync", accounts, scope);
+    broadcastSSE("connection_changed", buildConnectionStatus(accounts), scope);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[FB Manual Page Error]:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: err?.response?.data?.error?.message || err.message 
+    });
+  }
+});
+
 module.exports = router;
+

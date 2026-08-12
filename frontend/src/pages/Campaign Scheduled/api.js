@@ -206,10 +206,17 @@ export const campaignScheduledApi = {
   },
   startFacebookOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
-    const extra = clientCompanyId
+    let extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
     window.location.href = `${BASE}/auth/facebook?token=${encodeURIComponent(token)}${extra}`;
+  },
+  async connectFacebookManualPage(pageId, instaId, clientCompanyId = null) {
+    return request("/auth/facebook/manual-page", {
+      method: "POST",
+      body: JSON.stringify({ pageId, instaId }),
+      clientCompanyId,
+    });
   },
   startInstagramOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";

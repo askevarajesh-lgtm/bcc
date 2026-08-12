@@ -21,6 +21,7 @@ router.post('/:id/pages', wordpressController.createPage);
 router.get('/:id/pages/:pageId', wordpressController.getPage);
 router.put('/:id/pages/:pageId', wordpressController.updatePage);
 router.delete('/:id/pages/:pageId', wordpressController.deletePage);
+router.post('/:id/pages/:pageId/ai-edit', wordpressController.aiEditWordpressPage);
 
 // Posts
 router.get('/:id/posts', wordpressController.getPosts);

@@ -1,6 +1,7 @@
 const WordPressConnection = require('./wordpress.model');
 const wordpressService = require('./wordpress.service');
 const { encrypt } = require('../../utils/crypto');
+const { getClaudeClient } = require('../websites/services/websiteAiGeneration.service');
 
 /**
  * Test a WordPress connection credentials.
@@ -251,6 +252,88 @@ exports.deletePage = async (req, res) => {
   } catch (error) {
     console.error('WordPress deletePage error:', error);
     return res.status(500).json({ success: false, message: error.message || 'Server error deleting page.' });
+  }
+};
+
+/**
+ * AI Edit a WordPress page
+ */
+exports.aiEditWordpressPage = async (req, res) => {
+  try {
+    const { id, pageId } = req.params;
+    const { prompt, currentHtml } = req.body;
+    const { workspaceId, user } = req;
+
+    if (!prompt) {
+      return res.status(400).json({ success: false, message: 'Prompt is required.' });
+    }
+
+    const connection = await WordPressConnection.findOne({ _id: id, workspaceId, isDeleted: false });
+    if (!connection) return res.status(404).json({ success: false, message: 'Connection not found.' });
+
+    let finalHtml = currentHtml;
+    
+    if (finalHtml === undefined) {
+      // 1. Fetch current page if not provided in body
+      const page = await wordpressService.getPage(connection, pageId);
+      if (!page) {
+        return res.status(404).json({ success: false, message: 'Page not found.' });
+      }
+      finalHtml = page.content?.rendered || '';
+    }
+    
+    // 2. Setup AI client
+    const { client, model } = await getClaudeClient(workspaceId, user);
+    
+    // 3. System prompt focused purely on returning raw modified HTML for the WP editor
+    const systemPrompt = `You are an expert web developer and copywriter editing an existing WordPress page content.
+The user wants to make a change based on their prompt.
+You must return the updated raw HTML content ONLY.
+Do NOT wrap the output in markdown code blocks like \`\`\`html.
+Do NOT include <html>, <head>, or <body> tags. Just the raw HTML content that goes inside the WordPress editor.
+Do NOT include any explanations or conversational text.`;
+
+    // 4. User prompt
+    const userPrompt = `Here is the current HTML content of the WordPress page:
+
+${finalHtml}
+
+User's requested change:
+${prompt}
+
+Please provide the fully updated HTML content.`;
+
+    // 5. Call LLM
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 4000
+    });
+    
+    let updatedHtml = completion.choices[0].message.content.trim();
+    
+    // Sanitize slightly to remove markdown ticks if the model stubbornly adds them
+    if (updatedHtml.startsWith('\`\`\`html')) {
+      updatedHtml = updatedHtml.replace(/^\`\`\`html\n?/, '');
+    }
+    if (updatedHtml.startsWith('\`\`\`')) {
+      updatedHtml = updatedHtml.replace(/^\`\`\`\n?/, '');
+    }
+    if (updatedHtml.endsWith('\`\`\`')) {
+      updatedHtml = updatedHtml.replace(/\n?\`\`\`$/, '');
+    }
+    updatedHtml = updatedHtml.trim();
+
+    // 6. Push back to WordPress
+    const updatedPage = await wordpressService.updatePage(connection, pageId, { content: updatedHtml });
+
+    return res.status(200).json({ success: true, data: updatedPage });
+  } catch (error) {
+    console.error('WordPress aiEditWordpressPage error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Server error editing page with AI.' });
   }
 };
 
@@ -585,3 +668,4 @@ exports.getStoreAnalytics = async (req, res) => {
     return res.status(200).json({ success: false, message: 'WooCommerce not available', data: [] });
   }
 };
+

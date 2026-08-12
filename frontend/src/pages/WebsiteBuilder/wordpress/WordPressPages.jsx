@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Typography, Card, Table, Button, Tag, Space, Modal, Input, message, Drawer, Select, Tooltip } from "antd";
-import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, FileText, CheckCircle, RefreshCcw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, FileText, CheckCircle, RefreshCcw, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
@@ -22,6 +22,19 @@ const WordPressPages = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("publish");
+
+  // AI Edit State
+  const [isAiEditModalOpen, setIsAiEditModalOpen] = useState(false);
+  const [aiEditPrompt, setAiEditPrompt] = useState("");
+  const [isAiEditing, setIsAiEditing] = useState(false);
+  const [aiEditTargetPage, setAiEditTargetPage] = useState(null);
+
+  // Drawer AI State
+  const [drawerAiPrompt, setDrawerAiPrompt] = useState("");
+  const [isDrawerAiEditing, setIsDrawerAiEditing] = useState(false);
+
+  // Elementor Warning State
+  const [elementorWarning, setElementorWarning] = useState({ visible: false, html: "" });
 
   useEffect(() => {
     fetchPages();
@@ -64,12 +77,14 @@ const WordPressPages = () => {
       setContent("");
       setStatus("publish");
     }
+    setDrawerAiPrompt("");
     setDrawerVisible(true);
   };
 
   const closeDrawer = () => {
     setDrawerVisible(false);
     setEditingPage(null);
+    setDrawerAiPrompt("");
   };
 
   const handleSave = async () => {
@@ -116,6 +131,92 @@ const WordPressPages = () => {
       message.error("Error saving page");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAiEdit = async () => {
+    if (!aiEditPrompt.trim() || !aiEditTargetPage) return;
+    
+    setIsAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload = { prompt: aiEditPrompt };
+      
+      const res = await fetch(`/api/wordpress/${id}/pages/${aiEditTargetPage.id}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        const newHtml = data.data.content?.raw || data.data.content?.rendered || "";
+        // Detect Elementor
+        if (newHtml.includes('data-elementor-type') || newHtml.includes('elementor-widget')) {
+          setElementorWarning({ visible: true, html: newHtml });
+          setIsAiEditModalOpen(false);
+          setAiEditPrompt("");
+          fetchPages();
+        } else {
+          message.success("AI changes applied successfully.");
+          setIsAiEditModalOpen(false);
+          setAiEditPrompt("");
+          fetchPages();
+        }
+      } else {
+        message.error(data.message || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsAiEditing(false);
+    }
+  };
+
+  const handleDrawerAiEdit = async () => {
+    if (!drawerAiPrompt.trim() || !editingPage) return;
+    
+    setIsDrawerAiEditing(true);
+    try {
+      const token = localStorage.getItem("token");
+      // Pass the current drawer content in case they made manual changes before asking AI
+      const payload = { prompt: drawerAiPrompt, currentHtml: content };
+      
+      const res = await fetch(`/api/wordpress/${id}/pages/${editingPage.id}/ai-edit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        const newHtml = data.data.content?.raw || data.data.content?.rendered || "";
+        setContent(newHtml);
+        setDrawerAiPrompt("");
+        fetchPages(); // refresh the list behind the drawer too
+        
+        if (newHtml.includes('data-elementor-type') || newHtml.includes('elementor-widget')) {
+          setElementorWarning({ visible: true, html: newHtml });
+        } else {
+          message.success("AI changes applied successfully.");
+        }
+      } else {
+        message.error(data.message || "Failed to apply AI edits.");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error applying AI edits.");
+    } finally {
+      setIsDrawerAiEditing(false);
     }
   };
 
@@ -199,6 +300,13 @@ const WordPressPages = () => {
         <Space size="middle">
           <Tooltip title="Preview">
             <Button type="text" icon={<ExternalLink size={16} color="var(--text-secondary)" />} onClick={() => window.open(r.link, '_blank')} />
+          </Tooltip>
+          <Tooltip title="AI Edit">
+            <Button type="text" icon={<Sparkles size={16} color="var(--accent-secondary)" />} onClick={() => {
+              setAiEditTargetPage(r);
+              setAiEditPrompt("");
+              setIsAiEditModalOpen(true);
+            }} />
           </Tooltip>
           <Tooltip title="Edit">
             <Button type="text" icon={<Edit2 size={16} color="var(--accent-info)" />} onClick={() => openDrawer(r)} />
@@ -288,6 +396,28 @@ const WordPressPages = () => {
 
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>PAGE CONTENT (HTML SUPPORTED)</div>
+          
+          {editingPage && (
+            <div style={{ marginBottom: 16, padding: "16px", background: "rgba(13, 148, 136, 0.05)", border: "1px solid rgba(13, 148, 136, 0.2)", borderRadius: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-secondary)", marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} /> Edit Content with AI
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Input 
+                  placeholder="e.g. Add a testimonials section, Make the heading bold..." 
+                  value={drawerAiPrompt} 
+                  onChange={(e) => setDrawerAiPrompt(e.target.value)} 
+                  disabled={isDrawerAiEditing}
+                  style={{ borderRadius: 8 }}
+                  onPressEnter={handleDrawerAiEdit}
+                />
+                <Button type="primary" loading={isDrawerAiEditing} onClick={handleDrawerAiEdit} disabled={!drawerAiPrompt.trim()} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700 }}>
+                  Apply AI
+                </Button>
+              </div>
+            </div>
+          )}
+
           <TextArea
             rows={15}
             value={content}
@@ -300,6 +430,80 @@ const WordPressPages = () => {
           </Text>
         </div>
       </Drawer>
+
+      <Modal
+        open={isAiEditModalOpen}
+        onCancel={() => { if (!isAiEditing) setIsAiEditModalOpen(false); }}
+        footer={null}
+        width={640}
+        title={
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={20} color="var(--accent-secondary)" /> 
+            {aiEditTargetPage ? `AI Edit: ${aiEditTargetPage.title?.rendered?.replace(/(<([^>]+)>)/gi, '') || 'Page'}` : 'AI Edit Page'}
+          </div>
+        }
+        className="glassmorphism-modal"
+        closable={!isAiEditing}
+        maskClosable={!isAiEditing}
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 24, fontWeight: 500 }}>
+          Describe what you want to change on this page. Claude will automatically generate or update the necessary content and design.
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <TextArea
+            placeholder="e.g. Add a testimonials section, Change the primary color to dark blue, Make the heading bold..."
+            value={aiEditPrompt}
+            onChange={(e) => setAiEditPrompt(e.target.value)}
+            style={{ borderRadius: 8, minHeight: 120, fontSize: 14 }}
+            disabled={isAiEditing}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" disabled={isAiEditing} onClick={() => setIsAiEditModalOpen(false)} style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>Cancel</Button>
+          <Button size="large" type="primary" loading={isAiEditing} disabled={!aiEditPrompt.trim()} onClick={handleAiEdit} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 800 }}>
+            {isAiEditing ? "Generating Changes..." : "Apply Changes"}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={elementorWarning.visible}
+        onCancel={() => setElementorWarning({ visible: false, html: "" })}
+        footer={null}
+        width={700}
+        title={
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--accent-warning)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            Elementor Page Detected
+          </div>
+        }
+        className="glassmorphism-modal"
+      >
+        <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 24, fontWeight: 500, lineHeight: 1.6 }}>
+          The AI has successfully generated the updated code. However, because this page is built with <b>Elementor</b>, WordPress will ignore the standard content we saved to the database.
+          <br /><br />
+          To see these changes on your live site, please click <b>Copy HTML</b> below, then edit the page in Elementor and paste the code into an HTML widget.
+        </div>
+        
+        <TextArea
+          rows={10}
+          value={elementorWarning.html}
+          readOnly
+          style={{ borderRadius: 8, fontFamily: 'monospace', fontSize: 12, background: 'var(--bg-secondary)', marginBottom: 24 }}
+        />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button size="large" onClick={() => setElementorWarning({ visible: false, html: "" })} style={{ borderRadius: 8, fontWeight: 700 }}>Close</Button>
+          <Button size="large" type="primary" onClick={() => {
+            navigator.clipboard.writeText(elementorWarning.html);
+            message.success("Copied to clipboard!");
+          }} style={{ background: "var(--accent-info)", border: "none", borderRadius: 8, fontWeight: 800 }}>
+            Copy HTML
+          </Button>
+        </div>
+      </Modal>
+
     </div>
   );
 };

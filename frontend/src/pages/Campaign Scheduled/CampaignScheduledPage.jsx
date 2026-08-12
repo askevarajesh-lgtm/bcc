@@ -17,6 +17,7 @@ import AccountsView from "./AccountsView";
 import CalendarView from "./CalendarView";
 import CampaignLogsView from "./CampaignLogsView";
 import InstagramConnectModal from "./InstagramConnectModal";
+import FacebookPageIDModal from "./FacebookPageIDModal";
 import LinkedInPageSelectModal from "./LinkedInPageSelectModal";
 import YouTubeChannelSelectModal from "./YouTubeChannelSelectModal";
 import GoogleBusinessLocationSelectModal from "./GoogleBusinessLocationSelectModal";
@@ -49,6 +50,7 @@ export default function CampaignScheduledPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [facebookModalOpen, setFacebookModalOpen] = useState(false);
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const [loadingPlatform, setLoadingPlatform] = useState(null);
   const [disconnectingAccountId, setDisconnectingAccountId] = useState(null);
@@ -308,9 +310,12 @@ export default function CampaignScheduledPage() {
           setGbDiscoveryOpen(true);
           fetchGoogleBusinessDiscovery(params.get("discoveryId"));
         }
+      } else if (oauth === "facebook_manual_setup") {
+        message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
+        setFacebookModalOpen(true);
       }
       window.history.replaceState({}, "", window.location.pathname);
-      if (oauth !== "discovery") {
+      if (oauth !== "discovery" && oauth !== "facebook_manual_setup") {
         loadInitial();
       }
     }
@@ -683,6 +688,22 @@ export default function CampaignScheduledPage() {
           campaignScheduledApi.startInstagramDirectOAuth(activeClientId);
         }}
       />
+      
+      <FacebookPageIDModal
+        open={facebookModalOpen}
+        onCancel={() => setFacebookModalOpen(false)}
+        onConnect={async (pageId, instaId) => {
+          try {
+            await campaignScheduledApi.connectFacebookManualPage(pageId, instaId, activeClientId);
+            message.success("Accounts successfully connected!");
+            setFacebookModalOpen(false);
+            loadInitial();
+          } catch (err) {
+            message.error(err.message || "Failed to connect Facebook Page");
+          }
+        }}
+      />
+
       <LinkedInPageSelectModal
         open={liDiscoveryOpen}
         data={liDiscoveryData}
