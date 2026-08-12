@@ -19,7 +19,7 @@ exports.generateAuthUrl = async (req, res, next) => {
         returnUrl: returnUrl || '/agency/performance-ads' 
     };
     const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
-    const scopes = ['ads_management', 'ads_read', 'business_management'].join(',');
+    const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read', 'business_management', 'pages_read_user_content'].join(',');
     
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&state=${state}&scope=${scopes}`;
     
@@ -146,7 +146,16 @@ exports.getAdAccounts = async (req, res, next) => {
       data: accountsRes.data.data
     });
   } catch (error) {
-    console.error('Fetch Ad Accounts Error:', error.response?.data || error.message);
+    const errorData = error.response?.data;
+    console.error('Fetch Ad Accounts Error:', errorData || error.message);
+    
+    if (error.response && error.response.status === 403) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied (403). Your Meta App is missing the "ads_read" or "ads_management" permission. Please go to your Meta App Dashboard -> App Review -> Permissions and Features, and add them with at least Standard Access.'
+      });
+    }
+    
     next(error);
   }
 };

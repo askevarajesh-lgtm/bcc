@@ -9,7 +9,7 @@ const {
 
 const getAllIntegrations = async (req, res) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = req.query.clientId || req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const integrations = await integrationService.getAllIntegrations(
       companyId,
       req.user.role,

@@ -370,7 +370,7 @@ const PerformanceAds = () => {
             />
             <Button onClick={handleSync} loading={syncing} icon={<RefreshCcw size={14} />} style={{ borderRadius: 8, height: 40, fontWeight: 600 }}>Sync data</Button>
             {!isMetaConnected ? (
-              <Button type="primary" onClick={handleConnectMeta} style={{ borderRadius: 8, background: '#1877F2', height: 40, fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-md)' }}>Connect Meta Ads</Button>
+              <Button type="primary" onClick={handleConnectMeta} style={{ borderRadius: 8, background: 'linear-gradient(135deg, #1877F2 0%, #0652C5 100%)', height: 40, fontWeight: 700, border: 'none', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.3)', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.3s ease' }}>Connect Meta Ads</Button>
             ) : (
               <>
                 <Dropdown dropdownRender={() => metaMenu} trigger={['click']} placement="bottomRight">

@@ -712,4 +712,20 @@ Require stack:
     at IncomingMessage.onEnd (E:\Office Projects\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
     at IncomingMessage.emit (node:events:524:28)
     at endReadableNT (node:internal/streams/readable:1698:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-08-12T14:33:21.435Z\nAxiosError: Request failed with status code 403
+    at settle (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:2216:12)
+    at IncomingMessage.handleStreamEnd (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:4062:11)
+    at IncomingMessage.emit (node:events:536:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+    at Axios.request (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:5517:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n2026-08-12T14:34:09.837Z\nAxiosError: Request failed with status code 403
+    at settle (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:2216:12)
+    at IncomingMessage.handleStreamEnd (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:4062:11)
+    at IncomingMessage.emit (node:events:536:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+    at Axios.request (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:5517:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n
