@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 // import removed
 import { useParams } from "react-router-dom";
+import FacebookPageIDModal from "../Campaign Scheduled/FacebookPageIDModal";
 import {
   Card,
   Button,
@@ -32,7 +33,8 @@ import {
   useGetFacebookIntegrationsQuery,
   useDisconnectFacebookPageMutation,
   useLazyGetFacebookSyncLogsQuery,
-  useSyncFacebookLeadsMutation
+  useSyncFacebookLeadsMutation,
+  useConnectFacebookManualPageMutation
 } from "../../api/integrationApi";
 
 const { Title, Text, Paragraph } = Typography;
@@ -60,6 +62,8 @@ const FacebookLeadsTab = () => {
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
   const [isSyncingPageId, setIsSyncingPageId] = useState(null);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [connectManualPage, { isLoading: isConnectingManual }] = useConnectFacebookManualPageMutation();
 
   // Parse callback outcomes from OAuth redirect parameters
   useEffect(() => {
@@ -67,9 +71,9 @@ const FacebookLeadsTab = () => {
     const oauthStatus = params.get("facebook_oauth");
     const reason = params.get("reason");
 
-    if (oauthStatus === "success") {
-      message.success("Facebook accounts connected successfully!");
-      // Strip params cleanly from browser bar
+    if (oauthStatus === "facebook_manual_setup" || oauthStatus === "success") {
+      message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
+      setIsManualModalOpen(true);
       window.history.replaceState({}, document.title, window.location.pathname);
       refetch();
     } else if (oauthStatus === "error") {
@@ -139,6 +143,7 @@ const FacebookLeadsTab = () => {
   };
 
   const integrations = integrationsData?.data?.integrations || [];
+  const isConnected = integrationsData?.data?.isConnected || false;
 
   const columns = [
     {
@@ -242,23 +247,25 @@ const FacebookLeadsTab = () => {
             Incoming submissions are captured in real-time, checked for duplicate profiles, and cataloged with complete campaign metadata.
           </Paragraph>
           
-          <Button
-            type="primary"
-            size="large"
-            icon={<FacebookOutlined />}
-            onClick={handleConnectFacebook}
-            style={{
-              background: "#1877F2",
-              borderColor: "#1877F2",
-              height: "48px",
-              padding: "0 32px",
-              borderRadius: "8px",
-              fontSize: "16px",
-              fontWeight: "600"
-            }}
-          >
-            Connect Facebook Account
-          </Button>
+          <Space>
+            <Button
+              type="primary"
+              size="large"
+              icon={<FacebookOutlined />}
+              onClick={handleConnectFacebook}
+              style={{
+                background: "#1877F2",
+                borderColor: "#1877F2",
+                height: "48px",
+                padding: "0 32px",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "600"
+              }}
+            >
+              Connect Facebook Account
+            </Button>
+          </Space>
 
           <Divider style={{ margin: "40px 0 30px 0" }} />
 
@@ -301,13 +308,20 @@ const FacebookLeadsTab = () => {
               </Space>
             }
             extra={
-              <Button
-                type="dashed"
-                icon={<SyncOutlined />}
-                onClick={handleConnectFacebook}
-              >
-                Reconnect / Add Pages
-              </Button>
+              <Space>
+                <Button
+                  onClick={() => setIsManualModalOpen(true)}
+                >
+                  Connect via Page ID
+                </Button>
+                <Button
+                  type="dashed"
+                  icon={<SyncOutlined />}
+                  onClick={handleConnectFacebook}
+                >
+                  Reconnect Facebook
+                </Button>
+              </Space>
             }
             style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}
           >
@@ -405,6 +419,22 @@ const FacebookLeadsTab = () => {
           />
         )}
       </Modal>
+
+      <FacebookPageIDModal
+        open={isManualModalOpen}
+        hideInstagram={true}
+        onCancel={() => setIsManualModalOpen(false)}
+        onConnect={async (pageId, instaId) => {
+          try {
+            await connectManualPage({ pageId, instaId, ...(selectedClientId ? { clientId: selectedClientId } : {}) }).unwrap();
+            message.success("Page connected successfully!");
+            setIsManualModalOpen(false);
+            refetch();
+          } catch (err) {
+            message.error(err?.data?.message || "Failed to connect page");
+          }
+        }}
+      />
     </div>
   );
 };

@@ -335,27 +335,15 @@ const IntegrationsTab = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get("facebook_oauth");
-    const reason = params.get("reason");
 
     if (oauthStatus) {
-      if (oauthStatus === "success") {
-        message.success("Facebook accounts connected successfully!");
-      } else if (oauthStatus === "error") {
-        message.error(`Facebook connection failed: ${reason || "Unknown error"}`);
-      }
-      
-      // Clear URL params
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
-      // Auto-open website config
+      // Let FacebookLeadsTab handle messages and URL clearing
+      // Just Auto-open website config to the facebook tab
       setSelectedConfig({
         type: 'website',
         id: websiteIntegration?._id || 'new',
         initialTab: 'facebook'
       });
-      // We rely on WebsiteConfigPage to also parse facebook_oauth if needed,
-      // but since we cleared it, WebsiteConfigPage won't see it.
-      // We will pass an extra state or just let the user see the website config page.
     }
   }, [websiteIntegration]);
 
@@ -393,11 +381,11 @@ const IntegrationsTab = () => {
     }
   };
 
-  const IntegrationCard = ({ type, integration, icon, title, description }) => {
-    const isActive = integration?.isActive || false;
-    const isConfigured = type === "website"
+  const IntegrationCard = ({ type, integration, icon, title, description, isActiveOverride, isConfiguredOverride }) => {
+    const isActive = isActiveOverride !== undefined ? isActiveOverride : (integration?.isActive || false);
+    const isConfigured = isConfiguredOverride !== undefined ? isConfiguredOverride : (type === "website"
       ? isWebsiteIntegrationConfigured(integration)
-      : Boolean(integration?.config && Object.keys(integration.config).length > 0);
+      : Boolean(integration?.config && Object.keys(integration.config).length > 0));
 
     const handleCardClick = () => {
       setSelectedConfig({
@@ -470,6 +458,9 @@ const IntegrationsTab = () => {
     );
   }
 
+  const whatsappLeadsIntegration = integrations.find((i) => i.type === "whatsapp_leads");
+  const facebookLeadsIntegration = integrations.find((i) => i.type === "facebook_leads");
+
   return (
     <>
       <style>{cardStyles}</style>
@@ -513,9 +504,19 @@ const IntegrationsTab = () => {
             <IntegrationCard
               type="website"
               integration={websiteIntegration}
+              isActiveOverride={
+                websiteIntegration?.isActive ||
+                whatsappLeadsIntegration?.isActive ||
+                facebookLeadsIntegration?.isActive || false
+              }
+              isConfiguredOverride={
+                isWebsiteIntegrationConfigured(websiteIntegration) ||
+                Boolean(whatsappLeadsIntegration?.config && Object.keys(whatsappLeadsIntegration.config).length > 0) ||
+                Boolean(facebookLeadsIntegration?.config?.accessToken)
+              }
               icon={<WebsiteIcon />}
               title="Lead Management Integration"
-              description="Configure and manage lead integrations from Website forms and WhatsApp"
+              description="Configure and manage lead integrations from Website forms, WhatsApp and Facebook"
             />
           )}
           {canSeeIntegration('payment') && (

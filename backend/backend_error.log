@@ -701,4 +701,15 @@ Require stack:
     at async exports.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:1097:20)\n\n2026-08-11T08:05:39.970Z\nError: AI returned an invalid edit operation.
     at Object.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\services\websiteAiEdit.service.js:156:11)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async exports.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:1097:20)\n\n
+    at async exports.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:1097:20)\n\n2026-08-12T13:18:35.049Z\nSyntaxError: Unexpected token '"', ""6a7c71969"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Office Projects\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Office Projects\Bcc Seo\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Office Projects\Bcc Seo\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Office Projects\Bcc Seo\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Office Projects\Bcc Seo\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Office Projects\Bcc Seo\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n

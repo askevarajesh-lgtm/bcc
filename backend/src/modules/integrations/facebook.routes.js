@@ -17,6 +17,7 @@ router.use(authMiddleware);
 
 router.get('/integrations', facebookController.getIntegrations);
 router.post('/integrations/subscribe', facebookController.subscribePage);
+router.post('/integrations/manual-page', facebookController.connectManualPage);
 router.post('/integrations/unsubscribe', facebookController.unsubscribePage);
 router.delete('/integrations/:pageId', facebookController.disconnectPage);
 router.get('/integrations/:pageId/logs', facebookController.getLogs);

@@ -111,3 +111,4 @@ export const useGetEventConfigsQuery = createQueryHook((integrationId) => `/inte
 export const useUpsertEventConfigMutation = createMutationHook((data) => ({ url: `/integrations/${data.integrationId}/events`, method: "POST", body: data }));
 export const useTestEmailConnectionMutation = createMutationHook((data) => ({ url: `/integrations/email/test-connection`, method: "POST", body: data }));
 export const useSendTestEmailMutation = createMutationHook((data) => ({ url: `/integrations/email/test-send`, method: "POST", body: data }));
+export const useConnectFacebookManualPageMutation = createMutationHook((data) => ({ url: "/facebook/integrations/manual-page", method: "POST", body: data }));

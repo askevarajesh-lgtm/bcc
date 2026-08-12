@@ -7,6 +7,7 @@ export default function FacebookPageIDModal({
   open,
   onCancel,
   onConnect,
+  hideInstagram = false,
 }) {
   const [pageId, setPageId] = useState("");
   const [instaId, setInstaId] = useState("");
@@ -42,20 +43,24 @@ export default function FacebookPageIDModal({
             onChange={(e) => setPageId(e.target.value)}
             style={{ marginTop: 8 }}
           />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block', marginBottom: 16 }}>
+          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block', marginBottom: hideInstagram ? 0 : 16 }}>
             You can find your Page ID in your Facebook Page Settings &gt; About.
           </Text>
 
-          <Text strong>Instagram Account ID (Optional)</Text>
-          <Input
-            placeholder="e.g. 1784140000000"
-            value={instaId}
-            onChange={(e) => setInstaId(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-            If you want to explicitly connect an Instagram account, provide its numeric ID here.
-          </Text>
+          {!hideInstagram && (
+            <>
+              <Text strong>Instagram Account ID (Optional)</Text>
+              <Input
+                placeholder="e.g. 1784140000000"
+                value={instaId}
+                onChange={(e) => setInstaId(e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                If you want to explicitly connect an Instagram account, provide its numeric ID here.
+              </Text>
+            </>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 12 }}>

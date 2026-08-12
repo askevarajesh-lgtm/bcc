@@ -30,7 +30,7 @@ exports.generateAuthUrl = async (req, res, next) => {
     // Embed both companyId and redirectPath in the state parameter
     const stateObj = { companyId, redirectPath };
     const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
-    const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read'].join(',');
+    const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read', 'business_management', 'pages_read_user_content'].join(',');
     
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&state=${state}&scope=${scopes}`;
     
@@ -130,17 +130,31 @@ exports.getIntegrations = async (req, res, next) => {
     const { accessToken } = integration.config;
     
     // Fetch pages
-    const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
-      params: {
-        access_token: accessToken,
-        fields: 'id,name,access_token'
+    let activePages = [];
+    try {
+      const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+        params: {
+          access_token: accessToken,
+          fields: 'id,name,access_token'
+        }
+      });
+      activePages = pagesRes.data.data || [];
+    } catch (err) {
+      console.error('Error fetching /me/accounts, continuing with manual pages:', err.message);
+    }
+    const disconnectedPages = integration.config.disconnectedPages || [];
+    const manualPages = integration.config.pages || [];
+
+    // Combine activePages from Graph API with manualPages
+    const allPages = [...activePages];
+    
+    manualPages.forEach(mp => {
+      if (!allPages.find(p => p.id === mp.pageId)) {
+        allPages.push({ id: mp.pageId, name: mp.pageName });
       }
     });
 
-    const activePages = pagesRes.data.data;
-    const disconnectedPages = integration.config.disconnectedPages || [];
-
-    const integrations = activePages
+    const integrations = allPages
       .filter(p => !disconnectedPages.includes(p.id))
       .map(p => ({
         pageId: p.id,
@@ -174,12 +188,22 @@ exports.subscribePage = async (req, res, next) => {
     const { accessToken } = integration.config;
     
     // Get page access token
-    const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
-      params: { access_token: accessToken, fields: 'id,access_token' }
-    });
-    const page = pagesRes.data.data.find(p => p.id === pageId);
+    let pageAccessToken = null;
+    const manualPage = (integration.config.pages || []).find(p => p.pageId === pageId);
     
-    if (!page || !page.access_token) {
+    if (manualPage && manualPage.accessToken && manualPage.accessToken !== accessToken) {
+      pageAccessToken = manualPage.accessToken;
+    } else {
+      const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+        params: { access_token: accessToken, fields: 'id,access_token' }
+      });
+      const page = pagesRes.data.data.find(p => p.id === pageId);
+      if (page && page.access_token) {
+        pageAccessToken = page.access_token;
+      }
+    }
+    
+    if (!pageAccessToken) {
       return res.status(403).json({ success: false, message: 'Could not find page access token for the given page' });
     }
 
@@ -189,7 +213,7 @@ exports.subscribePage = async (req, res, next) => {
       null,
       {
         params: {
-          access_token: page.access_token,
+          access_token: pageAccessToken,
           subscribed_fields: 'leadgen'
         }
       }
@@ -270,7 +294,34 @@ exports.disconnectPage = async (req, res, next) => {
 };
 
 exports.getLogs = async (req, res, next) => {
-  res.status(200).json({ success: true, data: { logs: [] } });
+  try {
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const { pageId } = req.params;
+
+    if (!pageId) {
+      return res.status(400).json({ success: false, message: 'pageId is required' });
+    }
+
+    const Lead = require('../leads/lead.model');
+    
+    const leads = await Lead.find({ 
+      companyId, 
+      source: 'Facebook Lead Ads', 
+      'customData.pageId': pageId 
+    }).sort({ createdAt: -1 }).limit(50);
+
+    const logs = leads.map(lead => ({
+      status: 'success',
+      message: `Successfully imported lead from Facebook Lead Ads`,
+      leadgenId: lead.customData?.leadgenId || 'N/A',
+      timestamp: lead.createdAt
+    }));
+
+    res.status(200).json({ success: true, data: { logs } });
+  } catch (error) {
+    console.error('Get Facebook Logs Error:', error);
+    next(error);
+  }
 };
 
 exports.syncLeads = async (req, res, next) => {
@@ -290,8 +341,11 @@ exports.syncLeads = async (req, res, next) => {
 
     const { accessToken } = integration.config;
     let targetAccessToken = accessToken;
+    const manualPage = (integration.config.pages || []).find(p => p.pageId === pageId);
 
-    if (pageId) {
+    if (manualPage && manualPage.accessToken && manualPage.accessToken !== accessToken) {
+      targetAccessToken = manualPage.accessToken;
+    } else if (pageId) {
       try {
         const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
           params: { access_token: accessToken, fields: 'id,access_token' }
@@ -676,3 +730,69 @@ exports.handleWebhook = async (req, res) => {
   }
 };
 
+exports.connectManualPage = async (req, res, next) => {
+  try {
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const { pageId } = req.body;
+    
+    if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
+
+    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    if (!integration || !integration.config || !integration.config.accessToken) {
+      return res.status(404).json({ success: false, message: 'Facebook integration not found' });
+    }
+
+    const { accessToken } = integration.config;
+    
+    // Verify the page ID with the user's token
+    const manualPageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,access_token'
+      }
+    });
+
+    const page = manualPageRes.data;
+    if (!page || !page.id) {
+      return res.status(400).json({ success: false, message: 'Invalid Page ID or missing permissions' });
+    }
+
+    const pageAccessToken = page.access_token || accessToken;
+
+    // Subscribe to webhooks automatically
+    try {
+      await axios.post(
+        `https://graph.facebook.com/v18.0/${page.id}/subscribed_apps`,
+        null,
+        {
+          params: {
+            access_token: pageAccessToken,
+            subscribed_fields: 'leadgen'
+          }
+        }
+      );
+    } catch (subErr) {
+      console.error('Failed to automatically subscribe page to leadgen webhook:', subErr.response?.data || subErr.message);
+    }
+
+    // Add to config.pages
+    const pages = integration.config.pages || [];
+    const exists = pages.find(p => p.pageId === page.id);
+    if (!exists) {
+      pages.push({
+        pageId: page.id,
+        pageName: page.name,
+        accessToken: pageAccessToken,
+        addedAt: new Date()
+      });
+      await Integration.findByIdAndUpdate(integration._id, {
+        $set: { 'config.pages': pages }
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Page connected successfully', data: page });
+  } catch (error) {
+    console.error('Connect Manual Page Error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Failed to connect page', error: error.response?.data || error.message });
+  }
+};
