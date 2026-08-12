@@ -5,8 +5,47 @@ const mongoose = require('mongoose');
 
 exports.logTime = async (req, res) => {
   try {
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
+
     const { employee, client, task, moduleName, description, date, hours, isBillable } = req.body;
     const tenantCompanyId = req.companyId;
+
+    const parsedHours = Number(hours);
+    if (!parsedHours || parsedHours <= 0) {
+      return res.status(400).json({ success: false, message: 'Hours must be greater than 0' });
+    }
+
+    // Tenant validation
+    const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
+    
+    // Verify employee
+    if (employee) {
+      const employeeExists = await User.exists({ _id: employee, tenantCompanyId: tenantObjectId });
+      if (!employeeExists) {
+        return res.status(403).json({ success: false, message: 'Invalid employee reference for this tenant' });
+      }
+    }
+
+    // Verify client
+    if (client) {
+      const clientExists = await User.exists({ _id: client, tenantCompanyId: tenantObjectId });
+      if (!clientExists) {
+        return res.status(403).json({ success: false, message: 'Invalid client reference for this tenant' });
+      }
+    }
+
+    // Verify task
+    if (task) {
+      const taskExists = await Task.exists({ 
+        _id: task, 
+        $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }]
+      });
+      if (!taskExists) {
+        return res.status(403).json({ success: false, message: 'Invalid task reference for this tenant' });
+      }
+    }
 
     const newEntry = new TimeEntry({
       employee,
@@ -15,7 +54,7 @@ exports.logTime = async (req, res) => {
       moduleName,
       description,
       date,
-      hours: Number(hours),
+      hours: parsedHours,
       isBillable,
       tenantCompanyId,
       createdBy: req.user._id
@@ -25,7 +64,7 @@ exports.logTime = async (req, res) => {
 
     // If task is provided, we can optionally update task.timeSpent
     if (task) {
-      await Task.findByIdAndUpdate(task, { $inc: { timeSpent: Number(hours) } });
+      await Task.findByIdAndUpdate(task, { $inc: { timeSpent: parsedHours } });
     }
 
     res.status(201).json({ success: true, message: 'Time logged successfully', data: newEntry });
@@ -37,6 +76,9 @@ exports.logTime = async (req, res) => {
 
 exports.getRecentEntries = async (req, res) => {
   try {
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
     const tenantCompanyId = req.companyId;
     
     // Role based filtering
@@ -48,7 +90,7 @@ exports.getRecentEntries = async (req, res) => {
     }
 
     const entries = await TimeEntry.find(matchQuery)
-      .populate('employee', 'name name')
+      .populate('employee', 'name')
       .populate('client', 'name companyName')
       .populate('task', 'title')
       .sort({ date: -1, createdAt: -1 })
@@ -75,10 +117,13 @@ exports.getRecentEntries = async (req, res) => {
 
 exports.getDashboardData = async (req, res) => {
   try {
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
     const tenantCompanyId = req.companyId;
     const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
     
-    let matchQuery = { $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }] };
+    let matchQuery = { tenantCompanyId: tenantObjectId };
     if (['user', 'brand_team_user'].includes(req.user.role)) {
       matchQuery.employee = req.user._id;
     } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
@@ -115,47 +160,58 @@ exports.getDashboardData = async (req, res) => {
 
     let kpi = kpiAggregation[0] || { totalHours: 0, billableHours: 0, nonBillableHours: 0 };
     
-    // Calculate Task KPIs based on task completions this week
-    const completedStatuses = ['completed', 'done', 'validated', 'complete', 'review', 'REVIEW'];
-    let taskMatch = { 
-      $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }], 
-      status: { $in: completedStatuses },
-      updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
-    };
-    if (['user', 'brand_team_user'].includes(req.user.role)) {
-      taskMatch.assignedTo = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
-      taskMatch.companyId = tenantObjectId; // Wait, tasks are linked to client via companyId or brandId. In this controller, it just uses tenantCompanyId. Let's see...
+    let capacity = null; 
+
+    const utilizationRate = kpi.totalHours > 0 ? Math.round((kpi.billableHours / kpi.totalHours) * 100) : 0;
+
+    const capacityRemaining = null;
+
+    // Active Timers
+    const activeTasks = await Task.find({
+      $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }],
+      status: "in_progress",
+      workStartedAt: { $ne: null }
+    });
+    
+    let activeTimersRunningTimeMin = 0;
+    activeTasks.forEach(t => {
+      const diffMs = now - t.workStartedAt;
+      const diffMin = Math.round(diffMs / 60000);
+      activeTimersRunningTimeMin += Math.max(0, diffMin);
+    });
+    const activeTimersRunningTime = parseFloat((activeTimersRunningTimeMin / 60).toFixed(2));
+
+    // Missing Timesheets
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const eligibleUsers = await User.find({
+      tenantCompanyId: tenantObjectId,
+      role: { $in: ['user', 'brand_team_user', 'agency_client', 'agency_manager', 'agency_super_admin'] }
+    }).select('_id');
+
+    const todayTimeEntries = await TimeEntry.find({
+      tenantCompanyId: tenantObjectId,
+      date: { $gte: todayStart, $lte: todayEnd }
+    }).distinct('employee');
+
+    const allLoggedUsers = new Set([...todayTimeEntries.map(id => id.toString())]);
+    
+    let missingCount = 0;
+    eligibleUsers.forEach(u => {
+      if (!allLoggedUsers.has(u._id.toString())) {
+        missingCount++;
+      }
+    });
+
+    let missingTimesheetsMessage = "Everyone has logged today";
+    if (eligibleUsers.length === 0) {
+      missingTimesheetsMessage = "No team members to track";
+    } else if (missingCount > 0) {
+      missingTimesheetsMessage = `${missingCount} haven't logged today`;
     }
-
-    const taskKpiAgg = await Task.aggregate([
-      { $match: taskMatch },
-      { $group: {
-        _id: null,
-        totalTaskHours: { 
-          $sum: { 
-            $cond: [
-              { $gt: ["$timeSpent", 0] }, 
-              "$timeSpent", 
-              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
-            ] 
-          } 
-        }
-      }}
-    ]);
-
-    if (taskKpiAgg[0] && taskKpiAgg[0].totalTaskHours) {
-      const taskHours = parseFloat(taskKpiAgg[0].totalTaskHours.toFixed(1));
-      kpi.totalHours += taskHours;
-      kpi.billableHours += taskHours; // Assuming task-derived time is billable by default
-    }
-
-    let capacity = 320; 
-    if (['user', 'brand_team_user', 'agency_client'].includes(req.user.role)) {
-       capacity = 40;
-    }
-
-    const utilizationRate = kpi.totalHours > 0 ? Math.round((kpi.billableHours / capacity) * 100) : 0;
 
     const kpiCards = {
       totalHours: parseFloat(kpi.totalHours.toFixed(1)),
@@ -164,7 +220,12 @@ exports.getDashboardData = async (req, res) => {
       nonBillableHours: parseFloat(kpi.nonBillableHours.toFixed(1)),
       billablePercent: kpi.totalHours > 0 ? Math.round((kpi.billableHours / kpi.totalHours) * 100) : 0,
       nonBillablePercent: kpi.totalHours > 0 ? Math.round((kpi.nonBillableHours / kpi.totalHours) * 100) : 0,
-      utilizationRate: utilizationRate > 100 ? 100 : utilizationRate
+      utilizationRate: utilizationRate > 100 ? 100 : utilizationRate,
+      activeTimersCount: activeTasks.length,
+      activeTimersRunningTime,
+      capacityRemaining,
+      missingTimesheetsCount: missingCount,
+      missingTimesheetsMessage
     };
 
     // 2. Weekly Timesheet
@@ -176,50 +237,18 @@ exports.getDashboardData = async (req, res) => {
       }}
     ]);
 
-    const taskTimesheetAgg = await Task.aggregate([
-      { $match: { ...taskMatch, assignedTo: { $ne: null } } },
-      { $group: {
-        _id: { employee: "$assignedTo", dayOfWeek: { $isoDayOfWeek: { $ifNull: ["$workCompletedAt", "$updatedAt"] } } },
-        hours: { 
-          $sum: { 
-            $cond: [
-              { $gt: ["$timeSpent", 0] }, 
-              "$timeSpent", 
-              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
-            ] 
-          } 
-        }
-      }}
-    ]);
-
-    // Merge both Timesheet Data
-    const allTimesheetAgg = [];
-    const mergeIntoAgg = (items) => {
-      items.forEach(item => {
-        if (!item._id || !item._id.employee || !item._id.dayOfWeek) return;
-        const existing = allTimesheetAgg.find(e => e._id.employee.toString() === item._id.employee.toString() && e._id.dayOfWeek === item._id.dayOfWeek);
-        if (existing) {
-          existing.hours += item.hours;
-        } else {
-          allTimesheetAgg.push({ _id: { employee: item._id.employee, dayOfWeek: item._id.dayOfWeek }, hours: item.hours });
-        }
-      });
-    };
-    mergeIntoAgg(timesheetAgg);
-    mergeIntoAgg(taskTimesheetAgg);
-
-    const usersInWeek = [...new Set(allTimesheetAgg.map(t => t._id.employee.toString()))];
+    const usersInWeek = [...new Set(timesheetAgg.map(t => t._id.employee.toString()))];
     const usersInfo = await User.find({ _id: { $in: usersInWeek } }).select('name role');
 
     const timesheetData = usersInfo.map((u, i) => {
       const colors = ['var(--accent-warning)', 'var(--accent-primary)', 'var(--accent-info)', 'var(--accent-secondary)', 'var(--accent-danger)'];
-      const empLogs = allTimesheetAgg.filter(t => t._id.employee.toString() === u._id.toString());
+      const empLogs = timesheetAgg.filter(t => t._id.employee.toString() === u._id.toString());
       
       const getDayHours = (day) => {
         const log = empLogs.find(l => l._id.dayOfWeek === day);
         if (!log || log.hours === 0) return '-';
         let h = parseFloat(log.hours.toFixed(1));
-        return h === 0 ? 0.1 : h; // Minimum 0.1h for any logged time
+        return h;
       };
 
       const mon = getDayHours(1);
@@ -275,6 +304,9 @@ exports.getDashboardData = async (req, res) => {
 
 exports.getFormOptions = async (req, res) => {
   try {
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
     const tenantCompanyId = req.companyId;
 
     // Fetch Employees
@@ -284,7 +316,10 @@ exports.getFormOptions = async (req, res) => {
     const clients = await User.find({ tenantCompanyId, role: { $in: ['brand_super_admin', 'brand_manager', 'client'] } }).select('companyName name');
 
     // Fetch Tasks
-    const tasks = await Task.find({ tenantCompanyId, status: { $nin: ['completed', 'complete', 'validated', 'done', 'rejected'] } }).select('title department');
+    const tasks = await Task.find({
+      $or: [{ tenantCompanyId }, { companyId: tenantCompanyId }],
+      status: { $nin: ['completed', 'complete', 'validated', 'done', 'rejected'] }
+    }).select('title department');
 
     res.status(200).json({ success: true, data: { employees, clients, tasks } });
   } catch (error) {
@@ -295,6 +330,9 @@ exports.getFormOptions = async (req, res) => {
 
 exports.getTeamTaskPerformance = async (req, res) => {
   try {
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
     const tenantCompanyId = req.companyId;
     
     // Convert tenantCompanyId to ObjectId for aggregation match

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Card, Button, Table, Tag, Avatar, Progress, message, Spin } from 'antd';
 import { motion } from 'framer-motion';
-import { Download, Plus, Edit3, Trash2, CheckCircle2, AlertCircle, Clock, Target } from 'lucide-react';
+import { Download, Plus, Edit3, Trash2, CheckCircle2, AlertCircle, Clock, Target, PlayCircle, CalendarX2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { timeTrackingService } from '../../services/timeTracking.service';
 
@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 const TimeTracking = () => {
   // Data states
   const [loading, setLoading] = useState(true);
-  const [kpis, setKpis] = useState({ totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationRate: 0, capacity: 0, billablePercent: 0, nonBillablePercent: 0 });
+  const [kpis, setKpis] = useState({ totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationRate: 0, capacity: null, billablePercent: 0, nonBillablePercent: 0, activeTimersCount: 0, activeTimersRunningTime: 0, capacityRemaining: null, missingTimesheetsCount: 0, missingTimesheetsMessage: '—' });
   const [timesheetData, setTimesheetData] = useState([]);
   const [timeByClient, setTimeByClient] = useState([]);
   const [recentEntries, setRecentEntries] = useState([]);
@@ -68,11 +68,31 @@ const TimeTracking = () => {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+  const formatTime = (h) => {
+    if (h === undefined || h === null || h === '-' || h === 0) return '—';
+    const numH = parseFloat(h);
+    if (isNaN(numH) || numH === 0) return '—';
+    
+    const totalSeconds = Math.round(numH * 3600);
+    if (numH < 1) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      if (minutes === 0) return `${seconds}s`;
+      return `${minutes}m ${seconds}s`;
+    } else {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      if (minutes === 0) return `${hours}h`;
+      return `${hours}h ${minutes}m`;
+    }
+  };
+
   const getHourTag = (h) => {
     if (h === '-' || h === 0) return <span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>—</span>;
-    if (h >= 7 && h <= 8) return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', background: 'transparent', fontWeight: 600 }}>{h}h</Tag>;
-    if (h < 7) return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-warning)', border: '1px solid var(--accent-warning)', background: 'transparent', fontWeight: 600 }}>{h}h</Tag>;
-    return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-danger)', border: '1px solid var(--accent-danger)', background: 'transparent', fontWeight: 600 }}>{h}h</Tag>;
+    const formatted = formatTime(h);
+    if (h >= 7 && h <= 8) return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', background: 'transparent', fontWeight: 600 }}>{formatted}</Tag>;
+    if (h < 7) return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-warning)', border: '1px solid var(--accent-warning)', background: 'transparent', fontWeight: 600 }}>{formatted}</Tag>;
+    return <Tag style={{ margin: 0, borderRadius: 16, color: 'var(--accent-danger)', border: '1px solid var(--accent-danger)', background: 'transparent', fontWeight: 600 }}>{formatted}</Tag>;
   };
 
   const tsCols = [
@@ -84,7 +104,7 @@ const TimeTracking = () => {
     { title: 'FRI', dataIndex: 'fri', key: 'fri', render: getHourTag },
     { title: 'SAT', dataIndex: 'sat', key: 'sat', render: getHourTag },
     { title: 'SUN', dataIndex: 'sun', key: 'sun', render: getHourTag },
-    { title: 'TOTAL', dataIndex: 'total', key: 'total', render: val => <strong style={{ color: 'var(--text-primary)' }}>{val}h</strong> },
+    { title: 'TOTAL', dataIndex: 'total', key: 'total', render: val => <strong style={{ color: 'var(--text-primary)' }}>{formatTime(val)}</strong> },
   ];
 
   const entryCols = [
@@ -93,7 +113,7 @@ const TimeTracking = () => {
     { title: 'CLIENT', dataIndex: 'client', key: 'client', render: text => text ? <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> : <Text type="secondary">—</Text> },
     { title: 'MODULE', dataIndex: 'module', key: 'module', render: text => <Tag style={{ borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--accent-info)', fontSize: 10, fontWeight: 600 }}>{text}</Tag> },
     { title: 'TASK/DESC', dataIndex: 'task', key: 'task', render: text => <Text style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{text}</Text> },
-    { title: 'HOURS', dataIndex: 'hours', key: 'hours', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}h</strong> },
+    { title: 'HOURS', dataIndex: 'hours', key: 'hours', render: text => <strong style={{ color: 'var(--text-primary)' }}>{formatTime(text)}</strong> },
     { title: 'BILLABLE', dataIndex: 'billable', key: 'billable', render: val => val ? <CheckCircle2 size={18} color="var(--accent-primary)" /> : <AlertCircle size={18} color="var(--text-tertiary)" /> },
     {
       title: 'ACTIONS',
@@ -110,7 +130,7 @@ const TimeTracking = () => {
   const perfCols = [
     { title: 'TEAM MEMBER', dataIndex: 'name', key: 'name', render: (text, r) => <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar size="small" style={{ backgroundColor: 'var(--accent-primary)', fontWeight: 700 }}>{text ? text.substring(0, 2).toUpperCase() : 'UN'}</Avatar> <div><strong style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)' }}>{text}</strong><Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>{r.role}</Text></div></div> },
     { title: 'TASKS COMPLETED', dataIndex: 'tasksCompleted', key: 'tasksCompleted', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'TOTAL WORK TIME', dataIndex: 'totalTimeSpent', key: 'totalTimeSpent', render: text => <strong style={{ color: 'var(--text-primary)' }}>{text}h</strong> },
+    { title: 'TOTAL WORK TIME', dataIndex: 'totalTimeSpent', key: 'totalTimeSpent', render: text => <strong style={{ color: 'var(--text-primary)' }}>{formatTime(text)}</strong> },
   ];
 
   if (loading) {
@@ -133,10 +153,10 @@ const TimeTracking = () => {
       <motion.div variants={itemVariants}>
         <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
           {[
-            { label: 'HOURS LOGGED', val: `${kpis.totalHours}h`, sub: `of ${kpis.capacity}h capacity`, msg: 'This week', color: 'var(--accent-info)', icon: <Clock size={20} /> },
-            { label: 'BILLABLE HOURS', val: `${kpis.billableHours}h`, sub: `${kpis.billablePercent}% billable`, msg: 'Across clients', color: 'var(--accent-primary)', pos: true, icon: <CheckCircle2 size={20} /> },
-            { label: 'NON-BILLABLE', val: `${kpis.nonBillableHours}h`, sub: `${kpis.nonBillablePercent}% non-bill.`, msg: 'Admin & internal', color: 'var(--accent-warning)', alert: true, icon: <AlertCircle size={20} /> },
-            { label: 'UTILISATION RATE', val: `${kpis.utilizationRate}%`, msg: 'Target > 80%', color: 'var(--accent-secondary)', prog: kpis.utilizationRate, icon: <Target size={20} /> },
+            { label: 'HOURS LOGGED', val: formatTime(kpis.totalHours), sub: kpis.capacity != null ? `of ${kpis.capacity}h capacity` : 'capacity not configured', msg: 'This week', color: 'var(--accent-info)', icon: <Clock size={20} /> },
+            { label: 'ACTIVE TIMERS', val: kpis.activeTimersCount || 0, sub: `${formatTime(kpis.activeTimersRunningTime)} running`, msg: 'Running right now', color: 'var(--accent-primary)', pos: true, icon: <PlayCircle size={20} /> },
+            { label: 'CAPACITY REMAINING', val: kpis.capacityRemaining != null ? `${formatTime(kpis.capacityRemaining)}` : 'Not configured', sub: kpis.capacity != null ? `${formatTime(kpis.totalHours)} / ${kpis.capacity}h used` : 'capacity not configured', msg: 'Team bandwidth left', color: 'var(--accent-warning)', alert: false, icon: <Target size={20} /> },
+            { label: 'MISSING TIMESHEETS', val: kpis.missingTimesheetsCount || 0, sub: kpis.missingTimesheetsMessage, msg: 'Team members', color: 'var(--accent-danger)', alert: kpis.missingTimesheetsCount > 0, icon: <CalendarX2 size={20} /> },
           ].map((kpi, i) => (
             <Col style={{ flex: '1 1 200px', minWidth: 200 }} key={i}>
               <motion.div whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
