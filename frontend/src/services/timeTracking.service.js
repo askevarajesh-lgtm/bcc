@@ -7,20 +7,30 @@ export const timeTrackingService = {
     const response = await api.post(`${PREFIX}/`, data);
     return response.data;
   },
+  updateTimeEntry: async (id, data) => {
+    const response = await api.put(`${PREFIX}/${id}`, data);
+    return response.data;
+  },
+  deleteTimeEntry: async (id) => {
+    const response = await api.delete(`${PREFIX}/${id}`);
+    return response.data;
+  },
   getRecentEntries: async () => {
     const response = await api.get(`${PREFIX}/recent`);
     return response.data;
   },
-  getDashboardData: async () => {
-    const response = await api.get(`${PREFIX}/dashboard`);
+  getDashboardData: async (date) => {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+    const response = await api.get(`${PREFIX}/dashboard${qs}`);
     return response.data;
   },
   getFormOptions: async () => {
     const response = await api.get(`${PREFIX}/options`);
     return response.data;
   },
-  getTeamTaskPerformance: async () => {
-    const response = await api.get(`${PREFIX}/performance`);
+  getTeamTaskPerformance: async (date) => {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+    const response = await api.get(`${PREFIX}/performance${qs}`);
     return response.data;
   }
 };

@@ -6,6 +6,8 @@ const auth = require('../../middlewares/authMiddleware');
 router.use(auth); // All time tracking routes require authentication
 
 router.post('/', timeTrackingController.logTime);
+router.put('/:id', timeTrackingController.updateTimeEntry);
+router.delete('/:id', timeTrackingController.deleteTimeEntry);
 router.get('/recent', timeTrackingController.getRecentEntries);
 router.get('/dashboard', timeTrackingController.getDashboardData);
 router.get('/options', timeTrackingController.getFormOptions);
