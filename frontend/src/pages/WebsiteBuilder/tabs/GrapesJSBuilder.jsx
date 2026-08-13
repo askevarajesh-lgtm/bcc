@@ -265,6 +265,7 @@ const GrapesJSBuilder = ({
   mode = "page",
   setEditingPage,
   onSave,
+  onCustomSave,
 }) => {
   const isPostMode = mode === "post";
   const editorRef = useRef(null);
@@ -300,11 +301,18 @@ const GrapesJSBuilder = ({
         null
       : null;
     const resolveCssUrls = (page) =>
-      page?.stylesheetUrls?.length ? page.stylesheetUrls : extractStylesheetUrls(page?.html || "");
+      (page?.stylesheetUrls?.length ? page.stylesheetUrls : extractStylesheetUrls(page?.html || "")).filter(url => !url.endsWith('.js') && !url.includes('.js?'));
+    
+    const resolveJsUrls = (page) =>
+      (page?.stylesheetUrls?.length ? page.stylesheetUrls : []).filter(url => url.endsWith('.js') || url.includes('.js?'));
 
     const templateCssUrls = isPostMode
       ? resolveCssUrls(homePageForAssets)
       : (resolveCssUrls(sourceContent).length ? resolveCssUrls(sourceContent) : resolveCssUrls(homePageForAssets));
+      
+    const templateJsUrls = isPostMode
+      ? resolveJsUrls(homePageForAssets)
+      : (resolveJsUrls(sourceContent).length ? resolveJsUrls(sourceContent) : resolveJsUrls(homePageForAssets));
 
     stylesheetUrlsRef.current = templateCssUrls;
 
@@ -336,6 +344,9 @@ const GrapesJSBuilder = ({
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
           ...templateCssUrls,
         ],
+        scripts: [
+          ...templateJsUrls,
+        ],
       },
     });
 
@@ -351,14 +362,16 @@ const GrapesJSBuilder = ({
     // This is a separate <style> tag so editor.getCss() never includes it —
     // keeping saves clean and avoiding duplication on disk.
     const ensureHomePageCssInCanvas = (canvasDoc) => {
-      if (!siteHeaderFooterCss || !canvasDoc) return;
+      if (!siteHeaderFooterCss && !canvasDoc) return;
       let homeStyleEl = canvasDoc.getElementById("bcc-home-page-css");
       if (!homeStyleEl) {
         homeStyleEl = canvasDoc.createElement("style");
         homeStyleEl.id = "bcc-home-page-css";
         canvasDoc.head.appendChild(homeStyleEl);
       }
-      homeStyleEl.textContent = siteHeaderFooterCss;
+      
+      const externalCss = (isPostMode ? activePost?.externalInlineCss : activePage?.externalInlineCss) || "";
+      homeStyleEl.textContent = (siteHeaderFooterCss || "") + "\n" + externalCss;
     };
 
     e.on("load", () => {
@@ -402,11 +415,13 @@ const GrapesJSBuilder = ({
       ensureHomePageCssInCanvas(canvasDoc);
     });
 
-    if (sourceContent.html || sourceContent.css) {
+    if (sourceContent.html) {
       e.setComponents(
         isPostMode ? normalizeFeaturedImageHeight(sourceContent.html || "") : (sourceContent.html || ""),
       );
-      e.setStyle(sourceContent.css || "");
+      if (sourceContent.css) {
+        e.setStyle(sourceContent.css);
+      }
     } else if (isPostMode) {
       e.setComponents(`
         ${siteHeaderHtml}
@@ -620,7 +635,8 @@ const GrapesJSBuilder = ({
           style.innerHTML = `
             /* Match the published preview's reset so nothing renders with
                stray default browser spacing on the sides */
-            body { margin: 0; padding: 0; }
+            body { margin: 0; padding: 0; overflow: auto !important; height: auto !important; }
+            html { overflow: auto !important; height: auto !important; }
             /* Hide preloaders in builder so they don't block the canvas */
             #spinner, #preloader, .preloader, .loader-wrapper, .loader {
               display: none !important;
@@ -965,8 +981,14 @@ const GrapesJSBuilder = ({
         return;
       }
 
+      if (onCustomSave) {
+        await onCustomSave({ html, css, editor });
+        setSaving(false);
+        return;
+      }
+
       const res = await fetch(
-        `/api/websites/${activeWebsite.key}/pages/${activePage._id}`,
+        `/api/websites/${activeWebsite?.key}/pages/${activePage?._id}`,
         {
           method: "PUT",
           headers: {
@@ -979,7 +1001,7 @@ const GrapesJSBuilder = ({
       const data = await res.json();
       if (data.success) {
         setSaveToast({ type: "success", text: "Page saved successfully!" });
-        onSave(data.data);
+        if (onSave) onSave(data.data);
       } else {
         setSaveToast({ type: "error", text: data.error || "Failed to save page" });
       }
@@ -994,7 +1016,18 @@ const GrapesJSBuilder = ({
   return (
     <div
       className={`builder-container ${isPreviewing ? "is-previewing" : ""}`}
-      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        background: "#ffffff",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column"
+      }}
     >
       {saveToast && (
         <div

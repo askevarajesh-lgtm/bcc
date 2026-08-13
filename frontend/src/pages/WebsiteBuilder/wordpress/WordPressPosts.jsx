@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Typography, Card, Table, Button, Tag, Space, Modal, Input, message, Drawer, Select, Tooltip, Row, Col, Spin, Image } from "antd";
-import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, Activity, RefreshCcw, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, Activity, RefreshCcw, Image as ImageIcon, Layout, AlertTriangle, Sparkles, FileText, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import RichTextEditor from "../../../components/RichTextEditor";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -245,19 +247,37 @@ const WordPressPosts = () => {
       title: "ACTIONS",
       key: "actions",
       align: "right",
-      render: (_, r) => (
-        <Space size="middle">
-          <Tooltip title="Preview">
-            <Button type="text" icon={<ExternalLink size={16} color="var(--text-secondary)" />} onClick={() => window.open(r.link, '_blank')} />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<Edit2 size={16} color="var(--accent-info)" />} onClick={() => openDrawer(r)} />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(r.id)} />
-          </Tooltip>
-        </Space>
-      )
+      render: (_, r) => {
+        let pageBuilderUrl = null;
+        try {
+          if (r.link) {
+            const origin = new URL(r.link).origin;
+            if (r.pageBuilder === 'elementor') pageBuilderUrl = `${origin}/wp-admin/post.php?post=${r.id}&action=elementor`;
+            if (r.pageBuilder === 'divi') pageBuilderUrl = `${origin}/wp-admin/post.php?post=${r.id}&action=edit&et_fb=1`;
+          }
+        } catch (e) {
+          console.error("Invalid URL format", r.link);
+        }
+
+        return (
+          <Space size="middle">
+            {pageBuilderUrl && (
+              <Tooltip title={`Edit with ${r.pageBuilder === 'elementor' ? 'Elementor' : 'Divi'}`}>
+                <Button type="text" icon={<Layout size={16} color={r.pageBuilder === 'elementor' ? '#e64980' : '#845ef7'} />} onClick={() => window.open(pageBuilderUrl, '_blank')} />
+              </Tooltip>
+            )}
+            <Tooltip title="Preview">
+              <Button type="text" icon={<ExternalLink size={16} color="var(--text-secondary)" />} onClick={() => window.open(r.link, '_blank')} />
+            </Tooltip>
+            <Tooltip title="Edit">
+              <Button type="text" icon={<Edit2 size={16} color="var(--accent-info)" />} onClick={() => openDrawer(r)} />
+            </Tooltip>
+            <Tooltip title="Delete">
+              <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(r.id)} />
+            </Tooltip>
+          </Space>
+        );
+      }
     }
   ];
 
@@ -315,7 +335,7 @@ const WordPressPosts = () => {
         extra={
           <Space>
             <Button onClick={closeDrawer} style={{ borderRadius: 8, fontWeight: 700 }}>Cancel</Button>
-            <Button onClick={handleSave} type="primary" loading={saving} style={{ background: '#10b981', border: 'none', borderRadius: 8, fontWeight: 800 }}>
+            <Button onClick={handleSave} type="primary" loading={saving} disabled={editingPost && ['elementor', 'divi', 'wpbakery', 'pagelayer'].includes(editingPost.pageBuilder)} style={{ background: '#10b981', border: 'none', borderRadius: 8, fontWeight: 800 }}>
               {editingPost ? 'Update Post' : 'Publish Post'}
             </Button>
           </Space>
@@ -337,13 +357,25 @@ const WordPressPosts = () => {
 
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>POST CONTENT (HTML SUPPORTED)</div>
-              <TextArea
-                rows={15}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="<h1>My New Article</h1><p>Start writing here...</p>"
-                style={{ borderRadius: 8, fontFamily: 'monospace', fontSize: 14, background: 'var(--bg-secondary)', marginBottom: 24 }}
-              />
+              
+              {editingPost && ['elementor', 'divi', 'wpbakery', 'pagelayer'].includes(editingPost.pageBuilder) ? (
+                <div style={{ padding: "24px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: 12, color: "var(--text-primary)" }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: "var(--accent-warning)", marginBottom: 12, fontSize: 16 }}>
+                    <AlertTriangle size={20} /> Page Builder Detected
+                  </div>
+                  <div style={{ fontSize: 15, lineHeight: 1.6 }}>
+                    This post is built with <b style={{ textTransform: 'capitalize' }}>{editingPost.pageBuilder}</b>. Due to WordPress restrictions, the content cannot be updated through this basic text editor. 
+                    <br/><br/>
+                    To safely edit the visual layout and text of this post, please close this drawer and click the <b>{editingPost.pageBuilder === 'elementor' ? 'Edit with Elementor (Pink Icon)' : editingPost.pageBuilder === 'divi' ? 'Edit with Divi (Purple Icon)' : 'Native WP Edit'}</b> button in the posts table!
+                  </div>
+                </div>
+              ) : (
+                <RichTextEditor
+                  value={content}
+                  onChange={(val) => setContent(val)}
+                  placeholder="My New Article... Start writing here..."
+                />
+              )}
             </div>
 
             <div style={{ marginBottom: 24 }}>

@@ -156,6 +156,33 @@ exports.deleteConnection = async (req, res) => {
 // --- Pages Management ---
 
 /**
+ * Detect which page builder is used based on content.
+ */
+const detectPageBuilder = (item) => {
+  const contentRaw = (item.content?.raw || "").toLowerCase();
+  const contentRendered = (item.content?.rendered || "").toLowerCase();
+  const template = (item.template || "").toLowerCase();
+  
+  if (contentRendered.includes('data-elementor-type') || contentRendered.includes('elementor-widget') || contentRaw.includes('data-elementor-type') || template.includes('elementor')) {
+    return 'elementor';
+  }
+  if (contentRendered.includes('[et_pb_section') || contentRaw.includes('[et_pb_section')) {
+    return 'divi';
+  }
+  if (contentRendered.includes('pagelayer-id') || contentRendered.includes('pagelayer-') || contentRaw.includes('pagelayer-id')) {
+    return 'pagelayer';
+  }
+  if (contentRendered.includes('[vc_row') || contentRendered.includes('wpb_column') || contentRaw.includes('[vc_row')) {
+    return 'wpbakery';
+  }
+  if (contentRendered.includes('<!-- wp:') || contentRaw.includes('<!-- wp:')) {
+    return 'gutenberg';
+  }
+  
+  return 'standard';
+};
+
+/**
  * Get pages from connected WordPress site
  */
 exports.getPages = async (req, res) => {
@@ -170,6 +197,14 @@ exports.getPages = async (req, res) => {
 
     const params = { status: 'any', context: 'edit', ...req.query };
     const result = await wordpressService.getPages(connection, params);
+
+    // Map over pages to inject pageBuilder property
+    if (result.data && Array.isArray(result.data)) {
+      result.data = result.data.map(page => ({
+        ...page,
+        pageBuilder: detectPageBuilder(page)
+      }));
+    }
 
     return res.status(200).json({ success: true, data: result.data, total: result.total, totalPages: result.totalPages });
   } catch (error) {
@@ -258,6 +293,52 @@ exports.deletePage = async (req, res) => {
 /**
  * AI Edit a WordPress page
  */
+const axios = require('axios');
+const cheerio = require('cheerio');
+
+/**
+ * Proxy styles from a WordPress page to the builder
+ */
+exports.proxyStyles = async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'URL is required.' });
+    }
+
+    const response = await axios.get(url);
+    const html = response.data;
+    const $ = cheerio.load(html);
+    
+    const stylesheets = [];
+    $('link[rel="stylesheet"]').each((i, elem) => {
+      let href = $(elem).attr('href');
+      if (href) {
+        if (href.startsWith('//')) {
+          href = 'https:' + href;
+        } else if (href.startsWith('/')) {
+          const parsedUrl = new URL(url);
+          href = parsedUrl.origin + href;
+        } else if (!href.startsWith('http')) {
+          const parsedUrl = new URL(url);
+          href = parsedUrl.origin + '/' + href;
+        }
+        stylesheets.push(href);
+      }
+    });
+    
+    let inlineCss = "";
+    $('style').each((i, elem) => {
+      inlineCss += $(elem).html() + "\n";
+    });
+
+    return res.status(200).json({ success: true, data: { stylesheets, inlineCss } });
+  } catch (error) {
+    console.error('proxyStyles error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch styles' });
+  }
+};
+
 exports.aiEditWordpressPage = async (req, res) => {
   try {
     const { id, pageId } = req.params;
@@ -354,6 +435,14 @@ exports.getPosts = async (req, res) => {
 
     const params = { status: 'any', context: 'edit', ...req.query };
     const result = await wordpressService.getPosts(connection, params);
+
+    // Map over posts to inject pageBuilder property
+    if (result.data && Array.isArray(result.data)) {
+      result.data = result.data.map(post => ({
+        ...post,
+        pageBuilder: detectPageBuilder(post)
+      }));
+    }
 
     return res.status(200).json({ success: true, data: result.data, total: result.total, totalPages: result.totalPages });
   } catch (error) {

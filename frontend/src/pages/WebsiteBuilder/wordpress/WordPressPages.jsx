@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Typography, Card, Table, Button, Tag, Space, Modal, Input, message, Drawer, Select, Tooltip } from "antd";
-import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, FileText, CheckCircle, RefreshCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, Activity, RefreshCcw, Image as ImageIcon, Layout, AlertTriangle, Sparkles, FileText, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import RichTextEditor from "../../../components/RichTextEditor";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -296,26 +297,44 @@ const WordPressPages = () => {
       title: "ACTIONS",
       key: "actions",
       align: "right",
-      render: (_, r) => (
-        <Space size="middle">
-          <Tooltip title="Preview">
-            <Button type="text" icon={<ExternalLink size={16} color="var(--text-secondary)" />} onClick={() => window.open(r.link, '_blank')} />
-          </Tooltip>
-          <Tooltip title="AI Edit">
-            <Button type="text" icon={<Sparkles size={16} color="var(--accent-secondary)" />} onClick={() => {
-              setAiEditTargetPage(r);
-              setAiEditPrompt("");
-              setIsAiEditModalOpen(true);
-            }} />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<Edit2 size={16} color="var(--accent-info)" />} onClick={() => openDrawer(r)} />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(r.id)} />
-          </Tooltip>
-        </Space>
-      )
+      render: (_, r) => {
+        let pageBuilderUrl = null;
+        try {
+          if (r.link) {
+            const origin = new URL(r.link).origin;
+            if (r.pageBuilder === 'elementor') pageBuilderUrl = `${origin}/wp-admin/post.php?post=${r.id}&action=elementor`;
+            if (r.pageBuilder === 'divi') pageBuilderUrl = `${origin}/wp-admin/post.php?post=${r.id}&action=edit&et_fb=1`;
+          }
+        } catch (e) {
+          console.error("Invalid URL format", r.link);
+        }
+
+        return (
+          <Space size="middle">
+            {pageBuilderUrl && (
+              <Tooltip title={`Edit with ${r.pageBuilder === 'elementor' ? 'Elementor' : 'Divi'}`}>
+                <Button type="text" icon={<Layout size={16} color={r.pageBuilder === 'elementor' ? '#e64980' : '#845ef7'} />} onClick={() => window.open(pageBuilderUrl, '_blank')} />
+              </Tooltip>
+            )}
+            <Tooltip title="Preview">
+              <Button type="text" icon={<ExternalLink size={16} color="var(--text-secondary)" />} onClick={() => window.open(r.link, '_blank')} />
+            </Tooltip>
+            <Tooltip title="AI Edit">
+              <Button type="text" icon={<Sparkles size={16} color="var(--accent-secondary)" />} onClick={() => {
+                setAiEditTargetPage(r);
+                setAiEditPrompt("");
+                setIsAiEditModalOpen(true);
+              }} />
+            </Tooltip>
+            <Tooltip title="Edit">
+              <Button type="text" icon={<Edit2 size={16} color="var(--accent-info)" />} onClick={() => openDrawer(r)} />
+            </Tooltip>
+            <Tooltip title="Delete">
+              <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(r.id)} />
+            </Tooltip>
+          </Space>
+        );
+      }
     }
   ];
 
@@ -367,7 +386,7 @@ const WordPressPages = () => {
         extra={
           <Space>
             <Button onClick={closeDrawer} style={{ borderRadius: 8, fontWeight: 700 }}>Cancel</Button>
-            <Button onClick={handleSave} type="primary" loading={saving} style={{ background: '#0073AA', border: 'none', borderRadius: 8, fontWeight: 800 }}>
+            <Button onClick={handleSave} type="primary" loading={saving} disabled={editingPage && ['elementor', 'divi', 'wpbakery', 'pagelayer'].includes(editingPage.pageBuilder)} style={{ background: '#0073AA', border: 'none', borderRadius: 8, fontWeight: 800 }}>
               {editingPage ? 'Update Page' : 'Publish Page'}
             </Button>
           </Space>
@@ -397,37 +416,50 @@ const WordPressPages = () => {
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>PAGE CONTENT (HTML SUPPORTED)</div>
           
-          {editingPage && (
-            <div style={{ marginBottom: 16, padding: "16px", background: "rgba(13, 148, 136, 0.05)", border: "1px solid rgba(13, 148, 136, 0.2)", borderRadius: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-secondary)", marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={16} /> Edit Content with AI
+          {editingPage && ['elementor', 'divi', 'wpbakery', 'pagelayer'].includes(editingPage.pageBuilder) ? (
+            <div style={{ padding: "24px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: 12, color: "var(--text-primary)" }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: "var(--accent-warning)", marginBottom: 12, fontSize: 16 }}>
+                <AlertTriangle size={20} /> Page Builder Detected
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Input 
-                  placeholder="e.g. Add a testimonials section, Make the heading bold..." 
-                  value={drawerAiPrompt} 
-                  onChange={(e) => setDrawerAiPrompt(e.target.value)} 
-                  disabled={isDrawerAiEditing}
-                  style={{ borderRadius: 8 }}
-                  onPressEnter={handleDrawerAiEdit}
-                />
-                <Button type="primary" loading={isDrawerAiEditing} onClick={handleDrawerAiEdit} disabled={!drawerAiPrompt.trim()} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700 }}>
-                  Apply AI
-                </Button>
+              <div style={{ fontSize: 15, lineHeight: 1.6 }}>
+                This page is built with <b style={{ textTransform: 'capitalize' }}>{editingPage.pageBuilder}</b>. Due to WordPress restrictions, the content cannot be updated through this basic text editor. 
+                <br/><br/>
+                To safely edit the visual layout and text of this page, please close this drawer and click the <b>{editingPage.pageBuilder === 'elementor' ? 'Edit with Elementor (Pink Icon)' : editingPage.pageBuilder === 'divi' ? 'Edit with Divi (Purple Icon)' : 'Native WP Edit'}</b> button in the pages table!
               </div>
             </div>
-          )}
+          ) : (
+            <>
+              {editingPage && (
+                <div style={{ marginBottom: 16, padding: "16px", background: "rgba(13, 148, 136, 0.05)", border: "1px solid rgba(13, 148, 136, 0.2)", borderRadius: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-secondary)", marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={16} /> Edit Content with AI
+                  </div>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <Input 
+                      placeholder="e.g. Add a testimonials section, Make the heading bold..." 
+                      value={drawerAiPrompt} 
+                      onChange={(e) => setDrawerAiPrompt(e.target.value)} 
+                      disabled={isDrawerAiEditing}
+                      style={{ borderRadius: 8 }}
+                      onPressEnter={handleDrawerAiEdit}
+                    />
+                    <Button type="primary" loading={isDrawerAiEditing} onClick={handleDrawerAiEdit} disabled={!drawerAiPrompt.trim()} style={{ background: "var(--accent-secondary)", border: "none", borderRadius: 8, fontWeight: 700 }}>
+                      Apply AI
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-          <TextArea
-            rows={15}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="<h1>Welcome to my site!</h1><p>This is my new page content...</p>"
-            style={{ borderRadius: 8, fontFamily: 'monospace', fontSize: 13, background: 'var(--bg-secondary)' }}
-          />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
-            Note: The content you enter here will be directly rendered by your WordPress theme. You can use standard HTML tags.
-          </Text>
+              <RichTextEditor
+                value={content}
+                onChange={(val) => setContent(val)}
+                placeholder="Welcome to my site! This is my new page content..."
+              />
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
+                Note: The content you enter here will be directly rendered by your WordPress theme. You can use standard HTML tags.
+              </Text>
+            </>
+          )}
         </div>
       </Drawer>
 

@@ -436,6 +436,7 @@ const Accounts = () => {
         className="glass-modal"
         centered
         width={500}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: '8px' } }}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Name</Text>} name="name" rules={[{ required: true, message: 'Please enter agency name' }]}>

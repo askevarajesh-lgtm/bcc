@@ -51,14 +51,14 @@ const WordPressDashboard = () => {
   const testLiveConnection = async (conn) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/wordpress/test`, {
-        method: "POST",
+      const res = await fetch(`/api/wordpress/${conn._id}/counts`, {
+        method: "GET",
         headers: { "Content-Type": "application/json", "Authorization": token ? `Bearer ${token}` : "" },
-        // we'll trigger test but normally we don't have the raw password here. 
-        // Wait, the backend already has it. I should have a test endpoint that just takes the connection ID.
-        // For now we will just show the dashboard and assume it works unless pages fail to load.
       });
-      // In a real app we'd have a specific /api/wordpress/:id/stats endpoint
+      const data = await res.json();
+      if (data.success) {
+        setWpStats({ pages: data.pagesCount, posts: data.blogsCount });
+      }
     } catch (err) {
       console.log(err);
     }
