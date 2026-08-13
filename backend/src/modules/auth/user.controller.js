@@ -1,7 +1,7 @@
 const User = require('./user.model');
 const Role = require('../roles/role.model');
 const Department = require('../departments/department.model');
-const { parsePhoneNumberFromString } = require('libphonenumber-js');
+const { validatePhoneNumber } = require('../../utils/phoneValidation');
 
 const SYSTEM_ROLES = [
   'supreme_super_admin',
@@ -106,10 +106,9 @@ exports.createUser = async (req, res, next) => {
     
     // Validate Phone Number
     if (userData.phone) {
-      const countryCode = userData.countryCode || '91';
-      const phoneNumber = parsePhoneNumberFromString("+" + countryCode + userData.phone);
-      if (!phoneNumber || !phoneNumber.isValid()) {
-        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      const validation = validatePhoneNumber(userData.phone, userData.countryCode);
+      if (!validation.isValid) {
+        return res.status(400).json({ success: false, message: validation.message });
       }
     }
     
@@ -255,16 +254,14 @@ exports.updateUser = async (req, res, next) => {
     // Prevent password update through this route
     const { password, ...updateData } = req.body;
     
-    // Validate Phone Number
-    if (updateData.phone) {
-      let countryCode = updateData.countryCode;
-      if (!countryCode) {
-         const existingUser = await User.findById(req.params.id).select('countryCode');
-         countryCode = existingUser?.countryCode || '91';
-      }
-      const phoneNumber = parsePhoneNumberFromString("+" + countryCode + updateData.phone);
-      if (!phoneNumber || !phoneNumber.isValid()) {
-        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+    // Validate Phone Number if updated
+    if (updateData.phone !== undefined && updateData.phone !== null && updateData.phone !== '') {
+      const existingUser = await User.findById(req.params.id).select('countryCode');
+      // Use provided countryCode or fallback to existing
+      const cCode = req.body.countryCode || existingUser?.countryCode;
+      const validation = validatePhoneNumber(updateData.phone, cCode);
+      if (!validation.isValid) {
+        return res.status(400).json({ success: false, message: validation.message });
       }
     }
     

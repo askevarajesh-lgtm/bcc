@@ -1,5 +1,5 @@
 const User = require('../auth/user.model');
-const { parsePhoneNumberFromString } = require('libphonenumber-js');
+const { validatePhoneNumber } = require('../../utils/phoneValidation');
 
 const normalizeIntegrations = (value) => {
   if (!Array.isArray(value)) return [];
@@ -84,10 +84,9 @@ exports.createAgency = async (req, res, next) => {
 
     // Validate Phone Number
     if (phone) {
-      const cCode = countryCode || '91';
-      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
-      if (!phoneNumber || !phoneNumber.isValid()) {
-        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      const validation = validatePhoneNumber(phone, countryCode);
+      if (!validation.isValid) {
+        return res.status(400).json({ success: false, message: validation.message });
       }
     }
 

@@ -728,4 +728,16 @@ Require stack:
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
     at Axios.request (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:5517:41)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n
+    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n2026-08-13T07:54:31.885Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:38.543Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:40.021Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:52.892Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n

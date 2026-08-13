@@ -4,6 +4,8 @@ import { User, Lock, Upload as UploadIcon } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 
@@ -19,6 +21,9 @@ const SuperAdminSettings = () => {
   const [logoDarkUrl, setLogoDarkUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingDark, setUploadingDark] = useState(false);
+
+  const [settingsCountryCode, setSettingsCountryCode] = useState('91');
+  const [settingsCountryIso, setSettingsCountryIso] = useState('IN');
 
   useEffect(() => {
     fetchProfile();
@@ -36,6 +41,8 @@ const SuperAdminSettings = () => {
           phone: profile.phone,
           domain: profile.domain
         });
+        setSettingsCountryCode(profile.countryCode || '91');
+        setSettingsCountryIso(profile.countryIso || '');
         setLogoUrl(profile.logo);
         setLogoDarkUrl(profile.logoDark);
       }
@@ -52,6 +59,7 @@ const SuperAdminSettings = () => {
       setLoading(true);
       const res = await api.put('/superadmin/profile', {
         ...values,
+        countryCode: settingsCountryCode,
         logo: logoUrl,
         logoDark: logoDarkUrl
       });
@@ -154,8 +162,27 @@ const SuperAdminSettings = () => {
                 <Form.Item name="email" label="Email Address" rules={[{ type: 'email' }]}>
                   <Input placeholder="Enter email address" />
                 </Form.Item>
-                <Form.Item name="phone" label="Phone Number">
-                  <Input placeholder="Enter phone number" />
+                <Form.Item 
+                  name="phone" 
+                  label="Phone Number"
+                  rules={[
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        if (isValidPhoneNumber(value, settingsCountryIso)) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                      }
+                    }
+                  ]}
+                >
+                  <PhoneInput 
+                    countryCodeValue={settingsCountryCode}
+                    onCountryCodeChange={setSettingsCountryCode}
+                    isoCountryValue={settingsCountryIso}
+                    onCountryIsoChange={setSettingsCountryIso}
+                  />
                 </Form.Item>
                 <Form.Item name="domain" label="Website URL">
                   <Input placeholder="https://example.com" />

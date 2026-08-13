@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Button, Input, Table, Typography, Space, Tag, Card, Row, Col, Select, Checkbox, Popconfirm, Divider } from "antd";
 import { FacebookOutlined, InstagramOutlined } from "@ant-design/icons";
 import { Plus, Search, Trash2, ArrowRight, ArrowLeft, MessageCircle, MessageSquare, Phone, Mail, Bot, Smartphone, Monitor } from "lucide-react";
+import PhoneInput from "../../../components/common/PhoneInput";
+import { isValidPhoneNumber } from "libphonenumber-js";
+import { message } from "antd";
 
 import { motion } from "framer-motion";
 
@@ -242,12 +245,15 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
             <Row gutter={24} style={{ marginBottom: 32 }}>
               <Col span={12}>
                 <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WHATSAPP NUMBER</div>
-                <Input 
+                <PhoneInput 
                   size="large"
-                  placeholder="+1 (555) 000-0000"
+                  style={{ borderRadius: 8 }}
+                  countryCodeValue={formData.countryCode || '91'}
+                  onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
+                  isoCountryValue={formData.countryIso || 'IN'}
+                  onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
                   value={formData.whatsappPhone}
                   onChange={e => setFormData({...formData, whatsappPhone: e.target.value})}
-                  style={{ borderRadius: 8 }}
                 />
               </Col>
               <Col span={12}>
@@ -355,6 +361,11 @@ const ChatWidgetsTab = ({ itemVariants }) => {
   };
 
   const handleUpdateWidget = async (data) => {
+    if (data.whatsappPhone && !isValidPhoneNumber(data.whatsappPhone, data.countryIso || 'IN')) {
+      message.error("Please enter a valid WhatsApp phone number for the selected country");
+      return;
+    }
+    
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/chat-widgets/${activeWidget.key}`, {

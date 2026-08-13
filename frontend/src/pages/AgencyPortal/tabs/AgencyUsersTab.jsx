@@ -3,6 +3,8 @@ import { Typography, Card, Table, Tag, Button, Input, Modal, Form, Dropdown, mes
 import { motion } from 'framer-motion';
 import { Plus, MoreVertical, Edit2, Trash2, Mail, Shield, User as UserIcon } from 'lucide-react';
 import api from '../../../services/api';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -16,6 +18,11 @@ const AgencyUsersTab = () => {
   const [editForm] = Form.useForm();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+
+  const [userCountryCode, setUserCountryCode] = useState('91');
+  const [userCountryIso, setUserCountryIso] = useState('IN');
+  const [editUserCountryCode, setEditUserCountryCode] = useState('91');
+  const [editUserCountryIso, setEditUserCountryIso] = useState('IN');
 
   useEffect(() => {
     fetchUsers();
@@ -42,7 +49,9 @@ const AgencyUsersTab = () => {
       const payload = {
         name: values.name,
         email: values.email,
-        password: values.password
+        password: values.password,
+        phone: values.phone,
+        countryCode: userCountryCode
       };
 
       const res = await api.post('/agency/users', payload);
@@ -51,6 +60,8 @@ const AgencyUsersTab = () => {
         message.success('User created successfully');
         setIsModalOpen(false);
         form.resetFields();
+        setUserCountryCode('91');
+        setUserCountryIso('IN');
         fetchUsers();
       }
     } catch (err) {
@@ -82,7 +93,8 @@ const AgencyUsersTab = () => {
       setSubmitLoading(true);
       const payload = {
         name: values.name,
-        phone: values.phone
+        phone: values.phone,
+        countryCode: editUserCountryCode
       };
       if (values.password) {
         payload.password = values.password;
@@ -107,6 +119,8 @@ const AgencyUsersTab = () => {
   const handleMenuClick = (e, record) => {
     if (e.key === 'edit') {
       setEditingUser(record);
+      setEditUserCountryCode(record.countryCode || '91');
+      setEditUserCountryIso(record.countryIso || '');
       editForm.setFieldsValue({
         name: record.name,
         email: record.email,
@@ -210,8 +224,29 @@ const AgencyUsersTab = () => {
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Email Address</Text>} name="email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
             <Input placeholder="user@agency.com" style={{ borderRadius: 8 }} size="large" />
           </Form.Item>
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
-            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} size="large" />
+          <Form.Item 
+            label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} 
+            name="phone"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, userCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              style={{ borderRadius: 8 }} 
+              size="large"
+              countryCodeValue={userCountryCode}
+              onCountryCodeChange={setUserCountryCode}
+              isoCountryValue={userCountryIso}
+              onCountryIsoChange={setUserCountryIso}
+            />
           </Form.Item>
 
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: true, message: 'Password is required' }]}>
@@ -244,8 +279,29 @@ const AgencyUsersTab = () => {
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Email Address</Text>} name="email">
             <Input placeholder="user@agency.com" style={{ borderRadius: 8 }} size="large" disabled />
           </Form.Item>
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
-            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} size="large" />
+          <Form.Item 
+            label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} 
+            name="phone"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, editUserCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              style={{ borderRadius: 8 }} 
+              size="large"
+              countryCodeValue={editUserCountryCode}
+              onCountryCodeChange={setEditUserCountryCode}
+              isoCountryValue={editUserCountryIso}
+              onCountryIsoChange={setEditUserCountryIso}
+            />
           </Form.Item>
 
           <Form.Item label={<Text style={{ fontWeight: 600 }}>New Password</Text>} name="password" extra="Leave blank to keep current password">

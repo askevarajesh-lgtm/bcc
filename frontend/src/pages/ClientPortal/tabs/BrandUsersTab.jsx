@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Tag, Modal, Form, Input, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Users, CheckCircle2, UserPlus } from 'lucide-react';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 
@@ -11,6 +13,9 @@ const BrandUsersTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [form] = Form.useForm();
+
+  const [userCountryCode, setUserCountryCode] = useState('91');
+  const [userCountryIso, setUserCountryIso] = useState('IN');
 
   const fetchUsers = async () => {
     try {
@@ -46,6 +51,8 @@ const BrandUsersTab = () => {
         body: JSON.stringify({
           name: values.name,
           email: values.email,
+          phone: values.phone,
+          countryCode: userCountryCode,
           password: values.password,
           role: 'brand_manager'
         })
@@ -56,6 +63,8 @@ const BrandUsersTab = () => {
         message.success('User created successfully');
         setIsModalOpen(false);
         form.resetFields();
+        setUserCountryCode('91');
+        setUserCountryIso('IN');
         fetchUsers();
       } else {
         message.error(data.message || 'Failed to create user');
@@ -136,8 +145,29 @@ const BrandUsersTab = () => {
           <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
             <Input type="email" placeholder="jane@brand.com" />
           </Form.Item>
-          <Form.Item name="phone" label="Phone Number">
-            <Input placeholder="+1234567890" />
+          <Form.Item 
+            name="phone" 
+            label="Phone Number"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, userCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              size="large" 
+              style={{ borderRadius: 8 }} 
+              countryCodeValue={userCountryCode}
+              onCountryCodeChange={setUserCountryCode}
+              isoCountryValue={userCountryIso}
+              onCountryIsoChange={setUserCountryIso}
+            />
           </Form.Item>
           <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Please enter a password' }]}>
             <Input.Password placeholder="Enter a secure password" />

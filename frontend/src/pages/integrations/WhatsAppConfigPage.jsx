@@ -39,6 +39,8 @@ import {
   useGetEventConfigsQuery,
   useUpsertEventConfigMutation,
 } from "../../api/integrationApi";
+import PhoneInput from "../../components/common/PhoneInput";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -236,11 +238,14 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
   const [eventConfigForm] = Form.useForm();
   const [testModalVisible, setTestModalVisible] = useState(false);
   const [eventConfigModalVisible, setEventConfigModalVisible] = useState(false);
+  const [editingEventType, setEditingEventType] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState("91");
+  const [whatsappCountryIso, setWhatsappCountryIso] = useState("IN");
   const [testLoading, setTestLoading] = useState(false);
   const [connectionTesting, setConnectionTesting] = useState(false);
   const [activeTab, setActiveTab] = useState("1");
-  const [editingEventType, setEditingEventType] = useState(null);
   const [isEditing, setIsEditing] = useState(id === "new");
 
   const {
@@ -409,9 +414,15 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
         }
       });
 
+      // Ensure it starts with +, but avoid double country codes
+      let formattedPhone = values.phone;
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = `+${whatsappCountryCode}${formattedPhone}`;
+      }
+
       await sendMessage({
         id: whatsappIntegration._id,
-        to: values.phone,
+        to: formattedPhone,
         templateId: selectedTemplate.id,
         variables: variables,
       }).unwrap();
@@ -957,16 +968,24 @@ const WhatsAppConfigPage = ({ integrationId: propId, onBack }) => {
                 label="Phone Number"
                 name="phone"
                 rules={[
-                  { required: true, message: "Please enter phone number" },
                   {
-                    pattern: /^\+?[1-9]\d{1,14}$/,
-                    message:
-                      "Please enter a valid phone number with country code",
-                  },
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      if (isValidPhoneNumber(value, whatsappCountryIso)) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                    }
+                  }
                 ]}
-                help="Include country code (e.g., +919876543210)"
+                help="Select country code and enter local number"
               >
-                <Input placeholder="+919876543210" />
+                <PhoneInput 
+                  countryCodeValue={whatsappCountryCode}
+                  onCountryCodeChange={setWhatsappCountryCode}
+                  isoCountryValue={whatsappCountryIso}
+                  onCountryIsoChange={setWhatsappCountryIso}
+                />
               </Form.Item>
 
               {selectedTemplate.variables.map((varInfo) => (

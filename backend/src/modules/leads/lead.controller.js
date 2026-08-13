@@ -1,6 +1,7 @@
 const { sendError, sendSuccess } = require("../../utils/response");
 const leadService = require("./lead.service");
 const { uploadAnyFileToCloudinary } = require("../../utils/cloudinary");
+const { validatePhoneNumber } = require("../../utils/phoneValidation");
 
 const getLeads = async (req, res) => {
   try {
@@ -57,6 +58,14 @@ const createLead = async (req, res) => {
       leadData.clientId = req.user.clientId;
     }
 
+    // Validate Phone Number
+    if (leadData.phoneNumber) {
+      const validation = validatePhoneNumber(leadData.phoneNumber, leadData.countryCode);
+      if (!validation.isValid) {
+        return sendError(res, 400, validation.message);
+      }
+    }
+
     const lead = await leadService.createLead(
       leadData,
       req.companyId,
@@ -99,6 +108,20 @@ const updateLead = async (req, res) => {
     const leadData = { ...req.body };
     if (req.user.role === "client") {
       leadData.clientId = req.user.clientId;
+    }
+
+    // Validate Phone Number
+    if (leadData.phoneNumber) {
+      let cCode = leadData.countryCode;
+      if (!cCode) {
+        const Lead = require('./lead.model');
+        const existingLead = await Lead.findById(req.params.id).select('countryCode');
+        cCode = existingLead?.countryCode;
+      }
+      const validation = validatePhoneNumber(leadData.phoneNumber, cCode);
+      if (!validation.isValid) {
+        return sendError(res, 400, validation.message);
+      }
     }
 
     const lead = await leadService.updateLead(

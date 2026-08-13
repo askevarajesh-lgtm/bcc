@@ -3,6 +3,8 @@ import { Typography, Card, Table, Button, Input, Tag, Space, Dropdown, Menu, Mod
 import { motion } from 'framer-motion';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Shield, UserX, UserCheck } from 'lucide-react';
 import api from '../../services/api';
+import PhoneInput from '../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -14,6 +16,9 @@ const Admins = () => {
   const [adminsData, setAdminsData] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [adminCountryCode, setAdminCountryCode] = useState('91');
+  const [adminCountryIso, setAdminCountryIso] = useState('IN');
 
   const fetchData = async () => {
     try {
@@ -66,6 +71,7 @@ const Admins = () => {
         name: values.name,
         email: values.email,
         phone: values.phone,
+        countryCode: adminCountryCode,
         role: values.role,
         status: values.status === 'inactive' ? 'inactive' : 'active'
       };
@@ -82,6 +88,8 @@ const Admins = () => {
       setIsModalOpen(false);
       setEditId(null);
       form.resetFields();
+      setAdminCountryCode('91');
+      setAdminCountryIso('IN');
       fetchData();
     } catch (error) {
       if (error.response) {
@@ -102,6 +110,8 @@ const Admins = () => {
 
   const handleEdit = (record) => {
     setEditId(record._id);
+    setAdminCountryCode(record.countryCode || '91');
+    setAdminCountryIso(record.countryIso || '');
     form.setFieldsValue({
       name: record.name,
       email: record.email,
@@ -264,7 +274,7 @@ const Admins = () => {
       <Modal
         title={<span style={{ fontWeight: 700, fontSize: 18 }}>{editId ? 'Edit Admin User' : 'Add New Admin User'}</span>}
         open={isModalOpen}
-        onCancel={() => { setIsModalOpen(false); setEditId(null); form.resetFields(); }}
+        onCancel={() => { setIsModalOpen(false); setEditId(null); form.resetFields(); setAdminCountryCode('91'); setAdminCountryIso('IN'); }}
         footer={null}
         className="glass-modal"
         centered
@@ -279,8 +289,28 @@ const Admins = () => {
             <Input placeholder="sarah@m1platform.com" style={{ borderRadius: 8 }} />
           </Form.Item>
           
-          <Form.Item label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} name="phone">
-            <Input placeholder="+1234567890" style={{ borderRadius: 8 }} />
+          <Form.Item 
+            label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>} 
+            name="phone"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, adminCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              style={{ borderRadius: 8 }} 
+              countryCodeValue={adminCountryCode}
+              onCountryCodeChange={setAdminCountryCode}
+              isoCountryValue={adminCountryIso}
+              onCountryIsoChange={setAdminCountryIso}
+            />
           </Form.Item>
           
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Password</Text>} name="password" rules={[{ required: !editId, message: 'Password is required' }]}>

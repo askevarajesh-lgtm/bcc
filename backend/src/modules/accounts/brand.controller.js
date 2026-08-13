@@ -1,5 +1,5 @@
 const User = require('../auth/user.model');
-const { parsePhoneNumberFromString } = require('libphonenumber-js');
+const { validatePhoneNumber } = require('../../utils/phoneValidation');
 
 // Get all brands/companies for the current agency
 exports.getBrands = async (req, res, next) => {
@@ -66,10 +66,9 @@ exports.createBrand = async (req, res, next) => {
 
     // Validate Phone Number
     if (phone) {
-      const cCode = countryCode || '91';
-      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
-      if (!phoneNumber || !phoneNumber.isValid()) {
-        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      const validation = validatePhoneNumber(phone, countryCode);
+      if (!validation.isValid) {
+        return res.status(400).json({ success: false, message: validation.message });
       }
     }
 
@@ -330,11 +329,11 @@ exports.updateBrand = async (req, res, next) => {
       let cCode = req.body.countryCode;
       if (!cCode) {
         const existingBrand = await User.findOne(filter).select('countryCode');
-        cCode = existingBrand?.countryCode || '91';
+        cCode = existingBrand?.countryCode;
       }
-      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
-      if (!phoneNumber || !phoneNumber.isValid()) {
-        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      const validation = validatePhoneNumber(phone, cCode);
+      if (!validation.isValid) {
+        return res.status(400).json({ success: false, message: validation.message });
       }
       updates.phone = phone;
       if (req.body.countryCode) updates.countryCode = req.body.countryCode;
