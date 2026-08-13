@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Upload, Pencil, Trash2, Plus, Palette, Layout, Database, Users, Bell, MoreVertical, Eye, Ban, CheckCircle } from 'lucide-react';
 import { useFeatures } from '../../contexts/FeatureContext';
 import api from '../../services/api';
+import PhoneInput from '../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -35,6 +37,12 @@ const PortalSettings = () => {
   const [editingBrand, setEditingBrand] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dbBrands, setDbBrands] = useState([]);
+  
+  const [brandCountryCode, setBrandCountryCode] = useState('91');
+  const [brandCountryIso, setBrandCountryIso] = useState('IN');
+  
+  const [brandEditCountryCode, setBrandEditCountryCode] = useState('91');
+  const [brandEditCountryIso, setBrandEditCountryIso] = useState('IN');
   
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -88,6 +96,7 @@ const PortalSettings = () => {
 
       const payload = {
         ...values,
+        countryCode: brandCountryCode,
         features: values.features || [],
         additionalIntegrations,
         disabledPackageIntegrations
@@ -100,6 +109,8 @@ const PortalSettings = () => {
         message.success('Direct Brand created successfully');
         setIsCreateModalOpen(false);
         form.resetFields();
+        setBrandCountryCode('91');
+        setBrandCountryIso('IN');
         fetchBrands();
       } else {
         message.error(data.message || 'Failed to create brand');
@@ -123,6 +134,8 @@ const PortalSettings = () => {
 
       const payload = {
         name: values.name,
+        phone: values.phone,
+        countryCode: brandEditCountryCode,
         packageName: values.packageName,
         features: values.features || [],
         additionalIntegrations,
@@ -298,8 +311,11 @@ const PortalSettings = () => {
                             ])
                           ];
 
+                          setBrandEditCountryCode(record.countryCode || '91');
+                          setBrandEditCountryIso('');
                           editForm.setFieldsValue({
                             name: record.companyName || (record.name ? record.name.replace(' Admin', '') : ''),
+                            phone: record.phone,
                             packageName: record.packageName,
                             features: record.features || [],
                             integrations: effectiveIntegrations,
@@ -382,6 +398,29 @@ const PortalSettings = () => {
             
             <Form.Item name="email" label="Admin Email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
               <Input type="email" placeholder="admin@brand.com" />
+            </Form.Item>
+            
+            <Form.Item 
+              name="phone" 
+              label="Phone Number"
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+                    if (isValidPhoneNumber(value, brandCountryIso)) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                  }
+                }
+              ]}
+            >
+              <PhoneInput 
+                countryCodeValue={brandCountryCode}
+                onCountryCodeChange={setBrandCountryCode}
+                isoCountryValue={brandCountryIso}
+                onCountryIsoChange={setBrandCountryIso}
+              />
             </Form.Item>
             
             <Form.Item name="password" label="Initial Password" rules={[{ required: true, message: 'Please enter a password' }]}>
@@ -473,6 +512,29 @@ const PortalSettings = () => {
         >
           <Form.Item name="name" label={<span><span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Brand Name</span></span>} rules={[{ required: true, message: 'Please enter brand name' }]}>
             <Input size="large" style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Form.Item 
+            name="phone" 
+            label={<span><span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Phone Number</span></span>}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, brandEditCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              countryCodeValue={brandEditCountryCode}
+              onCountryCodeChange={setBrandEditCountryCode}
+              isoCountryValue={brandEditCountryIso}
+              onCountryIsoChange={setBrandEditCountryIso}
+            />
           </Form.Item>
 
           <Form.Item name="packageName" label={<span><span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Package Selection</span></span>} rules={[{ required: true, message: 'Please select a package' }]}>

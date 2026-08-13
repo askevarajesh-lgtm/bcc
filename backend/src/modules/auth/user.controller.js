@@ -1,6 +1,7 @@
 const User = require('./user.model');
 const Role = require('../roles/role.model');
 const Department = require('../departments/department.model');
+const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
 const SYSTEM_ROLES = [
   'supreme_super_admin',
@@ -102,6 +103,15 @@ exports.getUser = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const userData = { ...req.body };
+    
+    // Validate Phone Number
+    if (userData.phone) {
+      const countryCode = userData.countryCode || '91';
+      const phoneNumber = parsePhoneNumberFromString("+" + countryCode + userData.phone);
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      }
+    }
     
     // Check for Two-Tier Role Mapping
     let incomingRole = userData.role;
@@ -244,6 +254,19 @@ exports.updateUser = async (req, res, next) => {
   try {
     // Prevent password update through this route
     const { password, ...updateData } = req.body;
+    
+    // Validate Phone Number
+    if (updateData.phone) {
+      let countryCode = updateData.countryCode;
+      if (!countryCode) {
+         const existingUser = await User.findById(req.params.id).select('countryCode');
+         countryCode = existingUser?.countryCode || '91';
+      }
+      const phoneNumber = parsePhoneNumberFromString("+" + countryCode + updateData.phone);
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      }
+    }
     
     // Check for Two-Tier Role Mapping during update
     if (updateData.role && !SYSTEM_ROLES.includes(updateData.role)) {

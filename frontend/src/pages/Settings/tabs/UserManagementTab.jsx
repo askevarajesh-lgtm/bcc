@@ -11,6 +11,8 @@ import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -41,6 +43,10 @@ const UserManagementTab = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+  
+  // Phone state for modal
+  const [userCountryCode, setUserCountryCode] = useState('91');
+  const [userCountryIso, setUserCountryIso] = useState('IN');
 
   // Search states
   const [userSearch, setUserSearch] = useState('');
@@ -270,6 +276,9 @@ const UserManagementTab = () => {
                const customRole = roles.find(r => r._id === record.customRoleId);
                if (customRole) formRole = customRole.roleKey || customRole._id;
             }
+            setUserCountryCode(record.countryCode || '91');
+            // Reset ISO to let PhoneInput determine it based on country code
+            setUserCountryIso('');
             userForm.setFieldsValue({
               ...record,
               role: formRole,
@@ -422,7 +431,7 @@ const UserManagementTab = () => {
     try {
       const values = await userForm.validateFields();
       setSubmitLoading(true);
-      const payload = { ...values, isActive: values.status === 'active' };
+      const payload = { ...values, isActive: values.status === 'active', countryCode: userCountryCode };
       if (userModal.record) {
         await api.put(`/users/${userModal.record._id}`, payload);
         message.success('User updated');
@@ -458,7 +467,13 @@ const UserManagementTab = () => {
           <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Manage users, departments, and roles.</Text>
         </div>
         {activeTab === 'user' && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setUserModal({ open: true, record: null }); userForm.resetFields(); userForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { 
+            setUserModal({ open: true, record: null }); 
+            userForm.resetFields(); 
+            userForm.setFieldsValue({ status: 'active' }); 
+            setUserCountryCode('91');
+            setUserCountryIso('IN');
+          }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
             Add User
           </Button>
         )}
@@ -598,8 +613,29 @@ const UserManagementTab = () => {
           <Form.Item name="email" label={<strong style={{ color: 'var(--text-secondary)' }}>Email Address</strong>} rules={[{ required: true, type: 'email' }]}>
             <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
           </Form.Item>
-          <Form.Item name="phone" label={<strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>}>
-            <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+          <Form.Item 
+            name="phone" 
+            label={<strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, userCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              size="large" 
+              style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} 
+              countryCodeValue={userCountryCode}
+              onCountryCodeChange={setUserCountryCode}
+              isoCountryValue={userCountryIso}
+              onCountryIsoChange={setUserCountryIso}
+            />
           </Form.Item>
           {!userModal.record && (
             <Form.Item name="password" label={<strong style={{ color: 'var(--text-secondary)' }}>Password</strong>} rules={[{ required: true, message: 'Please set a password' }]}>

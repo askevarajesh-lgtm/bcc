@@ -1,4 +1,5 @@
 const User = require('../auth/user.model');
+const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
 const normalizeIntegrations = (value) => {
   if (!Array.isArray(value)) return [];
@@ -78,8 +79,17 @@ exports.getAgency = async (req, res, next) => {
 
 exports.createAgency = async (req, res, next) => {
   try {
-    const { name, email, password, package: packageId, plan, status, logo, logoDark } = req.body;
+    const { name, email, password, phone, countryCode, package: packageId, plan, status, logo, logoDark } = req.body;
     const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
+
+    // Validate Phone Number
+    if (phone) {
+      const cCode = countryCode || '91';
+      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      }
+    }
 
     // Check if user with this email already exists
     const existingUser = await User.findOne({ email });
@@ -154,6 +164,8 @@ exports.createAgency = async (req, res, next) => {
     const agencyUser = await User.create({
       name: name + ' Admin',
       email,
+      phone,
+      countryCode: countryCode || (phone ? '91' : undefined),
       password: password || undefined,
       role: targetRole,
       companyName: name,

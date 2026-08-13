@@ -1,4 +1,5 @@
 const User = require('../auth/user.model');
+const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
 // Get all brands/companies for the current agency
 exports.getBrands = async (req, res, next) => {
@@ -62,6 +63,15 @@ exports.getBrands = async (req, res, next) => {
 exports.createBrand = async (req, res, next) => {
   try {
     const { name, email, password, packageName, features, mrr, phone, countryCode, address } = req.body;
+
+    // Validate Phone Number
+    if (phone) {
+      const cCode = countryCode || '91';
+      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      }
+    }
 
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
@@ -314,12 +324,27 @@ exports.updateBrand = async (req, res, next) => {
 
     const { name, email, phone, address, packageName, features, additionalIntegrations, disabledPackageIntegrations, mrr, extraUsers } = req.body;
     let updates = {};
+    
+    // Validate Phone Number
+    if (phone) {
+      let cCode = req.body.countryCode;
+      if (!cCode) {
+        const existingBrand = await User.findOne(filter).select('countryCode');
+        cCode = existingBrand?.countryCode || '91';
+      }
+      const phoneNumber = parsePhoneNumberFromString("+" + cCode + phone);
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number for the selected country.' });
+      }
+      updates.phone = phone;
+      if (req.body.countryCode) updates.countryCode = req.body.countryCode;
+    }
+    
     if (name) {
       updates.companyName = name;
       updates.name = name + ' Admin';
     }
     if (email) updates.email = email;
-    if (phone) updates.phone = phone;
     if (address) updates.address = address;
     if (mrr !== undefined) updates.mrr = mrr;
     if (extraUsers !== undefined) updates.extraUsers = extraUsers;

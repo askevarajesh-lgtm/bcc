@@ -3,6 +3,8 @@ import { Typography, Row, Col, Card, Table, Tag, Button, Input, Select, Progress
 import { motion } from 'framer-motion';
 import { Download, Plus, LayoutGrid, List, ArrowUpRight, Users, CircleDollarSign, Activity, AlertTriangle, MoreVertical, Edit2, Trash2, ShieldOff, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
+import PhoneInput from '../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -39,6 +41,9 @@ const Accounts = () => {
   const [editingAgency, setEditingAgency] = useState(null);
   const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [form] = Form.useForm();
+  
+  const [agencyCountryCode, setAgencyCountryCode] = useState('91');
+  const [agencyCountryIso, setAgencyCountryIso] = useState('IN');
 
   const selectedPackageObj = packages.find(p => p._id === selectedPackageId);
 
@@ -97,9 +102,12 @@ const Accounts = () => {
         ])
       ];
 
+      setAgencyCountryCode(agency.countryCode || '91');
+      setAgencyCountryIso(''); // Reset ISO so PhoneInput recalcs from countryCode
       form.setFieldsValue({
         name: agency.name,
         email: agency.email,
+        phone: agency.phone,
         package: pkgId,
         features: agency.features || [],
         integrations: effectiveIntegrations,
@@ -110,6 +118,8 @@ const Accounts = () => {
       setEditingAgency(null);
       setSelectedPackageId(null);
       form.resetFields();
+      setAgencyCountryCode('91');
+      setAgencyCountryIso('IN');
     }
     setIsModalOpen(true);
   };
@@ -127,6 +137,8 @@ const Accounts = () => {
       if (editingAgency) {
         await api.put(`/agencies/${editingAgency._id}`, {
           name: values.name,
+          phone: values.phone,
+          countryCode: agencyCountryCode,
           package: values.package,
           features: values.features,
           additionalIntegrations,
@@ -140,6 +152,8 @@ const Accounts = () => {
           name: values.name,
           email: values.email,
           password: values.password,
+          phone: values.phone,
+          countryCode: agencyCountryCode,
           package: values.package,
           features: values.features,
           additionalIntegrations,
@@ -426,6 +440,31 @@ const Accounts = () => {
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Agency Name</Text>} name="name" rules={[{ required: true, message: 'Please enter agency name' }]}>
             <Input placeholder="e.g. Acme Corp" style={{ borderRadius: 8 }} size="large" />
+          </Form.Item>
+
+          <Form.Item 
+            name="phone" 
+            label={<Text style={{ fontWeight: 600 }}>Phone Number</Text>}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, agencyCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              size="large" 
+              style={{ borderRadius: 8 }} 
+              countryCodeValue={agencyCountryCode}
+              onCountryCodeChange={setAgencyCountryCode}
+              isoCountryValue={agencyCountryIso}
+              onCountryIsoChange={setAgencyCountryIso}
+            />
           </Form.Item>
 
           {!editingAgency && (
