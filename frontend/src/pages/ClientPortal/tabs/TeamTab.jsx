@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Card, Button, Table, Tag, Modal, Form, Input, Select, message } from 'antd';
 import { motion } from 'framer-motion';
 import { Users, CheckCircle2 } from 'lucide-react';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -11,6 +13,9 @@ const TeamTab = () => {
   const [loading, setLoading] = useState(true);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [form] = Form.useForm();
+
+  const [teamCountryCode, setTeamCountryCode] = useState('91');
+  const [teamCountryIso, setTeamCountryIso] = useState('IN');
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -55,15 +60,19 @@ const TeamTab = () => {
         body: JSON.stringify({
           name: values.name,
           email: values.email,
+          phone: values.phone,
+          countryCode: teamCountryCode,
           password: values.password,
           role: values.role
         })
       });
       const data = await res.json();
       if (data.success) {
-        message.success('User added successfully');
+        message.success('Team member added successfully');
         setIsInviteModalOpen(false);
         form.resetFields();
+        setTeamCountryCode('91');
+        setTeamCountryIso('IN');
         fetchUsers();
       } else {
         message.error(data.message || 'Failed to add user');
@@ -130,8 +139,29 @@ const TeamTab = () => {
           <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email' }]}>
             <Input placeholder="john@company.com" size="large" style={{ borderRadius: 8 }} />
           </Form.Item>
-          <Form.Item name="phone" label="Phone Number">
-            <Input placeholder="+1234567890" size="large" style={{ borderRadius: 8 }} />
+          <Form.Item 
+            name="phone" 
+            label="Phone Number"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, teamCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              size="large" 
+              style={{ borderRadius: 8 }} 
+              countryCodeValue={teamCountryCode}
+              onCountryCodeChange={setTeamCountryCode}
+              isoCountryValue={teamCountryIso}
+              onCountryIsoChange={setTeamCountryIso}
+            />
           </Form.Item>
           <Form.Item name="password" label="Password" rules={[{ required: true }]}>
             <Input.Password placeholder="Secure password" size="large" style={{ borderRadius: 8 }} />

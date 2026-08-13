@@ -3,6 +3,8 @@ import { Button, Table, Typography, Space, Input, Select, Card, Row, Col, Popcon
 import { Plus, Trash2, Link2, MessageSquare, Phone, Mail, CreditCard, FormInput, User, FileText, Wifi, QrCode, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import QRCode from "qrcode";
+import PhoneInput from "../../../components/common/PhoneInput";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -54,6 +56,10 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
     vcardPhone: '',
     vcardEmail: '',
     vcardUrl: '',
+    countryCode: '91',
+    countryIso: 'IN',
+    vcardCountryCode: '91',
+    vcardCountryIso: 'IN',
     foreground: 'var(--accent-primary)',
     background: '#ffffff',
     shape: 'Square'
@@ -313,12 +319,15 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
           <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan triggers a direct phone call request.</Text>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
-            <Input 
+            <PhoneInput 
               size="large"
-              placeholder="+1234567890" 
+              style={{ borderRadius: 8 }}
+              countryCodeValue={formData.countryCode}
+              onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
+              isoCountryValue={formData.countryIso}
+              onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
-              style={{ borderRadius: 8 }}
             />
           </div>
         </div>
@@ -332,12 +341,15 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
           <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan drafts an SMS message to a specific number.</Text>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
-            <Input 
+            <PhoneInput 
               size="large"
-              placeholder="+1234567890" 
+              style={{ borderRadius: 8 }}
+              countryCodeValue={formData.countryCode}
+              onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
+              isoCountryValue={formData.countryIso}
+              onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
-              style={{ borderRadius: 8 }}
             />
           </div>
           <div>
@@ -360,13 +372,16 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
           <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>WhatsApp Action</Title>
           <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Scan opens WhatsApp chat with custom pre-filled message.</Text>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number (Include Country Code)</div>
-            <Input 
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
+            <PhoneInput 
               size="large"
-              placeholder="e.g. 15551234567" 
+              style={{ borderRadius: 8 }}
+              countryCodeValue={formData.countryCode}
+              onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
+              isoCountryValue={formData.countryIso}
+              onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
-              style={{ borderRadius: 8 }}
             />
           </div>
           <div>
@@ -489,7 +504,16 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
           </div>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Phone Number</div>
-            <Input size="large" value={formData.vcardPhone} onChange={e => setFormData({...formData, vcardPhone: e.target.value})} style={{ borderRadius: 8 }} />
+            <PhoneInput 
+              size="large"
+              style={{ borderRadius: 8 }}
+              countryCodeValue={formData.vcardCountryCode}
+              onCountryCodeChange={val => setFormData({...formData, vcardCountryCode: val})}
+              isoCountryValue={formData.vcardCountryIso}
+              onCountryIsoChange={val => setFormData({...formData, vcardCountryIso: val})}
+              value={formData.vcardPhone}
+              onChange={e => setFormData({...formData, vcardPhone: e.target.value})}
+            />
           </div>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Email Address</div>

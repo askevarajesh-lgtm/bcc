@@ -14,6 +14,8 @@ import {
   useAddLeadReminderMutation
 } from '../../api/leadApi';
 import { useSyncWhatsAppLeadsMutation } from '../../api/integrationApi';
+import PhoneInput from '../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import dayjs from 'dayjs';
 import { useActionPermissions } from "../../hooks/useActionPermissions";
 
@@ -38,6 +40,9 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   const [reminderDesc, setReminderDesc] = useState('');
   const [reminderDate, setReminderDate] = useState(null);
   const [reminderTo, setReminderTo] = useState(null);
+
+  const [leadCountryCode, setLeadCountryCode] = useState('91');
+  const [leadCountryIso, setLeadCountryIso] = useState('IN');
 
   const [form] = Form.useForm();
   
@@ -79,6 +84,8 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
 
   const handleEditClick = (record) => {
     setEditingLead(record);
+    setLeadCountryCode(record.countryCode || '91');
+    setLeadCountryIso(record.countryIso || '');
     form.setFieldsValue({
       fullName: record.fullName,
       companyName: record.companyName,
@@ -116,16 +123,18 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     form.validateFields().then(async (values) => {
       try {
         if (editingLead) {
-          await updateLead({ id: editingLead._id, ...values, status: values.status.toLowerCase() }).unwrap();
+          await updateLead({ id: editingLead._id, ...values, countryCode: leadCountryCode, status: values.status.toLowerCase() }).unwrap();
           message.success('Lead updated successfully');
         } else {
-          await createLead({ ...values, status: values.status.toLowerCase() }).unwrap();
+          await createLead({ ...values, countryCode: leadCountryCode, status: values.status.toLowerCase() }).unwrap();
           message.success('Lead created successfully');
         }
         refetch?.();
         setIsModalOpen(false);
         setEditingLead(null);
         form.resetFields();
+        setLeadCountryCode('91');
+        setLeadCountryIso('IN');
       } catch (error) {
         message.error(error?.data?.message || error.message || 'Failed to save lead');
       }
@@ -241,7 +250,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
               </>
             )}
             {canAdd && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingLead(null); form.resetFields(); setIsModalOpen(true); }} style={{ borderRadius: 8, fontWeight: 600, background: '#0e4ca2', border: 'none' }}>Add Lead</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingLead(null); form.resetFields(); setLeadCountryCode('91'); setLeadCountryIso('IN'); setIsModalOpen(true); }} style={{ borderRadius: 8, fontWeight: 600, background: '#0e4ca2', border: 'none' }}>Add Lead</Button>
             )}
           </Space>
         </div>
@@ -288,8 +297,29 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
           
           <Row gutter={24}>
             <Col span={12}>
-              <Form.Item name="phoneNumber" label={<CustomLabel text="Phone Number" />} rules={[{ required: true, message: 'Phone is required' }]}>
-                <Input size="large" placeholder="Phone number" style={{ borderRadius: 6 }} />
+              <Form.Item 
+                name="phoneNumber" 
+                label={<CustomLabel text="Phone Number" />} 
+                rules={[
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      if (isValidPhoneNumber(value, leadCountryIso)) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                    }
+                  }
+                ]}
+              >
+                <PhoneInput 
+                  size="large" 
+                  style={{ borderRadius: 6 }} 
+                  countryCodeValue={leadCountryCode}
+                  onCountryCodeChange={setLeadCountryCode}
+                  isoCountryValue={leadCountryIso}
+                  onCountryIsoChange={setLeadCountryIso}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>

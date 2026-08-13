@@ -10,6 +10,8 @@ import TaxSettingsTab from '../../Settings/tabs/TaxSettingsTab';
 import NotificationsTab from '../../Settings/tabs/NotificationsTab';
 import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
 import { Percent, Bell, Link2 } from 'lucide-react';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -41,6 +43,9 @@ const AgencySettingsTab = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
 
+  const [agencyCountryCode, setAgencyCountryCode] = useState('91');
+  const [agencyCountryIso, setAgencyCountryIso] = useState('IN');
+
   useEffect(() => {
     if (user) {
       formAgency.setFieldsValue({
@@ -53,6 +58,8 @@ const AgencySettingsTab = () => {
         theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
         theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
       });
+      setAgencyCountryCode(user.countryCode || '91');
+      setAgencyCountryIso(user.countryIso || '');
       if (user.logo) setLogoPreview(user.logo);
       if (user.logoDark) setLogoDarkPreview(user.logoDark);
       formAccount.setFieldsValue({
@@ -221,6 +228,7 @@ const AgencySettingsTab = () => {
         domain: values.domain,
         contactEmail: values.email,
         supportPhone: values.phone,
+        countryCode: agencyCountryCode,
         logo: values.logo,
         logoDark: values.logoDark,
         theme: {
@@ -318,8 +326,29 @@ const AgencySettingsTab = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label={<Text style={{ fontWeight: 600 }}>Support Phone</Text>} name="phone">
-                <Input size="large" style={{ borderRadius: 8 }} placeholder="+1 (555) 000-0000" />
+              <Form.Item 
+                label={<Text style={{ fontWeight: 600 }}>Support Phone</Text>} 
+                name="phone"
+                rules={[
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      if (isValidPhoneNumber(value, agencyCountryIso)) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                    }
+                  }
+                ]}
+              >
+                <PhoneInput 
+                  size="large" 
+                  style={{ borderRadius: 8 }} 
+                  countryCodeValue={agencyCountryCode}
+                  onCountryCodeChange={setAgencyCountryCode}
+                  isoCountryValue={agencyCountryIso}
+                  onCountryIsoChange={setAgencyCountryIso}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>

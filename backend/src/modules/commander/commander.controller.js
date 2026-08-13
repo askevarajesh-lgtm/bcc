@@ -115,7 +115,7 @@ exports.getCommandCenterData = async (req, res, next) => {
       const hasSla = clientSlas.length > 0;
       const hasTask = clientTasks.length > 0;
       
-      let realMos = 100; // Default to 100 if no data (perfect health)
+      let realMos = null; // Default to null if no data
       if (hasSla && hasTask) {
         realMos = Math.round((slaScore + taskScore) / 2);
       } else if (hasSla) {
@@ -124,12 +124,17 @@ exports.getCommandCenterData = async (req, res, next) => {
         realMos = taskScore;
       }
 
+      let status = 'no data';
+      if (realMos !== null) {
+        status = realMos >= 80 ? 'healthy' : (realMos >= 70 ? 'renewal' : 'at risk');
+      }
+
       return {
         id: (c.companyName || c.name || 'C').substring(0, 2).toUpperCase(),
         name: c.companyName || c.name || 'Client',
         industry: c.industry || 'Digital',
         mos: realMos,
-        status: realMos >= 80 ? 'healthy' : (realMos >= 70 ? 'renewal' : 'at risk')
+        status
       };
     }).sort((a, b) => b.mos - a.mos).slice(0, 7);
 
@@ -138,120 +143,45 @@ exports.getCommandCenterData = async (req, res, next) => {
       ? Math.round(topClients.reduce((acc, curr) => acc + curr.mos, 0) / topClients.length)
       : 100; // Fallback default
 
-    // Group recent tasks into 4 weeks
-    const week1Start = new Date(thirtyDaysAgo);
-    const week2Start = new Date(thirtyDaysAgo.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const week3Start = new Date(thirtyDaysAgo.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const week4Start = new Date(thirtyDaysAgo.getTime() + 21 * 24 * 60 * 60 * 1000);
+    // At-Risk Agencies (MOS < 70)
+    const atRiskAgencies = topClients.filter(c => c.mos !== null && c.mos < 70).length;
 
-    const week1Tasks = recentTasks.filter(t => t.createdAt >= week1Start && t.createdAt < week2Start);
-    const week2Tasks = recentTasks.filter(t => t.createdAt >= week2Start && t.createdAt < week3Start);
-    const week3Tasks = recentTasks.filter(t => t.createdAt >= week3Start && t.createdAt < week4Start);
-    const week4Tasks = recentTasks.filter(t => t.createdAt >= week4Start);
+    // Pipeline & Onboarding
+    const pendingOnboarding = await User.countDocuments({ 
+      role: { $in: ['commander_admin', 'agency_super_admin'] }, 
+      status: 'trial'
+    });
 
-    const countCompleted = (tasks) => tasks.filter(t => ['done', 'completed', 'complete'].includes(t.status?.toLowerCase())).length;
-
-    const executionActivityData = [
-      { name: 'Week 1', completed: countCompleted(week1Tasks), total: week1Tasks.length },
-      { name: 'Week 2', completed: countCompleted(week2Tasks), total: week2Tasks.length },
-      { name: 'Week 3', completed: countCompleted(week3Tasks), total: week3Tasks.length },
-      { name: 'Week 4', completed: countCompleted(week4Tasks), total: week4Tasks.length },
+    const pipelineData = [
+      { name: 'Active', value: activeClientsCount, fill: 'var(--accent-secondary)' },
+      { name: 'Onboarding', value: pendingOnboarding, fill: '#f59e0b' },
+      { name: 'Churned', value: await User.countDocuments({ role: { $in: ['commander_admin', 'agency_super_admin'] }, status: 'churned' }), fill: 'var(--accent-danger)' }
     ];
 
-    const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
-    const deptIdsToResolve = [
-      ...new Set(
-        recentTasks
-          .map((t) => t.department)
-          .filter((dept) => dept && OBJECT_ID_RE.test(dept)),
-      ),
+    // Activity counts (instead of misleading capacity)
+    const agencyActivity = [
+      { name: 'Tasks Logged', count: recentTasks.length, icon: 'tasks' },
+      { name: 'SLAs Created', count: slas.filter(s => s.createdAt >= thirtyDaysAgo).length, icon: 'slas' },
+      { name: 'Agencies Active', count: activeClientsCount, icon: 'users' }
     ];
 
-    let departmentNameById = {};
-    if (deptIdsToResolve.length > 0) {
-      const departmentDocs = await Department.find(
-        { _id: { $in: deptIdsToResolve } },
-        'name slug',
-      );
-      departmentNameById = departmentDocs.reduce((acc, d) => {
-        acc[d._id.toString()] = d.name || d.slug;
-        return acc;
-      }, {});
-    }
-
-    const resolveDeptName = (dept) => {
-      if (!dept) return 'Other';
-      if (OBJECT_ID_RE.test(dept)) {
-        return departmentNameById[dept] || 'Unassigned Department';
-      }
-      return dept;
-    };
-
-    const deptCounts = recentTasks.reduce((acc, t) => {
-      const dept = resolveDeptName(t.department);
-      acc[dept] = (acc[dept] || 0) + 1;
-      return acc;
-    }, {});
-    
-    const colors = ['var(--accent-secondary)', 'var(--accent-primary)', '#8b5cf6', '#ec4899', '#f59e0b'];
-    const teamUtilisationData = Object.keys(deptCounts).map((dept, idx) => ({
-      name: dept,
-      value: deptCounts[dept],
-      fill: colors[idx % colors.length]
-    }));
-    // If no data, provide a fallback so the pie chart doesn't break
-    if (teamUtilisationData.length === 0) {
-      teamUtilisationData.push({ name: 'No Data', value: 1, fill: 'var(--bg-tertiary)' });
-    }
-
-    // Team Capacity (Users with most tasks)
-    let capacityUserQuery = { 
-      status: 'active', 
-      role: { $in: ['agency_manager', 'agency_client', 'brand_manager', 'brand_team_user', 'brand_client'] } 
-    };
-    if (req.user && req.user.role === 'commander_admin') {
-      capacityUserQuery._id = { $in: allRelatedUserIds };
-    }
-    const allUsers = await User.find(capacityUserQuery).limit(20);
-    const teamCapacityData = [];
-    
-    for (let i = 0; i < Math.min(3, allUsers.length); i++) {
-      const u = allUsers[i];
-      const userTasks = await Task.find({ assignees: u._id });
-      const completed = countCompleted(userTasks);
-      const total = userTasks.length;
-      
-      teamCapacityData.push({
-        name: u.name || u.firstName || 'User',
-        initials: (u.name || u.firstName || 'U').substring(0, 2).toUpperCase(),
-        logged: completed,
-        capacity: total > 0 ? total : 1, // Avoid 0 denominator
-        color: colors[i % colors.length]
-      });
-    }
-    // If no users, provide a fallback
-    if (teamCapacityData.length === 0) {
-      teamCapacityData.push({
-        name: 'No Active Users',
-        initials: 'NA',
-        logged: 0,
-        capacity: 1,
-        color: 'var(--accent-secondary)'
-      });
-    }
+    const executionActivityData = [];
 
     res.status(200).json({
       success: true,
       data: {
         activeClients: activeClientsCount,
-        avgMosScore,
+        newAgencies: activeClientsDocs.filter(c => c.createdAt >= thirtyDaysAgo).length,
+        atRiskAgencies,
+        avgMosScore: avgMosScore === 100 ? null : avgMosScore, // Don't default to 100 if no data
         slaCompliance,
         openEscalations,
         topClients,
         alertsData,
         executionActivityData,
-        teamUtilisationData,
-        teamCapacityData
+        pipelineData,
+        agencyActivity,
+        pendingOnboarding
       }
     });
 

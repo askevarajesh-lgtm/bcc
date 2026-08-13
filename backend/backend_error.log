@@ -728,6 +728,7 @@ Require stack:
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
     at Axios.request (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:5517:41)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+<<<<<<< HEAD
     at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n2026-08-13T13:34:39.290Z\nMulterError: File too large
     at abortWithCode (E:\Office Projects\Bcc Seo\backend\node_modules\multer\lib\make-middleware.js:107:22)
     at FileStream.<anonymous> (E:\Office Projects\Bcc Seo\backend\node_modules\multer\lib\make-middleware.js:221:11)
@@ -745,3 +746,96 @@ Require stack:
     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
     at Readable.push (node:internal/streams/readable:392:5)
     at HTTPParser.parserOnBody (node:_http_common:129:24)\n\n
+=======
+    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n2026-08-13T07:54:31.885Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:38.543Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:40.021Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T07:54:52.892Z\nError: Integration type "ekta" is invalid or not available in your scope.
+    at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:18:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async exports.createPackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:189:7)\n\n2026-08-13T10:55:54.458Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T10:56:00.848Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T10:56:06.663Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T10:56:08.742Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T11:01:15.835Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T11:04:25.772Z\nMongoServerError: E11000 duplicate key error collection: bcc.users index: email_1 dup key: { email: "agencymanager@gmail.com" }
+    at InsertOneOperation.handleOk (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async Function.create (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:2763:5)
+    at async exports.createUser (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\auth\user.controller.js:228:18)\n\n2026-08-13T11:20:34.948Z\nStrictPopulateError: Cannot populate path `assignee` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:55:12)
+    at _populatePath (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:4496:21)
+    at Function.populate (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:4463:21)
+    at model.Query._find (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:2511:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async maybeTracedQueryExec (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:4801:65)
+    at async exports.getAgencyOperationsDashboard (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\accounts\agencyDashboard.service.js:163:23)
+    at async exports.getOverviewData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\accounts\agencyOverview.controller.js:16:14)\n\n2026-08-13T11:20:35.164Z\nStrictPopulateError: Cannot populate path `assignee` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:55:12)
+    at _populatePath (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:4496:21)
+    at Function.populate (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\model.js:4463:21)
+    at model.Query._find (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:2511:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async maybeTracedQueryExec (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\mongoose\lib\query.js:4801:65)
+    at async exports.getAgencyOperationsDashboard (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\accounts\agencyDashboard.service.js:163:23)
+    at async exports.getOverviewData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\accounts\agencyOverview.controller.js:16:14)\n\n2026-08-13T11:31:35.764Z\nReferenceError: executionActivityData is not defined
+    at exports.getCommandCenterData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\commander\commander.controller.js:179:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-13T11:31:36.041Z\nReferenceError: executionActivityData is not defined
+    at exports.getCommandCenterData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\commander\commander.controller.js:179:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-13T11:32:02.209Z\nReferenceError: executionActivityData is not defined
+    at exports.getCommandCenterData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\commander\commander.controller.js:179:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-13T11:32:02.897Z\nReferenceError: executionActivityData is not defined
+    at exports.getCommandCenterData (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\commander\commander.controller.js:179:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
+>>>>>>> origin/louis-v3

@@ -130,9 +130,9 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
 
   let allMenuItems = [
     {
-      key: role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard',
-      icon: getIcon(LayoutDashboard),
-      label: role === 'agency_client' ? 'Dashboard' : 'Command Center',
+      key: '/client/dashboard',
+      icon: <LayoutDashboard size={20} />,
+      label: 'Dashboard',
     },
   ];
 
@@ -339,7 +339,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       .filter((item) => item.key.startsWith('/'))
       .sort((a, b) => b.key.length - a.key.length)
       .find((item) => location.pathname.startsWith(item.key));
-    return [match?.key || (role === 'brand_super_admin' ? '/client/admin-dashboard' : role === 'brand_manager' ? '/client/manager-dashboard' : '/client/dashboard')];
+    return [match?.key || '/client/dashboard'];
   };
 
   return (

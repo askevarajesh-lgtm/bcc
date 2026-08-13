@@ -4,6 +4,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useGetIntegrationsQuery } from '../../../api/integrationApi';
 import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import PhoneInput from '../../../components/common/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import SlabCard from '../../../components/SlabCard';
 import TaskListView from '../../Tasks/TaskListView';
 import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
@@ -41,6 +43,11 @@ const ClientsTab = () => {
   const [clientInvoices, setClientInvoices] = useState([]);
   const [clientDataLoading, setClientDataLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [clientCountryCode, setClientCountryCode] = useState('91');
+  const [clientCountryIso, setClientCountryIso] = useState('IN');
+  const [clientEditCountryCode, setClientEditCountryCode] = useState('91');
+  const [clientEditCountryIso, setClientEditCountryIso] = useState('IN');
 
   const { features: agencyFeatures } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
@@ -122,6 +129,7 @@ const ClientsTab = () => {
 
       const payload = {
         ...values,
+        countryCode: clientCountryCode,
         features: selectedPackage ? selectedPackage.features : [],
         mrr: selectedPackage ? selectedPackage.price : 0
       };
@@ -140,6 +148,8 @@ const ClientsTab = () => {
         message.success('Client created successfully');
         setIsCreateModalOpen(false);
         form.resetFields();
+        setClientCountryCode('91');
+        setClientCountryIso('IN');
         fetchClients();
       } else {
         message.error(data.message || 'Failed to create client');
@@ -166,6 +176,7 @@ const ClientsTab = () => {
           name: values.name,
           email: values.email,
           phone: values.phone,
+          countryCode: clientEditCountryCode,
           address: values.address,
           packageName: values.packageName || null
         })
@@ -394,10 +405,27 @@ const ClientsTab = () => {
                   <Form.Item
                     name="phone"
                     label={<span style={{ fontWeight: 600 }}>Phone Number</span>}
-                    rules={[{ required: true, message: 'Please enter a phone number' }]}
+                    rules={[
+                      {
+                        validator: (_, value) => {
+                          if (!value) return Promise.resolve();
+                          if (isValidPhoneNumber(value, clientCountryIso)) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                        }
+                      }
+                    ]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Input placeholder="e.g. +91 9876543210" size="large" style={{ borderRadius: 8 }} />
+                    <PhoneInput 
+                      size="large" 
+                      style={{ borderRadius: 8 }} 
+                      countryCodeValue={clientCountryCode}
+                      onCountryCodeChange={setClientCountryCode}
+                      isoCountryValue={clientCountryIso}
+                      onCountryIsoChange={setClientCountryIso}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
@@ -524,6 +552,8 @@ const ClientsTab = () => {
                         label: 'Edit Client',
                         onClick: () => {
                           setEditingClient(record);
+                          setClientEditCountryCode(record.countryCode || '91');
+                          setClientEditCountryIso(record.countryIso || '');
                           editForm.setFieldsValue({
                             name: record.companyName || record.name,
                             email: record.adminEmail || record.email,
@@ -696,9 +726,26 @@ const ClientsTab = () => {
                   <Form.Item
                     name="phone"
                     label={<span style={{ fontWeight: 600 }}>Phone Number</span>}
-                    rules={[{ required: true, message: 'Please enter a phone number' }]}
+                    rules={[
+                      {
+                        validator: (_, value) => {
+                          if (!value) return Promise.resolve();
+                          if (isValidPhoneNumber(value, clientEditCountryIso)) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                        }
+                      }
+                    ]}
                   >
-                    <Input placeholder="e.g. +91 9876543210" size="large" style={{ borderRadius: 8 }} />
+                    <PhoneInput 
+                      size="large" 
+                      style={{ borderRadius: 8 }} 
+                      countryCodeValue={clientEditCountryCode}
+                      onCountryCodeChange={setClientEditCountryCode}
+                      isoCountryValue={clientEditCountryIso}
+                      onCountryIsoChange={setClientEditCountryIso}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
