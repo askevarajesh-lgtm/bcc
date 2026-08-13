@@ -23,10 +23,10 @@ const DeliverablesPage = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   
   // Fetch all projects (populated with clientId)
-  const { data: projectsResponse, isLoading } = useGetProjectsQuery({ limit: 1000 });
+  const { data: projectsResponse, isLoading, refetch: refetchProjects } = useGetProjectsQuery({ limit: 1000 });
   const projects = projectsResponse?.data?.data || projectsResponse?.data?.projects || [];
 
-  const { data: tasksData, isLoading: isLoadingTasks } = useGetTasksQuery(
+  const { data: tasksData, isLoading: isLoadingTasks, refetch: refetchTasks } = useGetTasksQuery(
     { projectId: selectedProjectForTasks?._id, limit: 1000 },
     { skip: !selectedProjectForTasks }
   );
@@ -409,7 +409,11 @@ const DeliverablesPage = () => {
         task={selectedTaskDetails}
         visible={!!selectedTaskDetails}
         onClose={() => setSelectedTaskDetails(null)}
-        onTaskCompleted={() => setShowCelebration(true)}
+        onTaskCompleted={() => {
+          setShowCelebration(true);
+          if (refetchProjects) refetchProjects();
+          if (refetchTasks) refetchTasks();
+        }}
       />
 
       <TaskCompletionCelebrate

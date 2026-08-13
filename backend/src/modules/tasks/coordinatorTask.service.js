@@ -111,40 +111,28 @@ const getTodayCoordinatorTaskStats = async (userId, tenantCompanyId) => {
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
 
-  const stats = await CoordinatorTask.aggregate([
-    {
-      $match: {
-        assignedTo: new (require("mongoose").Types.ObjectId)(userId),
-        tenantCompanyId: new (require("mongoose").Types.ObjectId)(
-          tenantCompanyId,
-        ),
-        taskDate: { $gte: todayStart, $lte: todayEnd },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalToday: { $sum: 1 },
-        completedToday: {
-          $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
-        },
-      },
-    },
-  ]);
+  // 1. All active (incomplete) tasks
+  const activeTasksCount = await CoordinatorTask.countDocuments({
+    assignedTo: new (require("mongoose").Types.ObjectId)(userId),
+    tenantCompanyId: new (require("mongoose").Types.ObjectId)(tenantCompanyId),
+    status: { $ne: "completed" },
+  });
 
-  if (stats.length === 0) {
-    return {
-      totalToday: 0,
-      completedToday: 0,
-      remainingToday: 0,
-    };
-  }
+  // 2. All tasks completed by the user TODAY
+  const completedTodayCount = await CoordinatorTask.countDocuments({
+    assignedTo: new (require("mongoose").Types.ObjectId)(userId),
+    tenantCompanyId: new (require("mongoose").Types.ObjectId)(tenantCompanyId),
+    status: "completed",
+    updatedAt: { $gte: todayStart, $lte: todayEnd },
+  });
 
-  const { totalToday, completedToday } = stats[0];
+  const totalToday = activeTasksCount + completedTodayCount;
+  const completedToday = completedTodayCount;
+
   return {
     totalToday,
     completedToday,
-    remainingToday: totalToday - completedToday,
+    remainingToday: activeTasksCount,
   };
 };
 

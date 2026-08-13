@@ -18,6 +18,12 @@ const createTaskValidation = [
   body("taskType").optional().isIn(['client', 'own_brand']).withMessage("Invalid task type"),
   body("assignedTo").notEmpty().withMessage("Assigned to user is required"),
   body("dueDate").optional(),
+  body("projectId").custom((value, { req }) => {
+    if (req.body.taskType === 'client' && !value) {
+      throw new Error('Project is required when creating a task for a client');
+    }
+    return true;
+  }),
 ];
 
 

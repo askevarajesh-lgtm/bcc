@@ -5297,31 +5297,25 @@ const getTodayTaskStats = async (
 
   const completedStatuses = ["done", "completed", "validated", "complete", "review", "in_review", "in review", "reviewing"];
 
-  // Celebration is based on dueDate (the day the task is assigned for)
-  const tasks = await Task.find({
+  // 1. All active (incomplete) tasks assigned to the user
+  const activeTasksCount = await Task.countDocuments({
     assignedTo: userId,
     tenantCompanyId,
     ...(selectedClientCompanyId ? { companyId: selectedClientCompanyId } : {}),
-    dueDate: { $gte: todayStart, $lte: todayEnd },
+    status: { $nin: completedStatuses },
   });
 
-  let totalToday = 0;
-  let completedToday = 0;
-
-  tasks.forEach((task) => {
-    const isActuallyCompleted = completedStatuses.includes(task.status);
-
-    // Filter by completedTodayFlag to ensure we only count completions from today
-    // Update: If a task for today is already completed, it counts towards today's stats
-    // regardless of when it was finished, so the "all clear" celebration can trigger.
-    const completedTodayFlag = isActuallyCompleted;
-
-    // Every task in this query is for today (dueDate), so it counts towards totalToday
-    totalToday++;
-    if (completedTodayFlag) {
-      completedToday++;
-    }
+  // 2. All tasks completed by the user TODAY
+  const completedTodayCount = await Task.countDocuments({
+    assignedTo: userId,
+    tenantCompanyId,
+    ...(selectedClientCompanyId ? { companyId: selectedClientCompanyId } : {}),
+    status: { $in: completedStatuses },
+    actualCompletionDate: { $gte: todayStart, $lte: todayEnd },
   });
+
+  const totalToday = activeTasksCount + completedTodayCount;
+  const completedToday = completedTodayCount;
 
   logger.info(
     `Today Stats for User ${userId}: Completed ${completedToday}, Total ${totalToday}`,
@@ -5367,7 +5361,8 @@ const getTodayAssignedTaskBreakdownForDigitalMarketing = async (
     assignedTo: { $in: dmUserIds },
     department: "digital-marketing",
     // "Assigned today" in task planning is based on dueDate day-bucket,
-    // and completed tasks must still be counted.
+    // count decreases when task is moved to review.
+    status: { $nin: ["review", "in_review", "sent_for_client_review", "done", "completed", "validated", "complete", "rejected"] },
     dueDate: { $gte: todayStart, $lte: todayEnd },
   })
     .select("assignedTo")

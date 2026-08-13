@@ -187,7 +187,7 @@ const ProjectDetail = () => {
     });
   };
 
-  const { data, isLoading, error } = useGetProjectByIdQuery(id);
+  const { data, isLoading, error, refetch: refetchProject } = useGetProjectByIdQuery(id);
   const { data: correctionsData } = useGetCorrectionsByProjectQuery(id);
   const { data: plData } = useGetProjectPLQuery(id);
   const { data: timelineData, isLoading: isLoadingTimeline } =
@@ -2797,6 +2797,9 @@ const ProjectDetail = () => {
         task={selectedTask}
         visible={isTaskDrawerVisible}
         onClose={handleCloseTaskDrawer}
+        onTaskCompleted={() => {
+          if (refetchProject) refetchProject();
+        }}
       />
     </div>
   );

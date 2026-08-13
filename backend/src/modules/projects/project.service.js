@@ -689,11 +689,8 @@ const reconcileProjectTaskCounts = async (
       && assigned === 0 
       && completed === 0;
       
-    // If undefined or greater than max allowed, fix it to maxAllowed.
-    // Otherwise, preserve the current (potentially manually lowered) value.
-    const nextRemaining = (isUninitialized || currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
-      ? maxAllowedRemaining
-      : Math.max(0, Number(currentRemaining));
+    // Strictly recalculate remaining based on total minus completed
+    const nextRemaining = maxAllowedRemaining;
 
     syncNumericField(remainingField, nextRemaining);
     syncNumericField(completedField, Math.min(total, completed));
@@ -755,17 +752,8 @@ const reconcileProjectTaskCounts = async (
     const maxAllowedRemaining = Math.max(0, quantity - completed);
     const currentRemaining = category.remaining;
     
-    // If remaining is undefined/null OR greater than max allowed, fix it
-    // Also fix remaining=0 when quantity>0 and no tasks exist yet (uninitialized projects)
-    const isUninitialized = (currentRemaining === 0 || currentRemaining === null || currentRemaining === undefined) 
-      && quantity > 0 
-      && assigned === 0 
-      && completed === 0;
-
-    const nextRemaining = (isUninitialized || currentRemaining === undefined || currentRemaining === null || Number(currentRemaining) > maxAllowedRemaining)
-      ? maxAllowedRemaining
-      : Math.max(0, Number(currentRemaining));
-      
+    // Strictly recalculate remaining based on quantity minus completed
+    const nextRemaining = maxAllowedRemaining;
     const nextCompleted = Math.min(quantity, completed);
 
     if ((Number(category.remaining) || 0) !== nextRemaining) {

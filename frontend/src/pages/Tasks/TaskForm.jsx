@@ -854,8 +854,11 @@ const TaskForm = () => {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`${getBaseRoute()}/tasks`)}>
           Back
         </Button>
-        <h2 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>
+        <h2 style={{ margin: 0, fontSize: "24px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "12px" }}>
           {isEdit ? "Edit Task" : "Create Task"}
+          <Tag color={taskTarget === 'own_brand' ? 'purple' : 'blue'} style={{ fontSize: '14px', padding: '2px 8px', borderRadius: '6px', margin: 0 }}>
+            {taskTarget === 'own_brand' ? 'Own Brand' : 'Client'}
+          </Tag>
         </h2>
       </div>
       <Card>
@@ -1040,12 +1043,14 @@ const TaskForm = () => {
             </Col>
             )}
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label="Project (Optional)"
-                name="projectId"
-                tooltip="Select a project first to automatically filter and prefill the client. Or select client first to filter projects."
-              >
+            {!hideClientDropdown && (
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Project"
+                  name="projectId"
+                  rules={[{ required: true, message: "Please select a project" }]}
+                  tooltip="Select a project first to automatically filter and prefill the client. Or select client first to filter projects."
+                >
                 <Select
                   placeholder="Select project (optional - will auto-fill client)"
                   loading={
@@ -1107,6 +1112,7 @@ const TaskForm = () => {
                 </Select>
               </Form.Item>
             </Col>
+            )}
 
             <Form.Item
               noStyle

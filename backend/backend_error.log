@@ -728,4 +728,20 @@ Require stack:
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
     at Axios.request (E:\Office Projects\Bcc Seo\backend\node_modules\axios\dist\node\axios.cjs:5517:41)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n
+    at async exports.getAdAccounts (E:\Office Projects\Bcc Seo\backend\src\modules\integrations\meta.controller.js:137:25)\n\n2026-08-13T13:34:39.290Z\nMulterError: File too large
+    at abortWithCode (E:\Office Projects\Bcc Seo\backend\node_modules\multer\lib\make-middleware.js:107:22)
+    at FileStream.<anonymous> (E:\Office Projects\Bcc Seo\backend\node_modules\multer\lib\make-middleware.js:221:11)
+    at FileStream.emit (node:events:524:28)
+    at SBMH.ssCb [as _cb] (E:\Office Projects\Bcc Seo\backend\node_modules\busboy\lib\types\multipart.js:479:32)
+    at feed (E:\Office Projects\Bcc Seo\backend\node_modules\streamsearch\lib\sbmh.js:248:10)
+    at SBMH.push (E:\Office Projects\Bcc Seo\backend\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (E:\Office Projects\Bcc Seo\backend\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at IncomingMessage.ondata (node:internal/streams/readable:1009:22)
+    at IncomingMessage.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at HTTPParser.parserOnBody (node:_http_common:129:24)\n\n
