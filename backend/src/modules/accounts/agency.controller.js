@@ -31,10 +31,13 @@ const validateIntegrationsArray = async (integrations, req) => {
 
 exports.getAgencies = async (req, res, next) => {
   try {
-    const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
-    let filter = { role: { $in: [targetRole] } };
+    let filter = {};
     if (req.user && req.user.role === 'commander_admin') {
+      filter.role = { $in: ['agency_super_admin'] };
       filter.createdBy = req.user._id;
+    } else {
+      // Supreme Super Admin / Superadmin sees all top-level agencies
+      filter.role = { $in: ['commander_admin', 'agency_super_admin'] };
     }
     const agencies = await User.find(filter).populate('plan').sort({ createdAt: -1 });
 
@@ -51,8 +54,15 @@ exports.getAgencies = async (req, res, next) => {
         isDirect: false
       });
       
+      const obj = agency.toObject();
+      let agencyMrr = obj.mrr || 0;
+      if (!agencyMrr && obj.plan && obj.plan.price) {
+          agencyMrr = parseFloat(String(obj.plan.price).replace(/[^\d.]/g, '')) || 0;
+      }
+      obj.mrr = agencyMrr;
+
       return {
-        ...agency.toObject(),
+        ...obj,
         usersCount,
         clientsCount
       };

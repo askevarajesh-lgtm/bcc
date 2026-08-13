@@ -5,22 +5,41 @@ const bcrypt = require('bcryptjs');
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    const totalCompanies = await User.countDocuments({ role: { $in: ['commander_admin'] } });
-    // Assuming active users are those who logged in recently or just total users for now
-    const activeUsers = await User.countDocuments();
+    // Only count unique agencies. Usually top-level agency accounts have role 'commander_admin' or 'agency_super_admin'
+    const agencies = await User.find({ 
+      role: { $in: ['commander_admin', 'agency_super_admin'] }
+    }, 'mrr status createdAt plan').populate('plan', 'price');
+
+    const totalCompanies = agencies.length;
     
-    // Calculate MRR from agencies
-    const agencies = await User.find({ role: { $in: ['commander_admin'] } }, 'mrr status');
+    let activeAgenciesCount = 0;
     let mrr = 0;
     let churnedCount = 0;
-    
+    let newAgencies = 0;
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     agencies.forEach(agency => {
-      if (agency.status === 'active') {
-        mrr += (agency.mrr || 0);
+      let agencyMrr = agency.mrr || 0;
+      if (!agencyMrr && agency.plan && agency.plan.price) {
+          agencyMrr = parseFloat(String(agency.plan.price).replace(/[^\d.]/g, '')) || 0;
+      }
+
+      if (agency.status === 'active' || agency.status === 'trial') {
+        activeAgenciesCount++;
+        mrr += agencyMrr;
       } else if (agency.status === 'churned') {
         churnedCount++;
       }
+      
+      if (agency.createdAt >= thirtyDaysAgo) {
+        newAgencies++;
+      }
     });
+    
+    // Active Users (genuine count of all active users across platform)
+    const activeUsers = await User.countDocuments({ status: 'active' });
     
     const churnRate = totalCompanies > 0 ? ((churnedCount / totalCompanies) * 100).toFixed(1) : 0;
 
@@ -28,9 +47,12 @@ exports.getDashboardStats = async (req, res, next) => {
       success: true,
       data: {
         totalCompanies,
+        activeAgencies: activeAgenciesCount,
+        newAgencies,
         activeUsers,
         mrr,
-        churnRate: `${churnRate}%`
+        churnRate: `${churnRate}%`,
+        agenciesData: agencies // For platform alerts or tables
       }
     });
   } catch (error) {
