@@ -74,8 +74,8 @@ const PortalSidebar = ({
 
   const sidebarContent = (
     <Sider
-      collapsible={!isMobile && Boolean(setCollapsed)}
-      collapsed={isMobile ? false : collapsed}
+      collapsible={Boolean(setCollapsed)}
+      collapsed={collapsed}
       onCollapse={(value) => setCollapsed?.(value)}
       trigger={null}
       width={width}
@@ -139,21 +139,6 @@ const PortalSidebar = ({
       </div>
     </Sider>
   );
-
-  if (!screens.lg && screens.lg !== undefined) {
-    return (
-      <Drawer
-        placement="left"
-        closable={false}
-        onClose={() => setMobileMenuOpen(false)}
-        open={mobileMenuOpen}
-        styles={{ body: { padding: 0, overflow: 'hidden' } }}
-        width={width}
-      >
-        {sidebarContent}
-      </Drawer>
-    );
-  }
 
   return sidebarContent;
 };

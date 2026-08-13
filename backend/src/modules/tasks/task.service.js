@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { recordTimerStop } = require('./task.timeHelper');
 const Task = require("./task.model");
 const TaskActivity = require("./taskActivity.model");
 const TaskComment = require("./taskComment.model");
@@ -1834,6 +1835,7 @@ const updateTask = async (
         const diffMs = now - task.workStartedAt;
         const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
         task.workDurationMinutes = (task.workDurationMinutes || 0) + diffMinutes;
+        await recordTimerStop(task, diffMinutes, userId);
         task.workStartedAt = null;
         logger.info(
           `Timing (updateTask): Added ${diffMinutes}m to task ${task._id}. New total: ${task.workDurationMinutes}m`,
@@ -2294,6 +2296,7 @@ const holdTask = async (taskId, holdReason, userId, userRole, tenantCompanyId) =
       const diffMs = now - task.workStartedAt;
       const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
       task.workDurationMinutes = (task.workDurationMinutes || 0) + diffMinutes;
+      await recordTimerStop(task, diffMinutes, userId);
       task.workStartedAt = null;
       logger.info(
         `Timing (holdTask): Added ${diffMinutes}m to task ${task._id}. New total: ${task.workDurationMinutes}m`,
@@ -3347,6 +3350,7 @@ const updateTaskStatusAndOrder = async (
       const diffMs = now - task.workStartedAt;
       const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
       task.workDurationMinutes = (task.workDurationMinutes || 0) + diffMinutes;
+      await recordTimerStop(task, diffMinutes, userId);
       task.workStartedAt = null;
       logger.info(
         `Timing: Added ${diffMinutes}m to task ${task._id}. New total: ${task.workDurationMinutes}m`,

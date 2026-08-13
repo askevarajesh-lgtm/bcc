@@ -16,6 +16,11 @@ const timeEntrySchema = new mongoose.Schema({
     ref: 'Task',
     required: false,
   },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    required: false,
+  },
   moduleName: {
     type: String,
     required: false,
@@ -47,11 +52,18 @@ const timeEntrySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  source: {
+    type: String,
+    enum: ['manual', 'timer', 'import'],
+    default: 'manual'
   }
 }, { timestamps: true });
 
 timeEntrySchema.index({ employee: 1, date: -1 });
 timeEntrySchema.index({ client: 1, date: -1 });
 timeEntrySchema.index({ tenantCompanyId: 1 });
+timeEntrySchema.index({ task: 1 });
+timeEntrySchema.index({ tenantCompanyId: 1, date: -1 });
 
 module.exports = mongoose.model('TimeEntry', timeEntrySchema);

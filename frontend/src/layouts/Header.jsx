@@ -262,16 +262,7 @@ const Header = ({ collapsed, setCollapsed }) => {
   return (
     <AntHeader className="app-header">
       <div className="app-header__left">
-        {!screens.lg && (
-          <Button
-            type="text"
-            icon={<MenuIcon size={20} />}
-            onClick={toggleMobileMenu}
-            className="app-header__icon-button"
-            aria-label="Open navigation"
-          />
-        )}
-        {screens.lg && setCollapsed && (
+        {setCollapsed && (
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined style={{ fontSize: '18px' }} /> : <MenuFoldOutlined style={{ fontSize: '18px' }} />}

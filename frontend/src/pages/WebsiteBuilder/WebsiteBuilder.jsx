@@ -176,11 +176,13 @@ const WebsiteBuilder = () => {
       <Row gutter={[24, 24]} style={{ marginBottom: 40 }}>
         <Col xs={24} lg={8}>
           <motion.div variants={itemVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
-            <Card style={{ borderRadius: 16, border: '2px solid var(--accent-secondary)', background: 'var(--bg-secondary)', height: '100%', boxShadow: '0 8px 24px rgba(13, 148, 136, 0.08)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Card className="glassmorphism" style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }} bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
               <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Sparkles size={22} color="var(--accent-secondary)" /> Generate with AI</Title>
-              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20, fontWeight: 500 }}>Describe the website you want. Our AI builds it in under 60 seconds — full pages, copy, layout, and images.</Text>
-              <Input.TextArea rows={4} placeholder="e.g. A luxury real estate landing page for Prestige estates with hero, features, gallery, and lead form..." style={{ borderRadius: 12, marginBottom: 20, fontSize: 14, padding: 12 }} />
-              <Button type="primary" icon={<Sparkles size={18} />} onClick={() => handleTabClick('websites')} style={{ width: '100%', borderRadius: 12, background: 'var(--accent-primary)', height: 48, marginTop: 'auto', fontWeight: 700, fontSize: 15, border: 'none', boxShadow: 'var(--shadow-md)' }}>Generate Site</Button>
+              <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>Describe the website you want. Our AI builds it in under 60 seconds — full pages, copy, layout, and images.</Text>
+
+              <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(13, 148, 136, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => { setWebsiteInitialAction('openAiGenerate'); handleTabClick('websites'); }}>
+                <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-secondary)' }}>Generate Site →</Button>
+              </div>
             </Card>
           </motion.div>
         </Col>
@@ -204,7 +206,7 @@ const WebsiteBuilder = () => {
               <Title level={5} style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 18 }}><Code size={22} color="var(--accent-warning)" /> Import or Upload Code</Title>
               <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 24, fontWeight: 500 }}>Upload HTML/CSS/JS files, paste code, or import from Webflow, Figma, or WordPress.</Text>
 
-              <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(245, 158, 11, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => handleTabClick('websites')}>
+              <div style={{ height: 160, border: '2px dashed var(--border-color)', borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24, background: 'rgba(245, 158, 11, 0.05)', cursor: 'pointer', transition: 'all 0.2s', marginTop: 'auto' }} onClick={() => { setWebsiteInitialAction('openUpload'); handleTabClick('websites'); }}>
                 <Button type="link" style={{ fontSize: 16, fontWeight: 600, color: 'var(--accent-warning)' }}>Import Site →</Button>
               </div>
             </Card>

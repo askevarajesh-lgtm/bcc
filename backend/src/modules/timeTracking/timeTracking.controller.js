@@ -1,31 +1,101 @@
 const TimeEntry = require('./timeTracking.model');
 const User = require('../auth/user.model');
 const Task = require('../tasks/task.model');
+const Department = require('../departments/department.model');
 const mongoose = require('mongoose');
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Build the User filter for the current tenant.
+ * User.agencyId is the correct field (NOT tenantCompanyId which doesn't exist on User schema).
+ */
+function buildTenantUserFilter(tenantObjectId) {
+  return { agencyId: tenantObjectId };
+}
+
+/** Roles that are considered trackable employees */
+const EMPLOYEE_ROLES = [
+  'user', 'brand_team_user', 'agency_manager', 'agency_super_admin',
+  'coordinator', 'digital_marketing_manager', 'digital_marketing_coordinator', 'website_coordinator'
+];
+
+/** Roles that are considered clients */
+const CLIENT_ROLES = ['brand_super_admin', 'brand_manager', 'agency_client'];
+
+/**
+ * Compute week boundaries (Mon–Sun) from a date.
+ */
+function getWeekRange(dateParam) {
+  const d = new Date(dateParam);
+  const day = d.getDay() || 7;
+  const startOfWeek = new Date(d);
+  startOfWeek.setHours(0, 0, 0, 0);
+  startOfWeek.setDate(d.getDate() - day + 1);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+  return { startOfWeek, endOfWeek };
+}
+
+// ─── POST / — logTime ────────────────────────────────────────────────────────
 
 exports.logTime = async (req, res) => {
   try {
-    const { employee, client, task, moduleName, description, date, hours, isBillable } = req.body;
+    if (!req.companyId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: company context missing' });
+    }
+
+    const { employee, client, task, department, moduleName, description, date, hours, isBillable, source = 'manual' } = req.body;
     const tenantCompanyId = req.companyId;
+    const parsedHours = Number(hours);
+
+    if (!parsedHours || parsedHours <= 0) {
+      return res.status(400).json({ success: false, message: 'Hours must be greater than 0' });
+    }
+
+    const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
+
+    // Validate employee belongs to this tenant (using agencyId — the correct field)
+    if (employee) {
+      const employeeExists = await User.exists({ _id: employee, agencyId: tenantObjectId });
+      if (!employeeExists) return res.status(403).json({ success: false, message: 'Invalid employee reference' });
+    }
+
+    // Validate client belongs to this tenant
+    if (client) {
+      const clientExists = await User.exists({ _id: client, agencyId: tenantObjectId });
+      if (!clientExists) return res.status(403).json({ success: false, message: 'Invalid client reference' });
+    }
+
+    // Validate task belongs to this tenant
+    if (task) {
+      const taskExists = await Task.exists({
+        _id: task,
+        $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }]
+      });
+      if (!taskExists) return res.status(403).json({ success: false, message: 'Invalid task reference' });
+    }
 
     const newEntry = new TimeEntry({
       employee,
       client,
       task,
+      department,
       moduleName,
       description,
       date,
-      hours: Number(hours),
+      hours: parsedHours,
       isBillable,
       tenantCompanyId,
+      source,
       createdBy: req.user._id
     });
 
     await newEntry.save();
 
-    // If task is provided, we can optionally update task.timeSpent
     if (task) {
-      await Task.findByIdAndUpdate(task, { $inc: { timeSpent: Number(hours) } });
+      await Task.findByIdAndUpdate(task, { $inc: { timeSpent: parsedHours } });
     }
 
     res.status(201).json({ success: true, message: 'Time logged successfully', data: newEntry });
@@ -35,35 +105,128 @@ exports.logTime = async (req, res) => {
   }
 };
 
+// ─── PUT /:id — updateTimeEntry ───────────────────────────────────────────────
+
+exports.updateTimeEntry = async (req, res) => {
+  try {
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const { id } = req.params;
+    const { employee, client, task, department, moduleName, description, date, hours, isBillable } = req.body;
+
+    const parsedHours = Number(hours);
+    if (!parsedHours || parsedHours <= 0) return res.status(400).json({ success: false, message: 'Hours must be greater than 0' });
+
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
+    const existingEntry = await TimeEntry.findOne({ _id: id, tenantCompanyId: tenantObjectId });
+    if (!existingEntry) return res.status(404).json({ success: false, message: 'Time entry not found' });
+
+    if (employee) {
+      const employeeExists = await User.exists({ _id: employee, agencyId: tenantObjectId });
+      if (!employeeExists) return res.status(403).json({ success: false, message: 'Invalid employee reference' });
+    }
+    if (client) {
+      const clientExists = await User.exists({ _id: client, agencyId: tenantObjectId });
+      if (!clientExists) return res.status(403).json({ success: false, message: 'Invalid client reference' });
+    }
+    if (task) {
+      const taskExists = await Task.exists({ _id: task, $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }] });
+      if (!taskExists) return res.status(403).json({ success: false, message: 'Invalid task reference' });
+    }
+
+    const oldTask = existingEntry.task;
+    const oldHours = existingEntry.hours;
+
+    existingEntry.employee = employee;
+    existingEntry.client = client;
+    existingEntry.task = task;
+    existingEntry.department = department;
+    existingEntry.moduleName = moduleName;
+    existingEntry.description = description;
+    existingEntry.date = date;
+    existingEntry.hours = parsedHours;
+    existingEntry.isBillable = isBillable;
+
+    await existingEntry.save();
+
+    // Reconcile Task.timeSpent
+    if (oldTask?.toString() === task?.toString()) {
+      if (oldTask && oldHours !== parsedHours) {
+        await Task.findByIdAndUpdate(oldTask, { $inc: { timeSpent: parsedHours - oldHours } });
+      }
+    } else {
+      if (oldTask) await Task.findByIdAndUpdate(oldTask, { $inc: { timeSpent: -oldHours } });
+      if (task) await Task.findByIdAndUpdate(task, { $inc: { timeSpent: parsedHours } });
+    }
+
+    res.status(200).json({ success: true, message: 'Time entry updated successfully', data: existingEntry });
+  } catch (error) {
+    console.error('Error updating time entry:', error);
+    res.status(500).json({ success: false, message: 'Failed to update time entry', error: error.message });
+  }
+};
+
+// ─── DELETE /:id — deleteTimeEntry ───────────────────────────────────────────
+
+exports.deleteTimeEntry = async (req, res) => {
+  try {
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const { id } = req.params;
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
+
+    const existingEntry = await TimeEntry.findOne({ _id: id, tenantCompanyId: tenantObjectId });
+    if (!existingEntry) return res.status(404).json({ success: false, message: 'Time entry not found' });
+
+    if (existingEntry.task) {
+      await Task.findByIdAndUpdate(existingEntry.task, { $inc: { timeSpent: -existingEntry.hours } });
+    }
+
+    await TimeEntry.findByIdAndDelete(id);
+    res.status(200).json({ success: true, message: 'Time entry deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting time entry:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete time entry', error: error.message });
+  }
+};
+
+// ─── GET /recent — getRecentEntries ──────────────────────────────────────────
+
 exports.getRecentEntries = async (req, res) => {
   try {
-    const tenantCompanyId = req.companyId;
-    
-    // Role based filtering
-    let matchQuery = { tenantCompanyId };
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
+
+    let matchQuery = { tenantCompanyId: tenantObjectId };
+    // Regular users see only their own entries
     if (['user', 'brand_team_user'].includes(req.user.role)) {
-      matchQuery.employee = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
-      matchQuery.client = req.user._id;
+      matchQuery.employee = new mongoose.Types.ObjectId(req.user._id);
     }
 
     const entries = await TimeEntry.find(matchQuery)
-      .populate('employee', 'name name')
+      .populate('employee', 'name departmentId departmentName')
       .populate('client', 'name companyName')
-      .populate('task', 'title')
+      .populate('task', 'title department')
+      .populate('department', 'name')
       .sort({ date: -1, createdAt: -1 })
       .limit(20);
 
     const formatted = entries.map(e => ({
       id: e._id,
       date: new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      rawDate: e.date,
+      employeeId: e.employee?._id,
+      clientId: e.client?._id,
+      taskId: e.task?._id,
+      departmentId: e.department?._id || null,
       member: e.employee?.name || 'Unknown',
       memberInit: e.employee?.name?.substring(0, 2).toUpperCase() || 'UN',
+      department: e.department?.name || e.employee?.departmentName || e.task?.department || '—',
       client: e.client?.companyName || e.client?.name || null,
       module: e.moduleName || 'Other',
       task: e.description || e.task?.title || 'General Work',
+      rawDescription: e.description,
       hours: e.hours,
-      billable: e.isBillable
+      billable: e.isBillable,
+      source: e.source
     }));
 
     res.status(200).json({ success: true, data: formatted });
@@ -73,290 +236,309 @@ exports.getRecentEntries = async (req, res) => {
   }
 };
 
+// ─── GET /dashboard — getDashboardData ───────────────────────────────────────
+
 exports.getDashboardData = async (req, res) => {
   try {
-    const tenantCompanyId = req.companyId;
-    const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
-    
-    let matchQuery = { $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }] };
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
+
+    const dateParam = req.query.date ? new Date(req.query.date) : new Date();
+    const { startOfWeek, endOfWeek } = getWeekRange(dateParam);
+    const startOfMonth = new Date(dateParam.getFullYear(), dateParam.getMonth(), 1);
+    const endOfMonth = new Date(dateParam.getFullYear(), dateParam.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const baseMatch = { tenantCompanyId: tenantObjectId };
+    // Regular users: scope to their own entries
     if (['user', 'brand_team_user'].includes(req.user.role)) {
-      matchQuery.employee = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
-      matchQuery.client = req.user._id;
+      baseMatch.employee = new mongoose.Types.ObjectId(req.user._id);
     }
 
-    // Date range: current week (Monday to Sunday)
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const day = now.getDay() || 7; // Get current day number, converting Sun. to 7
-    startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(now.getDate() - day + 1);
+    const weekMatch = { ...baseMatch, date: { $gte: startOfWeek, $lte: endOfWeek } };
+    const monthMatch = { ...baseMatch, date: { $gte: startOfMonth, $lte: endOfMonth } };
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    const weekMatch = { ...matchQuery, date: { $gte: startOfWeek, $lte: endOfWeek } };
-    const monthMatch = { ...matchQuery, date: { $gte: startOfMonth, $lte: endOfMonth } };
-
-    // 1. TimeEntry KPIs
-    const kpiAggregation = await TimeEntry.aggregate([
+    // ── KPI: Hours logged this week ──────────────────────────────────────────
+    const kpiAgg = await TimeEntry.aggregate([
       { $match: weekMatch },
       { $group: {
         _id: null,
-        totalHours: { $sum: "$hours" },
-        billableHours: { $sum: { $cond: [{ $eq: ["$isBillable", true] }, "$hours", 0] } },
-        nonBillableHours: { $sum: { $cond: [{ $eq: ["$isBillable", false] }, "$hours", 0] } }
+        totalHours: { $sum: '$hours' },
+        billableHours: { $sum: { $cond: [{ $eq: ['$isBillable', true] }, '$hours', 0] } },
+        nonBillableHours: { $sum: { $cond: [{ $eq: ['$isBillable', false] }, '$hours', 0] } }
       }}
     ]);
+    const kpi = kpiAgg[0] || { totalHours: 0, billableHours: 0, nonBillableHours: 0 };
+    const utilizationRate = kpi.totalHours > 0 ? Math.round((kpi.billableHours / kpi.totalHours) * 100) : 0;
 
-    let kpi = kpiAggregation[0] || { totalHours: 0, billableHours: 0, nonBillableHours: 0 };
-    
-    // Calculate Task KPIs based on task completions this week
-    const completedStatuses = ['completed', 'done', 'validated', 'complete', 'review', 'REVIEW'];
-    let taskMatch = { 
-      $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }], 
-      status: { $in: completedStatuses },
-      updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
-    };
-    if (['user', 'brand_team_user'].includes(req.user.role)) {
-      taskMatch.assignedTo = req.user._id;
-    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(req.user.role)) {
-      taskMatch.companyId = tenantObjectId; // Wait, tasks are linked to client via companyId or brandId. In this controller, it just uses tenantCompanyId. Let's see...
-    }
+    // ── Active timers (tasks in_progress with workStartedAt set) ─────────────
+    const activeTasks = await Task.find({
+      $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }],
+      status: 'in_progress',
+      workStartedAt: { $ne: null }
+    }).populate('assignedTo', 'name departmentName');
 
-    const taskKpiAgg = await Task.aggregate([
-      { $match: taskMatch },
-      { $group: {
-        _id: null,
-        totalTaskHours: { 
-          $sum: { 
-            $cond: [
-              { $gt: ["$timeSpent", 0] }, 
-              "$timeSpent", 
-              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
-            ] 
-          } 
-        }
-      }}
-    ]);
+    const now = new Date();
+    let activeTimersRunningTimeMin = 0;
+    activeTasks.forEach(t => {
+      activeTimersRunningTimeMin += Math.max(0, Math.round((now - t.workStartedAt) / 60000));
+    });
 
-    if (taskKpiAgg[0] && taskKpiAgg[0].totalTaskHours) {
-      const taskHours = parseFloat(taskKpiAgg[0].totalTaskHours.toFixed(1));
-      kpi.totalHours += taskHours;
-      kpi.billableHours += taskHours; // Assuming task-derived time is billable by default
-    }
+    const activeTimersList = activeTasks.map(t => ({
+      taskId: t._id,
+      taskTitle: t.title,
+      memberName: t.assignedTo?.name || 'Unknown',
+      department: t.assignedTo?.departmentName || t.department || '—',
+      startedAt: t.workStartedAt
+    }));
 
-    let capacity = 320; 
-    if (['user', 'brand_team_user', 'agency_client'].includes(req.user.role)) {
-       capacity = 40;
-    }
+    // ── Missing timesheets: employees who haven't logged today ───────────────
+    // Use agencyId (correct field), not tenantCompanyId which doesn't exist on User
+    const eligibleUsers = await User.find({
+      agencyId: tenantObjectId,
+      role: { $in: EMPLOYEE_ROLES }
+    }).select('_id name role departmentId departmentName').lean();
 
-    const utilizationRate = kpi.totalHours > 0 ? Math.round((kpi.billableHours / capacity) * 100) : 0;
+    const todayStart = new Date(dateParam); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(dateParam); todayEnd.setHours(23, 59, 59, 999);
+    const todayLoggedEmployeeIds = await TimeEntry.find({
+      ...baseMatch, date: { $gte: todayStart, $lte: todayEnd }
+    }).distinct('employee');
+
+    const loggedSet = new Set(todayLoggedEmployeeIds.map(id => id.toString()));
+    let missingCount = 0;
+    eligibleUsers.forEach(u => { if (!loggedSet.has(u._id.toString())) missingCount++; });
 
     const kpiCards = {
       totalHours: parseFloat(kpi.totalHours.toFixed(1)),
-      capacity,
+      capacity: null,
+      capacityRemaining: null,
       billableHours: parseFloat(kpi.billableHours.toFixed(1)),
       nonBillableHours: parseFloat(kpi.nonBillableHours.toFixed(1)),
       billablePercent: kpi.totalHours > 0 ? Math.round((kpi.billableHours / kpi.totalHours) * 100) : 0,
       nonBillablePercent: kpi.totalHours > 0 ? Math.round((kpi.nonBillableHours / kpi.totalHours) * 100) : 0,
-      utilizationRate: utilizationRate > 100 ? 100 : utilizationRate
+      utilizationRate: utilizationRate > 100 ? 100 : utilizationRate,
+      activeTimersCount: activeTasks.length,
+      activeTimersRunningTime: parseFloat((activeTimersRunningTimeMin / 60).toFixed(2)),
+      activeTimersList,
+      missingTimesheetsCount: missingCount,
+      missingTimesheetsMessage: eligibleUsers.length === 0
+        ? 'No members to track'
+        : missingCount > 0
+          ? `${missingCount} haven't logged today`
+          : 'Everyone has logged today'
     };
 
-    // 2. Weekly Timesheet
+    // ── Weekly timesheet: hours per member per day ───────────────────────────
+    // Aggregate TimeEntries by employee + day-of-week for this week
     const timesheetAgg = await TimeEntry.aggregate([
       { $match: weekMatch },
       { $group: {
-        _id: { employee: "$employee", dayOfWeek: { $isoDayOfWeek: "$date" } },
-        hours: { $sum: "$hours" }
+        _id: { employee: '$employee', dayOfWeek: { $isoDayOfWeek: '$date' } },
+        hours: { $sum: '$hours' }
       }}
     ]);
 
-    const taskTimesheetAgg = await Task.aggregate([
-      { $match: { ...taskMatch, assignedTo: { $ne: null } } },
-      { $group: {
-        _id: { employee: "$assignedTo", dayOfWeek: { $isoDayOfWeek: { $ifNull: ["$workCompletedAt", "$updatedAt"] } } },
-        hours: { 
-          $sum: { 
-            $cond: [
-              { $gt: ["$timeSpent", 0] }, 
-              "$timeSpent", 
-              { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
-            ] 
-          } 
-        }
-      }}
-    ]);
+    // Fetch departments in this agency for enriching data
+    const departments = await Department.find({ agencyId: tenantObjectId }).select('_id name').lean();
+    const deptMap = {};
+    departments.forEach(d => { deptMap[d._id.toString()] = d.name; });
 
-    // Merge both Timesheet Data
-    const allTimesheetAgg = [];
-    const mergeIntoAgg = (items) => {
-      items.forEach(item => {
-        if (!item._id || !item._id.employee || !item._id.dayOfWeek) return;
-        const existing = allTimesheetAgg.find(e => e._id.employee.toString() === item._id.employee.toString() && e._id.dayOfWeek === item._id.dayOfWeek);
-        if (existing) {
-          existing.hours += item.hours;
-        } else {
-          allTimesheetAgg.push({ _id: { employee: item._id.employee, dayOfWeek: item._id.dayOfWeek }, hours: item.hours });
-        }
-      });
-    };
-    mergeIntoAgg(timesheetAgg);
-    mergeIntoAgg(taskTimesheetAgg);
-
-    const usersInWeek = [...new Set(allTimesheetAgg.map(t => t._id.employee.toString()))];
-    const usersInfo = await User.find({ _id: { $in: usersInWeek } }).select('name role');
-
-    const timesheetData = usersInfo.map((u, i) => {
-      const colors = ['var(--accent-warning)', 'var(--accent-primary)', 'var(--accent-info)', 'var(--accent-secondary)', 'var(--accent-danger)'];
-      const empLogs = allTimesheetAgg.filter(t => t._id.employee.toString() === u._id.toString());
-      
-      const getDayHours = (day) => {
-        const log = empLogs.find(l => l._id.dayOfWeek === day);
-        if (!log || log.hours === 0) return '-';
-        let h = parseFloat(log.hours.toFixed(1));
-        return h === 0 ? 0.1 : h; // Minimum 0.1h for any logged time
+    const colors = ['var(--accent-warning)', 'var(--accent-primary)', 'var(--accent-info)', 'var(--accent-secondary)', 'var(--accent-danger)'];
+    const timesheetData = eligibleUsers.map((u, i) => {
+      const empLogs = timesheetAgg.filter(t => t._id.employee.toString() === u._id.toString());
+      const getDayHours = (isoDay) => {
+        const log = empLogs.find(l => l._id.dayOfWeek === isoDay);
+        return (!log || log.hours === 0) ? '-' : parseFloat(log.hours.toFixed(1));
       };
-
-      const mon = getDayHours(1);
-      const tue = getDayHours(2);
-      const wed = getDayHours(3);
-      const thu = getDayHours(4);
-      const fri = getDayHours(5);
-      const sat = getDayHours(6);
-      const sun = getDayHours(7);
-
-      const daysArr = [mon, tue, wed, thu, fri, sat, sun];
-      const visualTotal = daysArr.reduce((sum, val) => sum + (val === '-' ? 0 : val), 0);
+      const daysArr = [1,2,3,4,5,6,7].map(getDayHours);
+      const visualTotal = daysArr.reduce((s, v) => s + (v === '-' ? 0 : v), 0);
+      const deptName = u.departmentId ? (deptMap[u.departmentId.toString()] || u.departmentName || '—') : (u.departmentName || '—');
 
       return {
         name: u.name,
         role: u.role,
+        department: deptName,
         initials: u.name ? u.name.substring(0, 2).toUpperCase() : 'UN',
         color: colors[i % colors.length],
-        mon, tue, wed, thu, fri, sat, sun,
+        mon: daysArr[0], tue: daysArr[1], wed: daysArr[2],
+        thu: daysArr[3], fri: daysArr[4], sat: daysArr[5], sun: daysArr[6],
         total: parseFloat(visualTotal.toFixed(1))
       };
     });
 
-    // 3. Time by Client (this month)
+    // ── Time by client (current month) ───────────────────────────────────────
     const clientAgg = await TimeEntry.aggregate([
       { $match: monthMatch },
-      { $match: { client: { $ne: null } } },
       { $group: {
-        _id: "$client",
-        billable: { $sum: { $cond: [{ $eq: ["$isBillable", true] }, "$hours", 0] } },
-        nonBillable: { $sum: { $cond: [{ $eq: ["$isBillable", false] }, "$hours", 0] } }
+        _id: '$client',
+        billable: { $sum: { $cond: [{ $eq: ['$isBillable', true] }, '$hours', 0] } },
+        nonBillable: { $sum: { $cond: [{ $eq: ['$isBillable', false] }, '$hours', 0] } }
       }}
     ]);
-
-    const clientsInMonth = [...new Set(clientAgg.map(c => c._id.toString()))];
-    const clientsInfo = await User.find({ _id: { $in: clientsInMonth } }).select('companyName name');
+    const clientIds = clientAgg.map(c => c._id).filter(Boolean);
+    const clientsInfo = await User.find({ _id: { $in: clientIds } }).select('companyName name').lean();
 
     const timeByClient = clientAgg.map(c => {
+      if (!c._id) return { client: 'Internal / No Client', billable: parseFloat(c.billable.toFixed(1)), nonBillable: parseFloat(c.nonBillable.toFixed(1)) };
       const cInfo = clientsInfo.find(u => u._id.toString() === c._id.toString());
-      return {
-        client: cInfo ? (cInfo.companyName || cInfo.name) : 'Unknown Client',
-        billable: parseFloat(c.billable.toFixed(1)),
-        nonBillable: parseFloat(c.nonBillable.toFixed(1))
-      };
+      return { client: cInfo ? (cInfo.companyName || cInfo.name) : 'Unknown Client', billable: parseFloat(c.billable.toFixed(1)), nonBillable: parseFloat(c.nonBillable.toFixed(1)) };
     });
 
-    res.status(200).json({ success: true, kpis: kpiCards, timesheet: timesheetData, timeByClient });
+    // ── Department breakdown: hours per department this week ──────────────────
+    const deptTimeAgg = await TimeEntry.aggregate([
+      { $match: weekMatch },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'employee',
+          foreignField: '_id',
+          as: 'employeeDoc'
+        }
+      },
+      { $unwind: { path: '$employeeDoc', preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: { $ifNull: ['$employeeDoc.departmentId', 'no-dept'] },
+          deptName: { $first: { $ifNull: ['$employeeDoc.departmentName', 'No Department'] } },
+          totalHours: { $sum: '$hours' },
+          billableHours: { $sum: { $cond: [{ $eq: ['$isBillable', true] }, '$hours', 0] } },
+          memberCount: { $addToSet: '$employee' }
+        }
+      },
+      { $project: { deptName: 1, totalHours: 1, billableHours: 1, memberCount: { $size: '$memberCount' } } }
+    ]);
+
+    // Enrich with dept names from Department collection
+    const timeByDepartment = deptTimeAgg.map(d => ({
+      department: d._id && d._id !== 'no-dept' ? (deptMap[d._id.toString()] || d.deptName || 'No Department') : 'No Department',
+      totalHours: parseFloat(d.totalHours.toFixed(1)),
+      billable: parseFloat(d.billableHours.toFixed(1)),
+      nonBillable: parseFloat((d.totalHours - d.billableHours).toFixed(1)),
+      members: d.memberCount
+    }));
+
+    res.status(200).json({
+      success: true,
+      kpis: kpiCards,
+      timesheet: timesheetData,
+      timeByClient,
+      timeByDepartment,
+      departments: departments.map(d => ({ _id: d._id, name: d.name }))
+    });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    console.error('getDashboardData error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch dashboard data', error: error.message });
   }
 };
 
+// ─── GET /options — getFormOptions ───────────────────────────────────────────
+
 exports.getFormOptions = async (req, res) => {
   try {
-    const tenantCompanyId = req.companyId;
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
 
-    // Fetch Employees
-    const employees = await User.find({ tenantCompanyId, role: { $in: ['user', 'brand_team_user', 'agency_client', 'agency_manager', 'agency_super_admin'] } }).select('name role');
-    
-    // Fetch Clients (Brand users or direct clients)
-    const clients = await User.find({ tenantCompanyId, role: { $in: ['brand_super_admin', 'brand_manager', 'client'] } }).select('companyName name');
+    // Use agencyId (correct field on User schema)
+    const employees = await User.find({
+      agencyId: tenantObjectId,
+      role: { $in: EMPLOYEE_ROLES }
+    }).select('name role departmentId departmentName').lean();
 
-    // Fetch Tasks
-    const tasks = await Task.find({ tenantCompanyId, status: { $nin: ['completed', 'complete', 'validated', 'done', 'rejected'] } }).select('title department');
+    const clients = await User.find({
+      agencyId: tenantObjectId,
+      role: { $in: CLIENT_ROLES }
+    }).select('companyName name').lean();
 
-    res.status(200).json({ success: true, data: { employees, clients, tasks } });
+    const tasks = await Task.find({
+      $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }],
+      status: { $nin: ['completed', 'complete', 'validated', 'done', 'rejected'] }
+    }).select('title department').lean();
+
+    const departments = await Department.find({
+      agencyId: tenantObjectId,
+      status: 'active'
+    }).select('name slug').lean();
+
+    res.status(200).json({ success: true, data: { employees, clients, tasks, departments } });
   } catch (error) {
-    console.error('Error fetching form options:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch form options' });
+    console.error('getFormOptions error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch form options', error: error.message });
   }
 };
 
+// ─── GET /performance — getTeamTaskPerformance ────────────────────────────────
+
 exports.getTeamTaskPerformance = async (req, res) => {
   try {
-    const tenantCompanyId = req.companyId;
-    
-    // Convert tenantCompanyId to ObjectId for aggregation match
-    const tenantObjectId = new mongoose.Types.ObjectId(tenantCompanyId);
+    if (!req.companyId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const tenantObjectId = new mongoose.Types.ObjectId(req.companyId);
+
+    const dateParam = req.query.date ? new Date(req.query.date) : new Date();
+    const { startOfWeek, endOfWeek } = getWeekRange(dateParam);
 
     const completedStatuses = ['completed', 'done', 'validated', 'complete', 'review', 'REVIEW'];
-    
-    // Date range: current week (Monday to Sunday)
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const day = now.getDay() || 7; 
-    startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(now.getDate() - day + 1);
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const performanceAgg = await Task.aggregate([
-      { 
-        $match: { 
-          $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }], 
-          status: { $in: completedStatuses }, 
-          assignedTo: { $ne: null },
-          updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
-        } 
-      },
-      { 
-        $group: {
-          _id: "$assignedTo",
-          tasksCompleted: { $sum: 1 },
-          totalTimeSpentHours: { 
-            $sum: { 
-              $cond: [
-                { $gt: ["$timeSpent", 0] }, 
-                "$timeSpent", 
-                { $divide: [{ $ifNull: ["$workDurationMinutes", 0] }, 60] }
-              ] 
-            } 
-          }
-        }
-      }
+    // Tasks completed this week
+    const tasksCompletedAgg = await Task.aggregate([
+      { $match: {
+        $or: [{ tenantCompanyId: tenantObjectId }, { companyId: tenantObjectId }],
+        status: { $in: completedStatuses },
+        assignedTo: { $ne: null },
+        updatedAt: { $gte: startOfWeek, $lte: endOfWeek }
+      }},
+      { $group: { _id: '$assignedTo', tasksCompleted: { $sum: 1 } } }
     ]);
 
-    // Populate user details
-    const userIds = performanceAgg.map(p => p._id);
-    const users = await User.find({ _id: { $in: userIds } }).select('name role');
+    // Hours from TimeEntry this week
+    const timeSpentAgg = await TimeEntry.aggregate([
+      { $match: { tenantCompanyId: tenantObjectId, date: { $gte: startOfWeek, $lte: endOfWeek } } },
+      { $group: { _id: '$employee', totalTimeSpentHours: { $sum: '$hours' } } }
+    ]);
 
-    const performanceData = performanceAgg.map(p => {
-      const u = users.find(user => user._id.toString() === p._id.toString());
+    const allUserIds = [...new Set([
+      ...tasksCompletedAgg.map(p => p._id.toString()),
+      ...timeSpentAgg.map(p => p._id.toString())
+    ])];
+
+    const users = await User.find({ _id: { $in: allUserIds } })
+      .select('name role departmentId departmentName').lean();
+
+    // Fetch departments for label mapping
+    const departments = await Department.find({ agencyId: tenantObjectId }).select('_id name').lean();
+    const deptMap = {};
+    departments.forEach(d => { deptMap[d._id.toString()] = d.name; });
+
+    const performanceData = users.map(u => {
+      const tc = tasksCompletedAgg.find(t => t._id.toString() === u._id.toString());
+      const ts = timeSpentAgg.find(t => t._id.toString() === u._id.toString());
+      const deptName = u.departmentId ? (deptMap[u.departmentId.toString()] || u.departmentName || '—') : (u.departmentName || '—');
       return {
-        userId: p._id,
-        name: u ? u.name : 'Unknown',
-        role: u ? u.role : 'Member',
-        tasksCompleted: p.tasksCompleted,
-        totalTimeSpent: parseFloat(p.totalTimeSpentHours.toFixed(1))
+        userId: u._id,
+        name: u.name,
+        role: u.role,
+        department: deptName,
+        tasksCompleted: tc ? tc.tasksCompleted : 0,
+        totalTimeSpent: ts ? parseFloat(ts.totalTimeSpentHours.toFixed(1)) : 0
       };
     });
 
-    res.status(200).json({ success: true, data: performanceData });
+    // Also return department-level rollup
+    const deptPerformance = {};
+    performanceData.forEach(p => {
+      const key = p.department || 'No Department';
+      if (!deptPerformance[key]) deptPerformance[key] = { department: key, members: 0, tasksCompleted: 0, totalTimeSpent: 0 };
+      deptPerformance[key].members++;
+      deptPerformance[key].tasksCompleted += p.tasksCompleted;
+      deptPerformance[key].totalTimeSpent = parseFloat((deptPerformance[key].totalTimeSpent + p.totalTimeSpent).toFixed(1));
+    });
+
+    res.status(200).json({
+      success: true,
+      data: performanceData,
+      byDepartment: Object.values(deptPerformance)
+    });
   } catch (error) {
-    console.error('Error fetching team performance:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch team performance' });
+    console.error('getTeamTaskPerformance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch team performance', error: error.message });
   }
 };
