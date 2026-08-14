@@ -1,5 +1,6 @@
 import React from "react";
 import { Button, Space, Typography } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 // import SchedulerStatusPanel from "./SchedulerStatusPanel";
 
 const { Title, Text } = Typography;
@@ -9,6 +10,7 @@ export default function TopNav({
   onConnectClick,
   isConnected,
   schedulerStatus,
+  onRefreshClick,
 }) {
   return (
     <div className="campaign-scheduler-header">
@@ -22,6 +24,13 @@ export default function TopNav({
         {/* <SchedulerStatusPanel schedulerStatus={schedulerStatus} /> */}
       </Space>
       <Space className="campaign-scheduler-actions">
+        <Button
+          size="large"
+          icon={<ReloadOutlined />}
+          onClick={onRefreshClick}
+        >
+          Refresh
+        </Button>
         <Button
           size="large"
           type="primary"

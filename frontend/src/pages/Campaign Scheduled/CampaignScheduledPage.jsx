@@ -546,6 +546,7 @@ export default function CampaignScheduledPage() {
               onConnectClick={() => setConnectOpen(true)}
               isConnected={isConnected}
               schedulerStatus={schedulerStatus}
+              onRefreshClick={loadInitial}
             />
             {renderMain()}
           </main>
@@ -682,10 +683,6 @@ export default function CampaignScheduledPage() {
         onConnectStandard={() => {
           setInstagramModalOpen(false);
           campaignScheduledApi.startInstagramOAuth(activeClientId);
-        }}
-        onConnectDirect={() => {
-          setInstagramModalOpen(false);
-          campaignScheduledApi.startInstagramDirectOAuth(activeClientId);
         }}
       />
       
