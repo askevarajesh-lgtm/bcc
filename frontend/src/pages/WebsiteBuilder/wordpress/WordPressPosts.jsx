@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Typography, Card, Table, Button, Tag, Space, Modal, Input, message, Drawer, Select, Tooltip, Row, Col, Spin, Image } from "antd";
-import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, Activity, RefreshCcw, Image as ImageIcon, Layout, AlertTriangle, Sparkles, FileText, CheckCircle } from "lucide-react";
+import { Typography, Card, Table, Button, Tag, Space, Modal, Input, message, Drawer, Select, Tooltip, Row, Col, Spin, Image, Upload } from "antd";
+import { ArrowLeft, ExternalLink, Plus, Edit2, Trash2, Activity, RefreshCcw, Image as ImageIcon, Layout, AlertTriangle, Sparkles, FileText, CheckCircle, UploadCloud } from "lucide-react";
 import { motion } from "framer-motion";
 import RichTextEditor from "../../../components/RichTextEditor";
 
@@ -26,6 +26,7 @@ const WordPressPosts = () => {
   const [mediaModalVisible, setMediaModalVisible] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -190,6 +191,42 @@ const WordPressPosts = () => {
         }
       }
     });
+  };
+
+  const handleUpload = async (options) => {
+    const { onSuccess, onError, file } = options;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/wordpress/${id}/media`, {
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        message.success("Image uploaded successfully");
+        setMedia([data.data, ...media]);
+        setFeaturedMediaId(data.data.id);
+        setMediaModalVisible(false);
+        onSuccess("Ok");
+      } else {
+        message.error(data.message || "Upload failed");
+        onError(new Error(data.message));
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+      message.error("Error uploading image");
+      onError(err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const columns = [
@@ -455,7 +492,16 @@ const WordPressPosts = () => {
       </Drawer>
 
       <Modal
-        title={<div style={{ fontSize: 18, fontWeight: 900 }}>Select Featured Image</div>}
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 900 }}>Select Featured Image</div>
+            <Upload customRequest={handleUpload} showUploadList={false} accept="image/*">
+              <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading} style={{ background: '#10b981', border: 'none', borderRadius: 8, fontWeight: 700 }}>
+                Upload Image
+              </Button>
+            </Upload>
+          </div>
+        }
         open={mediaModalVisible}
         onCancel={() => setMediaModalVisible(false)}
         footer={null}
