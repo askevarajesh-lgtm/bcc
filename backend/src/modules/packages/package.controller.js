@@ -1,5 +1,6 @@
 const Package = require('./package.model');
 const integrationService = require('../integrations/integration.service');
+const { getEffectivePackageIntegrations } = require('./packageAccess.service');
 
 const VALID_TYPES = ['agency', 'client', 'directClient'];
 
@@ -9,9 +10,14 @@ const validatePackageIntegrations = async (integrations, req) => {
   const normalized = normalizeIntegrations(integrations);
   if (normalized.length === 0) return;
 
+  const role = req.user?.role;
+  if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+    return; // Platform admins can assign any validly formatted integration type
+  }
+
   const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
-  const allowedIntegrations = await integrationService.getAllIntegrations(companyId, req.user.role, req.user);
-  const allowedTypes = new Set(allowedIntegrations.map(i => i.type));
+  const allowedIntegrations = await getEffectivePackageIntegrations(req.user);
+  const allowedTypes = new Set(allowedIntegrations);
 
   for (const type of normalized) {
     if (!allowedTypes.has(type)) {
@@ -162,12 +168,14 @@ exports.createPackage = async (req, res, next) => {
       const agencyId = getAgencyId(req);
       if (!agencyId) return res.status(400).json({ success: false, message: 'Agency context not found' });
 
-      // Package-level integration entitlements are not part of Client Package
-      // behavior yet -- strip whatever was sent so this stays byte-for-byte
-      // the same as before this feature existed (schema default [] applies).
-      const { integrations, ...clientBody } = req.body;
+      await validatePackageIntegrations(req.body.integrations, req);
 
-      const newPackage = new Package({ ...clientBody, type: 'client', agencyId });
+      const newPackage = new Package({ 
+        ...req.body, 
+        type: 'client', 
+        agencyId,
+        integrations: normalizeIntegrations(req.body.integrations)
+      });
       await newPackage.save();
       return res.status(201).json({ success: true, message: 'Package created successfully', data: newPackage });
     } catch (error) {
@@ -270,9 +278,10 @@ exports.updatePackage = async (req, res, next) => {
     try {
       const agencyId = getAgencyId(req);
 
-      // Package-level integration entitlements are not part of Client Package
-      // behavior yet -- drop the field so an update can never introduce it.
-      delete req.body.integrations;
+      if (req.body.integrations !== undefined) {
+        req.body.integrations = normalizeIntegrations(req.body.integrations);
+        await validatePackageIntegrations(req.body.integrations, req);
+      }
 
       const existingPkgForName = await Package.findOne({ _id: req.params.id, type: 'client', agencyId });
       if (existingPkgForName) {

@@ -64,6 +64,9 @@ const CalendarPage = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  
+  const [dayModalVisible, setDayModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // Note/Attachment inputs
   const [noteContent, setNoteContent] = useState('');
@@ -280,7 +283,8 @@ const CalendarPage = () => {
               <Badge
                 status={
                   item.source === 'meeting' ? 'processing' :
-                    item.source === 'task' ? 'warning' : 'success'
+                  item.source === 'task' ? 'warning' : 
+                  item.source === 'client_creation' ? 'default' : 'success'
                 }
                 text={
                   <span
@@ -308,6 +312,17 @@ const CalendarPage = () => {
       startDate: value.startOf('month').format('YYYY-MM-DD'),
       endDate: value.endOf('month').format('YYYY-MM-DD'),
     });
+  };
+
+  const handleDateSelect = (value, selectInfo) => {
+    if (selectInfo && selectInfo.source !== 'date') return;
+    
+    const dateStr = value.format('YYYY-MM-DD');
+    const listData = getCalendarListData(value);
+    if (listData.length > 0) {
+      setSelectedDate(dateStr);
+      setDayModalVisible(true);
+    }
   };
 
   // Table Columns config
@@ -368,6 +383,7 @@ const CalendarPage = () => {
           meeting: { color: 'blue', label: 'Meetings' },
           task: { color: 'purple', label: 'Task Milestones' },
           lead: { color: 'orange', label: 'CRM Leads' },
+          client_creation: { color: 'cyan', label: 'Client Creation' },
           custom: { color: 'green', label: 'Calendar Custom' }
         };
         const item = sourceMap[source] || { color: 'default', label: 'Custom' };
@@ -526,6 +542,7 @@ const CalendarPage = () => {
                     <Option value="content_approval">Content Approval</Option>
                     <Option value="internal_sync">Internal Sync</Option>
                     <Option value="sales_call">Sales Call</Option>
+                    <Option value="client_creation">Client Creation</Option>
                     <Option value="proposal_review">Proposal Review</Option>
                     <Option value="retainer_renewal">Retainer Renewal</Option>
                     <Option value="performance_review">Performance Review</Option>
@@ -547,6 +564,7 @@ const CalendarPage = () => {
                 <Calendar
                   dateCellRender={calendarDateCellRender}
                   onPanelChange={handlePanelChange}
+                  onSelect={handleDateSelect}
                 />
               </Card>
             )
@@ -882,6 +900,57 @@ const CalendarPage = () => {
           <div style={{ textAlign: 'center', padding: '24px' }}>Loading event metadata...</div>
         )}
       </Modal>
+
+      {/* Day Events Modal */}
+      <Modal
+        title={`Activities for ${dayjs(selectedDate).format('MMMM DD, YYYY')}`}
+        open={dayModalVisible}
+        onCancel={() => {
+          setDayModalVisible(false);
+          setSelectedDate(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={selectedDate ? events.filter(e => dayjs(e.startDateTime).format('YYYY-MM-DD') === selectedDate) : []}
+          renderItem={item => (
+            <List.Item
+              actions={[
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setDayModalVisible(false);
+                    setSelectedEventId(item._id);
+                    setDetailModalVisible(true);
+                  }}
+                >
+                  View Details
+                </Button>
+              ]}
+            >
+              <List.Item.Meta
+                avatar={getStatusTag(item.status)}
+                title={<span>{item.title}</span>}
+                description={
+                  <Space direction="vertical" size={0}>
+                    <span style={{ fontSize: '12px' }}>
+                      <ClockCircleOutlined style={{ marginRight: 6 }} />
+                      {dayjs(item.startDateTime).format('h:mm a')} - {dayjs(item.endDateTime).format('h:mm a')}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                      {item.notes || 'No additional details provided.'}
+                    </span>
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
+
     </div>
   );
 };

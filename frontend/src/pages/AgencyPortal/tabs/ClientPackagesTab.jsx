@@ -17,8 +17,24 @@ const availableFeatures = [
   { id: 'benchmark', label: 'Benchmark' },
 ];
 
+const FEATURE_INTEGRATION_AUTO_MAP = {
+  hrms: 'ekta',
+  crm: 'website',
+};
+
+const AGENCY_ACCOUNT_INTEGRATIONS = [
+  { type: 'whatsapp', name: 'WhatsApp' },
+  { type: 'sms', name: 'SMS' },
+  { type: 'email', name: 'Email (SendPulse)' },
+  { type: 'website', name: 'Lead Management Integration' },
+  { type: 'payment', name: 'Payment Integration' },
+  { type: 'ekta', name: 'Ekta HR Integration' },
+];
+
 const ClientPackagesTab = () => {
   const { user } = useAuth();
+  const availableIntegrations = AGENCY_ACCOUNT_INTEGRATIONS.filter(i => (user?.integrations || []).includes(i.type));
+
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +45,8 @@ const ClientPackagesTab = () => {
     description: '',
     price: '',
     billingInterval: 'Monthly',
-    features: []
+    features: [],
+    integrations: []
   });
 
   const fetchPackages = async () => {
@@ -56,7 +73,8 @@ const ClientPackagesTab = () => {
         description: pkg.description || '',
         price: pkg.price || '',
         billingInterval: pkg.billingInterval || 'Monthly',
-        features: pkg.features || []
+        features: (pkg.features || []).filter(f => (user?.features || []).includes(f)),
+        integrations: (pkg.integrations || []).filter(i => availableIntegrations.some(ai => ai.type === i))
       });
     } else {
       setEditingPkg(null);
@@ -65,7 +83,8 @@ const ClientPackagesTab = () => {
         description: '',
         price: '',
         billingInterval: 'Monthly',
-        features: []
+        features: [],
+        integrations: []
       });
     }
     setIsModalOpen(true);
@@ -78,11 +97,17 @@ const ClientPackagesTab = () => {
     }
 
     try {
+      const payload = {
+        ...formData,
+        features: formData.features.filter(f => (user?.features || []).includes(f)),
+        integrations: formData.integrations.filter(i => availableIntegrations.some(ai => ai.type === i))
+      };
+
       if (editingPkg) {
-        await api.put(`/packages/${editingPkg._id}`, formData);
+        await api.put(`/packages/${editingPkg._id}`, payload);
         message.success("Package updated successfully");
       } else {
-        await api.post('/packages', { ...formData, type: 'client' });
+        await api.post('/packages', { ...payload, type: 'client' });
         message.success("Package created successfully");
       }
       setIsModalOpen(false);
@@ -103,11 +128,27 @@ const ClientPackagesTab = () => {
   };
 
   const toggleFeature = (featureId, checked) => {
+    setFormData(prev => {
+      const nextFeatures = checked
+        ? [...prev.features, featureId]
+        : prev.features.filter(f => f !== featureId);
+
+      const linkedIntegration = FEATURE_INTEGRATION_AUTO_MAP[featureId];
+      const existsInDb = linkedIntegration && availableIntegrations.some(i => i.type === linkedIntegration);
+      const nextIntegrations = (checked && linkedIntegration && existsInDb && !prev.integrations.includes(linkedIntegration))
+        ? [...prev.integrations, linkedIntegration]
+        : prev.integrations;
+
+      return { ...prev, features: nextFeatures, integrations: nextIntegrations };
+    });
+  };
+
+  const toggleIntegration = (integrationType, checked) => {
     setFormData(prev => ({
       ...prev,
-      features: checked 
-        ? [...prev.features, featureId]
-        : prev.features.filter(f => f !== featureId)
+      integrations: checked
+        ? [...prev.integrations, integrationType]
+        : prev.integrations.filter(t => t !== integrationType)
     }));
   };
 
@@ -337,24 +378,57 @@ const ClientPackagesTab = () => {
           
           <div style={{ marginTop: 16 }}>
             <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Included Features</label>
-            <div style={{ background: 'var(--bg-secondary)', padding: 24, borderRadius: 12, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 24px' }}>
-                {availableFeatures.filter(feat => (user?.features || []).includes(feat.id)).map(feat => (
-                  <div key={feat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
-                    <Switch 
-                      checked={formData.features.includes(feat.id)} 
-                      onChange={(checked) => toggleFeature(feat.id, checked)}
-                    />
-                  </div>
-                ))}
-                {availableFeatures.filter(feat => (user?.features || []).includes(feat.id)).length === 0 && (
-                  <Text type="secondary" style={{ fontStyle: 'italic', gridColumn: 'span 2' }}>
-                    Your agency package does not currently have any active features. Please upgrade your agency package to offer features to clients.
-                  </Text>
-                )}
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {availableFeatures.filter(feat => (user?.features || []).includes(feat.id)).map(feat => (
+                <div key={feat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{feat.label}</span>
+                  <Switch 
+                    size="small" 
+                    checked={formData.features.includes(feat.id)}
+                    onChange={(checked) => toggleFeature(feat.id, checked)}
+                  />
+                </div>
+              ))}
+              {availableFeatures.filter(feat => (user?.features || []).includes(feat.id)).length === 0 && (
+                <Text type="secondary" style={{ fontStyle: 'italic', gridColumn: 'span 2' }}>
+                  Your agency package does not currently have any active features.
+                </Text>
+              )}
             </div>
+          </div>
+
+          <div style={{ marginTop: 8 }}>
+            <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Integrations</label>
+            {availableIntegrations.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', padding: 12, background: 'var(--bg-tertiary)', borderRadius: 8 }}>
+                No integrations are currently available or enabled for your agency.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {availableIntegrations.map(integration => {
+                  const autoLinkedFeature = Object.entries(FEATURE_INTEGRATION_AUTO_MAP)
+                    .find(([, linkedType]) => linkedType === integration.type)?.[0];
+                  const autoLinkedFeatureLabel = availableFeatures.find(f => f.id === autoLinkedFeature)?.label;
+                  return (
+                    <div key={integration.type} style={{ display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--bg-tertiary)', padding: '10px 16px', borderRadius: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{integration.name}</span>
+                        <Switch
+                          size="small"
+                          checked={formData.integrations.includes(integration.type)}
+                          onChange={(checked) => toggleIntegration(integration.type, checked)}
+                        />
+                      </div>
+                      {autoLinkedFeatureLabel && (
+                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          Auto-enabled when {autoLinkedFeatureLabel} is included
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

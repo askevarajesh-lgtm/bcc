@@ -75,7 +75,7 @@ exports.createBrand = async (req, res, next) => {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
-    
+
     let hasCreatePerm = false;
     if (isEmployee) {
       const dbUser = await User.findById(req.user._id);
@@ -115,8 +115,8 @@ exports.createBrand = async (req, res, next) => {
       });
 
       if (currentClientsCount >= maxClients) {
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(400).json({
+          success: false,
           message: 'You have reached the maximum limit allowed by your current package. If you need additional capacity, please raise a support ticket or upgrade your package.'
         });
       }
@@ -262,7 +262,7 @@ exports.deleteBrand = async (req, res, next) => {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
-    
+
     let hasDeletePerm = false;
     if (isEmployee) {
       const dbUser = await User.findById(req.user._id);
@@ -323,7 +323,7 @@ exports.updateBrand = async (req, res, next) => {
 
     const { name, email, phone, address, packageName, features, additionalIntegrations, disabledPackageIntegrations, mrr, extraUsers } = req.body;
     let updates = {};
-    
+
     // Validate Phone Number
     if (phone) {
       let cCode = req.body.countryCode;
@@ -338,7 +338,7 @@ exports.updateBrand = async (req, res, next) => {
       updates.phone = phone;
       if (req.body.countryCode) updates.countryCode = req.body.countryCode;
     }
-    
+
     if (name) {
       updates.companyName = name;
       updates.name = name + ' Admin';
@@ -381,12 +381,12 @@ exports.updateBrand = async (req, res, next) => {
 
     let finalAdditional = additionalIntegrations !== undefined ? additionalIntegrations : (currentBrand.additionalIntegrations || []);
     let finalDisabled = disabledPackageIntegrations !== undefined ? disabledPackageIntegrations : (currentBrand.disabledPackageIntegrations || []);
-    
+
     if (packageName !== undefined) {
       updates.packageName = packageName;
       updates.features = packageFeatures;
       updates.mrr = packageName ? (packagePrice || 0) : 0;
-      
+
       finalAdditional = finalAdditional.filter(i => !packageIntegrations.includes(i));
       finalDisabled = finalDisabled.filter(i => packageIntegrations.includes(i));
     } else {
@@ -398,7 +398,7 @@ exports.updateBrand = async (req, res, next) => {
         finalDisabled = disabledPackageIntegrations.filter(i => packageIntegrations.includes(i));
       }
     }
-    
+
     updates.additionalIntegrations = finalAdditional;
     updates.disabledPackageIntegrations = finalDisabled;
     updates.integrations = [...new Set([...packageIntegrations.filter(i => !finalDisabled.includes(i)), ...finalAdditional])];
