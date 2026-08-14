@@ -135,7 +135,8 @@ exports.getIntegrations = async (req, res, next) => {
       const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
         params: {
           access_token: accessToken,
-          fields: 'id,name,access_token'
+          fields: 'id,name,access_token',
+          limit: 100
         }
       });
       activePages = pagesRes.data.data || [];
@@ -194,12 +195,15 @@ exports.subscribePage = async (req, res, next) => {
     if (manualPage && manualPage.accessToken && manualPage.accessToken !== accessToken) {
       pageAccessToken = manualPage.accessToken;
     } else {
-      const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
-        params: { access_token: accessToken, fields: 'id,access_token' }
-      });
-      const page = pagesRes.data.data.find(p => p.id === pageId);
-      if (page && page.access_token) {
-        pageAccessToken = page.access_token;
+      try {
+        const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+          params: { access_token: accessToken, fields: 'id,access_token' }
+        });
+        if (pageRes.data && pageRes.data.access_token) {
+          pageAccessToken = pageRes.data.access_token;
+        }
+      } catch (e) {
+        console.error('Error fetching page access token', e.message);
       }
     }
     
@@ -244,12 +248,19 @@ exports.unsubscribePage = async (req, res, next) => {
 
     const { accessToken } = integration.config;
     
-    const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
-      params: { access_token: accessToken, fields: 'id,access_token' }
-    });
-    const page = pagesRes.data.data.find(p => p.id === pageId);
+    let pageAccessToken = null;
+    try {
+      const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+        params: { access_token: accessToken, fields: 'id,access_token' }
+      });
+      if (pageRes.data && pageRes.data.access_token) {
+        pageAccessToken = pageRes.data.access_token;
+      }
+    } catch (e) {
+      console.error('Error fetching page access token', e.message);
+    }
     
-    if (!page || !page.access_token) {
+    if (!pageAccessToken) {
       return res.status(403).json({ success: false, message: 'Could not find page access token for the given page' });
     }
 
@@ -257,7 +268,7 @@ exports.unsubscribePage = async (req, res, next) => {
     await axios.delete(
       `https://graph.facebook.com/v18.0/${pageId}/subscribed_apps`,
       {
-        params: { access_token: page.access_token }
+        params: { access_token: pageAccessToken }
       }
     );
 
@@ -347,12 +358,11 @@ exports.syncLeads = async (req, res, next) => {
       targetAccessToken = manualPage.accessToken;
     } else if (pageId) {
       try {
-        const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+        const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
           params: { access_token: accessToken, fields: 'id,access_token' }
         });
-        const page = pagesRes.data.data.find(p => p.id === pageId);
-        if (page && page.access_token) {
-          targetAccessToken = page.access_token;
+        if (pageRes.data && pageRes.data.access_token) {
+          targetAccessToken = pageRes.data.access_token;
         }
       } catch (err) {
         console.error('Error fetching page access token, falling back to user token', err.message);
@@ -388,76 +398,90 @@ exports.syncLeads = async (req, res, next) => {
 
     for (const form of forms) {
       try {
-        const leadsRes = await axios.get(`https://graph.facebook.com/v18.0/${form.id}/leads`, {
-          params: { 
-            access_token: targetAccessToken, 
-            fields: 'id,created_time,ad_id,form_id,field_data,adset_id,campaign_id',
-            limit: 100 
-          }
-        });
+        let hasNextPage = true;
+        let url = `https://graph.facebook.com/v18.0/${form.id}/leads`;
+        let leadsParams = { 
+          access_token: targetAccessToken, 
+          fields: 'id,created_time,ad_id,form_id,field_data,adset_id,campaign_id',
+          limit: 500 
+        };
         
         let syncedCount = 0;
         let duplicateCount = 0;
 
-        if (leadsRes.data && leadsRes.data.data) {
-          if (leadsRes.data.data.length === 0) {
-            console.log(`No leads returned for form ${form.id}`);
-          } else {
-            console.log(`Found ${leadsRes.data.data.length} leads for form ${form.id}`);
-          }
-          for (const fbLead of leadsRes.data.data) {
-            const leadgenId = fbLead.id;
-            
-            const existing = await Lead.findOne({ 
-              companyId, 
-              'customData.leadgenId': leadgenId 
-            });
-            
-            if (existing) {
-              duplicateCount++;
-              continue;
+        while (hasNextPage) {
+          const leadsRes = await axios.get(url, { params: leadsParams });
+          
+          if (leadsRes.data && leadsRes.data.data) {
+            if (leadsRes.data.data.length === 0) {
+              console.log(`No leads returned for form ${form.id} in this page`);
+            } else {
+              console.log(`Found ${leadsRes.data.data.length} leads for form ${form.id}`);
             }
             
-            let fullName = 'Facebook Lead';
-            let email = '';
-            let phoneNumber = '';
-            let companyName = '';
-            
-            if (Array.isArray(fbLead.field_data)) {
-              fbLead.field_data.forEach(field => {
-                const name = field.name.toLowerCase();
-                const val = field.values && field.values.length > 0 ? field.values[0] : '';
-                
-                if (name === 'full_name' || name === 'name') fullName = val;
-                else if (name === 'email') email = val;
-                else if (name === 'phone_number' || name === 'phone') phoneNumber = val;
-                else if (name === 'company_name' || name === 'company') companyName = val;
+            for (const fbLead of leadsRes.data.data) {
+              const leadgenId = fbLead.id;
+              
+              const existing = await Lead.findOne({ 
+                companyId, 
+                'customData.leadgenId': leadgenId 
               });
+              
+              if (existing) {
+                duplicateCount++;
+                continue;
+              }
+              
+              let fullName = 'Facebook Lead';
+              let email = '';
+              let phoneNumber = '';
+              let companyName = '';
+              
+              if (Array.isArray(fbLead.field_data)) {
+                fbLead.field_data.forEach(field => {
+                  const name = field.name.toLowerCase();
+                  const val = field.values && field.values.length > 0 ? field.values[0] : '';
+                  
+                  if (name === 'full_name' || name === 'name') fullName = val;
+                  else if (name === 'email') email = val;
+                  else if (name === 'phone_number' || name === 'phone') phoneNumber = val;
+                  else if (name === 'company_name' || name === 'company') companyName = val;
+                });
+              }
+              
+              await Lead.create({
+                companyId,
+                createdBy: req.user ? req.user._id : null,
+                fullName: fullName || 'Unknown',
+                email,
+                phoneNumber,
+                companyName,
+                source: 'Facebook Lead Ads',
+                status: 'new',
+                customData: {
+                  leadgenId,
+                  formId: form.id,
+                  formName: form.name || 'Unknown Form',
+                  pageId: pageId,
+                  adId: fbLead.ad_id,
+                  adSetId: fbLead.adset_id,
+                  campaignId: fbLead.campaign_id,
+                  createdTime: fbLead.created_time
+                },
+                activityLogs: [{ message: 'Imported from Facebook Lead Ads' }]
+              });
+              
+              syncedCount++;
             }
             
-            await Lead.create({
-              companyId,
-              createdBy: req.user ? req.user._id : null,
-              fullName: fullName || 'Unknown',
-              email,
-              phoneNumber,
-              companyName,
-              source: 'Facebook Lead Ads',
-              status: 'new',
-              customData: {
-                leadgenId,
-                formId: form.id,
-                formName: form.name || 'Unknown Form',
-                pageId: pageId,
-                adId: fbLead.ad_id,
-                adSetId: fbLead.adset_id,
-                campaignId: fbLead.campaign_id,
-                createdTime: fbLead.created_time
-              },
-              activityLogs: [{ message: 'Imported from Facebook Lead Ads' }]
-            });
-            
-            syncedCount++;
+            if (leadsRes.data.paging && leadsRes.data.paging.next) {
+              url = leadsRes.data.paging.next;
+              leadsParams = {}; // next url already contains tokens and params
+            } else {
+              hasNextPage = false;
+            }
+          } else {
+            hasNextPage = false;
           }
         }
         
@@ -592,14 +616,15 @@ exports.getForms = async (req, res, next) => {
       targetAccessToken = manualPage.accessToken;
     } else {
       try {
-        const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+        const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
           params: { access_token: targetAccessToken, fields: 'id,access_token' }
         });
-        const page = pagesRes.data.data.find(p => p.id === pageId);
-        if (page && page.access_token) {
-          targetAccessToken = page.access_token;
+        if (pageRes.data && pageRes.data.access_token) {
+          targetAccessToken = pageRes.data.access_token;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error fetching page access token', e.message);
+      }
     }
 
     const formsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/leadgen_forms`, {
@@ -657,13 +682,19 @@ exports.handleWebhook = async (req, res) => {
             
             for (const intg of integrations) {
               try {
-                const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+                const manualPage = (intg.config.pages || []).find(p => p.pageId === pageId);
+                if (manualPage && manualPage.accessToken) {
+                  validIntegration = intg;
+                  pageAccessToken = manualPage.accessToken;
+                  break;
+                }
+
+                const pageRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
                   params: { access_token: intg.config.accessToken, fields: 'id,access_token' }
                 });
-                const page = pagesRes.data.data.find(p => p.id === pageId);
-                if (page && page.access_token) {
+                if (pageRes.data && pageRes.data.access_token) {
                   validIntegration = intg;
-                  pageAccessToken = page.access_token;
+                  pageAccessToken = pageRes.data.access_token;
                   break;
                 }
               } catch(e) {}
