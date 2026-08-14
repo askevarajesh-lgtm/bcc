@@ -17,6 +17,17 @@ const getStatusTagColor = (status) => {
   return 'default';
 };
 
+const INTEGRATIONS_LIST = [
+  { id: 'website', label: 'Lead Management Integration' },
+  { id: 'ekta', label: 'Ekta HR Integration' },
+  { id: 'whatsapp', label: 'WhatsApp Integration' },
+  { id: 'sms', label: 'SMS Integration' },
+  { id: 'email', label: 'Email Integration' },
+  { id: 'facebook', label: 'Facebook Integration' },
+  { id: 'twilio', label: 'Twilio Integration' },
+  { id: 'payment', label: 'Payment Integration' },
+];
+
 const ClientDetailContent = ({
   selectedClient,
   allowedFeatures,
@@ -340,10 +351,24 @@ const ClientDetailContent = ({
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                   };
 
+                  const currentIntegrations = selectedClient.integrations || [];
+                  let updatedIntegrations = [...currentIntegrations];
+
+                  const FEATURE_INTEGRATION_AUTO_MAP = { hrms: 'ekta', crm: 'website' };
+                  if (checked && FEATURE_INTEGRATION_AUTO_MAP[featId]) {
+                    const linkedInt = FEATURE_INTEGRATION_AUTO_MAP[featId];
+                    if (!updatedIntegrations.includes(linkedInt)) {
+                      updatedIntegrations.push(linkedInt);
+                    }
+                  }
+
                   const res = await fetch(`/api/brands/${clientId}`, {
                     method: 'PUT',
                     headers,
-                    body: JSON.stringify({ features: updatedFeatures })
+                    body: JSON.stringify({ 
+                      features: updatedFeatures,
+                      ...(updatedIntegrations.length !== currentIntegrations.length ? { integrations: updatedIntegrations } : {})
+                    })
                   });
                   const data = await res.json();
                   if (data.success) {
@@ -351,7 +376,8 @@ const ClientDetailContent = ({
                     if (onClientUpdated) {
                       onClientUpdated({
                         ...selectedClient,
-                        features: data.data.features || []
+                        features: data.data.features || [],
+                        integrations: data.data.integrations || []
                       });
                     }
                   } else {
@@ -373,27 +399,72 @@ const ClientDetailContent = ({
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {allowedFeatures.length > 0 ? allowedFeatures.map(feat => {
-                      const enabled = (selectedClient.features || []).includes(feat.id);
-                      return (
-                        <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: enabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)', opacity: 1 }}>
-                          <div style={{ color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}><CheckCircle size={15} /></div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
-                          <div style={{ marginLeft: 'auto' }}>
-                            <Switch
-                              size="small"
-                              checked={enabled}
-                              loading={togglingFeatureId === feat.id}
-                              onChange={(checked) => handleFeatureToggle(feat.id, checked)}
-                            />
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'block' }}>Features</Text>
+                    {(() => {
+                      const clientFeatures = selectedClient.features || [];
+                      const featuresToShow = [...allowedFeatures];
+                      
+                      // Add any accessed features that are not in allowedFeatures
+                      clientFeatures.forEach(featId => {
+                        if (!featuresToShow.find(f => f.id === featId)) {
+                          featuresToShow.push({ id: featId, label: featId.charAt(0).toUpperCase() + featId.slice(1) });
+                        }
+                      });
+
+                      if (featuresToShow.length === 0) {
+                        return (
+                          <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
+                            No modules configured.
                           </div>
-                        </div>
-                      );
-                    }) : (
-                      <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
-                        No modules configured.
-                      </div>
-                    )}
+                        );
+                      }
+
+                      return featuresToShow.map(feat => {
+                        const enabled = clientFeatures.includes(feat.id);
+                        return (
+                          <div key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: enabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)', opacity: 1 }}>
+                            <div style={{ color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}><CheckCircle size={15} /></div>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</span>
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Switch
+                                size="small"
+                                checked={enabled}
+                                loading={togglingFeatureId === feat.id}
+                                onChange={(checked) => handleFeatureToggle(feat.id, checked)}
+                              />
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'block' }}>Accessed Integrations</Text>
+                    {(() => {
+                      const clientIntegrations = selectedClient.integrations || [];
+                      if (clientIntegrations.length === 0) {
+                        return (
+                          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
+                            No integrations accessed.
+                          </div>
+                        );
+                      }
+
+                      return clientIntegrations.map(intId => {
+                        const integrationDef = INTEGRATIONS_LIST.find(i => i.id === intId);
+                        const label = integrationDef ? integrationDef.label : (intId.charAt(0).toUpperCase() + intId.slice(1));
+                        return (
+                          <div key={intId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-tertiary)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                            <div style={{ color: 'var(--accent-primary)' }}><CheckCircle size={15} /></div>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Tag color="blue" style={{ margin: 0, borderRadius: 12 }}>Enabled</Tag>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               );

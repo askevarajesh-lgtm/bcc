@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Typography, Row, Col, Table, Button, Avatar, Spin, message, Tag, DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
 import { motion } from 'framer-motion';
@@ -12,6 +13,7 @@ const { Title, Text } = Typography;
 
 const OverviewTab = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [overviewData, setOverviewData] = useState(null);
@@ -122,7 +124,7 @@ const OverviewTab = () => {
         <motion.div variants={itemVariants}>
           <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
             {kpis.map((stat, idx) => (
-              <Col xs={24} sm={12} lg={4} key={idx}>
+              <Col xs={24} sm={12} flex={1} key={idx}>
                 <div style={{
                   background: 'var(--bg-tertiary)',
                   borderRadius: 20,
@@ -293,7 +295,7 @@ const OverviewTab = () => {
         <motion.div variants={itemVariants}>
           <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
             {kpis.map((stat, idx) => (
-              <Col xs={24} sm={12} lg={4} key={idx}>
+              <Col xs={24} sm={12} flex={1} key={idx}>
                 <div style={{
                   background: 'var(--bg-tertiary)',
                   borderRadius: 20,
@@ -325,6 +327,32 @@ const OverviewTab = () => {
 
         {/* Action Center Row */}
         <motion.div variants={itemVariants}>
+          <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+            <Col xs={24}>
+              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 24 }}>
+                <Title level={5} style={{ margin: '0 0 24px 0', fontWeight: 800 }}>Operational Metrics Overview</Title>
+                <div style={{ height: 250, width: '100%' }}>
+                  <ResponsiveContainer>
+                    <ComposedChart 
+                      data={[
+                        { name: 'Due Today', count: stats.tasksDueTodayCount },
+                        { name: 'Overdue', count: stats.overdueTasksCount },
+                        { name: 'Pending Approvals', count: stats.pendingApprovalsCount },
+                        { name: 'At Risk SLAs', count: stats.atRiskSlasCount }
+                      ]} 
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                      <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)', fontWeight: 600 }} />
+                      <Bar dataKey="count" name="Count" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} barSize={40} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </Col>
+          </Row>
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={12}>
               <div style={{ background: 'var(--bg-tertiary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 24, height: '100%' }}>
@@ -334,10 +362,17 @@ const OverviewTab = () => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 12, fontWeight: 700 }}>Due Today ({actionItems.tasksDueToday.length})</Text>
                   {actionItems.tasksDueToday.map((t, i) => (
                     <div key={i} style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 8, marginBottom: 8, border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <div>
+                        <div>
                          <Text style={{ fontWeight: 600, display: 'block' }}>{t.title}</Text>
                          <Text type="secondary" style={{ fontSize: 12 }}>{t.companyId?.companyName} • Assignee: {t.assignee?.name}</Text>
                        </div>
+                       <Button 
+                         type="primary" 
+                         size="small" 
+                         onClick={() => navigate('/agency/workspace/tasks')}
+                       >
+                         View Task
+                       </Button>
                     </div>
                   ))}
                   {actionItems.tasksDueToday.length === 0 && <Text type="secondary" style={{ fontSize: 12 }}>None</Text>}
@@ -351,6 +386,13 @@ const OverviewTab = () => {
                          <Text style={{ fontWeight: 600, display: 'block' }}>{t.title}</Text>
                          <Text type="secondary" style={{ fontSize: 12 }}>Due: {new Date(t.dueDate).toLocaleDateString()}</Text>
                        </div>
+                       <Button 
+                         type="primary" 
+                         size="small" 
+                         onClick={() => navigate('/agency/workspace/tasks')}
+                       >
+                         View Task
+                       </Button>
                     </div>
                   ))}
                   {actionItems.overdueTasks.length === 0 && <Text type="secondary" style={{ fontSize: 12 }}>None</Text>}

@@ -1,5 +1,7 @@
+const mongoose = require("mongoose");
 const Project = require("./project.model");
 const Task = require("../tasks/task.model");
+const MasterItem = require("../masterItems/masterItem.model");
 const ClientCompany = require("./shimProjectModel");
 const Invoice = require("./shimInvoiceModel");
 const { Service, Plan } = require("./shimOperationModel");
@@ -882,8 +884,8 @@ const getAllProjects = async (
 
   // Execute paginated query with populate
   const result = await executePaginatedQuery(Project, resolved.queryOptions, [
-    { path: "clientId", select: "name email phone address status" },
-    { path: "companyId", select: "name email phone address status" },
+    { path: "clientId", select: "name companyName email phone address status" },
+    { path: "companyId", select: "name companyName email phone address status" },
     { path: "createdBy", select: "name email roleName" },
     { path: "invoiceId", select: "invoiceNumber type status" },
     {

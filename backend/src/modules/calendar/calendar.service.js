@@ -96,6 +96,8 @@ const calendarService = {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999);
+      
       eventFilter.startDateTime = { $gte: start, $lte: end };
       meetingFilter.date = { $gte: start, $lte: end };
       taskFilter.dueDate = { $gte: start, $lte: end };
@@ -224,8 +226,53 @@ const calendarService = {
       };
     });
 
+    // 5. Fetch Client creation events
+    const clientCreationFilter = { role: 'agency_client' };
+    if (clientId) {
+      clientCreationFilter._id = clientId;
+    }
+    
+    if (['agency_super_admin', 'agency_manager'].includes(userRole)) {
+      clientCreationFilter.agencyId = companyId;
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client', 'client'].includes(userRole)) {
+      clientCreationFilter._id = companyId;
+    } else if (['supreme_super_admin', 'commander_admin'].includes(userRole) && companyId) {
+      clientCreationFilter.agencyId = companyId;
+    } else {
+      clientCreationFilter.agencyId = companyId;
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999);
+      clientCreationFilter.createdAt = { $gte: start, $lte: end };
+    }
+
+    const createdClients = await User.find(clientCreationFilter);
+    const mappedClients = createdClients.map(c => {
+      const start = new Date(c.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: c._id,
+        title: `[Client Created] ${c.companyName || c.name}`,
+        eventType: 'client_creation',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'System',
+        host: null,
+        attendees: [],
+        status: 'completed',
+        companyId: c.agencyId,
+        clientId: c._id,
+        isInternal: false,
+        source: 'client_creation',
+        notes: `New client account registered for ${c.companyName || c.name || 'Unknown'}`
+      };
+    });
+
     // Combine everything
-    let allEvents = [...mappedCustom, ...mappedMeetings, ...mappedTasks, ...mappedLeads];
+    let allEvents = [...mappedCustom, ...mappedMeetings, ...mappedTasks, ...mappedLeads, ...mappedClients];
 
     // Filter by type if specified
     if (eventType) {

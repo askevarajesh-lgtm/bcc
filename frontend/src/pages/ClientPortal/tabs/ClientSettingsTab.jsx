@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Building2, User, Shield, Star, Briefcase, Link, CreditCard } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
-import ClientIntegrationsTab from './ClientIntegrationsTab';
+import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
 
 const availableFeatures = [
   { id: 'hrms', label: 'HRMS' },

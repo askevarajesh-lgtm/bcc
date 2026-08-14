@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { 
+import {
   Table, Typography, Card, Progress, Tag, Space, Tooltip, Row, Col, Statistic, Button, Drawer
 } from 'antd';
-import { 
+import {
   ProjectOutlined, CheckCircleOutlined, ClockCircleOutlined, ProfileOutlined, EyeOutlined
 } from '@ant-design/icons';
 import { useGetProjectsQuery } from '../../api/projectApi';
@@ -21,7 +21,7 @@ const DeliverablesPage = () => {
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
   const [showCelebration, setShowCelebration] = useState(false);
-  
+
   // Fetch all projects (populated with clientId)
   const { data: projectsResponse, isLoading, refetch: refetchProjects } = useGetProjectsQuery({ limit: 1000 });
   const projects = projectsResponse?.data?.data || projectsResponse?.data?.projects || [];
@@ -39,7 +39,7 @@ const DeliverablesPage = () => {
     projects.forEach(project => {
       const clientId = project.clientId?._id || project.clientId;
       if (!clientId) return;
-      
+
       const clientName = project.clientId?.name || project.clientId?.companyName || 'Unknown Client';
       const clientEmail = project.clientId?.email || '';
 
@@ -58,19 +58,19 @@ const DeliverablesPage = () => {
       // Aggregate core project specific deliverable fields
       const pTotal = (project.numberOfPosters || 0) + (project.numberOfVideos || 0) + (project.numberOfShoots || 0);
       const pRemaining = (project.remainingPosters || 0) + (project.remainingVideos || 0) + (project.remainingShoots || 0);
-      
+
       let extraTotal = 0;
       let extraRemaining = 0;
 
       // also check selectedCategories for custom deliverables
       if (project.selectedCategories && Array.isArray(project.selectedCategories)) {
         project.selectedCategories.forEach(cat => {
-           const rawName = cat.name || cat.categoryName || "";
-           const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
-           if (!isStandard) {
-             extraTotal += (cat.quantity || 0);
-             extraRemaining += (cat.remaining || 0);
-           }
+          const rawName = cat.name || cat.categoryName || "";
+          const isStandard = ["poster", "video", "shoot"].some(k => rawName.toLowerCase().includes(k));
+          if (!isStandard) {
+            extraTotal += (cat.quantity || 0);
+            extraRemaining += (cat.remaining || 0);
+          }
         });
       }
 
@@ -169,13 +169,13 @@ const DeliverablesPage = () => {
         const percent = record.totalDeliverables > 0 ? Math.round((record.completedDeliverables / record.totalDeliverables) * 100) : 0;
         return (
           <Tooltip title={`${record.completedDeliverables} / ${record.totalDeliverables} Completed`}>
-            <Progress 
-              percent={percent} 
-              size="small" 
+            <Progress
+              percent={percent}
+              size="small"
               strokeColor={{
                 '0%': '#108ee9',
                 '100%': '#87d068',
-              }} 
+              }}
             />
           </Tooltip>
         );
@@ -200,7 +200,7 @@ const DeliverablesPage = () => {
           if (status === 'completed' || status === 'approved') color = 'success';
           else if (status === 'in_progress') color = 'processing';
           else if (status === 'workflow_sent' || status === 'sent_for_client_review' || status === 'project_near_due_date') color = 'warning';
-          
+
           return (
             <Tag color={color}>
               {status?.replace(/_/g, ' ')?.toUpperCase() || 'UNKNOWN'}
@@ -242,9 +242,9 @@ const DeliverablesPage = () => {
         key: 'action',
         align: 'center',
         render: (_, pRecord) => (
-          <Button 
-            type="primary" 
-            icon={<EyeOutlined />} 
+          <Button
+            type="primary"
+            icon={<EyeOutlined />}
             size="small"
             onClick={() => setSelectedProjectForTasks(pRecord)}
           >
@@ -257,10 +257,10 @@ const DeliverablesPage = () => {
     return (
       <div style={{ padding: '16px 24px', background: isDark ? '#111c31' : '#f9f9f9', borderRadius: '8px' }}>
         <Text strong style={{ marginBottom: 16, display: 'block' }}>Client Projects Breakdown</Text>
-        <Table 
-          columns={projectCols} 
-          dataSource={record.projects} 
-          pagination={false} 
+        <Table
+          columns={projectCols}
+          dataSource={record.projects}
+          pagination={false}
           rowKey="_id"
           size="small"
           bordered
@@ -319,15 +319,15 @@ const DeliverablesPage = () => {
         </Col>
       </Row>
 
-      <Card 
-        style={{ 
-          borderRadius: 12, 
+      <Card
+        style={{
+          borderRadius: 12,
           background: isDark ? '#0b1220' : '#ffffff',
-          borderColor: isDark ? '#303030' : '#f0f0f0' 
+          borderColor: isDark ? '#303030' : '#f0f0f0'
         }}
         bodyStyle={{ padding: 0 }}
       >
-        <Table 
+        <Table
           loading={isLoading}
           columns={columns}
           dataSource={clientData}
@@ -351,11 +351,11 @@ const DeliverablesPage = () => {
           rowKey="_id"
           size="small"
           columns={[
-            { 
-              title: 'Title', 
-              dataIndex: 'title', 
-              key: 'title', 
-              render: (text, record) => <a onClick={() => setSelectedTaskDetails(record)}>{text}</a> 
+            {
+              title: 'Title',
+              dataIndex: 'title',
+              key: 'title',
+              render: (text, record) => <a onClick={() => setSelectedTaskDetails(record)}>{text}</a>
             },
             {
               title: 'Deliverable Type',
@@ -363,16 +363,16 @@ const DeliverablesPage = () => {
               key: 'serviceType',
               render: (type) => type ? type.toUpperCase() : 'N/A'
             },
-            { 
-              title: 'Status', 
-              dataIndex: 'status', 
-              key: 'status', 
+            {
+              title: 'Status',
+              dataIndex: 'status',
+              key: 'status',
               render: (status) => {
                 let color = 'default';
                 if (status === 'completed' || status === 'approved' || status === 'validated' || status === 'done') color = 'success';
                 else if (status === 'in_progress') color = 'processing';
                 else if (status === 'workflow_sent' || status === 'sent_for_client_review' || status === 'review' || status === 'in_review') color = 'warning';
-                
+
                 return (
                   <Tag color={color}>
                     {status?.replace(/_/g, ' ')?.toUpperCase() || 'UNKNOWN'}
@@ -380,17 +380,17 @@ const DeliverablesPage = () => {
                 );
               }
             },
-            { 
-              title: 'Assigned To', 
-              dataIndex: 'assignedTo', 
-              key: 'assignedTo', 
-              render: (user) => user?.name || 'Unassigned' 
+            {
+              title: 'Assigned To',
+              dataIndex: 'assignedTo',
+              key: 'assignedTo',
+              render: (user) => user?.name || 'Unassigned'
             },
-            { 
-              title: 'Due Date', 
-              dataIndex: 'dueDate', 
-              key: 'dueDate', 
-              render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : 'N/A' 
+            {
+              title: 'Due Date',
+              dataIndex: 'dueDate',
+              key: 'dueDate',
+              render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : 'N/A'
             },
             {
               title: 'Action',
