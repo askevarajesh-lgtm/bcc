@@ -3,9 +3,7 @@ const SemrushProject = require('./models/semrushProject.model');
 const OptimizationSnapshot = require('./models/optimizationSnapshot.model');
 const crypto = require('crypto');
 const semrushService = require('./semrush.service');
-const crawlerService = require('./crawler.service');
 const providerNormalization = require('./providerNormalization.service');
-const scoringService = require('./scoring.service');
 
 class IntelligenceRefreshWorker {
   constructor() {
@@ -80,8 +78,8 @@ class IntelligenceRefreshWorker {
         await IntelligenceRefreshJob.updateOne({ _id: jobId }, { $set: { lastHeartbeatAt: new Date() } });
       }, Math.floor(this.leaseTimeoutMs / 2));
 
-      const project = await SemrushProject.findById(job.projectId);
-      if (!project) throw new Error('Project not found');
+      const project = await SemrushProject.findOne({ _id: job.projectId, companyId: job.companyId });
+      if (!project) throw new Error('Project not found or unauthorized for this tenant');
 
       const domain = project.domain;
       let finalStatus = 'COMPLETED';
@@ -90,74 +88,74 @@ class IntelligenceRefreshWorker {
       let semrushOverview = null;
       let semrushBacklinks = null;
       let semrushSiteHealth = null;
-      let crawlerData = null;
 
       try {
         if (process.env.SEMRUSH_API_KEY) {
-          semrushOverview = await semrushService.getDomainOverview(domain, 'us').catch(e => { console.error(e); return null; });
-          semrushBacklinks = await semrushService.getBacklinksOverview(domain).catch(e => { console.error(e); return null; });
-          semrushSiteHealth = await semrushService.getSiteHealth(domain, 'us').catch(e => { console.error(e); return null; });
+          semrushOverview = await semrushService.getDomainOverview(domain, job.companyId, 'us').catch(e => { console.error(e); return null; });
+          semrushBacklinks = await semrushService.getBacklinksOverview(domain, job.companyId).catch(e => { console.error(e); return null; });
+          semrushSiteHealth = await semrushService.getSiteHealth(domain, job.companyId, 'us').catch(e => { console.error(e); return null; });
         }
       } catch (e) {
         console.error('Semrush provider error:', e.message);
       }
 
-      try {
-        crawlerData = await crawlerService.crawlSite(domain).catch(e => { console.error(e); return null; });
-      } catch (e) {
-        console.error('Crawler provider error:', e.message);
+      if (!semrushOverview && !semrushBacklinks && !semrushSiteHealth) {
+        finalStatus = 'FAILED';
+      } else if (!semrushOverview || !semrushBacklinks || !semrushSiteHealth) {
+        finalStatus = 'PARTIAL';
       }
 
-      if (!semrushOverview && !crawlerData) {
-        finalStatus = 'PARTIAL'; // Adjust depending on completeness later
+      const previousSnapshot = project.latestSnapshot ? await OptimizationSnapshot.findById(project.latestSnapshot) : null;
+
+      // 2. Normalize (Thin mapping of Semrush responses)
+      // Initialize with previous valid data to prevent null overwrites
+      const normalizedSeo = previousSnapshot?.seo ? JSON.parse(JSON.stringify(previousSnapshot.seo)) : {};
+
+      if (semrushOverview) {
+        Object.assign(normalizedSeo, providerNormalization.normalizeSemrushOverview(semrushOverview));
       }
-
-      // 2. Normalize
-      const normalizedSeo = {
-        ...providerNormalization.normalizeSemrushOverview(semrushOverview),
-        ...providerNormalization.normalizeSemrushBacklinks(semrushBacklinks),
-        ...providerNormalization.normalizeSemrushSiteHealth(semrushSiteHealth)
-      };
-
-      const normalizedGeo = {
-        ...providerNormalization.normalizeCrawlerData(crawlerData)
-      };
-
-      const normalizedAeo = {
-        ...providerNormalization.normalizeCrawlerData(crawlerData) // Example mapping
-      };
+      if (semrushBacklinks) {
+        Object.assign(normalizedSeo, providerNormalization.normalizeSemrushBacklinks(semrushBacklinks));
+      }
+      if (semrushSiteHealth) {
+        Object.assign(normalizedSeo, providerNormalization.normalizeSemrushSiteHealth(semrushSiteHealth));
+      }
 
       const canonicalDataset = {
         seo: normalizedSeo,
-        geo: normalizedGeo,
-        aeo: normalizedAeo
+        geo: previousSnapshot?.geo ? JSON.parse(JSON.stringify(previousSnapshot.geo)) : {}, // No native GEO metrics from Semrush API yet
+        aeo: previousSnapshot?.aeo ? JSON.parse(JSON.stringify(previousSnapshot.aeo)) : {}  // No native AEO metrics from Semrush API yet
       };
 
-      // 3. Score
-      const analysisResult = scoringService.calculateOverallScores(canonicalDataset);
+      let completenessScore = 0;
+      if (canonicalDataset.seo.organicTraffic !== undefined || canonicalDataset.seo.organicKeywordsData?.length > 0) completenessScore += 33;
+      if (canonicalDataset.seo.backlinks !== undefined || canonicalDataset.seo.backlinksDetails) completenessScore += 33;
+      if (canonicalDataset.seo.technicalScore !== undefined) completenessScore += 34;
 
-      // 4. Save OptimizationSnapshot
+      // 4. Save OptimizationSnapshot (No fake scores)
       const newSnapshot = await OptimizationSnapshot.create({
         projectId: job.projectId,
         companyId: job.companyId,
         domain: project.domain,
         runId: job._id,
-        status: analysisResult.status,
-        dataCompleteness: analysisResult.dataCompleteness,
-        scores: analysisResult.scores,
+        status: finalStatus,
+        dataCompleteness: completenessScore,
+        scores: previousSnapshot?.scores ? JSON.parse(JSON.stringify(previousSnapshot.scores)) : {
+          overall: null,
+          seo: null,
+          geo: null,
+          aeo: null
+        },
         seo: canonicalDataset.seo,
         geo: canonicalDataset.geo,
         aeo: canonicalDataset.aeo,
         promotionReason: 'First successful run'
       });
 
-      const previousSnapshot = project.latestSnapshot ? await OptimizationSnapshot.findById(project.latestSnapshot) : null;
+
       let shouldPromote = false;
 
-      if (newSnapshot.status === 'COMPLETED') {
-        shouldPromote = true;
-        newSnapshot.promotionReason = 'Status is COMPLETED';
-      } else if (newSnapshot.status === 'PARTIAL' && newSnapshot.dataCompleteness >= 50) {
+      if (newSnapshot.status === 'COMPLETED' || newSnapshot.status === 'PARTIAL') {
         if (!previousSnapshot) {
            shouldPromote = true;
            newSnapshot.promotionReason = 'No previous snapshot, promoting PARTIAL';

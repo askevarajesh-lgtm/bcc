@@ -206,7 +206,7 @@ const Semrush = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Outlet context={{ project, projectData, setProjectData, fetchProjectData }} />
+            <Outlet context={{ project, projectData, setProjectData, fetchProjectData, triggerRefresh }} />
           </motion.div>
         </AnimatePresence>
       </div>

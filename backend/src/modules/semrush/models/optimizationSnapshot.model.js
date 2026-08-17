@@ -31,6 +31,13 @@ const OptimizationSnapshotSchema = new mongoose.Schema({
     organicKeywords: { type: MetricSchema, default: () => ({}) },
     backlinks: { type: MetricSchema, default: () => ({}) },
     coreWebVitals: { type: MetricSchema, default: () => ({}) },
+    competitors: [{ type: mongoose.Schema.Types.Mixed }],
+    trend: [{ type: mongoose.Schema.Types.Mixed }],
+    topKeywords: [{ type: mongoose.Schema.Types.Mixed }],
+    positionDistribution: { type: mongoose.Schema.Types.Mixed, default: null },
+    intentDistribution: [{ type: mongoose.Schema.Types.Mixed }],
+    organicKeywordsData: [{ type: mongoose.Schema.Types.Mixed }],
+    backlinksDetails: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   
   geo: {

@@ -22,26 +22,26 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
   };
 
   // Safe extract
-  const score = data.score || overviewData.Rank || 0;
-  const refDomains = data.domains_num || 0;
-  const backlinks = data.total || 0;
-  const ips = data.ips_num || 0;
-  const subnets = data.subnets_num || 0;
-  const organicTraffic = overviewData['Organic Traffic'] || 0;
+  const score = data.score ?? overviewData.Rank ?? null;
+  const refDomains = data.domains_num ?? null;
+  const backlinks = data.total ?? null;
+  const ips = data.ips_num ?? null;
+  const subnets = data.subnets_num ?? null;
+  const organicTraffic = overviewData['Organic Traffic'] ?? null;
   
   // Link Attributes
-  const follow = Number(data.follows_num || 0);
-  const nofollow = Number(data.nofollows_num || 0);
-  const sponsored = Number(data.sponsored_num || 0);
-  const ugc = Number(data.ugc_num || 0);
-  const attrTotal = follow + nofollow + sponsored + ugc;
+  const follow = data.follows_num ?? null;
+  const nofollow = data.nofollows_num ?? null;
+  const sponsored = data.sponsored_num ?? null;
+  const ugc = data.ugc_num ?? null;
+  const attrTotal = (follow||0) + (nofollow||0) + (sponsored||0) + (ugc||0);
 
   // Backlink Types
-  const texts = Number(data.texts_num || 0);
-  const images = Number(data.images_num || 0);
-  const forms = Number(data.forms_num || 0);
-  const frames = Number(data.frames_num || 0);
-  const typeTotal = texts + images + forms + frames;
+  const texts = data.texts_num ?? null;
+  const images = data.images_num ?? null;
+  const forms = data.forms_num ?? null;
+  const frames = data.frames_num ?? null;
+  const typeTotal = (texts||0) + (images||0) + (forms||0) + (frames||0);
 
   // TLD Distribution (Pie Chart)
   const tldData = (data.tlds || []).slice(0, 5).map(t => ({

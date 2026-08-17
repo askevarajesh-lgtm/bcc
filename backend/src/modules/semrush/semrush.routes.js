@@ -17,8 +17,12 @@ router.delete('/projects/:id', semrushController.deleteProject);
 router.post('/projects/:id/tracking-config', semrushController.configureTracking);
 router.get('/projects/:id/position-tracking', semrushController.getPositionTracking);
 
-// Interactive tools (guarded by configuration status)
-router.get('/traffic-analytics', semrushController.getTrafficAnalytics);
-router.get('/keyword-magic-tool', semrushController.getKeywordMagicTool);
+// Interactive tools
+router.get('/projects/:id/traffic-analytics', semrushController.getTrafficAnalytics);
+router.get('/projects/:id/keyword-magic-tool', semrushController.getKeywordMagicTool);
+
+// Snapshots
+router.get('/projects/:id/snapshots', semrushController.getHistoricalSnapshots);
+router.get('/projects/:id/snapshots/latest', semrushController.getLatestSnapshot);
 
 module.exports = router;

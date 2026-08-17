@@ -102,16 +102,22 @@ exports.getProjectById = async (req, res) => {
         'Organic Traffic': snap.seo.organicTraffic?.value,
         'Organic Keywords': snap.seo.organicKeywords?.value,
         Rank: snap.seo.authorityScore?.value,
-        visibility_index: snap.seo.authorityScore?.value
+        visibility_index: snap.seo.authorityScore?.value,
+        competitors: snap.seo.competitors || [],
+        trend: snap.seo.trend || [],
+        topKeywords: snap.seo.topKeywords || [],
+        positionDistribution: snap.seo.positionDistribution || null,
+        intentDistribution: snap.seo.intentDistribution || null
       },
       backlinksOverview: {
         total: snap.seo.backlinks?.value,
-        score: snap.seo.authorityScore?.value
+        score: snap.seo.authorityScore?.value,
+        ...(snap.seo.backlinksDetails || {})
       },
       siteHealth: {
         overallScore: snap.seo.technicalScore?.value
       },
-      organicKeywords: [],
+      organicKeywords: snap.seo.organicKeywordsData || [],
       // Pass the raw snapshot alongside the mapped data for refactored tabs
       snapshot: snap,
       activeJob: activeJob ? {
@@ -150,25 +156,18 @@ exports.refreshProject = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    // Try to create a new job. Rely on partial unique index to prevent duplicates
     let job;
     try {
-      job = await IntelligenceRefreshJob.create({
+      const refreshWorker = require('./refresh.job');
+      const queueResult = await refreshWorker.queueRefresh(project._id, req.companyId);
+      job = { _id: queueResult.jobId, status: queueResult.status };
+    } catch (err) {
+      console.error('[Semrush Controller - Queue Refresh Error]', err);
+      job = await IntelligenceRefreshJob.findOne({
         companyId: req.companyId,
         projectId: project._id,
-        status: 'QUEUED'
+        status: { $in: ['QUEUED', 'RUNNING'] }
       });
-    } catch (err) {
-      if (err.code === 11000) {
-        // A job is already active
-        job = await IntelligenceRefreshJob.findOne({
-          companyId: req.companyId,
-          projectId: project._id,
-          status: { $in: ['QUEUED', 'RUNNING'] }
-        });
-      } else {
-        throw err;
-      }
     }
 
     res.status(202).json({ success: true, message: 'Refresh queued', job });
@@ -453,5 +452,36 @@ exports.getKeywordMagicTool = async (req, res) => {
       data: null,
       measuredAt: null
     });
+  }
+};
+
+exports.getHistoricalSnapshots = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    const snapshots = await OptimizationSnapshot.find({ projectId: id, companyId: req.companyId })
+      .sort({ createdAt: -1 })
+      .limit(10);
+    res.status(200).json({ success: true, data: snapshots });
+  } catch (error) {
+    console.error('[Semrush Controller - getHistoricalSnapshots]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getLatestSnapshot = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    const snapshot = await OptimizationSnapshot.findOne({ projectId: id, companyId: req.companyId })
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: snapshot });
+  } catch (error) {
+    console.error('[Semrush Controller - getLatestSnapshot]', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

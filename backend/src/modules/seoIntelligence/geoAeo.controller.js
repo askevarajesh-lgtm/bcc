@@ -10,7 +10,11 @@ exports.refreshScores = async (req, res) => {
 
     const scoreRecord = await geoAeoService.calculateScores(projectId, companyId, req.user._id);
     
-    res.status(200).json({ success: true, data: scoreRecord });
+    if (scoreRecord.status === 'not_configured') {
+      return res.status(200).json({ success: true, status: 'not_configured', data: null, message: 'ANTHROPIC_API_KEY is missing from .env. Real data cannot be generated.' });
+    }
+
+    res.status(200).json({ success: true, status: 'available', data: scoreRecord });
   } catch (error) {
     console.error('Error refreshing GEO/AEO scores:', error);
     res.status(500).json({ success: false, message: error.message || 'Server error refreshing scores' });

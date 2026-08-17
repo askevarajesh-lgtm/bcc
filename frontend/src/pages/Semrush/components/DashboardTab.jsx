@@ -15,10 +15,7 @@ const { Title, Text } = Typography;
 
 const DashboardTab = () => {
   const { projectId } = useParams();
-  const { project, projectData, setProjectData } = useOutletContext();
-  const [loading, setLoading] = useState(false);
-  const [geoData, setGeoData] = useState(null);
-  const [geoLoading, setGeoLoading] = useState(false);
+  const { project, projectData, triggerRefresh } = useOutletContext();
   const navigate = useNavigate();
 
   const domain = project?.domain;
@@ -43,57 +40,13 @@ const DashboardTab = () => {
   const topKeywords = keywords.slice(0, 3);
 
   useEffect(() => {
-    if (projectId) {
-      fetchGeoData();
-    }
+    // Rely exclusively on projectData from Outlet
   }, [projectId]);
 
-  const fetchGeoData = async () => {
-    try {
-      setGeoLoading(true);
-      const res = await geoAeoApi.getDashboardData(projectId);
-      if (res.data.success) {
-        setGeoData(res.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch GEO data', error);
-    } finally {
-      setGeoLoading(false);
-    }
-  };
+  const isRefreshing = projectData?.activeJob && ['QUEUED', 'RUNNING'].includes(projectData.activeJob.status);
 
-  const handleRefresh = async () => {
-    try {
-      setLoading(true);
-      // Refresh both Semrush and AI scoring concurrently
-      const [semrushRes, geoRes] = await Promise.all([
-        semrushApi.refreshProject(projectId, 'us'),
-        geoAeoApi.refreshScores(projectId)
-      ]);
-
-      if (semrushRes.data.success) {
-        setProjectData(semrushRes.data.data);
-      }
-      
-      if (geoRes.data.success) {
-        // Fetch new historical trend after refresh
-        fetchGeoData();
-        message.success('Enterprise AI Dashboard refreshed successfully!');
-      }
-    } catch (error) {
-      console.error(error);
-      message.error('Failed to audit dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading || geoLoading) {
-    return <div style={{ textAlign: 'center', padding: '100px' }}><Spin size="large" tip="Running Enterprise AI Analysis..." /></div>;
-  }
-
-  const currentScore = geoData?.current || {};
-  const prevScore = geoData?.previous || {};
+  const currentScore = projectData?.snapshot?.scores || { overall: null, seo: null, geo: null, aeo: null };
+  const prevScore = {}; // Semrush snapshot doesn't track diffs natively yet without time-series queries
 
   return (
     <div className="semrush-dashboard-container">
@@ -102,8 +55,8 @@ const DashboardTab = () => {
           <Title level={3} style={{ margin: 0, fontWeight: 800 }}>AI Optimization Intelligence</Title>
           <Text type="secondary">Enterprise SEO, GEO, and AEO tracking and analysis.</Text>
         </div>
-        <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-          Refresh AI Analysis
+        <Button type="primary" icon={<ReloadOutlined spin={isRefreshing} />} onClick={triggerRefresh} loading={isRefreshing} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+          {isRefreshing ? 'Analyzing...' : 'Refresh AI Analysis'}
         </Button>
       </div>
 
@@ -119,62 +72,60 @@ const DashboardTab = () => {
               <Col xs={24} md={12} xl={6}>
                 <ScoreGaugeCard 
                   title="Overall Optimization" 
-                  score={currentScore.overallScore} 
-                  previousScore={prevScore.overallScore} 
+                  score={currentScore.overall} 
+                  previousScore={null} 
                   color="var(--accent-primary)"
                   description="Combined SEO, GEO, and AEO performance metric."
                   delay={0.1}
                   details={[
-                    { label: 'Technical SEO', value: currentScore.seoScore, color: 'var(--accent-secondary)' },
-                    { label: 'Generative Engine', value: currentScore.geoScore, color: 'var(--accent-warning)' },
-                    { label: 'Answer Engine', value: currentScore.aeoScore, color: 'var(--accent-info)' }
+                    { label: 'Technical SEO', value: currentScore.seo, color: 'var(--accent-secondary)' },
+                    { label: 'Generative Engine', value: currentScore.geo, color: 'var(--accent-warning)' },
+                    { label: 'Answer Engine', value: currentScore.aeo, color: 'var(--accent-info)' }
                   ]}
                 />
               </Col>
               <Col xs={24} md={12} xl={6}>
                 <ScoreGaugeCard 
                   title="SEO Score" 
-                  score={currentScore.seoScore} 
-                  previousScore={prevScore.seoScore} 
+                  score={currentScore.seo} 
+                  previousScore={null} 
                   color="var(--accent-secondary)"
                   description="Traditional Search Engine Optimization score based on authority and technical health."
                   delay={0.2}
                   details={[
-                    { label: 'Authority Score', value: currentScore.seoMetrics?.authorityScore },
-                    { label: 'Technical Health', value: currentScore.seoMetrics?.technicalScore },
-                    { label: 'Core Web Vitals', value: currentScore.seoMetrics?.coreWebVitals }
+                    { label: 'Authority Score', value: projectData?.snapshot?.seo?.authorityScore?.value },
+                    { label: 'Technical Health', value: projectData?.snapshot?.seo?.technicalScore?.value },
+                    { label: 'Core Web Vitals', value: projectData?.snapshot?.seo?.coreWebVitals?.value }
                   ]}
                 />
               </Col>
               <Col xs={24} md={12} xl={6}>
                 <ScoreGaugeCard 
                   title="GEO Score" 
-                  score={currentScore.geoScore} 
-                  previousScore={prevScore.geoScore} 
+                  score={currentScore.geo} 
+                  previousScore={null} 
                   color="var(--accent-warning)"
-                  description="Generative Engine Optimization: Entity coverage, LLM formatting, and topical authority."
+                  description="Generative Engine Optimization readiness for AI summaries."
                   delay={0.3}
                   details={[
-                    { label: 'E-E-A-T Signals', value: currentScore.geoMetrics?.eeatSignals },
-                    { label: 'Topical Authority', value: currentScore.geoMetrics?.topicalAuthority },
-                    { label: 'Semantic Coverage', value: currentScore.geoMetrics?.semanticCoverage },
-                    { label: 'LLM Formatting', value: currentScore.geoMetrics?.llmFormatting }
+                    { label: 'E-E-A-T Signals', value: projectData?.snapshot?.geo?.eeatSignals?.value },
+                    { label: 'AI Readability', value: projectData?.snapshot?.geo?.aiReadability?.value },
+                    { label: 'LLM Formatting', value: projectData?.snapshot?.geo?.llmFormatting?.value }
                   ]}
                 />
               </Col>
               <Col xs={24} md={12} xl={6}>
                 <ScoreGaugeCard 
                   title="AEO Score" 
-                  score={currentScore.aeoScore} 
-                  previousScore={prevScore.aeoScore} 
+                  score={currentScore.aeo} 
+                  previousScore={null} 
                   color="var(--accent-info)"
-                  description="Answer Engine Optimization: Voice search, FAQ schema, and direct answer quality."
+                  description="Answer Engine Optimization for voice and direct answers."
                   delay={0.4}
                   details={[
-                    { label: 'Answer Intent', value: currentScore.aeoMetrics?.answerIntent },
-                    { label: 'Voice Search', value: currentScore.aeoMetrics?.voiceSearchScore },
-                    { label: 'FAQ Schema', value: currentScore.aeoMetrics?.faqSchema },
-                    { label: 'Conversational', value: currentScore.aeoMetrics?.conversationalContent }
+                    { label: 'Answer Intent', value: projectData?.snapshot?.aeo?.answerIntent?.value },
+                    { label: 'Conversational', value: projectData?.snapshot?.aeo?.conversationalContent?.value },
+                    { label: 'FAQ Schema', value: projectData?.snapshot?.aeo?.faqSchema?.value }
                   ]}
                 />
               </Col>
@@ -186,20 +137,29 @@ const DashboardTab = () => {
                 <div className="semrush-widget-header">
                   <h3 className="semrush-widget-title"><TrendingUp size={18} /> Historical Optimization Trend</h3>
                 </div>
-                <div style={{ height: 350, width: '100%', padding: '20px 0' }}>
+                <div style={{ height: 300, width: '100%' }}>
+                {projectData?.overview?.trend && projectData.overview.trend.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={geoData?.trend || []}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                      <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                      <RechartsTooltip />
-                      <Area type="monotone" name="Overall" dataKey="overallScore" stroke="var(--accent-primary)" fillOpacity={0.1} fill="var(--accent-primary)" />
-                      <Area type="monotone" name="GEO" dataKey="geoScore" stroke="var(--accent-warning)" fillOpacity={0} />
-                      <Area type="monotone" name="AEO" dataKey="aeoScore" stroke="var(--accent-info)" fillOpacity={0} />
+                    <AreaChart data={projectData.overview.trend} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorOverall" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dx={-10} domain={[0, 'auto']} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Area type="monotone" dataKey="traffic" stroke="var(--accent-primary)" name="Organic Traffic" strokeWidth={2} fillOpacity={1} fill="url(#colorOverall)" />
                     </AreaChart>
                   </ResponsiveContainer>
-                </div>
-              </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
+                    No historical trend data available from Semrush
+                  </div>
+                )}
+              </div>            </div>
 
               {/* AI Recommendations */}
               <div className="col-span-12" style={{ height: '100%' }}>

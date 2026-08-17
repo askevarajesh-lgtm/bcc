@@ -62,8 +62,11 @@ class SemrushTrackingService {
               ? entry.Lu[latestDate][cleanDomain] || '-'
               : '-';
 
-            const diff1 = entry.Diff1 ? (entry.Diff1[cleanDomain] || 0) : 0;
-            const diff7 = entry.Diff7 ? (entry.Diff7[cleanDomain] || 0) : 0;
+            const diff1Raw = entry.Diff1 ? entry.Diff1[cleanDomain] : undefined;
+            const diff1 = diff1Raw !== undefined && diff1Raw !== null ? Number(diff1Raw) : null;
+
+            const diff7Raw = entry.Diff7 ? entry.Diff7[cleanDomain] : undefined;
+            const diff7 = diff7Raw !== undefined && diff7Raw !== null ? Number(diff7Raw) : null;
 
             rankingMap[kw] = {
               position: this._parsePosition(latestPos),
@@ -71,8 +74,8 @@ class SemrushTrackingService {
               url: latestUrl,
               diff1,
               diff7,
-              searchVolume: entry.Nq || '0',
-              cpc: entry.Cp || '0',
+              searchVolume: entry.Nq !== undefined && entry.Nq !== null ? entry.Nq : null,
+              cpc: entry.Cp !== undefined && entry.Cp !== null ? entry.Cp : null,
               intent: entry.In ? Object.values(entry.In).join(',') : ''
             };
           }

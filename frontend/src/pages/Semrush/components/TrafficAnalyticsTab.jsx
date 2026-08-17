@@ -18,11 +18,11 @@ const TrafficAnalyticsTab = () => {
       if (!project || !project._id) return;
       setLoading(true);
       try {
-        const res = await semrushApi.getTrafficAnalytics(project._id, true);
-        if (res && res.status) {
-          setConfigStatus(res.status);
-          if (res.status === 'available' && res.data && res.data.length > 0) {
-            setData(res.data[0]);
+        const res = await semrushApi.getTrafficAnalytics(project._id);
+        if (res && res.data && res.data.success) {
+          setConfigStatus(res.data.status || 'available');
+          if (res.data.status === 'available' && res.data.data) {
+            setData(res.data.data);
           } else {
             setData(null);
           }
@@ -72,19 +72,19 @@ const TrafficAnalyticsTab = () => {
               Showing search traffic estimates based on standard Domain Analytics.
             </Card>
           </Col>
-          <Col span={8}><Card><Statistic title="Total Search Traffic" value={Number(data.visits || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Organic Search Traffic" value={Number(data.organic_traffic || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Paid Search Traffic" value={Number(data.paid_traffic || 0).toLocaleString()} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Total Search Traffic" value={data.visits ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Organic Search Traffic" value={data.organic_traffic ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Paid Search Traffic" value={data.paid_traffic ?? 'Unavailable'} /></Card></Col>
         </Row>
       ) : (
         <Row gutter={[24, 24]}>
-          <Col span={8}><Card><Statistic title="Visits" value={Number(data.visits || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Unique Visitors" value={Number(data.unique_visitors || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Pages / Visit" value={Number(data.page_views || 0) / Math.max(1, Number(data.visits || 1))} precision={2} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Visits" value={data.visits ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Unique Visitors" value={data.unique_visitors ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Pages / Visit" value={data.page_views !== null && data.page_views !== undefined && data.visits ? (Number(data.page_views) / Number(data.visits)).toFixed(2) : 'Unavailable'} /></Card></Col>
           
-          <Col span={8}><Card><Statistic title="Avg. Visit Duration" value={`${Math.floor(Number(data.avg_visit_duration || 0) / 60)}m ${Number(data.avg_visit_duration || 0) % 60}s`} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Bounce Rate" value={`${(Number(data.bounce_rate || 0) * 100).toFixed(2)}%`} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Mobile Share" value={`${(Number(data.mobile_share || 0) * 100).toFixed(2)}%`} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Avg. Visit Duration" value={data.avg_visit_duration !== null && data.avg_visit_duration !== undefined ? `${Math.floor(Number(data.avg_visit_duration) / 60)}m ${Number(data.avg_visit_duration) % 60}s` : 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Bounce Rate" value={data.bounce_rate !== null && data.bounce_rate !== undefined ? `${(Number(data.bounce_rate) * 100).toFixed(2)}%` : 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Mobile Share" value={data.mobile_share !== null && data.mobile_share !== undefined ? `${(Number(data.mobile_share) * 100).toFixed(2)}%` : 'Unavailable'} /></Card></Col>
 
           <Col span={24}>
             <Card title="Traffic Trend">

@@ -32,10 +32,28 @@ class CrawlerService {
   }
 
   isIpPrivate(ip) {
-    return ip === '127.0.0.1' || ip === 'localhost' || ip === '::1' ||
-           ip.startsWith('10.') || ip.startsWith('192.168.') || 
-           ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./) || 
-           ip === '169.254.169.254';
+    if (ip === 'localhost') return true;
+    
+    // IPv4 private/reserved ranges
+    const isV4Private = ip.startsWith('127.') || 
+           ip.startsWith('10.') || 
+           ip.startsWith('192.168.') || 
+           !!ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./) || 
+           ip.startsWith('169.254.') ||
+           ip.startsWith('0.') ||
+           !!ip.match(/^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./) || // 100.64.0.0/10
+           !!ip.match(/^198\.(1[8-9])\./); // 198.18.0.0/15
+
+    // IPv6 private/reserved ranges
+    const isV6Private = ip === '::1' || 
+           ip.toLowerCase().startsWith('fc') || // fc00::/7 (fc00... - fdff...)
+           ip.toLowerCase().startsWith('fd') || 
+           ip.toLowerCase().startsWith('fe8') || // fe80::/10 link-local
+           ip.toLowerCase().startsWith('fe9') || 
+           ip.toLowerCase().startsWith('fea') || 
+           ip.toLowerCase().startsWith('feb');
+
+    return isV4Private || isV6Private;
   }
 
   async ensureSafeDomain(domain) {
@@ -136,14 +154,46 @@ class CrawlerService {
     });
   }
 
+  async safeFetch(url, allowedDomain, redirectCount = 0) {
+    if (redirectCount > 3) throw new Error('Too many redirects');
+
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error('Invalid protocol');
+    }
+
+    const isSafe = await this.ensureSafeDomain(parsedUrl.hostname);
+    if (!isSafe) throw new Error('SSRF check failed');
+
+    // Only allow crossing domains if explicitly allowed, but here we just check SSRF.
+    // However, the original crawl ensures URLs added to the queue are within the same domain.
+    // If a redirect goes off-domain, we might block it, but standard crawler allows off-domain if it's safe?
+    // The instructions say "If same-domain policy permits it: public URL -> 301 -> another allowed URL Expected: request succeeds."
+    // So we just rely on SSRF for safety here.
+
+    const response = await axios.get(url, {
+      headers: { 'User-Agent': this.userAgent },
+      timeout: this.timeoutMs,
+      maxContentLength: this.maxResponseSize,
+      validateStatus: status => status < 400 || (status >= 300 && status < 400),
+      maxRedirects: 0
+    });
+
+    if (response.status >= 300 && response.status < 400 && response.headers.location) {
+      const redirectUrl = new URL(response.headers.location, url).href;
+      return this.safeFetch(redirectUrl, allowedDomain, redirectCount + 1);
+    }
+
+    if (response.status >= 400) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response;
+  }
+
   async processPage(url, depth, allowedDomain) {
     try {
-      const response = await axios.get(url, {
-        headers: { 'User-Agent': this.userAgent },
-        timeout: this.timeoutMs,
-        maxContentLength: this.maxResponseSize,
-        validateStatus: status => status < 400
-      });
+      const response = await this.safeFetch(url, allowedDomain);
 
       const html = response.data;
       const $ = cheerio.load(html);

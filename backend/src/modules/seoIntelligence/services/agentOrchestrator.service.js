@@ -46,7 +46,7 @@ class AgentOrchestrator {
             agencyId: project.createdBy || project.companyId,
             keyword: k.keyword,
             metrics: {
-              searchVolume: k.search_volume || Math.floor(Math.random() * 5000),
+              searchVolume: k.search_volume || null,
               keywordDifficulty: (k.competition || 0) > 0.6 ? 80 : (k.competition || 0) > 0.3 ? 50 : 20,
               intent: 'commercial'
             },
@@ -62,8 +62,8 @@ class AgentOrchestrator {
           agencyId: project.createdBy || project.companyId,
           keyword: k,
           metrics: {
-            searchVolume: Math.floor(Math.random() * 5000) + 100,
-            keywordDifficulty: 50,
+            searchVolume: null,
+            keywordDifficulty: null,
             intent: 'informational'
           },
           ranking: { currentRank: 0 }

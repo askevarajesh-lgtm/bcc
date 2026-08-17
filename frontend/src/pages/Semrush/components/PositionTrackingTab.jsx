@@ -4,7 +4,7 @@ import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined } from '@a
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
-import api from '../../../services/api';
+import { semrushApi } from '../../../api/semrushApi';
 import './DashboardTab.css'; // Reuse styles
 
 const { Title, Text } = Typography;
@@ -36,7 +36,7 @@ const PositionTrackingTab = () => {
   const fetchTrackingData = async (force = false) => {
     try {
       setLoading(true);
-      const res = await api.get(`/semrush/projects/${projectId}/position-tracking${force ? '?force=true' : ''}`);
+      const res = await semrushApi.getPositionTracking(projectId, force);
       if (res.data.success) {
         setConfigStatus(res.data.status || 'available');
         setData(res.data.data);
@@ -61,7 +61,7 @@ const PositionTrackingTab = () => {
 
     try {
       setSaving(true);
-      const res = await api.post(`/semrush/projects/${projectId}/tracking-config`, {
+      const res = await semrushApi.configureTracking(projectId, {
         device: config.device,
         location: config.location,
         keywords: rawKeywords

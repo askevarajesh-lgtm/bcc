@@ -88,17 +88,14 @@ const SiteHealthTab = () => {
   }, [projectData]);
 
   const auditData = localData?.rawData;
-  const overallScore = localData?.overallScore || 0;
+  const overallScore = localData?.overallScore ?? null;
   const [activeTab, setActiveTab] = useState('overview');
 
   if (!auditData) {
     return (
       <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
         <Title level={4} style={{ color: '#8c8c8c' }}>No Site Audit Data</Title>
-        <Text style={{ display: 'block', marginBottom: 16 }}>Click the 'Audit Data' button to fetch the latest insights from Semrush.</Text>
-        <Button type="primary" icon={<RefreshCw size={16} />} onClick={handleAudit} loading={loading}>
-          Audit Data
-        </Button>
+        <Text style={{ display: 'block', marginBottom: 16 }}>Please use the 'Refresh Data' button at the top right of the dashboard to fetch the latest insights from Semrush.</Text>
       </div>
     );
   }

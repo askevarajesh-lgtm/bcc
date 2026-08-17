@@ -35,10 +35,10 @@ const DomainOverviewTab = () => {
   const positionDistribution = data.positionDistribution || {};
 
   const serpPieData = [
-    { name: 'Organic', value: serpFeatures.organic || 85.1, color: '#5b61f4' },
-    { name: 'AI Overviews', value: serpFeatures.aiOverviews || 2.1, color: '#f772e3' },
-    { name: 'Other SERP Features', value: serpFeatures.otherFeatures || 12.8, color: '#38cb89' }
-  ];
+    { name: 'Organic', value: serpFeatures.organic ?? null, color: '#5b61f4' },
+    { name: 'AI Overviews', value: serpFeatures.aiOverviews ?? null, color: '#f772e3' },
+    { name: 'Other SERP Features', value: serpFeatures.otherFeatures ?? null, color: '#38cb89' }
+  ].filter(d => d.value !== null);
 
   const posDistData = Object.entries(positionDistribution).map(([key, val]) => ({
     name: key,
@@ -232,7 +232,7 @@ const DomainOverviewTab = () => {
       {/* 5. Competitors Section */}
       <div className="so-competitor-grid">
         <div className="so-card">
-           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length || 0}</span></h3>
+           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length ?? 'Unavailable'}</span></h3>
            <Table 
             className="so-table-minimal"
             dataSource={(data?.competitors || []).slice(0, 5)}

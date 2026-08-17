@@ -1,30 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Table, Typography, Input, Select, Button, Space, Tag, Empty } from 'antd';
 import { SearchOutlined, DownloadOutlined, FilterOutlined } from '@ant-design/icons';
 import { semrushApi } from '../../../api/semrushApi';
+import { useOutletContext } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const KeywordMagicToolTab = () => {
+  const { project } = useOutletContext();
+  const domain = project?.domain;
+  const projectId = project?._id;
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [keyword, setKeyword] = useState('');
-  const [matchType, setMatchType] = useState('phrase');
+  const [query, setQuery] = useState(domain || '');
+  const [matchType, setMatchType] = useState('broad');
+  const [database, setDatabase] = useState('us');
   const [hasSearched, setHasSearched] = useState(false);
-  const [configStatus, setConfigStatus] = useState('available'); // 'available', 'not_configured', 'failed', 'unavailable'
+  const [configStatus, setConfigStatus] = useState('available');
+
+  useEffect(() => {
+    if (query) handleSearch();
+  }, [projectId]);
 
   const handleSearch = async () => {
-    if (!keyword) return;
+    if (!query) return;
     setLoading(true);
     setHasSearched(true);
-    setConfigStatus('available');
     
     try {
-      const res = await semrushApi.getKeywordMagicTool(keyword, 'us', matchType, true);
-      if (res && res.status) {
-        setConfigStatus(res.status);
-        setData(res.data || []);
+      const res = await semrushApi.getKeywordMagicTool(projectId, { keyword: query, database, matchType });
+      if (res && res.data) {
+        setConfigStatus(res.data.status || 'available');
+        setData(res.data.data || []);
       } else {
         setData([]);
       }
@@ -63,7 +71,10 @@ const KeywordMagicToolTab = () => {
       title: 'Volume',
       dataIndex: 'Search Volume',
       key: 'Volume',
-      render: (text, record) => <Text>{Number(text || record.Nq || 0).toLocaleString()}</Text>
+      render: (text, record) => {
+        const val = text ?? record.Nq ?? null;
+        return <Text>{val !== null ? Number(val).toLocaleString() : 'Unavailable'}</Text>;
+      }
     },
     {
       title: 'Trend',
@@ -75,7 +86,9 @@ const KeywordMagicToolTab = () => {
       dataIndex: 'Keyword Difficulty Index',
       key: 'KD',
       render: (text, record) => {
-        const kd = Number(text || record.Kd || 0);
+        const val = text ?? record.Kd ?? null;
+        if (val === null) return <Text type="secondary">Unavailable</Text>;
+        const kd = Number(val);
         let color = kd > 70 ? 'red' : kd > 40 ? 'orange' : 'green';
         return <Tag color={color}>{kd.toFixed(1)}%</Tag>;
       }
@@ -84,7 +97,10 @@ const KeywordMagicToolTab = () => {
       title: 'CPC (USD)',
       dataIndex: 'CPC',
       key: 'CPC',
-      render: (text, record) => <Text>${Number(text || record.Cp || 0).toFixed(2)}</Text>
+      render: (text, record) => {
+        const val = text ?? record.Cp ?? null;
+        return <Text>{val !== null ? `$${Number(val).toFixed(2)}` : 'Unavailable'}</Text>;
+      }
     }
   ];
 
@@ -107,8 +123,8 @@ const KeywordMagicToolTab = () => {
         <Space style={{ marginBottom: 24, width: '100%' }} size="middle">
           <Input 
             placeholder="Enter keyword" 
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             style={{ width: 300 }}
             onPressEnter={handleSearch}
           />

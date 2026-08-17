@@ -11,16 +11,16 @@ const ScoreGaugeCard = ({ title, score, previousScore, color, description, delay
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.5 }} style={{ height: '100%' }}>
-      <Card 
-        className="semrush-widget-card" 
-        style={{ 
-          borderRadius: 16, 
-          height: '100%', 
-          border: '1px solid var(--border-color)', 
+      <Card
+        className="semrush-widget-card"
+        style={{
+          borderRadius: 16,
+          height: '100%',
+          border: '1px solid var(--border-color)',
           boxShadow: 'var(--shadow-sm)',
           display: 'flex',
           flexDirection: 'column'
-        }} 
+        }}
         bodyStyle={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -33,8 +33,8 @@ const ScoreGaugeCard = ({ title, score, previousScore, color, description, delay
             )}
           </Title>
           {diff !== 0 && (
-            <div style={{ 
-              display: 'flex', alignItems: 'center', gap: 4, 
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 4,
               color: isPositive ? 'var(--accent-primary)' : 'var(--accent-danger)',
               background: isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
               padding: '4px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600
@@ -46,9 +46,9 @@ const ScoreGaugeCard = ({ title, score, previousScore, color, description, delay
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-          <Progress 
-            type="dashboard" 
-            percent={score || 0} 
+          <Progress
+            type="dashboard"
+            percent={score || 0}
             strokeColor={color || 'var(--accent-primary)'}
             trailColor="var(--bg-tertiary)"
             size={140}
@@ -72,10 +72,10 @@ const ScoreGaugeCard = ({ title, score, previousScore, color, description, delay
                   <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</Text>
                   <Text strong style={{ fontSize: 12, color: 'var(--text-primary)', whiteSpace: 'nowrap', marginLeft: 8 }}>{item.value}/100</Text>
                 </div>
-                <Progress 
-                  percent={item.value || 0} 
-                  showInfo={false} 
-                  size="small" 
+                <Progress
+                  percent={item.value || 0}
+                  showInfo={false}
+                  size="small"
                   strokeColor={item.color || color || 'var(--accent-primary)'}
                   trailColor="var(--bg-tertiary)"
                   style={{ margin: 0 }}

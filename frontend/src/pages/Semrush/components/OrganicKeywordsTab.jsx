@@ -11,15 +11,10 @@ const { Title, Text } = Typography;
 
 const OrganicKeywordsTab = () => {
   const { project, projectData } = useOutletContext();
-  const domain = project?.domain;
-  const [data, setData] = React.useState(projectData?.organicKeywords || []);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (projectData?.organicKeywords) {
-      setData(projectData.organicKeywords);
-    }
-  }, [projectData]);
+  
+  const domain = project?.domain || 'this domain';
+  const data = projectData?.organicKeywords || [];
+  const loading = false;
 
   const columns = [
     { 
@@ -211,9 +206,6 @@ const OrganicKeywordsTab = () => {
                 <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-                  Audit Data
-                </Button>
                 <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
                   Export
                 </Button>

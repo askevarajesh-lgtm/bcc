@@ -8,12 +8,18 @@ class ProviderNormalizationService {
     }
 
     const data = overviewData[0];
-    const traffic = Number(data['Organic Traffic'] || data.Ot || 0);
-    const keywords = Number(data['Organic Keywords'] || data.Or || 0);
+    const trafficRaw = data['Organic Traffic'] ?? data.Ot;
+    const keywordsRaw = data['Organic Keywords'] ?? data.Or;
 
     return {
-      organicTraffic: this.createMetric(traffic, 'semrush', true, 20),
-      organicKeywords: this.createMetric(keywords, 'semrush', true, 10)
+      organicTraffic: trafficRaw !== undefined && trafficRaw !== null ? this.createMetric(Number(trafficRaw), 'semrush', true, 20) : this.createUnavailableMetric('semrush'),
+      organicKeywords: keywordsRaw !== undefined && keywordsRaw !== null ? this.createMetric(Number(keywordsRaw), 'semrush', true, 10) : this.createUnavailableMetric('semrush'),
+      trend: data.trend || [],
+      competitors: data.competitors || [],
+      topKeywords: data.topKeywords || [],
+      positionDistribution: data.positionDistribution || null,
+      intentDistribution: data.intentDistribution || null,
+      organicKeywordsData: data.organicKeywordsData || []
     };
   }
 
@@ -26,68 +32,41 @@ class ProviderNormalizationService {
     }
 
     const data = backlinksData[0];
-    const totalBacklinks = Number(data.total || 0);
-    const score = Number(data.score || 0);
+    const backlinksRaw = data.total;
+    const scoreRaw = data.score;
 
     return {
-      backlinks: this.createMetric(totalBacklinks, 'semrush', true, 15),
-      authorityScore: this.createMetric(score, 'semrush', true, 25)
+      backlinks: backlinksRaw !== undefined && backlinksRaw !== null ? this.createMetric(Number(backlinksRaw), 'semrush', true, 15) : this.createUnavailableMetric('semrush'),
+      authorityScore: scoreRaw !== undefined && scoreRaw !== null ? this.createMetric(Number(scoreRaw), 'semrush', true, 25) : this.createUnavailableMetric('semrush'),
+      backlinksDetails: {
+        domains_num: data.domains_num,
+        ips_num: data.ips_num,
+        follows_num: data.follows_num,
+        nofollows_num: data.nofollows_num,
+        anchors: data.anchors || [],
+        refDomains: data.refDomains || [],
+        asDistribution: data.asDistribution || [],
+        tlds: data.tlds || [],
+        geo: data.geo || [],
+        pages: data.pages || [],
+        rawBacklinks: data.rawBacklinks || []
+      }
     };
   }
 
   normalizeSemrushSiteHealth(siteHealthData) {
-    if (!siteHealthData || siteHealthData.status === 'unavailable' || siteHealthData.overallScore === null) {
+    if (!siteHealthData || siteHealthData.status === 'unavailable' || siteHealthData.overallScore === null || siteHealthData.overallScore === undefined) {
       return {
         technicalScore: this.createUnavailableMetric('semrush')
       };
     }
 
     return {
-      technicalScore: this.createMetric(siteHealthData.overallScore, 'semrush', true, 25)
+      technicalScore: this.createMetric(Number(siteHealthData.overallScore), 'semrush', true, 25)
     };
   }
 
-  normalizeCrawlerData(crawledPages) {
-    if (!crawledPages || crawledPages.length === 0) {
-      return {
-        status: 'unavailable',
-        eeatSignals: this.createUnavailableMetric('crawler'),
-        schemaUsage: this.createUnavailableMetric('crawler'),
-        contentCompleteness: this.createUnavailableMetric('crawler')
-      };
-    }
 
-    let totalSchema = 0;
-    let totalH1 = 0;
-    
-    crawledPages.forEach(page => {
-      totalSchema += page.schemaCount || 0;
-      totalH1 += (page.h1Count > 0 ? 1 : 0);
-    });
-
-    const schemaCoverage = Math.min(100, Math.round((totalSchema / crawledPages.length) * 100));
-    const h1Coverage = Math.min(100, Math.round((totalH1 / crawledPages.length) * 100));
-
-    return {
-      status: 'available',
-      schemaUsage: this.createMetric(schemaCoverage, 'crawler', true, 15),
-      contentCompleteness: this.createMetric(h1Coverage, 'crawler', true, 15)
-    };
-  }
-
-  normalizePageSpeedData(pageSpeedData) {
-    if (!pageSpeedData || pageSpeedData.status === 'unavailable') {
-      return {
-        coreWebVitals: this.createUnavailableMetric('pagespeed')
-      };
-    }
-    
-    // Assuming pageSpeedData returns a score out of 100
-    const score = Number(pageSpeedData.score || 0);
-    return {
-      coreWebVitals: this.createMetric(score, 'pagespeed', true, 15)
-    };
-  }
 
   createMetric(value, source, available, weight = 0, status = 'available') {
     return {

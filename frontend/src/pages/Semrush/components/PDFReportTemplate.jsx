@@ -112,15 +112,15 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
           </Title>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <Text>Overall Health Score</Text>
-            <Text strong style={{ color: health.score >= 80 ? '#10b981' : (health.score >= 60 ? '#f59e0b' : '#ef4444') }}>{health.score || 0}%</Text>
+            <Text strong style={{ color: health.score >= 80 ? '#10b981' : (health.score >= 60 ? '#f59e0b' : '#ef4444') }}>{health.score ?? 'Unavailable'}{health.score !== null && health.score !== undefined ? '%' : ''}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <Text><CheckCircleOutlined style={{ color: '#10b981', marginRight: '4px' }}/> Passed Checks (Strengths)</Text>
-            <Text strong>{health.insights?.strengths?.length || 0}</Text>
+            <Text strong>{health.insights?.strengths?.length ?? 'Unavailable'}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <Text><WarningOutlined style={{ color: '#ef4444', marginRight: '4px' }}/> Issues (Weaknesses)</Text>
-            <Text strong>{health.insights?.weaknesses?.length || 0}</Text>
+            <Text strong>{health.insights?.weaknesses?.length ?? 'Unavailable'}</Text>
           </div>
         </Col>
       </Row>

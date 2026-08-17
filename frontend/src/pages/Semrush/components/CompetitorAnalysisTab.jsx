@@ -7,20 +7,10 @@ import { semrushApi } from '../../../api/semrushApi';
 const { Title, Text } = Typography;
 
 const CompetitorAnalysisTab = () => {
-  const { project, latestSnapshot } = useOutletContext();
-  const [loading, setLoading] = useState(false);
-  const [competitors, setCompetitors] = useState([]);
-
-  useEffect(() => {
-    // Wait for the snapshot, competitor data comes from Semrush organic research or crawler
-    // Currently, it might not be implemented in the new background pipeline, so fallback to empty
-    // unless there is data
-    if (latestSnapshot?.seo?.competitors) {
-      setCompetitors(latestSnapshot.seo.competitors);
-    } else {
-      setCompetitors([]);
-    }
-  }, [latestSnapshot]);
+  const { project, projectData } = useOutletContext();
+  const loading = false;
+  
+  const competitors = projectData?.overview?.competitors || [];
 
   const renderMetric = (val, isCurrency = false) => {
     if (val === null || val === undefined || val === '') return <Text type="secondary">Unavailable</Text>;

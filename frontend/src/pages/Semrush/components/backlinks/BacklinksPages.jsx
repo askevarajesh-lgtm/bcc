@@ -49,7 +49,7 @@ const BacklinksPages = () => {
       key: 'external',
       width: 120,
       align: 'right',
-      render: (val) => <span>{val || 0}</span>
+      render: (val) => <span>{val ?? 'Unavailable'}</span>
     },
     {
       title: 'Internal Links',
@@ -57,7 +57,7 @@ const BacklinksPages = () => {
       key: 'internal',
       width: 120,
       align: 'right',
-      render: (val) => <span>{val || 0}</span>
+      render: (val) => <span>{val ?? 'Unavailable'}</span>
     },
     {
       title: 'Last Seen',
