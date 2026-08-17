@@ -15,7 +15,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
   const data = localData?.backlinksOverview || projectData?.backlinksOverview || {};
   
   const formatNumber = (num) => {
-    if (!num && num !== 0) return '0';
+    if (num === null || num === undefined || isNaN(num)) return 'Unavailable';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return Number(num).toLocaleString();
@@ -74,19 +74,19 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
         </div>
         <div className="bl-stat-block">
           <span className="bl-stat-title">Monthly Visits <InfoCircleOutlined /></span>
-          <span className="bl-stat-value">0</span>
+          <span className="bl-stat-value" style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Unavailable</span>
         </div>
         <div className="bl-stat-block">
           <span className="bl-stat-title">Organic Traffic <InfoCircleOutlined /></span>
-          <span className="bl-stat-value">{formatNumber(organicTraffic)}</span>
+          <span className="bl-stat-value">{organicTraffic !== null ? formatNumber(organicTraffic) : <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Unavailable</span>}</span>
         </div>
         <div className="bl-stat-block">
           <span className="bl-stat-title">Outbound Domains <InfoCircleOutlined /></span>
-          <span className="bl-stat-value">0</span>
+          <span className="bl-stat-value" style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Unavailable</span>
         </div>
         <div className="bl-stat-block">
           <span className="bl-stat-title">Overall Toxicity Score <InfoCircleOutlined /></span>
-          <span className="bl-stat-value" style={{ fontSize: 13, color: 'var(--accent-primary)', fontWeight: 500, cursor: 'pointer' }}>Set up Backlink Audit</span>
+          <span className="bl-stat-value" style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Unavailable</span>
         </div>
       </div>
 
@@ -98,15 +98,8 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
              <span style={{ fontSize: 32, fontWeight: 700, color: '#2b2b2b' }}>{score}</span>
              <Tag color="#e6f7ff" style={{ color: 'var(--accent-primary)', fontWeight: 600, border: 'none', borderRadius: 12 }}>Low authority</Tag>
            </div>
-           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-             <ResponsiveContainer width="100%" height={200}>
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                  <PolarGrid stroke="#f0f0f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#8c8c8c', fontSize: 11 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Domain" dataKey="A" stroke="#5b61f4" fill="#5b61f4" fillOpacity={0.2} />
-                </RadarChart>
-             </ResponsiveContainer>
+           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf', fontSize: 13, textAlign: 'center', padding: 20 }}>
+             Radar breakdown unavailable (Sub-scores not provided by standard Semrush API)
            </div>
         </div>
 

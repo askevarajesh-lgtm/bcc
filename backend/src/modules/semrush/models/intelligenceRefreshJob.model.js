@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const IntelligenceRefreshJobSchema = new mongoose.Schema({
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'SemrushProject', required: true, index: true },
+  database: { type: String, default: 'us' },
   
   status: { 
     type: String, 

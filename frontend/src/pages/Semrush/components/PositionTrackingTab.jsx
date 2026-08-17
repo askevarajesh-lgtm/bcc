@@ -12,14 +12,17 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const PositionTrackingTab = () => {
-  const { project } = useOutletContext();
+  const { project, projectData } = useOutletContext();
   const domain = project?.domain;
   const projectId = project?._id;
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [data, setData] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
   
+  // Use pre-fetched data from dashboard
+  const data = projectData?.positionTracking?.data || null;
+  const configStatus = projectData?.positionTracking?.status || 'campaign_required';
+
   // Wizard State
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState({
@@ -27,28 +30,8 @@ const PositionTrackingTab = () => {
     location: 'us',
     keywordsText: ''
   });
-  const [configStatus, setConfigStatus] = useState('available');
 
-  useEffect(() => {
-    fetchTrackingData();
-  }, [projectId]);
-
-  const fetchTrackingData = async (force = false) => {
-    try {
-      setLoading(true);
-      const res = await semrushApi.getPositionTracking(projectId, force);
-      if (res.data.success) {
-        setConfigStatus(res.data.status || 'available');
-        setData(res.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-      message.error('Failed to fetch tracking data');
-      setConfigStatus('failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // We no longer fetch on mount, data is provided by context
 
   const handleStartTracking = async () => {
     const rawKeywords = config.keywordsText.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
@@ -68,8 +51,8 @@ const PositionTrackingTab = () => {
       });
       
       if (res.data.success) {
-        message.success('Tracking configured successfully!');
-        await fetchTrackingData();
+        message.success('Tracking configured successfully! Please click "Refresh Intelligence" on the Dashboard to fetch your rankings.');
+        // Optionally trigger a top-level refresh here if we passed down a trigger, but for now just tell them to refresh
       }
     } catch (err) {
       message.error('Failed to configure tracking');
@@ -295,10 +278,6 @@ const PositionTrackingTab = () => {
     }
   ];
 
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}><Spin size="large" /></div>;
-  }
-
   if (configStatus === 'not_configured') {
     return (
       <Card style={{ margin: 24, padding: 40 }}>
@@ -307,7 +286,7 @@ const PositionTrackingTab = () => {
     );
   }
 
-  if (configStatus === 'campaign_required' || (data && !data.isConfigured)) {
+  if (showWizard || configStatus === 'campaign_required' || (data && !data.isConfigured)) {
     return renderWizard();
   }
 
@@ -330,14 +309,11 @@ const PositionTrackingTab = () => {
               </Text>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <Button icon={<RefreshCw size={16} />} onClick={() => fetchTrackingData(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-                Refresh
-              </Button>
               <Button icon={<SettingOutlined />} onClick={() => {
                  // Open configure modal or just reset config
                  setConfig({ ...config, keywordsText: rankings.map(r => r.keyword).join('\n')});
                  setStep(2);
-                 setData({ isConfigured: false });
+                 setShowWizard(true);
               }}>
                 Settings
               </Button>

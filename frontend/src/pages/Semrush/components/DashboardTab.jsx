@@ -25,7 +25,7 @@ const DashboardTab = () => {
   const keywords = projectData?.organicKeywords || [];
 
   const formatNumber = (num) => {
-    if (!num && num !== 0) return '0';
+    if (num === null || num === undefined || isNaN(num)) return 'Unavailable';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return Number(num).toLocaleString();
@@ -93,9 +93,9 @@ const DashboardTab = () => {
                   description="Traditional Search Engine Optimization score based on authority and technical health."
                   delay={0.2}
                   details={[
-                    { label: 'Authority Score', value: projectData?.snapshot?.seo?.authorityScore?.value },
-                    { label: 'Technical Health', value: projectData?.snapshot?.seo?.technicalScore?.value },
-                    { label: 'Core Web Vitals', value: projectData?.snapshot?.seo?.coreWebVitals?.value }
+                    { label: 'Authority Score', ...(projectData?.snapshot?.seo?.authorityScore || {}) },
+                    { label: 'Technical Health', ...(projectData?.snapshot?.seo?.technicalScore || {}) },
+                    { label: 'Core Web Vitals', ...(projectData?.snapshot?.seo?.coreWebVitals || {}) }
                   ]}
                 />
               </Col>
@@ -108,9 +108,9 @@ const DashboardTab = () => {
                   description="Generative Engine Optimization readiness for AI summaries."
                   delay={0.3}
                   details={[
-                    { label: 'E-E-A-T Signals', value: projectData?.snapshot?.geo?.eeatSignals?.value },
-                    { label: 'AI Readability', value: projectData?.snapshot?.geo?.aiReadability?.value },
-                    { label: 'LLM Formatting', value: projectData?.snapshot?.geo?.llmFormatting?.value }
+                    { label: 'E-E-A-T Signals', ...(projectData?.snapshot?.geo?.eeatSignals || {}) },
+                    { label: 'AI Readability', ...(projectData?.snapshot?.geo?.aiReadability || {}) },
+                    { label: 'LLM Formatting', ...(projectData?.snapshot?.geo?.llmFormatting || {}) }
                   ]}
                 />
               </Col>
@@ -123,9 +123,9 @@ const DashboardTab = () => {
                   description="Answer Engine Optimization for voice and direct answers."
                   delay={0.4}
                   details={[
-                    { label: 'Answer Intent', value: projectData?.snapshot?.aeo?.answerIntent?.value },
-                    { label: 'Conversational', value: projectData?.snapshot?.aeo?.conversationalContent?.value },
-                    { label: 'FAQ Schema', value: projectData?.snapshot?.aeo?.faqSchema?.value }
+                    { label: 'Answer Intent', ...(projectData?.snapshot?.aeo?.answerIntent || {}) },
+                    { label: 'Conversational', ...(projectData?.snapshot?.aeo?.conversationalContent || {}) },
+                    { label: 'FAQ Schema', ...(projectData?.snapshot?.aeo?.faqSchema || {}) }
                   ]}
                 />
               </Col>
@@ -177,7 +177,7 @@ const DashboardTab = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 12px' }}>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Authority Score</Text>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>{backlinks.score || data['Rank'] || '0'}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{backlinks.score ?? data['Rank'] ?? <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Unavailable</span>}</div>
                   </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Organic Traffic</Text>
@@ -207,17 +207,17 @@ const DashboardTab = () => {
                       percent={typeof health.overallScore === 'number' ? health.overallScore : 0} 
                       strokeColor={getHealthColor(typeof health.overallScore === 'number' ? health.overallScore : 0)}
                       width={120}
-                      format={() => <span style={{ fontSize: 24, fontWeight: 800, color: getHealthColor(typeof health.overallScore === 'number' ? health.overallScore : 0) }}>{typeof health.overallScore === 'number' ? `${health.overallScore}%` : 'N/A'}</span>}
+                      format={() => <span style={{ fontSize: 24, fontWeight: 800, color: getHealthColor(typeof health.overallScore === 'number' ? health.overallScore : 0) }}>{typeof health.overallScore === 'number' ? `${health.overallScore}%` : 'Unavailable'}</span>}
                     />
                   </div>
                   <div>
                     <div style={{ marginBottom: 12 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Errors/Weaknesses</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#f5222d' }}>{health.insights?.weaknesses ? health.insights.weaknesses.length : 'Unavailable'}</div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Errors</Text>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#f5222d' }}>{health.rawData?.errors ? health.rawData.errors.reduce((acc, curr) => acc + curr.count, 0) : 'Unavailable'}</div>
                     </div>
                     <div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Passed/Strengths</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#52c41a' }}>{health.insights?.strengths ? health.insights.strengths.length : 'Unavailable'}</div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Warnings</Text>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#faad14' }}>{health.rawData?.warnings ? health.rawData.warnings.reduce((acc, curr) => acc + curr.count, 0) : 'Unavailable'}</div>
                     </div>
                   </div>
                 </div>

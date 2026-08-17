@@ -3,6 +3,7 @@ import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover
 import { Download, Share2, Settings, AlertCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './SiteHealthTab.css';
 
 const { Title, Text } = Typography;
@@ -100,23 +101,31 @@ const SiteHealthTab = () => {
     );
   }
 
-  const { errors = 0, warnings = 0, notices = 0, pages_crawled = 0, healthy = 0, broken = 0, haveIssues = 0, redirected = 0, blocked = 0, defects = {} } = auditData;
+  const errorsData = Array.isArray(auditData.errors) ? auditData.errors : [];
+  const warningsData = Array.isArray(auditData.warnings) ? auditData.warnings : [];
+  const noticesData = Array.isArray(auditData.notices) ? auditData.notices : [];
 
-  const defectList = Object.entries(defects).map(([id, count]) => ({
-    id: parseInt(id),
-    name: getIssueName(id),
-    count
-  })).sort((a, b) => b.count - a.count);
+  const errorIssues = errorsData.map(d => ({ id: d.id, name: getIssueName(d.id), count: d.count })).filter(d => d.count > 0).sort((a, b) => b.count - a.count);
+  const warningIssues = warningsData.map(d => ({ id: d.id, name: getIssueName(d.id), count: d.count })).filter(d => d.count > 0).sort((a, b) => b.count - a.count);
+  const noticeIssues = noticesData.map(d => ({ id: d.id, name: getIssueName(d.id), count: d.count })).filter(d => d.count > 0).sort((a, b) => b.count - a.count);
 
-  // Group defects into severity (Mock grouping for demo based on standard SEO issues)
-  const errorIssues = defectList.filter(d => [2, 8, 39, 101, 125].includes(d.id));
-  const warningIssues = defectList.filter(d => [6, 13, 15, 103, 106, 110, 112].includes(d.id));
-  const noticeIssues = defectList.filter(d => !errorIssues.find(e=>e.id===d.id) && !warningIssues.find(w=>w.id===d.id));
+  const defectList = [...errorIssues, ...warningIssues, ...noticeIssues].sort((a, b) => b.count - a.count);
+
+  const errors = errorsData.reduce((acc, curr) => acc + curr.count, 0);
+  const warnings = warningsData.reduce((acc, curr) => acc + curr.count, 0);
+  const notices = noticesData.reduce((acc, curr) => acc + curr.count, 0);
+  const pages_crawled = auditData.pagesCrawled || 0;
+  const healthy = auditData.healthy || 0;
+  const broken = auditData.broken || 0;
+  const haveIssues = auditData.haveIssues || 0;
+  const redirected = auditData.redirected || 0;
+  const blocked = auditData.blocked || 0;
 
   const items = [
     { key: 'overview', label: 'Overview' },
     { key: 'issues', label: 'Issues' },
-    { key: 'crawled', label: 'Crawled Pages' }
+    { key: 'crawled', label: 'Crawled Pages' },
+    { key: 'statistics', label: 'Statistics' }
   ];
 
   return (
@@ -313,7 +322,60 @@ const SiteHealthTab = () => {
         </AnimatePresence>
       )}
 
+      {activeTab === 'statistics' && (
+        <AnimatePresence mode="wait">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="site-audit-grid">
+            <div className="sa-col-6 sa-card" style={{ padding: 24 }}>
+              <Title level={5} style={{ marginBottom: 24 }}>HTTP Status Codes</Title>
+              {Object.keys(auditData.statusCodeGroups || {}).length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={[
+                    { name: '2xx', count: auditData.statusCodeGroups['2'] || 0, fill: '#52c41a' },
+                    { name: '3xx', count: auditData.statusCodeGroups['3'] || 0, fill: '#faad14' },
+                    { name: '4xx', count: auditData.statusCodeGroups['4'] || 0, fill: '#f5222d' },
+                    { name: '5xx', count: auditData.statusCodeGroups['5'] || 0, fill: '#cf1322' }
+                  ].filter(d => d.count > 0)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 8 }} />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+              )}
+            </div>
 
+            <div className="sa-col-6 sa-card" style={{ padding: 24 }}>
+              <Title level={5} style={{ marginBottom: 24 }}>Sitemap vs Crawled</Title>
+              {auditData.sitemapStats ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'In Sitemap & Crawled', value: auditData.sitemapStats.crawledPages || 0, fill: '#52c41a' },
+                        { name: 'Not in Sitemap', value: Math.max(0, pages_crawled - (auditData.sitemapStats.crawledPages || 0)), fill: '#d9d9d9' }
+                      ].filter(d => d.value > 0)}
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {[{ fill: '#52c41a' }, { fill: '#d9d9d9' }].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: 8 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
 
     </div>
   );

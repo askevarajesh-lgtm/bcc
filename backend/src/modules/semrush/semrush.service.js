@@ -325,7 +325,7 @@ class SemrushService {
     }
   }
 
-  async getTrafficAnalytics(domain, force = false) {
+  async getTrafficAnalytics(domain, companyId, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `traffic_analytics_${cleanDomain}`;
     // Requires Traffic Analytics API add-on
@@ -369,7 +369,7 @@ class SemrushService {
     }
   }
 
-  async getKeywordMagicTool(keyword, database = 'us', matchType = 'phrase', force = false) {
+  async getKeywordMagicTool(keyword, companyId, database = 'us', matchType = 'phrase', force = false) {
     const queryKey = `keyword_magic_${keyword}_${database}_${matchType}`;
     
     let type = 'phrase_related'; // Default to phrase match
@@ -384,14 +384,14 @@ class SemrushService {
       display_limit: 100
     };
     try {
-      return await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
+      return await this.fetchWithCache(queryKey, companyId, keyword, params, null, force);
     } catch (error) {
       console.error(`[Semrush] Failed to fetch keyword magic tool for ${keyword}`, error);
       return [];
     }
   }
 
-  async getKeywordResearch(keyword, database = 'us', force = false) {
+  async getKeywordResearch(keyword, companyId, database = 'us', force = false) {
     const isDomainLike = keyword.includes('.') && !keyword.includes(' ');
     
     if (isDomainLike) {
@@ -405,7 +405,7 @@ class SemrushService {
           display_limit: 100
         };
         try {
-            const data = await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
+            const data = await this.fetchWithCache(queryKey, companyId, cleanDomain, params, null, force);
             return data.map(item => ({
                 'Keyword': item.Keyword || item.Ph,
                 'Search Volume': item['Search Volume'] || item.Nq,
@@ -428,7 +428,12 @@ class SemrushService {
       export_columns: 'Ph,Nq,Cp,Co,Kd,In,Td',
       display_limit: 100
     };
-    return await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
+    try {
+      return await this.fetchWithCache(queryKey, companyId, keyword, params, null, force);
+    } catch (error) {
+      console.error(`[Semrush] Failed to fetch keyword research for ${keyword}`, error);
+      return [];
+    }
   }
 
   async getDomainKeywordsDrilldown(domain, database = 'us', limit = 100, force = false) {
@@ -617,7 +622,19 @@ class SemrushService {
               });
               const projects = projResponse.data;
               const project = projects.find(p => p.domain_unicode === cleanDomain || p.url === cleanDomain);
-              if (project) projectId = project.project_id;
+              if (project) {
+                  projectId = project.project_id;
+              } else {
+                  // Auto-create Semrush project and enable Site Audit
+                  const newProj = await this.createProject(cleanDomain);
+                  if (newProj && newProj.project_id) {
+                      projectId = newProj.project_id;
+                      await axios.post(`https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/enable`, {
+                          domain: cleanDomain,
+                          pageLimit: 100
+                      }, { params: { key: process.env.SEMRUSH_API_KEY } }).catch(e => console.error('Auto enable Site Audit failed', e.message));
+                  }
+              }
           } catch (e) {
               console.error('Failed to fetch Semrush projects:', e.message);
           }
@@ -635,8 +652,8 @@ class SemrushService {
                       axios.get(auditUrl, { params: { key: process.env.SEMRUSH_API_KEY } }),
                       axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] }))
                   ]);
-                  
-                  const auditData = response.data;
+                  const auditDataRaw = response.data;
+                  const auditData = Array.isArray(auditDataRaw) ? auditDataRaw[0] : auditDataRaw;
                   let pagesList = [];
                   
                   if (Array.isArray(pagesResponse.data)) {
@@ -667,26 +684,17 @@ class SemrushService {
                   
                   auditData.crawledPagesList = pagesList;
                   
-                  let score = auditData.quality?.value || auditData.health_score || auditData.score;
-                  
-                  if (typeof score !== 'number') {
-                      const crawled = auditData.pages_crawled || 1;
-                      const errs = auditData.errors || 0;
-                      const warns = auditData.warnings || 0;
-                      
-                      // Estimate score if not explicitly provided by the API
-                      const penalty = ((errs * 10) + (warns * 3)) / crawled;
-                      score = Math.max(10, Math.min(100, Math.round(100 - penalty)));
-                  }
+                  const snapshot = auditData.current_snapshot || {};
+                  let score = snapshot.quality?.value ?? auditData.quality?.value ?? auditData.health_score ?? auditData.score ?? null;
                   
                   // Map to the format DashboardTab expects
-                  const weaknesses = Object.entries(auditData.defects || {}).map(([id, count]) => ({ 
+                  const weaknesses = Object.entries(auditData.defects || snapshot.new || {}).map(([id, count]) => ({ 
                       title: `Error #${id}`, 
                       desc: `${count} issues found` 
                   }));
                   const strengths = [];
-                  if (score >= 70) strengths.push({ title: 'Good Overall Health', desc: `Site Health is ${score}%` });
-                  else if (score >= 90) strengths.push({ title: 'Excellent Health', desc: `Site Health is ${score}%` });
+                  if (score && score >= 70) strengths.push({ title: 'Good Overall Health', desc: `Site Health is ${score}%` });
+                  else if (score && score >= 90) strengths.push({ title: 'Excellent Health', desc: `Site Health is ${score}%` });
                   
                   if (!auditData.errors || auditData.errors.length === 0) {
                       strengths.push({ title: 'No Critical Errors', desc: '0 critical errors found during crawl.' });

@@ -14,23 +14,31 @@ class IssueService {
         });
         recommendations.push({
           category: 'technical',
-          title: 'Run a Full Technical Audit',
-          description: 'Identify and fix broken links, missing meta descriptions, and slow-loading pages to improve technical health.'
+          title: 'Improve Technical Health',
+          description: 'Address the critical errors and warnings identified in the Site Audit to improve the overall health score.'
         });
       }
 
-      if (canonicalDataset.seo.coreWebVitals?.available && canonicalDataset.seo.coreWebVitals.value < 75) {
-        issues.push({
-          severity: 'medium',
-          category: 'performance',
-          title: 'Poor Core Web Vitals',
-          description: `Core Web Vitals score is ${canonicalDataset.seo.coreWebVitals.value}, indicating slow page loads or layout shifts.`
-        });
-        recommendations.push({
-          category: 'performance',
-          title: 'Optimize Page Speed',
-          description: 'Compress images, minify CSS/JS, and implement caching to improve Core Web Vitals.'
-        });
+      const siteHealth = canonicalDataset.seo.siteHealthDetails;
+      if (siteHealth) {
+        if (Array.isArray(siteHealth.errors) && siteHealth.errors.length > 0) {
+          siteHealth.errors.slice(0, 3).forEach(err => {
+            recommendations.push({
+              category: 'technical',
+              title: `Fix Issue #${err.id}`,
+              description: `Semrush detected ${err.count} pages with Error ID ${err.id}. Resolve this to improve site health.`
+            });
+          });
+        }
+        if (Array.isArray(siteHealth.warnings) && siteHealth.warnings.length > 0) {
+          siteHealth.warnings.slice(0, 2).forEach(warn => {
+            recommendations.push({
+              category: 'performance',
+              title: `Review Warning #${warn.id}`,
+              description: `Semrush reported ${warn.count} instances of Warning ID ${warn.id}.`
+            });
+          });
+        }
       }
     }
 

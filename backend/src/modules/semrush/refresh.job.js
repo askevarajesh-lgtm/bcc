@@ -4,6 +4,7 @@ const OptimizationSnapshot = require('./models/optimizationSnapshot.model');
 const crypto = require('crypto');
 const semrushService = require('./semrush.service');
 const providerNormalization = require('./providerNormalization.service');
+const trackingService = require('./semrush.tracking');
 
 class IntelligenceRefreshWorker {
   constructor() {
@@ -18,7 +19,7 @@ class IntelligenceRefreshWorker {
     );
   }
 
-  async queueRefresh(projectId, companyId) {
+  async queueRefresh(projectId, companyId, database = 'us') {
     try {
       const existingJob = await IntelligenceRefreshJob.findOne({
         projectId,
@@ -33,6 +34,7 @@ class IntelligenceRefreshWorker {
       const newJob = await IntelligenceRefreshJob.create({
         projectId,
         companyId,
+        database,
         status: 'QUEUED'
       });
 
@@ -88,18 +90,30 @@ class IntelligenceRefreshWorker {
       let semrushOverview = null;
       let semrushBacklinks = null;
       let semrushSiteHealth = null;
+      let semrushTrafficAnalytics = null;
+      let semrushPositionTracking = null;
 
       try {
         if (process.env.SEMRUSH_API_KEY) {
-          semrushOverview = await semrushService.getDomainOverview(domain, job.companyId, 'us').catch(e => { console.error(e); return null; });
+          const db = job.database || 'us';
+          semrushOverview = await semrushService.getDomainOverview(domain, job.companyId, db).catch(e => { console.error(e); return null; });
           semrushBacklinks = await semrushService.getBacklinksOverview(domain, job.companyId).catch(e => { console.error(e); return null; });
-          semrushSiteHealth = await semrushService.getSiteHealth(domain, job.companyId, 'us').catch(e => { console.error(e); return null; });
+          semrushSiteHealth = await semrushService.getSiteHealth(domain, job.companyId, db).catch(e => { console.error(e); return null; });
+          
+          semrushTrafficAnalytics = await semrushService.getTrafficAnalytics(domain, job.companyId, true).catch(e => { console.error(e); return null; });
+          
+          if (project.trackingConfig && project.trackingConfig.isActive) {
+             const trackingDb = project.trackingConfig.location || 'us';
+             const keywords = project.trackingConfig.keywords || [];
+             const campaignId = project.semrushCampaignId;
+             semrushPositionTracking = await trackingService.getPositionTrackingData(domain, trackingDb, keywords, campaignId, true).catch(e => { console.error(e); return null; });
+          }
         }
       } catch (e) {
         console.error('Semrush provider error:', e.message);
       }
 
-      if (!semrushOverview && !semrushBacklinks && !semrushSiteHealth) {
+      if (!semrushOverview && !semrushBacklinks && !semrushSiteHealth && !semrushTrafficAnalytics && !semrushPositionTracking) {
         finalStatus = 'FAILED';
       } else if (!semrushOverview || !semrushBacklinks || !semrushSiteHealth) {
         finalStatus = 'PARTIAL';
@@ -117,22 +131,68 @@ class IntelligenceRefreshWorker {
       if (semrushBacklinks) {
         Object.assign(normalizedSeo, providerNormalization.normalizeSemrushBacklinks(semrushBacklinks));
       }
+
       if (semrushSiteHealth) {
         Object.assign(normalizedSeo, providerNormalization.normalizeSemrushSiteHealth(semrushSiteHealth));
       }
 
+      const geoAeoIntelligenceService = require('./geoAeoIntelligence.service');
+      const geoAeoResult = await geoAeoIntelligenceService.evaluateDomain(domain);
+
       const canonicalDataset = {
         seo: normalizedSeo,
-        geo: previousSnapshot?.geo ? JSON.parse(JSON.stringify(previousSnapshot.geo)) : {}, // No native GEO metrics from Semrush API yet
-        aeo: previousSnapshot?.aeo ? JSON.parse(JSON.stringify(previousSnapshot.aeo)) : {}  // No native AEO metrics from Semrush API yet
+        geo: previousSnapshot?.geo ? JSON.parse(JSON.stringify(previousSnapshot.geo)) : {},
+        aeo: previousSnapshot?.aeo ? JSON.parse(JSON.stringify(previousSnapshot.aeo)) : {}
       };
 
-      let completenessScore = 0;
-      if (canonicalDataset.seo.organicTraffic !== undefined || canonicalDataset.seo.organicKeywordsData?.length > 0) completenessScore += 33;
-      if (canonicalDataset.seo.backlinks !== undefined || canonicalDataset.seo.backlinksDetails) completenessScore += 33;
-      if (canonicalDataset.seo.technicalScore !== undefined) completenessScore += 34;
+      if (geoAeoResult.success) {
+        Object.assign(canonicalDataset.geo, geoAeoResult.geo);
+        Object.assign(canonicalDataset.aeo, geoAeoResult.aeo);
+      } else {
+        console.error('[INTELLIGENCE_REFRESH] GEO/AEO Evaluation failed, retaining previous data');
+      }
 
-      // 4. Save OptimizationSnapshot (No fake scores)
+      let completenessScore = 0;
+      if (canonicalDataset.seo.organicTraffic !== undefined || canonicalDataset.seo.organicKeywordsData?.length > 0) completenessScore += 25;
+      if (canonicalDataset.seo.backlinks !== undefined || canonicalDataset.seo.backlinksDetails) completenessScore += 25;
+      if (canonicalDataset.seo.technicalScore !== undefined) completenessScore += 25;
+      if (canonicalDataset.geo.eeatSignals?.value !== undefined) completenessScore += 25;
+
+      const issueService = require('./issue.service');
+      const { issues, recommendations } = issueService.generateIssuesAndRecommendations(canonicalDataset);
+
+      const calcAverage = (metrics) => {
+        const valid = metrics.filter(m => m !== null && m !== undefined && !isNaN(m));
+        if (valid.length === 0) return null;
+        return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+      };
+
+      const newScores = {
+        overall: null,
+        seo: calcAverage([
+          canonicalDataset.seo.technicalScore?.value,
+          canonicalDataset.seo.authorityScore?.value
+        ]),
+        geo: calcAverage([
+          canonicalDataset.geo.eeatSignals?.value,
+          canonicalDataset.geo.aiReadability?.value,
+          canonicalDataset.geo.llmFormatting?.value,
+          canonicalDataset.geo.semanticCoverage?.value
+        ]),
+        aeo: calcAverage([
+          canonicalDataset.aeo.faqSchema?.value,
+          canonicalDataset.aeo.answerIntent?.value,
+          canonicalDataset.aeo.voiceSearchScore?.value,
+          canonicalDataset.aeo.conversationalContent?.value
+        ]),
+        recommendations
+      };
+
+      // Calculate overall if any scores exist
+      const overallScores = [newScores.seo, newScores.geo, newScores.aeo].filter(s => s !== null);
+      if (overallScores.length > 0) {
+        newScores.overall = calcAverage(overallScores);
+      }
       const newSnapshot = await OptimizationSnapshot.create({
         projectId: job.projectId,
         companyId: job.companyId,
@@ -140,12 +200,7 @@ class IntelligenceRefreshWorker {
         runId: job._id,
         status: finalStatus,
         dataCompleteness: completenessScore,
-        scores: previousSnapshot?.scores ? JSON.parse(JSON.stringify(previousSnapshot.scores)) : {
-          overall: null,
-          seo: null,
-          geo: null,
-          aeo: null
-        },
+        scores: newScores,
         seo: canonicalDataset.seo,
         geo: canonicalDataset.geo,
         aeo: canonicalDataset.aeo,

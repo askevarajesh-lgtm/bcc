@@ -115,9 +115,12 @@ exports.getProjectById = async (req, res) => {
         ...(snap.seo.backlinksDetails || {})
       },
       siteHealth: {
-        overallScore: snap.seo.technicalScore?.value
+        overallScore: snap.seo.technicalScore?.value ?? null,
+        rawData: snap.seo.siteHealthDetails || null
       },
       organicKeywords: snap.seo.organicKeywordsData || [],
+      trafficAnalytics: snap.seo.trafficAnalytics || null,
+      positionTracking: snap.seo.positionTracking || null,
       // Pass the raw snapshot alongside the mapped data for refactored tabs
       snapshot: snap,
       activeJob: activeJob ? {
@@ -130,6 +133,8 @@ exports.getProjectById = async (req, res) => {
       backlinksOverview: {},
       siteHealth: {},
       organicKeywords: [],
+      trafficAnalytics: null,
+      positionTracking: null,
       snapshot: snap,
       activeJob: activeJob ? {
         status: activeJob.status,
@@ -156,10 +161,12 @@ exports.refreshProject = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
+    const database = req.body.database || 'us';
+
     let job;
     try {
       const refreshWorker = require('./refresh.job');
-      const queueResult = await refreshWorker.queueRefresh(project._id, req.companyId);
+      const queueResult = await refreshWorker.queueRefresh(project._id, req.companyId, database);
       job = { _id: queueResult.jobId, status: queueResult.status };
     } catch (err) {
       console.error('[Semrush Controller - Queue Refresh Error]', err);
@@ -393,7 +400,7 @@ exports.getTrafficAnalytics = async (req, res) => {
     const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true });
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-    const data = await semrushService.getTrafficAnalytics(project.domain, force);
+    const data = await semrushService.getTrafficAnalytics(project.domain, req.companyId, force);
     
     res.status(200).json({
       success: true,
@@ -433,7 +440,7 @@ exports.getKeywordMagicTool = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Keyword is required' });
     }
 
-    const data = await semrushService.getKeywordMagicTool(keyword, database || 'us', matchType || 'phrase', force === 'true');
+    const data = await semrushService.getKeywordMagicTool(keyword, req.companyId, database || 'us', matchType || 'phrase', force === 'true');
     
     res.status(200).json({
       success: true,
