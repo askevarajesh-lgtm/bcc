@@ -27,6 +27,7 @@ const PositionTrackingTab = () => {
     location: 'us',
     keywordsText: ''
   });
+  const [configStatus, setConfigStatus] = useState('available');
 
   useEffect(() => {
     fetchTrackingData();
@@ -37,11 +38,13 @@ const PositionTrackingTab = () => {
       setLoading(true);
       const res = await api.get(`/semrush/projects/${projectId}/position-tracking${force ? '?force=true' : ''}`);
       if (res.data.success) {
+        setConfigStatus(res.data.status || 'available');
         setData(res.data.data);
       }
     } catch (err) {
       console.error(err);
       message.error('Failed to fetch tracking data');
+      setConfigStatus('failed');
     } finally {
       setLoading(false);
     }
@@ -296,7 +299,15 @@ const PositionTrackingTab = () => {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}><Spin size="large" /></div>;
   }
 
-  if (data && !data.isConfigured) {
+  if (configStatus === 'not_configured') {
+    return (
+      <Card style={{ margin: 24, padding: 40 }}>
+        <Empty description="Position Tracking — Provider not configured" />
+      </Card>
+    );
+  }
+
+  if (configStatus === 'campaign_required' || (data && !data.isConfigured)) {
     return renderWizard();
   }
 

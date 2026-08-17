@@ -121,6 +121,32 @@ const SemrushDashboard = () => {
     setIsModalVisible(true);
   };
 
+  const renderMetric = (metricObject, isPercent = false) => {
+    if (!metricObject) return <Text strong type="secondary">Unavailable</Text>;
+    
+    // If it's just a raw number (from legacy `stats` flat object)
+    if (typeof metricObject === 'number' || typeof metricObject === 'string') {
+      const val = Number(metricObject);
+      if (isNaN(val)) return <Text strong type="secondary">Unavailable</Text>;
+      return <Text strong style={{ color: 'var(--accent-primary)' }}>{val}{isPercent ? '%' : ''}</Text>;
+    }
+
+    // New Canonical Dataset Structure handling
+    if (metricObject.status === 'not_configured') return <Text type="secondary">Not configured</Text>;
+    if (metricObject.status === 'unavailable') return <Text type="secondary">Unavailable</Text>;
+    if (metricObject.status === 'failed') return <Text type="danger">Failed</Text>;
+    if (metricObject.status === 'rate_limited') return <Text type="secondary">Temporarily unavailable</Text>;
+    
+    if (metricObject.value === null || metricObject.value === undefined) return <Text type="secondary">Unavailable</Text>;
+
+    let text = `${metricObject.value}${isPercent ? '%' : ''}`;
+    if (metricObject.status === 'stale') {
+      return <Text strong style={{ color: 'var(--accent-primary)' }}>{text} <span style={{ fontSize: 10, color: '#8c8c8c' }}>(Stale)</span></Text>;
+    }
+    
+    return <Text strong style={{ color: 'var(--accent-primary)' }}>{text}</Text>;
+  };
+
   const columns = [
     {
       title: 'Project',
@@ -139,49 +165,49 @@ const SemrushDashboard = () => {
       title: 'SEO Score',
       dataIndex: ['optimizationScore', 'seoScore'],
       key: 'seoScore',
-      render: (val) => <Text strong style={{ color: 'var(--accent-secondary)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'GEO Score',
       dataIndex: ['optimizationScore', 'geoScore'],
       key: 'geoScore',
-      render: (val) => <Text strong style={{ color: 'var(--accent-warning)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'AEO Score',
       dataIndex: ['optimizationScore', 'aeoScore'],
       key: 'aeoScore',
-      render: (val) => <Text strong style={{ color: 'var(--accent-info)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'Site Health',
       dataIndex: ['stats', 'siteHealth'],
       key: 'siteHealth',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}%</Text>
+      render: (val) => renderMetric(val, true)
     },
     {
       title: 'Visibility',
       dataIndex: ['stats', 'visibility'],
       key: 'visibility',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}%</Text>
+      render: (val) => renderMetric(val, true)
     },
     {
       title: 'Organic Traffic',
       dataIndex: ['stats', 'organicTraffic'],
       key: 'organicTraffic',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'Organic Keywords',
       dataIndex: ['stats', 'organicKeywords'],
       key: 'organicKeywords',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'Backlinks',
       dataIndex: ['stats', 'backlinks'],
       key: 'backlinks',
-      render: (val) => <Text strong style={{ color: 'var(--accent-primary)' }}>{val || 0}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'Actions',

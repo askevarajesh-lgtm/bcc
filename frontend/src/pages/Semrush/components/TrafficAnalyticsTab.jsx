@@ -11,23 +11,46 @@ const TrafficAnalyticsTab = () => {
   const { project } = useOutletContext();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
+  const [configStatus, setConfigStatus] = useState('available');
 
   useEffect(() => {
-    // Traffic Analytics requires a specific add-on. For the Intelligence background job,
-    // this data is omitted to save credits. Show empty state or mock state.
-    setData(null);
+    const fetchTraffic = async () => {
+      if (!project || !project._id) return;
+      setLoading(true);
+      try {
+        const res = await semrushApi.getTrafficAnalytics(project._id, true);
+        if (res && res.status) {
+          setConfigStatus(res.status);
+          if (res.status === 'available' && res.data && res.data.length > 0) {
+            setData(res.data[0]);
+          } else {
+            setData(null);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        setConfigStatus('failed');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTraffic();
   }, [project]);
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '40px' }}><Spin size="large" /></div>;
   }
 
-  if (!data) {
+  if (configStatus !== 'available' || !data) {
+    let message = "Traffic Analytics data not available.";
+    if (configStatus === 'not_configured') message = "Traffic Analytics — Semrush API not configured";
+    if (configStatus === 'unavailable') message = "Traffic Analytics — Temporarily unavailable";
+    if (configStatus === 'failed') message = "Traffic Analytics — Provider error";
+    if (configStatus === 'rate_limited') message = "Traffic Analytics — Rate limited";
+    
     return (
       <Card>
-        <Empty 
-          description="Traffic Analytics data not available. This requires connecting a live Semrush API key with the Traffic Analytics add-on. Use the global 'Refresh Intelligence' button for high-level snapshot data."
-        />
+        <Empty description={message} />
       </Card>
     );
   }

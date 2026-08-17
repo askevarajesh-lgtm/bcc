@@ -17,6 +17,8 @@ router.delete('/projects/:id', semrushController.deleteProject);
 router.post('/projects/:id/tracking-config', semrushController.configureTracking);
 router.get('/projects/:id/position-tracking', semrushController.getPositionTracking);
 
-// Legacy live routes removed to enforce background job fetching
+// Interactive tools (guarded by configuration status)
+router.get('/traffic-analytics', semrushController.getTrafficAnalytics);
+router.get('/keyword-magic-tool', semrushController.getKeywordMagicTool);
 
 module.exports = router;

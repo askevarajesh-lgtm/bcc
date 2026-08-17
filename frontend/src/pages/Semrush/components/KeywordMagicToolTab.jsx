@@ -12,12 +12,29 @@ const KeywordMagicToolTab = () => {
   const [keyword, setKeyword] = useState('');
   const [matchType, setMatchType] = useState('phrase');
   const [hasSearched, setHasSearched] = useState(false);
+  const [configStatus, setConfigStatus] = useState('available'); // 'available', 'not_configured', 'failed', 'unavailable'
 
   const handleSearch = async () => {
-    // Legacy Keyword Magic Tool used live API fetch. For the Intelligence background job,
-    // this data is omitted to save credits. Show empty state or mock state.
+    if (!keyword) return;
+    setLoading(true);
     setHasSearched(true);
-    setData([]);
+    setConfigStatus('available');
+    
+    try {
+      const res = await semrushApi.getKeywordMagicTool(keyword, 'us', matchType, true);
+      if (res && res.status) {
+        setConfigStatus(res.status);
+        setData(res.data || []);
+      } else {
+        setData([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setConfigStatus('failed');
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const columns = [
@@ -71,6 +88,15 @@ const KeywordMagicToolTab = () => {
     }
   ];
 
+  const getEmptyDescription = () => {
+    if (!hasSearched) return "Enter a seed keyword to get started";
+    if (configStatus === 'not_configured') return "Keyword Magic — Semrush API not configured";
+    if (configStatus === 'unavailable') return "Keyword Magic — Temporarily unavailable";
+    if (configStatus === 'failed') return "Keyword Magic — Provider error";
+    if (configStatus === 'rate_limited') return "Keyword Magic — Rate limited";
+    return "No results found for this keyword.";
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -92,23 +118,23 @@ const KeywordMagicToolTab = () => {
             <Option value="exact">Exact Match</Option>
           </Select>
           <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
-            Search / Audit
+            Search
           </Button>
           <Button icon={<FilterOutlined />}>Filters</Button>
           <Button icon={<DownloadOutlined />}>Export</Button>
         </Space>
 
-        {data.length > 0 ? (
+        {data && data.length > 0 ? (
           <Table 
-            columns={columns}
-            dataSource={data}
-            rowKey={(record, index) => `${record.Ph}-${index}`}
+            dataSource={data} 
+            columns={columns} 
             loading={loading}
-            pagination={{ pageSize: 50 }}
+            rowKey={(record) => record.Keyword || record.Ph}
+            pagination={{ pageSize: 20 }}
             scroll={{ x: 'max-content' }}
           />
         ) : (
-          <Empty description={hasSearched ? "Live Keyword Magic Tool is disabled. Please connect a live Semrush API account for this premium feature." : "Enter a seed keyword to get started"} />
+          <Empty description={getEmptyDescription()} />
         )}
       </Card>
     </div>

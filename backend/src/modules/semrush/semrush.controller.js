@@ -331,8 +331,18 @@ exports.getPositionTracking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
     
+    if (!process.env.SEMRUSH_API_KEY) {
+      return res.status(200).json({
+        success: true,
+        status: 'not_configured',
+        source: 'semrush',
+        data: null,
+        measuredAt: null
+      });
+    }
+
     if (!project.trackingConfig || !project.trackingConfig.isActive) {
-      return res.status(200).json({ success: true, data: { isConfigured: false } });
+      return res.status(200).json({ success: true, status: 'campaign_required', data: { isConfigured: false } });
     }
     
     const domain = project.domain;
@@ -340,21 +350,108 @@ exports.getPositionTracking = async (req, res) => {
     const keywords = project.trackingConfig.keywords || [];
     const campaignId = project.semrushCampaignId;
     const force = req.query.force === 'true';
-    
+
     const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId, force);
     
     res.status(200).json({ 
-      success: true, 
+      success: true,
+      status: 'available',
+      source: 'semrush',
       data: {
-        isConfigured: true,
         config: project.trackingConfig,
         rankings: trackingData
-      }
+      },
+      measuredAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('[Semrush Controller - getPositionTracking]', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(200).json({ 
+      success: true,
+      status: 'failed',
+      source: 'semrush',
+      errorCode: error.message,
+      data: null,
+      measuredAt: null
+    });
   }
 };
 
-// Legacy live endpoints deleted - Intelligence architecture handles this in the background workers now
+exports.getTrafficAnalytics = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const force = req.query.force === 'true';
+
+    if (!process.env.SEMRUSH_API_KEY) {
+      return res.status(200).json({
+        success: true,
+        status: 'not_configured',
+        source: 'semrush',
+        data: null,
+        measuredAt: null
+      });
+    }
+
+    const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true });
+    if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    const data = await semrushService.getTrafficAnalytics(project.domain, force);
+    
+    res.status(200).json({
+      success: true,
+      status: 'available',
+      source: 'semrush',
+      data,
+      measuredAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Semrush Controller - getTrafficAnalytics]', error);
+    res.status(200).json({
+      success: true,
+      status: 'failed',
+      source: 'semrush',
+      errorCode: error.message,
+      data: null,
+      measuredAt: null
+    });
+  }
+};
+
+exports.getKeywordMagicTool = async (req, res) => {
+  try {
+    const { keyword, database, matchType, force } = req.query;
+
+    if (!process.env.SEMRUSH_API_KEY) {
+      return res.status(200).json({
+        success: true,
+        status: 'not_configured',
+        source: 'semrush',
+        data: null,
+        measuredAt: null
+      });
+    }
+
+    if (!keyword) {
+      return res.status(400).json({ success: false, message: 'Keyword is required' });
+    }
+
+    const data = await semrushService.getKeywordMagicTool(keyword, database || 'us', matchType || 'phrase', force === 'true');
+    
+    res.status(200).json({
+      success: true,
+      status: 'available',
+      source: 'semrush',
+      data,
+      measuredAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Semrush Controller - getKeywordMagicTool]', error);
+    res.status(200).json({
+      success: true,
+      status: 'failed',
+      source: 'semrush',
+      errorCode: error.message,
+      data: null,
+      measuredAt: null
+    });
+  }
+};

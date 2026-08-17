@@ -1,7 +1,11 @@
 const IntelligenceRefreshJob = require('./models/intelligenceRefreshJob.model');
-const SemrushProject = require('./semrushProject.model');
+const SemrushProject = require('./models/semrushProject.model');
 const OptimizationSnapshot = require('./models/optimizationSnapshot.model');
-// Additional services would be imported here
+const crypto = require('crypto');
+const semrushService = require('./semrush.service');
+const crawlerService = require('./crawler.service');
+const providerNormalization = require('./providerNormalization.service');
+const scoringService = require('./scoring.service');
 
 class IntelligenceRefreshWorker {
   constructor() {
@@ -51,7 +55,7 @@ class IntelligenceRefreshWorker {
   }
 
   async processJob(jobId) {
-    const workerId = `worker-${Math.random().toString(36).substr(2, 9)}`;
+    const workerId = `worker-${crypto.randomUUID()}`;
     
     const job = await IntelligenceRefreshJob.findOneAndUpdate(
       { _id: jobId, status: 'QUEUED' },
@@ -76,26 +80,75 @@ class IntelligenceRefreshWorker {
         await IntelligenceRefreshJob.updateOne({ _id: jobId }, { $set: { lastHeartbeatAt: new Date() } });
       }, Math.floor(this.leaseTimeoutMs / 2));
 
-      // Execution Pipeline
-      // 1. Fetch from providers
-      // 2. Normalize
-      // 3. Score
-      // 4. Save OptimizationSnapshot
-      // (Mocked pipeline for implementation structure)
-      
       const project = await SemrushProject.findById(job.projectId);
       if (!project) throw new Error('Project not found');
 
-      // ... Call Crawler, Semrush, etc ...
-      
+      const domain = project.domain;
+      let finalStatus = 'COMPLETED';
+
+      // 1. Fetch from providers
+      let semrushOverview = null;
+      let semrushBacklinks = null;
+      let semrushSiteHealth = null;
+      let crawlerData = null;
+
+      try {
+        if (process.env.SEMRUSH_API_KEY) {
+          semrushOverview = await semrushService.getDomainOverview(domain, 'us').catch(e => { console.error(e); return null; });
+          semrushBacklinks = await semrushService.getBacklinksOverview(domain).catch(e => { console.error(e); return null; });
+          semrushSiteHealth = await semrushService.getSiteHealth(domain, 'us').catch(e => { console.error(e); return null; });
+        }
+      } catch (e) {
+        console.error('Semrush provider error:', e.message);
+      }
+
+      try {
+        crawlerData = await crawlerService.crawlSite(domain).catch(e => { console.error(e); return null; });
+      } catch (e) {
+        console.error('Crawler provider error:', e.message);
+      }
+
+      if (!semrushOverview && !crawlerData) {
+        finalStatus = 'PARTIAL'; // Adjust depending on completeness later
+      }
+
+      // 2. Normalize
+      const normalizedSeo = {
+        ...providerNormalization.normalizeSemrushOverview(semrushOverview),
+        ...providerNormalization.normalizeSemrushBacklinks(semrushBacklinks),
+        ...providerNormalization.normalizeSemrushSiteHealth(semrushSiteHealth)
+      };
+
+      const normalizedGeo = {
+        ...providerNormalization.normalizeCrawlerData(crawlerData)
+      };
+
+      const normalizedAeo = {
+        ...providerNormalization.normalizeCrawlerData(crawlerData) // Example mapping
+      };
+
+      const canonicalDataset = {
+        seo: normalizedSeo,
+        geo: normalizedGeo,
+        aeo: normalizedAeo
+      };
+
+      // 3. Score
+      const analysisResult = scoringService.calculateOverallScores(canonicalDataset);
+
+      // 4. Save OptimizationSnapshot
       const newSnapshot = await OptimizationSnapshot.create({
         projectId: job.projectId,
         companyId: job.companyId,
         domain: project.domain,
         runId: job._id,
-        status: 'COMPLETED',
-        promotionReason: 'First successful run',
-        scores: { overall: 80, seo: 80, geo: 80, aeo: 80 } // using deterministic scoring in reality
+        status: analysisResult.status,
+        dataCompleteness: analysisResult.dataCompleteness,
+        scores: analysisResult.scores,
+        seo: canonicalDataset.seo,
+        geo: canonicalDataset.geo,
+        aeo: canonicalDataset.aeo,
+        promotionReason: 'First successful run'
       });
 
       const previousSnapshot = project.latestSnapshot ? await OptimizationSnapshot.findById(project.latestSnapshot) : null;
@@ -127,7 +180,7 @@ class IntelligenceRefreshWorker {
 
       await IntelligenceRefreshJob.updateOne(
         { _id: jobId },
-        { $set: { status: 'COMPLETED', completedAt: new Date() } }
+        { $set: { status: newSnapshot.status, completedAt: new Date() } }
       );
 
     } catch (error) {

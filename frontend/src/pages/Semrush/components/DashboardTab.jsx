@@ -244,20 +244,20 @@ const DashboardTab = () => {
                   <div style={{ position: 'relative', width: 120, height: 120 }}>
                     <Progress 
                       type="circle" 
-                      percent={health.overallScore || 0} 
-                      strokeColor={getHealthColor(health.overallScore || 0)}
+                      percent={typeof health.overallScore === 'number' ? health.overallScore : 0} 
+                      strokeColor={getHealthColor(typeof health.overallScore === 'number' ? health.overallScore : 0)}
                       width={120}
-                      format={percent => <span style={{ fontSize: 24, fontWeight: 800, color: getHealthColor(health.overallScore || 0) }}>{percent}%</span>}
+                      format={() => <span style={{ fontSize: 24, fontWeight: 800, color: getHealthColor(typeof health.overallScore === 'number' ? health.overallScore : 0) }}>{typeof health.overallScore === 'number' ? `${health.overallScore}%` : 'N/A'}</span>}
                     />
                   </div>
                   <div>
                     <div style={{ marginBottom: 12 }}>
                       <Text type="secondary" style={{ fontSize: 12 }}>Errors/Weaknesses</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#f5222d' }}>{health.insights?.weaknesses?.length || 0}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#f5222d' }}>{health.insights?.weaknesses ? health.insights.weaknesses.length : 'Unavailable'}</div>
                     </div>
                     <div>
                       <Text type="secondary" style={{ fontSize: 12 }}>Passed/Strengths</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#52c41a' }}>{health.insights?.strengths?.length || 0}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#52c41a' }}>{health.insights?.strengths ? health.insights.strengths.length : 'Unavailable'}</div>
                     </div>
                   </div>
                 </div>

@@ -7,19 +7,28 @@ import { semrushApi } from '../../../api/semrushApi';
 const { Title, Text } = Typography;
 
 const CompetitorAnalysisTab = () => {
-  const { project } = useOutletContext();
+  const { project, latestSnapshot } = useOutletContext();
   const [loading, setLoading] = useState(false);
   const [competitors, setCompetitors] = useState([]);
 
-  const [data, setData] = useState(null);
-
   useEffect(() => {
-    if (projectData?.overview?.competitors) {
-      setCompetitors(projectData.overview.competitors);
+    // Wait for the snapshot, competitor data comes from Semrush organic research or crawler
+    // Currently, it might not be implemented in the new background pipeline, so fallback to empty
+    // unless there is data
+    if (latestSnapshot?.seo?.competitors) {
+      setCompetitors(latestSnapshot.seo.competitors);
     } else {
       setCompetitors([]);
     }
-  }, [projectData]);
+  }, [latestSnapshot]);
+
+  const renderMetric = (val, isCurrency = false) => {
+    if (val === null || val === undefined || val === '') return <Text type="secondary">Unavailable</Text>;
+    const num = Number(val);
+    if (isNaN(num)) return <Text type="secondary">Unavailable</Text>;
+    if (isCurrency) return <Text>${num.toLocaleString()}</Text>;
+    return <Text>{num.toLocaleString()}</Text>;
+  };
 
   const columns = [
     {
@@ -38,7 +47,8 @@ const CompetitorAnalysisTab = () => {
       dataIndex: 'competitorRelevance',
       key: 'relevance',
       render: (val) => {
-        const percent = Math.min(100, Number(val || 0) * 100).toFixed(1);
+        if (val === null || val === undefined) return <Text type="secondary">Unavailable</Text>;
+        const percent = Math.min(100, Number(val) * 100).toFixed(1);
         return (
           <Tooltip title={`Relevance score: ${val}`}>
             <Progress percent={percent} size="small" status="active" />
@@ -50,31 +60,31 @@ const CompetitorAnalysisTab = () => {
       title: 'Common Keywords',
       dataIndex: 'commonKeywords',
       key: 'commonKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Keywords',
       dataIndex: 'organicKeywords',
       key: 'organicKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Traffic',
       dataIndex: 'organicTraffic',
       key: 'organicTraffic',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Traffic Cost',
       dataIndex: 'organicCost',
       key: 'organicCost',
-      render: (val) => <Text>${Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val, true)
     },
     {
       title: 'Ads Keywords',
       dataIndex: 'adwordsKeywords',
       key: 'adwordsKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     }
   ];
 
