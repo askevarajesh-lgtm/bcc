@@ -1,6 +1,6 @@
 const ChatWidget = require('./chat-widget.model');
 const Website = require('../websites/website.model');
-const Store = require('../stores/store.model');
+
 
 // Create Widget
 exports.createWidget = async (req, res, next) => {
@@ -41,13 +41,12 @@ exports.getWidgets = async (req, res, next) => {
 
     const widgets = await ChatWidget.find(query).sort({ createdAt: -1 });
 
-    // Aggregate assignments counts across websites and stores
+    // Aggregate assignments counts across websites
     const data = await Promise.all(widgets.map(async (widget) => {
       const websitesCount = await Website.countDocuments({ chatWidgetId: widget._id, isDeleted: false });
-      const storesCount = await Store.countDocuments({ chatWidgetId: widget._id, isDeleted: false });
       return {
         ...widget.toObject(),
-        assignments: websitesCount + storesCount
+        assignments: websitesCount
       };
     }));
 
@@ -114,9 +113,8 @@ exports.deleteWidget = async (req, res, next) => {
     widget.updatedBy = req.user?._id;
     await widget.save();
 
-    // Clear references in websites and stores
+    // Clear references in websites
     await Website.updateMany({ chatWidgetId: id }, { chatWidgetId: null });
-    await Store.updateMany({ chatWidgetId: id }, { chatWidgetId: null });
 
     res.json({ success: true, message: 'Widget deleted successfully' });
   } catch (error) {

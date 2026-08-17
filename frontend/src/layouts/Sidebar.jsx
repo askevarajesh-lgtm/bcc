@@ -216,7 +216,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: 'AGENCY OPS',
       icon: getIcon(Activity),
       children: [
-        // { key: '/ops/team', icon: getIcon(Users), label: getLabel('People') },
+
         { key: '/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' },
         { key: '/ops/resources', icon: getIcon(Calendar), label: 'Resources' },
         ...(role === 'commander_admin' ? [] : [

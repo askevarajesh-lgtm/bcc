@@ -1,9 +1,11 @@
 const WorkspaceProject = require('../models/workspaceProject.model');
-const WorkspaceAeoAudit = require('../models/workspaceAeoAudit.model');
-const WorkspaceAeoAuditPage = require('../models/workspaceAeoAuditPage.model');
-const WorkspaceAeoAuditSimulation = require('../models/workspaceAeoAuditSimulation.model');
-const WorkspaceAeoAuditEntityGraph = require('../models/workspaceAeoAuditEntityGraph.model');
-const WorkspaceAeoAuditRecommendation = require('../models/workspaceAeoAuditRecommendation.model');
+const {
+  WorkspaceAeoAudit,
+  WorkspaceAeoAuditPage,
+  WorkspaceAeoAuditSimulation,
+  WorkspaceAeoAuditEntityGraph,
+  WorkspaceAeoAuditRecommendation
+} = require('../models/workspaceAeoAuditAsset.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
 const CrawlService = require('../../seoIntelligence/services/crawl.service');
 const SchemaValidatorService = require('./schemaValidator.service');

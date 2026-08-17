@@ -1,5 +1,4 @@
-const WorkspaceMonitoringSnapshot = require('../models/workspaceMonitoringSnapshot.model');
-const WorkspaceMonitoringAlert = require('../models/workspaceMonitoringAlert.model');
+const { WorkspaceMonitoringSnapshot, WorkspaceMonitoringAlert } = require('../models/workspaceMonitoringAsset.model');
 const WorkspaceMonitoringSettings = require('../models/workspaceMonitoringSettings.model');
 const monitoringEngine = require('../services/monitoring/monitoringEngine.service');
 const monitoringHistory = require('../services/monitoring/monitoringHistory.service');

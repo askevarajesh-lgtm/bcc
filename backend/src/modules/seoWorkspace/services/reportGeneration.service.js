@@ -1,7 +1,9 @@
-const WorkspaceReport = require('../models/workspaceReport.model');
-const WorkspaceReportSnapshot = require('../models/workspaceReportSnapshot.model');
-const WorkspaceReportMetrics = require('../models/workspaceReportMetrics.model');
-const WorkspaceReportExecution = require('../models/workspaceReportExecution.model');
+const { 
+  WorkspaceReport,
+  WorkspaceReportSnapshot,
+  WorkspaceReportMetrics,
+  WorkspaceReportExecution
+} = require('../models/workspaceReportAsset.model');
 
 const reportMetricsService = require('./reportMetrics.service');
 const chartBuilderService = require('./chartBuilder.service');

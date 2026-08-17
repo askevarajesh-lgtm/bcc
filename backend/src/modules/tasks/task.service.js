@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 const { recordTimerStop } = require('./task.timeHelper');
 const Task = require("./task.model");
-const TaskActivity = require("./taskActivity.model");
-const TaskComment = require("./taskComment.model");
+const { TaskActivity, TaskComment } = require("./taskInteraction.model");
 const ScheduledNote = require("./scheduledNote.model");
 const WorkflowConfig = require("./workflowConfig.model");
 const Notification = require("./notification.model");

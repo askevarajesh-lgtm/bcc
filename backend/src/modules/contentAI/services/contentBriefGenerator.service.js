@@ -2,7 +2,7 @@ const keywordIntelligence = require('./keywordIntelligence.service');
 const competitorIntelligence = require('./competitorIntelligence.service');
 const serpAnalyzer = require('./serpAnalyzer.service');
 const entityExtraction = require('./entityExtraction.service');
-const ContentBrief = require('../models/contentBrief.model');
+const { ContentBrief } = require('../models/contentAsset.model');
 
 class ContentBriefGeneratorService {
   /**

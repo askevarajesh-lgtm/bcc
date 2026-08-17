@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const WorkspaceReportShare = require('../models/workspaceReportShare.model');
+const { WorkspaceReportShare } = require('../models/workspaceReportAsset.model');
 
 class ReportShareService {
   /**

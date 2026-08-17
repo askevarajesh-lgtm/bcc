@@ -738,7 +738,8 @@ const BlogsTab = ({ itemVariants }) => {
   const [activeBlog, setActiveBlog] = useState(null);
   const [manageSubTab, setManageSubTab] = useState("posts");
   const [websites, setWebsites] = useState([]);
-  const [stores, setStores] = useState([]);
+  const stores = [];
+
   const [activeBlogPosts, setActiveBlogPosts] = useState([]);
   const [activeBlogCategories, setActiveBlogCategories] = useState([]);
   const [editingData, setEditingData] = useState(null);
@@ -747,16 +748,11 @@ const BlogsTab = ({ itemVariants }) => {
     const fetchOptions = async () => {
       try {
         const token = localStorage.getItem("token");
-        const [webRes, storeRes] = await Promise.all([
-          fetch("/api/websites", { headers: { "Authorization": token ? `Bearer ${token}` : "" } }),
-          fetch("/api/stores", { headers: { "Authorization": token ? `Bearer ${token}` : "" } })
-        ]);
+        const webRes = await fetch("/api/websites", { headers: { "Authorization": token ? `Bearer ${token}` : "" } });
         const webData = await webRes.json();
-        const storeData = await storeRes.json();
         if (webData.success) setWebsites(webData.data || []);
-        if (storeData.success) setStores(storeData.data || []);
       } catch (err) {
-        console.error("Failed to fetch websites or stores", err);
+        console.error("Failed to fetch websites", err);
       }
     };
     fetchOptions();

@@ -1,4 +1,4 @@
-const BlogPost = require('../../../blogs/blog-post.model');
+const { BlogPost } = require('../../../blogs/blog.model');
 const { mapBlocksToLayoutJson } = require('../blockMapper.service');
 
 /**

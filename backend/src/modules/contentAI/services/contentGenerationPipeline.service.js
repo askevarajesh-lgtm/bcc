@@ -3,8 +3,7 @@ const promptBuilder = require('../prompts/promptBuilder');
 const aiOrchestrator = require('../providers/AIOrchestrator');
 const aiImprovementLoop = require('./aiImprovementLoop.service');
 const contentEvents = require('../events/contentEvents');
-const ContentPiece = require('../models/contentPiece.model');
-const ContentVersion = require('../models/contentVersion.model');
+const { ContentPiece, ContentVersion } = require('../models/contentAsset.model');
 
 class ContentGenerationPipelineService {
   /**

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const DomainSchema = new mongoose.Schema({
   workspaceId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   domain: { type: String, required: true, lowercase: true, trim: true },
-  propertyType: { type: String, enum: ['Website', 'Funnel', 'Store'], required: true },
+  propertyType: { type: String, enum: ['Website'], required: true },
   propertyId: { type: mongoose.Schema.Types.ObjectId, required: true },
   status: { type: String, enum: ['Pending', 'Connected'], default: 'Pending', required: true },
   txtVerificationToken: { type: String, required: true },

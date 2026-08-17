@@ -26,7 +26,7 @@
  * `projectId` set to the ContentPiece id — the same substitution
  * `blogSeoAgent.service.js` already makes for non-WorkspaceProject targets.
  */
-const ContentPiece = require('../models/contentPiece.model');
+const { ContentPiece } = require('../models/contentAsset.model');
 const logger = require('../../aiCore/logger.service');
 const sharedMemory = require('../../aiCore/sharedMemory.service');
 

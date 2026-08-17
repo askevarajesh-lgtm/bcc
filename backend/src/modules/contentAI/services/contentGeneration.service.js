@@ -12,7 +12,7 @@ const sharedMemory = require('../../aiCore/sharedMemory.service');
 const logger = require('../../aiCore/logger.service');
 
 const { getGenerator } = require('../generators/registry');
-const ContentPiece = require('../models/contentPiece.model');
+const { ContentPiece } = require('../models/contentAsset.model');
 const brandVoiceService = require('./brandVoice.service');
 const contentTemplateService = require('./contentTemplate.service');
 const contentVersioning = require('./contentVersioning.service');
@@ -195,7 +195,7 @@ async function regenerate({ workspaceId, userId, contentPieceId, generatorType =
 }
 
 async function persistQualityScoreRecord(contentPiece, version, qualityScore, workspaceId) {
-  const ContentQualityScore = require('../models/contentQualityScore.model');
+  const { ContentQualityScore } = require('../models/contentAsset.model');
   try {
     await ContentQualityScore.create({
       contentPieceId: contentPiece._id,

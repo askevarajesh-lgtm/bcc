@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
 const monitoringEngine = require('../monitoring/monitoringEngine.service');
 const WorkspaceProject = require('../../models/workspaceProject.model');
-const WorkspaceMonitoringScan = require('../../models/workspaceMonitoringScan.model');
-const WorkspaceMonitoringSnapshot = require('../../models/workspaceMonitoringSnapshot.model');
-const WorkspaceMonitoringAlert = require('../../models/workspaceMonitoringAlert.model');
+const { WorkspaceMonitoringScan, WorkspaceMonitoringSnapshot, WorkspaceMonitoringAlert } = require('../../models/workspaceMonitoringAsset.model');
 const logger = require('../../../aiCore/logger.service');
 
 const TAG = 'ActionRunMonitoringScan';

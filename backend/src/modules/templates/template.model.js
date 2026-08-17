@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const TemplateSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  type: { type: String, enum: ['website', 'store', 'funnel', 'form'], required: true },
+  type: { type: String, enum: ['website', 'form'], required: true },
   category: { type: String, default: 'General', trim: true },
   description: { type: String, default: '', trim: true },
   featuresCount: { type: Number, default: 1 },

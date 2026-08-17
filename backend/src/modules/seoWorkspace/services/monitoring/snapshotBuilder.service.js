@@ -2,8 +2,7 @@
  * snapshotBuilder.service.js
  * Compiles the Read-Only MonitoringSnapshot based on normalized monitor data.
  */
-const WorkspaceMonitoringSnapshot = require('../../models/workspaceMonitoringSnapshot.model');
-const WorkspaceMonitoringAlert = require('../../models/workspaceMonitoringAlert.model');
+const { WorkspaceMonitoringSnapshot, WorkspaceMonitoringAlert } = require('../../models/workspaceMonitoringAsset.model');
 const WorkspaceMonitoringSettings = require('../../models/workspaceMonitoringSettings.model');
 
 class SnapshotBuilderService {

@@ -1,4 +1,4 @@
-const WorkspaceReportExport = require('../models/workspaceReportExport.model');
+const { WorkspaceReportExport } = require('../models/workspaceReportAsset.model');
 
 class ReportExportService {
   /**

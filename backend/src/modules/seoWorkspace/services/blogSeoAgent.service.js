@@ -1,6 +1,5 @@
 const cheerio = require('cheerio');
-const Blog = require('../../blogs/blog.model');
-const BlogPost = require('../../blogs/blog-post.model');
+const { Blog, BlogPost } = require('../../blogs/blog.model');
 const WorkspaceBlogSeo = require('../models/blogSeo.model');
 
 const aiEngine = require('../../aiCore/aiEngine.service');

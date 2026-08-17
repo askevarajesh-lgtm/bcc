@@ -1,6 +1,4 @@
-const Deliverable = require('./models/deliverable.model');
-const DeliverableFile = require('./models/deliverableFile.model');
-const DeliverableComment = require('./models/deliverableComment.model');
+const { Deliverable, DeliverableFile, DeliverableComment } = require('./models/deliverableAsset.model');
 const Task = require('../tasks/task.model');
 const User = require('../auth/user.model');
 const Notification = require('../tasks/notification.model');

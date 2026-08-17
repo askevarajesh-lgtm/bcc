@@ -1,7 +1,5 @@
-const CalendarEvent = require('./models/calendarEvent.model');
-const EventNote = require('./models/eventNote.model');
-const EventAttachment = require('./models/eventAttachment.model');
-const Meeting = require('../meetings/models/meeting.model');
+const { CalendarEvent, EventNote, EventAttachment } = require('./models/calendarEventAsset.model');
+const { Meeting } = require('../meetings/models/meetingAsset.model');
 const Task = require('../tasks/task.model');
 const Lead = require('../leads/lead.model');
 const User = require('../auth/user.model');

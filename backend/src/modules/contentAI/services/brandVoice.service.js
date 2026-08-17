@@ -1,4 +1,4 @@
-const BrandVoice = require('../models/brandVoice.model');
+const { BrandVoice } = require('../models/contentConfig.model');
 
 /**
  * Every one of the 14 generators resolves its brand-voice inputs the same

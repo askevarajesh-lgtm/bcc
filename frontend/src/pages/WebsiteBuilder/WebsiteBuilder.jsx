@@ -6,9 +6,9 @@ import { LayoutGrid, Globe, Store, FileText, LayoutTemplate, Smartphone, QrCode,
 import { useAuth } from '../../contexts/AuthContext';
 
 // Import Tab Components
-import FunnelsTab from './tabs/FunnelsTab';
+
 import WebsitesTab from './tabs/WebsitesTab';
-import StoresTab from './tabs/StoresTab';
+
 import FormsTab from './tabs/FormsTab';
 import BlogsTab from './tabs/BlogsTab';
 import QRLinksTab from './tabs/QRLinksTab';
@@ -79,9 +79,9 @@ const WebsiteBuilder = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <LayoutGrid size={16} /> },
-    // { id: 'funnels', label: 'Funnels', icon: <LayoutTemplate size={16} /> },
+
     { id: 'websites', label: 'Websites', icon: <Globe size={16} /> },
-    // { id: 'stores', label: 'Stores', icon: <Store size={16} /> },
+
     { id: 'forms', label: 'Forms', icon: <FileText size={16} /> },
     { id: 'blogs', label: 'Blogs', icon: <LayoutTemplate size={16} /> },
     { id: 'qr-links', label: 'QR Links', icon: <QrCode size={16} /> },
@@ -251,7 +251,7 @@ const WebsiteBuilder = () => {
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 900 }}>Websites</Title>
-          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with funnels, forms, and domain management built in.</Text>
+          <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Build, launch, and optimize every client website — AI-powered, drag-and-drop, with forms, and domain management built in.</Text>
         </div>
       </motion.div>
 
@@ -292,7 +292,7 @@ const WebsiteBuilder = () => {
         }}
       >
         <Routes>
-          <Route path="funnels" element={<FunnelsTab itemVariants={itemVariants} />} />
+
           <Route path="websites/wordpress/:id/dashboard" element={<WordPressDashboard />} />
           <Route path="websites/wordpress/:id/pages" element={<WordPressPages />} />
           <Route path="websites/wordpress/:id/posts" element={<WordPressPosts />} />
@@ -300,7 +300,7 @@ const WebsiteBuilder = () => {
           <Route path="websites/wordpress/:id/products" element={<WordPressProducts />} />
           <Route path="websites/wordpress/:id/orders" element={<WordPressOrders />} />
           <Route path="websites/*" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
-          <Route path="stores" element={<StoresTab itemVariants={itemVariants} />} />
+
           <Route path="forms" element={<FormsTab itemVariants={itemVariants} />} />
           <Route path="blogs" element={<BlogsTab itemVariants={itemVariants} />} />
           <Route path="qr-links" element={<QRLinksTab itemVariants={itemVariants} />} />

@@ -1,9 +1,11 @@
 const crypto = require('crypto');
 const WorkspaceProject = require('../models/workspaceProject.model');
-const WorkspaceGeoAudit = require('../models/workspaceGeoAudit.model');
-const WorkspaceGeoPageAnalysis = require('../models/workspaceGeoPageAnalysis.model');
-const WorkspaceGeoTechnicalAnalysis = require('../models/workspaceGeoTechnicalAnalysis.model');
-const WorkspaceGeoEntityAnalysis = require('../models/workspaceGeoEntityAnalysis.model');
+const { 
+  WorkspaceGeoAudit,
+  WorkspaceGeoPageAnalysis,
+  WorkspaceGeoTechnicalAnalysis,
+  WorkspaceGeoEntityAnalysis
+} = require('../models/workspaceGeoAuditAsset.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
 const CrawlService = require('../../seoIntelligence/services/crawl.service');
 const auditLogService = require('./auditLog.service');

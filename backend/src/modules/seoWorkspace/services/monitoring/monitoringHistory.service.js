@@ -3,8 +3,7 @@
  * Historical charts, Health Score Engine (0-100), SEO Risk Engine,
  * Opportunity Engine, and Trend Forecasting.
  */
-const WorkspaceMonitoringSnapshot = require('../../models/workspaceMonitoringSnapshot.model');
-const WorkspaceMonitoringAlert = require('../../models/workspaceMonitoringAlert.model');
+const { WorkspaceMonitoringSnapshot, WorkspaceMonitoringAlert } = require('../../models/workspaceMonitoringAsset.model');
 const WorkspaceKeyword = require('../../models/workspaceKeyword.model');
 const WorkspaceAudit = require('../../models/workspaceAudit.model');
 const logger = require('../../../aiCore/logger.service');

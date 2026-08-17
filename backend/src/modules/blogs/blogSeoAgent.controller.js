@@ -12,8 +12,7 @@
  * already applies (look up the post, then confirm its parent Blog belongs
  * to `req.workspaceId`) rather than writing a second auth check.
  */
-const Blog = require('./blog.model');
-const BlogPost = require('./blog-post.model');
+const { Blog, BlogPost } = require('./blog.model');
 const blogSeoAgent = require('../seoWorkspace/services/blogSeoAgent.service');
 
 async function loadAuthorizedPost(req) {

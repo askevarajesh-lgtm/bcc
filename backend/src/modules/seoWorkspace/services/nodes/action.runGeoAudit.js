@@ -1,9 +1,11 @@
 const geoAgent = require('../geoAgent.service');
 const WorkspaceProject = require('../../models/workspaceProject.model');
-const WorkspaceGeoAudit = require('../../models/workspaceGeoAudit.model');
-const WorkspaceGeoTechnicalAnalysis = require('../../models/workspaceGeoTechnicalAnalysis.model');
-const WorkspaceGeoEntityAnalysis = require('../../models/workspaceGeoEntityAnalysis.model');
-const WorkspaceGeoPageAnalysis = require('../../models/workspaceGeoPageAnalysis.model');
+const { 
+  WorkspaceGeoAudit,
+  WorkspaceGeoTechnicalAnalysis,
+  WorkspaceGeoEntityAnalysis,
+  WorkspaceGeoPageAnalysis
+} = require('../../models/workspaceGeoAuditAsset.model');
 const logger = require('../../../aiCore/logger.service');
 
 const TAG = 'ActionRunGeoAudit';

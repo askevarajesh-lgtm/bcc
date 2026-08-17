@@ -1,6 +1,4 @@
-const Blog = require('./blog.model');
-const BlogPost = require('./blog-post.model');
-const BlogCategory = require('./blog-category.model');
+const { Blog, BlogPost, BlogCategory } = require('./blog.model');
 const Website = require('../websites/website.model');
 const { getSiteChrome } = require('../websites/website.chrome');
 const { aiEditBlogPage } = require('./services/blogPageAiEdit.service');

@@ -79,7 +79,7 @@ import DeliverablesPage from './pages/Deliverables/DeliverablesPage';
 import PLDashboard from './pages/pl-analytics/PLDashboard';
 
 import Reports from './pages/Reports/Reports';
-import Teams from './pages/Teams/Teams';
+
 import TimeTracking from './pages/TimeTracking/TimeTracking';
 import Resources from './pages/Resources/Resources';
 import MOSScore from './pages/MOSScore/MOSScore';
@@ -116,7 +116,7 @@ import ClientPerformanceTab from './pages/ClientPortal/tabs/MyPerformanceTab';
 import ClientLeadsTab from './pages/ClientPortal/tabs/LeadsTab';
 import ClientTasksTab from './pages/ClientPortal/tabs/TasksTab';
 import BrandSettingsTab from './pages/ClientPortal/tabs/BrandSettingsTab';
-import ClientStoreTab from './pages/ClientPortal/tabs/StoreTab';
+
 import ClientBillingTab from './pages/ClientPortal/tabs/BillingTab';
 import ClientSupportTab from './pages/ClientPortal/tabs/SupportTab';
 import ClientWebsiteTab from './pages/ClientPortal/tabs/ClientWebsiteTab';
@@ -331,7 +331,7 @@ const AppRoutes = () => {
             <Route path="reports" element={<ReportsTab />} />
           </Route>
 
-          <Route path="ops/team" element={<Teams />} />
+
           <Route path="ops/time" element={<TimeTracking />} />
           <Route path="ops/resources" element={<Resources />} />
           <Route path="ops/finance" element={<Finance />} />
@@ -497,7 +497,7 @@ const AppRoutes = () => {
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
-          <Route path="ops/team" element={<Teams />} />
+
           <Route path="ops/time" element={<TimeTracking />} />
           <Route path="ops/resources" element={<Resources />} />
           <Route path="ops/finance" element={<Finance />} />

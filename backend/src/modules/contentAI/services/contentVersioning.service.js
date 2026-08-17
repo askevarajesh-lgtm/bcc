@@ -1,5 +1,4 @@
-const ContentVersion = require('../models/contentVersion.model');
-const ContentPiece = require('../models/contentPiece.model');
+const { ContentVersion, ContentPiece } = require('../models/contentAsset.model');
 const contentEvents = require('../events/contentEvents');
 
 class ContentVersioningService {

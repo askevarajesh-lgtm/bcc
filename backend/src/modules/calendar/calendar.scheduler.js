@@ -1,6 +1,6 @@
 const cron = require('node-cron');
-const CalendarEvent = require('./models/calendarEvent.model');
-const Meeting = require('../meetings/models/meeting.model');
+const { CalendarEvent } = require('./models/calendarEventAsset.model');
+const { Meeting } = require('../meetings/models/meetingAsset.model');
 const User = require('../auth/user.model');
 const Notification = require('../tasks/notification.model');
 const sendpulseService = require('../../utils/sendpulse.service');

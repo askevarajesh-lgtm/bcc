@@ -3,7 +3,7 @@
  * Central orchestrator implementing a deterministic scan pipeline.
  * Runs all 11 enterprise monitoring plugins with health score updates.
  */
-const WorkspaceMonitoringScan = require('../../models/workspaceMonitoringScan.model');
+const { WorkspaceMonitoringScan } = require('../../models/workspaceMonitoringAsset.model');
 const WorkspaceProject = require('../../models/workspaceProject.model');
 const executionQueue = require('../../../aiCore/executionQueue.service');
 const registry = require('./MonitoringRegistry');
@@ -104,7 +104,7 @@ class MonitoringEngineService {
     const progressStep = 90 / (monitors.length || 1);
     
     let previousSnapshot = null;
-    const SnapshotModel = require('../../models/workspaceMonitoringSnapshot.model');
+    const { WorkspaceMonitoringSnapshot: SnapshotModel } = require('../../models/workspaceMonitoringAsset.model');
     const lastSnapshot = await SnapshotModel.findOne({ projectId }).sort({ timestamp: -1 });
     if (lastSnapshot) previousSnapshot = lastSnapshot.toObject();
 

@@ -9,7 +9,7 @@ import DashboardTab from './tabs/DashboardTab';
 import MyPerformanceTab from './tabs/MyPerformanceTab';
 import LeadsTab from './tabs/LeadsTab';
 import TasksTab from './tabs/TasksTab';
-import StoreTab from './tabs/StoreTab';
+
 import BillingTab from './tabs/BillingTab';
 import SupportTab from './tabs/SupportTab';
 
@@ -25,7 +25,7 @@ const ClientPortal = () => {
     { key: 'performance', label: 'My Performance' },
     { key: 'leads', label: 'Leads' },
     { key: 'tasks', label: 'Tasks' },
-    { key: 'store', label: 'Store' },
+
     { key: 'billing', label: 'Billing' },
     { key: 'support', label: 'Support' },
   ];
@@ -37,7 +37,7 @@ const ClientPortal = () => {
       case 'performance': return <MyPerformanceTab />;
       case 'leads': return <LeadsTab />;
       case 'tasks': return <TasksTab />;
-      case 'store': return <StoreTab />;
+
       case 'billing': return <BillingTab />;
       case 'support': return <SupportTab />;
       default:

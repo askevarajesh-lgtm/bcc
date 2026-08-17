@@ -3,17 +3,19 @@ const WorkspaceAudit = require('./models/workspaceAudit.model');
 const WorkspaceKeyword = require('./models/workspaceKeyword.model');
 const WorkspaceStrategy = require('./models/workspaceStrategy.model');
 const WorkspaceTask = require('./models/workspaceTask.model');
-const WorkspaceReport = require('./models/workspaceReport.model');
+const { WorkspaceReport } = require('./models/workspaceReportAsset.model');
 const WorkspaceComment = require('./models/workspaceComment.model');
 const WorkspaceAttachment = require('./models/workspaceAttachment.model');
 const WorkspaceAuditLog = require('./models/workspaceAuditLog.model');
 const WorkspaceTechnicalAudit = require('./models/workspaceTechnicalAudit.model');
-const WorkspaceAeoAudit = require('./models/workspaceAeoAudit.model');
-const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
-const WorkspaceAeoAuditPage = require('./models/workspaceAeoAuditPage.model');
-const WorkspaceAeoAuditSimulation = require('./models/workspaceAeoAuditSimulation.model');
-const WorkspaceAeoAuditEntityGraph = require('./models/workspaceAeoAuditEntityGraph.model');
-const WorkspaceAeoAuditRecommendation = require('./models/workspaceAeoAuditRecommendation.model');
+const { WorkspaceGeoAudit } = require('./models/workspaceGeoAuditAsset.model');
+const {
+  WorkspaceAeoAudit,
+  WorkspaceAeoAuditPage,
+  WorkspaceAeoAuditSimulation,
+  WorkspaceAeoAuditEntityGraph,
+  WorkspaceAeoAuditRecommendation
+} = require('./models/workspaceAeoAuditAsset.model');
 const WorkspaceAgentOrchestrator = require('./services/workspaceAgentOrchestrator.service');
 const WordPressService = require('../seoIntelligence/services/wordPress.service');
 const GoogleService = require('../seoIntelligence/services/google.service');
@@ -961,7 +963,7 @@ exports.getGeoAgentExecutionHistory = async (req, res) => {
 
 exports.getGeoAuditSummary = async (req, res) => {
   try {
-    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const { WorkspaceGeoAudit } = require('./models/workspaceGeoAuditAsset.model');
     const audit = await WorkspaceGeoAudit.findOne({ _id: req.params.auditId, projectId: req.params.projectId });
     if (!audit) return res.status(404).json({ success: false, error: 'Audit not found' });
     res.json({ success: true, data: audit });
@@ -972,7 +974,7 @@ exports.getGeoAuditSummary = async (req, res) => {
 
 exports.getGeoAuditPages = async (req, res) => {
   try {
-    const WorkspaceGeoPageAnalysis = require('./models/workspaceGeoPageAnalysis.model');
+    const { WorkspaceGeoPageAnalysis } = require('./models/workspaceGeoAuditAsset.model');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
@@ -989,7 +991,7 @@ exports.getGeoAuditPages = async (req, res) => {
 
 exports.getGeoAuditEntities = async (req, res) => {
   try {
-    const WorkspaceGeoEntityAnalysis = require('./models/workspaceGeoEntityAnalysis.model');
+    const { WorkspaceGeoEntityAnalysis } = require('./models/workspaceGeoAuditAsset.model');
     const data = await WorkspaceGeoEntityAnalysis.findOne({ auditId: req.params.auditId, projectId: req.params.projectId });
     res.json({ success: true, data });
   } catch (error) {
@@ -999,7 +1001,7 @@ exports.getGeoAuditEntities = async (req, res) => {
 
 exports.getGeoAuditTechnical = async (req, res) => {
   try {
-    const WorkspaceGeoTechnicalAnalysis = require('./models/workspaceGeoTechnicalAnalysis.model');
+    const { WorkspaceGeoTechnicalAnalysis } = require('./models/workspaceGeoAuditAsset.model');
     const data = await WorkspaceGeoTechnicalAnalysis.findOne({ auditId: req.params.auditId, projectId: req.params.projectId });
     res.json({ success: true, data });
   } catch (error) {
@@ -1009,7 +1011,7 @@ exports.getGeoAuditTechnical = async (req, res) => {
 
 exports.getGeoAuditRecommendations = async (req, res) => {
   try {
-    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const { WorkspaceGeoAudit } = require('./models/workspaceGeoAuditAsset.model');
     const audit = await WorkspaceGeoAudit.findOne({ _id: req.params.auditId, projectId: req.params.projectId });
     if (!audit) return res.status(404).json({ success: false, error: 'Audit not found' });
 
@@ -1025,7 +1027,7 @@ exports.getGeoAuditRecommendations = async (req, res) => {
 
 exports.getGeoAuditTrends = async (req, res) => {
   try {
-    const WorkspaceGeoAudit = require('./models/workspaceGeoAudit.model');
+    const { WorkspaceGeoAudit } = require('./models/workspaceGeoAuditAsset.model');
     const audits = await WorkspaceGeoAudit.find({ projectId: req.params.projectId, status: 'completed' })
       .sort({ createdAt: -1 })
       .limit(10)

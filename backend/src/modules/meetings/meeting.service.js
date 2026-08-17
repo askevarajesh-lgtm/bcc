@@ -1,4 +1,4 @@
-const Meeting = require('./models/meeting.model');
+const { Meeting, MeetingAttachment, MeetingFollowUp, MeetingNote } = require('./models/meetingAsset.model');
 const User = require('../auth/user.model');
 const Task = require('../tasks/task.model');
 const taskService = require('../tasks/task.service');

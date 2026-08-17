@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const Domain = require('./domain.model');
 const Website = require('../websites/website.model');
-const { Funnel } = require('../funnels/funnel.model');
-const Store = require('../stores/store.model');
+
+
 const dns = require('dns').promises;
 const crypto = require('crypto');
 
@@ -29,7 +29,7 @@ exports.connectDomain = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'This domain name is already connected to a project' });
     }
 
-    // Find the associated property (Website, Funnel, or Store)
+    // Find the associated property (Website)
     // Supports matching by ID or by name
     let propertyEntity = null;
     if (propertyType === 'Website') {
@@ -38,28 +38,16 @@ exports.connectDomain = async (req, res, next) => {
         workspaceId,
         isDeleted: false
       });
-    } else if (propertyType === 'Funnel') {
-      propertyEntity = await Funnel.findOne({
-        $or: [{ _id: mongoose.Types.ObjectId.isValid(property) ? property : new mongoose.Types.ObjectId() }, { name: property }],
-        workspaceId,
-        isDeleted: false
-      });
-    } else if (propertyType === 'Store') {
-      propertyEntity = await Store.findOne({
-        $or: [{ _id: mongoose.Types.ObjectId.isValid(property) ? property : new mongoose.Types.ObjectId() }, { storeName: property }],
-        workspaceId,
-        isDeleted: false
-      });
+
+
     }
 
     // Fallback: If no property found, auto-create/lookup a fallback to ensure user isn't blocked
     if (!propertyEntity) {
       if (propertyType === 'Website') {
         propertyEntity = await Website.findOne({ workspaceId, isDeleted: false });
-      } else if (propertyType === 'Funnel') {
-        propertyEntity = await Funnel.findOne({ workspaceId, isDeleted: false });
-      } else if (propertyType === 'Store') {
-        propertyEntity = await Store.findOne({ workspaceId, isDeleted: false });
+
+
       }
     }
 
@@ -111,12 +99,8 @@ exports.getDomains = async (req, res, next) => {
       if (d.propertyType === 'Website') {
         const web = await Website.findById(d.propertyId);
         connectedName = web ? `Website · ${web.name}` : 'Website · Unknown';
-      } else if (d.propertyType === 'Funnel') {
-        const fun = await Funnel.findById(d.propertyId);
-        connectedName = fun ? `Funnel · ${fun.name}` : 'Funnel · Unknown';
-      } else if (d.propertyType === 'Store') {
-        const st = await Store.findById(d.propertyId);
-        connectedName = st ? `Store · ${st.storeName}` : 'Store · Unknown';
+
+
       }
 
       return {
@@ -161,10 +145,8 @@ exports.disconnectDomain = async (req, res, next) => {
     // Clear domain references in the connected property
     if (domain.propertyType === 'Website') {
       await Website.updateOne({ _id: domain.propertyId }, { domainId: null });
-    } else if (domain.propertyType === 'Funnel') {
-      await Funnel.updateOne({ _id: domain.propertyId }, { domainId: null });
-    } else if (domain.propertyType === 'Store') {
-      await Store.updateOne({ _id: domain.propertyId }, { domainId: null });
+
+
     }
 
     res.json({ success: true, message: 'Domain disconnected successfully' });

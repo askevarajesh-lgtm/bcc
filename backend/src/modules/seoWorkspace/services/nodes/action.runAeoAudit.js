@@ -1,8 +1,10 @@
 const aeoAgent = require('../aeoAgent.service');
 const WorkspaceProject = require('../../models/workspaceProject.model');
-const WorkspaceAeoAudit = require('../../models/workspaceAeoAudit.model');
-const WorkspaceAeoAuditPage = require('../../models/workspaceAeoAuditPage.model');
-const WorkspaceAeoAuditRecommendation = require('../../models/workspaceAeoAuditRecommendation.model');
+const {
+  WorkspaceAeoAudit,
+  WorkspaceAeoAuditPage,
+  WorkspaceAeoAuditRecommendation
+} = require('../../models/workspaceAeoAuditAsset.model');
 const logger = require('../../../aiCore/logger.service');
 
 const TAG = 'ActionRunAeoAudit';

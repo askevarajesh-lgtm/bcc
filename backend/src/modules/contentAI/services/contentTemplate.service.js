@@ -1,4 +1,4 @@
-const ContentPromptTemplate = require('../models/contentPromptTemplate.model');
+const { ContentPromptTemplate } = require('../models/contentConfig.model');
 
 async function list(workspaceId, generatorType) {
   const query = { isDeleted: false, $or: [{ workspaceId }, { isGlobal: true }] };

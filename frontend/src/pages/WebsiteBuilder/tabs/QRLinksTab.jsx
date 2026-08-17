@@ -17,7 +17,7 @@ const qrTypes = [
   { id: 'Email', icon: <Mail size={24} /> },
   { id: 'Payment', icon: <CreditCard size={24} /> },
   { id: 'WhatsApp', icon: <MessageSquare size={24} /> },
-  { id: 'Funnel', icon: <Link2 size={24} /> },
+
   { id: 'Form', icon: <FormInput size={24} /> },
   { id: 'Survey', icon: <FormInput size={24} /> },
   { id: 'Quiz', icon: <FormInput size={24} /> },
@@ -35,7 +35,7 @@ const resolveColor = (color) => {
   return 'var(--accent-primary)';
 };
 
-const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funnels = [], websites = [] }) => {
+const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], websites = [] }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: `QR-${Math.floor(Date.now() / 1000)}`,
@@ -97,7 +97,7 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
       case 'Survey':
       case 'Quiz':
         return customUrl || "https://yoursite.com";
-      case 'Funnel':
+
         return customUrl || "https://yoursite.com";
       default:
         return customUrl || "https://yoursite.com";
@@ -280,32 +280,6 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], funne
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Computed Embed URL</div>
-            <Input size="large" value={formData.customUrl} readOnly style={{ borderRadius: 8, background: 'var(--bg-secondary)' }} />
-          </div>
-        </div>
-      );
-    }
-
-    if (type === 'Funnel') {
-      return (
-        <div>
-          <Title level={4} style={{ marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>Funnel Integration</Title>
-          <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 14, fontWeight: 500 }}>Select a published sales funnel from your workspace.</Text>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Select Funnel</div>
-            <Select 
-              size="large" 
-              style={{ width: "100%" }}
-              placeholder="Choose a funnel"
-              onChange={(val) => setFormData({...formData, customUrl: `${window.location.origin}/funnel/${val}`})}
-            >
-              {funnels.map(f => (
-                <Option key={f._id} value={f._id}>{f.name}</Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Computed Funnel URL</div>
             <Input size="large" value={formData.customUrl} readOnly style={{ borderRadius: 8, background: 'var(--bg-secondary)' }} />
           </div>
         </div>
@@ -759,7 +733,7 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
             <div style={{ marginBottom: 24, background: 'var(--bg-primary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", marginBottom: 4 }}>ABOUT</div>
               <div style={{ color: "var(--text-secondary)", fontWeight: 500, lineHeight: 1.5 }}>
-                {['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type)
+                {['Website', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type)
                   ? "Dynamic trackable redirection scan flow."
                   : "Static scan action, executing standard local handset commands."}
               </div>
@@ -772,8 +746,8 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
 
             <div style={{ background: 'var(--bg-primary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", marginBottom: 4 }}>TRACKING</div>
-              <div style={{ fontWeight: 800, color: ['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? 'var(--accent-success)' : 'var(--text-secondary)' }}>
-                {['Website', 'Funnel', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? "Scan analytics enabled" : "Analytics not supported for static QR codes"}
+              <div style={{ fontWeight: 800, color: ['Website', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? 'var(--accent-success)' : 'var(--text-secondary)' }}>
+                {['Website', 'Form', 'Survey', 'Quiz', 'Review Link'].includes(activeQR.type) ? "Scan analytics enabled" : "Analytics not supported for static QR codes"}
               </div>
             </div>
           </Card>
@@ -795,7 +769,6 @@ const QRLinksTab = ({ itemVariants }) => {
   const [activeQR, setActiveQR] = useState(null);
   
   const [forms, setForms] = useState([]);
-  const [funnels, setFunnels] = useState([]);
   const [websites, setWebsites] = useState([]);
 
   useEffect(() => {
@@ -826,22 +799,21 @@ const QRLinksTab = ({ itemVariants }) => {
       }
     };
 
-    const fetchResources = async () => {
+    const loadData = async () => {
       try {
         const token = localStorage.getItem("token");
         const headers = { "Authorization": token ? `Bearer ${token}` : "" };
-        const [formsRes, funnelsRes, websitesRes] = await Promise.all([
+        const [formsRes, websitesRes] = await Promise.all([
           fetch("/api/forms", { headers }),
-          fetch("/api/funnels", { headers }),
           fetch("/api/websites", { headers })
         ]);
-        const [formsData, funnelsData, websitesData] = await Promise.all([
+        
+        const [formsData, websitesData] = await Promise.all([
           formsRes.json(),
-          funnelsRes.json(),
           websitesRes.json()
         ]);
+
         if (formsData.success) setForms(formsData.data);
-        if (funnelsData.success) setFunnels(funnelsData.data);
         if (websitesData.success) setWebsites(websitesData.data);
       } catch (err) {
         console.error("Failed to fetch resources", err);
@@ -849,7 +821,7 @@ const QRLinksTab = ({ itemVariants }) => {
     };
 
     fetchQRs();
-    fetchResources();
+    loadData();
   }, [view]);
 
   const handleCreateQR = async (formData) => {
@@ -976,7 +948,7 @@ const QRLinksTab = ({ itemVariants }) => {
               <QrCode size={24} color="var(--accent-primary)" /> QR Links
             </Title>
             <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>
-              Trackable QR codes for websites, forms, funnels, contact actions, WiFi, and more.
+              Trackable QR codes for websites, forms, contact actions, WiFi, and more.
             </Text>
           </div>
           <Space>
@@ -1025,7 +997,7 @@ const QRLinksTab = ({ itemVariants }) => {
   return (
     <div style={{ position: "relative" }}>
       {view === "list" && renderList()}
-      {view === "create" && <CreateQRView setView={setView} handleCreateQR={handleCreateQR} itemVariants={itemVariants} forms={forms} funnels={funnels} websites={websites} />}
+      {view === "create" && <CreateQRView setView={setView} handleCreateQR={handleCreateQR} itemVariants={itemVariants} forms={forms} websites={websites} />}
       {view === "manage" && <ManageQRView activeQR={activeQR} setView={setView} handleDeleteQR={handleDeleteQR} itemVariants={itemVariants} />}
     </div>
   );

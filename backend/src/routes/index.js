@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const healthRoutes = require('../modules/health/health.routes');
 const websiteRoutes = require('../modules/websites/website.routes');
-const funnelRoutes = require('../modules/funnels/funnel.routes');
-const storeRoutes = require('../modules/stores/store.routes');
+
+
 const formRoutes = require('../modules/forms/form.routes');
 const formTemplateRoutes = require('../modules/forms/form-template.routes');
 const blogRoutes = require('../modules/blogs/blog.routes');
@@ -32,7 +32,7 @@ const campaignScheduledRoutes = require('../modules/campaign-scheduled/campaignS
 const slaRoutes = require('../modules/sla/sla.routes');
 const mosRoutes = require('../modules/mos/mos.routes');
 const benchmarkRoutes = require('../modules/benchmarking/benchmark.routes');
-const hrmsRoutes = require('../modules/hrms/hrms.routes');
+
 
 // CRM Workflow Routes
 const masterItemRoutes = require('../modules/masterItems/masterItem.routes');
@@ -100,8 +100,8 @@ router.use('/time-tracking', require('../modules/timeTracking/timeTracking.route
 router.use('/resources', require('../modules/resources/resources.routes'));
 // router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
 router.use('/websites', websiteRoutes);
-router.use('/funnels', funnelRoutes);
-router.use('/stores', storeRoutes);
+
+
 router.use('/forms', formRoutes);
 router.use('/support', supportRoutes);
 router.use('/form-templates', formTemplateRoutes);
@@ -126,7 +126,7 @@ router.use('/coordinator-tasks', coordinatorTaskRoutes);
 router.use('/projects', projectRoutes);
 router.use('/campaign-scheduled', campaignScheduledRoutes);
 router.use('/sla-success', slaRoutes);
-router.use('/hrms', hrmsRoutes);
+
 
 // CRM Workflow Mounts
 router.use('/master-items', masterItemRoutes);

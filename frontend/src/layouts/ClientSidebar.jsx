@@ -242,13 +242,13 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
 
   const opsChildren = [];
   if (role === 'brand_super_admin') {
-    // opsChildren.push({ key: '/client/ops/team', icon: getIcon(Users), label: getLabel('People', peopleCount) });
+
     opsChildren.push({ key: '/client/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' });
     opsChildren.push({ key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' });
     opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });
     opsChildren.push({ key: '/client/calendar', icon: getIcon(Calendar), label: 'Calendar' });
   } else if (role === 'brand_manager') {
-    // opsChildren.push({ key: '/client/ops/team', icon: getIcon(Users), label: getLabel('People', peopleCount) });
+
     opsChildren.push({ key: '/client/ops/time', icon: getIcon(Calendar), label: 'Time Tracking' });
     opsChildren.push({ key: '/client/ops/resources', icon: getIcon(Calendar), label: 'Resources' });
     opsChildren.push({ key: '/client/meetings', icon: getIcon(Calendar), label: 'Meetings' });

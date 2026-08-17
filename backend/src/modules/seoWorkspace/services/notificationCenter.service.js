@@ -132,7 +132,7 @@ class NotificationCenterService {
    * Generate an automated periodic SEO Digest
    */
   async generateDigest(projectId, digestType = 'daily') {
-    const WorkspaceMonitoringAlert = require('../models/workspaceMonitoringAlert.model');
+    const { WorkspaceMonitoringAlert } = require('../models/workspaceMonitoringAsset.model');
     const AutomationExecutionRun = require('../models/automationExecutionRun.model');
     const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 

@@ -2,7 +2,7 @@ const Template = require('./template.model');
 
 exports.getTemplates = async (req, res, next) => {
   try {
-    const { type } = req.query; // 'website', 'store', 'funnel', 'form'
+    const { type } = req.query; // 'website', 'form'
     
     let query = { isDeleted: false };
     if (type) {

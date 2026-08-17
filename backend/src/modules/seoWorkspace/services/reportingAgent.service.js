@@ -1,5 +1,5 @@
 const WorkspaceProject = require('../models/workspaceProject.model');
-const WorkspaceReport = require('../models/workspaceReport.model');
+const { WorkspaceReport } = require('../models/workspaceReportAsset.model');
 const WorkspaceAudit = require('../models/workspaceAudit.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 const WorkspaceCompetitor = require('../models/workspaceCompetitor.model');

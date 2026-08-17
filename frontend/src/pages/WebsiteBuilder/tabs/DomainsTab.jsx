@@ -14,8 +14,6 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
   });
 
   const [websites, setWebsites] = useState([]);
-  const [funnels, setFunnels] = useState([]);
-  const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -25,24 +23,10 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
       try {
         const token = localStorage.getItem("token");
         const headers = { "Authorization": token ? `Bearer ${token}` : "" };
-        const [webRes, funRes, storeRes] = await Promise.all([
-          fetch("/api/websites", { headers }),
-          fetch("/api/funnels", { headers }),
-          fetch("/api/stores", { headers })
-        ]);
-        const [webData, funData, storeData] = await Promise.all([
-          webRes.json(),
-          funRes.json(),
-          storeRes.json()
-        ]);
-
+        const webRes = await fetch("/api/websites", { headers });
+        const webData = await webRes.json();
         const webs = webData.success ? webData.data : [];
-        const funs = funData.success ? funData.data : [];
-        const sts = storeData.success ? storeData.data : [];
-
         setWebsites(webs);
-        setFunnels(funs);
-        setStores(sts);
 
         // Auto-select the first website if available
         if (webs.length > 0) {
@@ -61,10 +45,6 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
     let defaultPropId = "";
     if (type === "Website" && websites.length > 0) {
       defaultPropId = websites[0]._id;
-    } else if (type === "Funnel" && funnels.length > 0) {
-      defaultPropId = funnels[0]._id;
-    } else if (type === "Store" && stores.length > 0) {
-      defaultPropId = stores[0]._id;
     }
     setFormData({
       ...formData,
@@ -76,10 +56,6 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
   const getPropertyOptions = () => {
     if (formData.propertyType === "Website") {
       return websites.map(w => <Option key={w._id} value={w._id}>{w.name}</Option>);
-    } else if (formData.propertyType === "Funnel") {
-      return funnels.map(f => <Option key={f._id} value={f._id}>{f.name}</Option>);
-    } else if (formData.propertyType === "Store") {
-      return stores.map(s => <Option key={s._id} value={s._id}>{s.storeName}</Option>);
     }
     return [];
   };
@@ -88,10 +64,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
     ? "That hostname is reserved for this application." 
     : null;
 
-  const currentPropertiesLength = 
-    formData.propertyType === "Website" ? websites.length :
-    formData.propertyType === "Funnel" ? funnels.length :
-    formData.propertyType === "Store" ? stores.length : 0;
+    formData.propertyType === "Website" ? websites.length : 0;
 
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
@@ -124,8 +97,6 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
               style={{ width: "100%" }}
             >
               <Option value="Website">Website</Option>
-              <Option value="Funnel">Funnel</Option>
-              <Option value="Store">Store</Option>
             </Select>
           </div>
 
@@ -423,7 +394,7 @@ const DomainsTab = ({ itemVariants }) => {
               <Globe size={24} color="var(--accent-primary)" /> Domains
             </Title>
             <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>
-              Connect custom domains to websites, funnels, and stores.
+              Connect custom domains to websites.
             </Text>
           </div>
           <Space>

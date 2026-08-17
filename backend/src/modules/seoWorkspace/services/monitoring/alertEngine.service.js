@@ -3,8 +3,7 @@
  * Listens to the EventBus, deduplicates events, creates Alerts,
  * and triggers automated AI Root Cause Analysis via aiEngine.
  */
-const WorkspaceMonitoringAlert = require('../../models/workspaceMonitoringAlert.model');
-const WorkspaceMonitoringRecommendation = require('../../models/workspaceMonitoringRecommendation.model');
+const { WorkspaceMonitoringAlert, WorkspaceMonitoringRecommendation } = require('../../models/workspaceMonitoringAsset.model');
 const eventBus = require('../workspaceEventBus.service');
 const aiEngine = require('../../../aiCore/aiEngine.service');
 const logger = require('../../../aiCore/logger.service');

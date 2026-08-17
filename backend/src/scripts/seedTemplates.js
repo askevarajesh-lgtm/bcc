@@ -16,21 +16,9 @@ const websiteTemplates = [
   { name: "Urban Dwelling Properties", category: "Real Estate Company", type: "website", thumbnailColor: "var(--text-primary)", featuresCount: 1 }
 ];
 
-const storeTemplates = [
-  { name: "AutoSphere", category: "Automotive", type: "store", thumbnailColor: "var(--accent-primary)", featuresCount: 1 },
-  { name: "DriveNest", category: "Automotive", type: "store", thumbnailColor: "var(--text-primary)", featuresCount: 1 },
-  { name: "TurboKart", category: "Automotive", type: "store", thumbnailColor: "var(--accent-warning)", featuresCount: 1 },
-  { name: "MotoCraft", category: "Automotive", type: "store", thumbnailColor: "var(--accent-info)", featuresCount: 1 },
-  { name: "BabyBloom", category: "Baby & Kids", type: "store", thumbnailColor: "var(--accent-danger)", featuresCount: 1 },
-  { name: "TinyTots", category: "Baby & Kids", type: "store", thumbnailColor: "var(--accent-secondary)", featuresCount: 1 }
-];
 
-const funnelTemplates = [
-  { name: "Lead Gen Pro", category: "Digital Marketing Agency", type: "funnel", thumbnailColor: "var(--accent-primary)", featuresCount: 1 },
-  { name: "Webinar Funnel", category: "Digital Marketing Agency", type: "funnel", thumbnailColor: "var(--accent-info)", featuresCount: 1 },
-  { name: "Consultation Booking", category: "Business Coaching", type: "funnel", thumbnailColor: "var(--accent-warning)", featuresCount: 1 },
-  { name: "Product Launch", category: "E-Commerce", type: "funnel", thumbnailColor: "var(--accent-secondary)", featuresCount: 1 }
-];
+
+
 
 const formTemplates = [
   { name: "Test Drive Booking", category: "Automotive", type: "form", thumbnailColor: "var(--accent-primary)", featuresCount: 1 },
@@ -49,8 +37,8 @@ async function seed() {
 
     const allTemplates = [
       ...websiteTemplates,
-      ...storeTemplates,
-      ...funnelTemplates,
+
+
       ...formTemplates
     ];
 

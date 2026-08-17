@@ -3,7 +3,7 @@ const WorkspaceAudit = require('../models/workspaceAudit.model');
 const WorkspaceKeyword = require('../models/workspaceKeyword.model');
 const WorkspaceStrategy = require('../models/workspaceStrategy.model');
 const WorkspaceTask = require('../models/workspaceTask.model');
-const WorkspaceReport = require('../models/workspaceReport.model');
+const { WorkspaceReport } = require('../models/workspaceReportAsset.model');
 const DataForSeoService = require('../../seoIntelligence/dataForSeo.service');
 const skillLoader = require('./skillLoader.service');
 

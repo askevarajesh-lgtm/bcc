@@ -1,8 +1,6 @@
 const contentGenerationPipeline = require('./services/contentGenerationPipeline.service');
-const ContentPiece = require('./models/contentPiece.model');
-const ContentVersion = require('./models/contentVersion.model');
-const BrandVoice = require('./models/brandVoice.model');
-const ContentPromptTemplate = require('./models/contentPromptTemplate.model');
+const { ContentPiece, ContentVersion } = require('./models/contentAsset.model');
+const { BrandVoice, ContentPromptTemplate } = require('./models/contentConfig.model');
 const contentEvents = require('./events/contentEvents');
 const { GENERATORS } = require('./generators/registry');
 const contentVersioningService = require('./services/contentVersioning.service');

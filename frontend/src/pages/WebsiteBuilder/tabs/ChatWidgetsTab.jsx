@@ -146,7 +146,7 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
       </div>
 
       <div style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", color: "var(--accent-success)", padding: "16px 24px", borderRadius: 12, marginBottom: 32, fontWeight: 600, fontSize: 14 }}>
-        Chat widget created. Configure it, publish, then assign to websites, funnels, or stores.
+        Chat widget created. Configure it, publish, then assign to websites.
       </div>
 
       <Row gutter={32}>
@@ -463,7 +463,7 @@ const ChatWidgetsTab = ({ itemVariants }) => {
               <MessageCircle size={24} color="var(--accent-primary)" /> Chat Widgets
             </Title>
             <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>
-              Create floating chat experiences and assign them to websites, funnels, and stores.
+              Create floating chat experiences and assign them to websites.
             </Text>
           </div>
           <Space>

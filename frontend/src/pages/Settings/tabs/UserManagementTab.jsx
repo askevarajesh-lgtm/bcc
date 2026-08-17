@@ -249,9 +249,14 @@ const UserManagementTab = () => {
     { title: <strong style={{color:'var(--text-secondary)'}}>EMAIL</strong>, dataIndex: 'email', key: 'email', render: t => <span style={{fontWeight:500}}>{t}</span> },
     { title: <strong style={{color:'var(--text-secondary)'}}>ROLE</strong>, key: 'role', render: (_, record) => {
         let displayRole = record.roleName || record.role;
+        if (record.customRoleId) {
+           const customRole = roles.find(r => r._id === record.customRoleId);
+           if (customRole) displayRole = customRole.roleName || customRole.roleKey || displayRole;
+        }
+        if (!displayRole) displayRole = 'Unknown';
         return (
           <Tag color={getRoleColor(record.role)} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
-            {displayRole.replace(/_/g, ' ').toUpperCase()}
+            {typeof displayRole === 'string' ? displayRole.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN'}
           </Tag>
         );
     }},
