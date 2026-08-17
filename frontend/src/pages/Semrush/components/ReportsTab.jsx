@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Card, Typography, Button, Row, Col, message } from 'antd';
-import { FilePdfOutlined, FileExcelOutlined, DownloadOutlined } from '@ant-design/icons';
+import { FilePdfOutlined, FileExcelOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -9,9 +9,11 @@ import PDFReportTemplate from './PDFReportTemplate';
 const { Title, Text } = Typography;
 
 const ReportsTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, triggerRefresh } = useOutletContext();
   const [generating, setGenerating] = useState(false);
   const pdfRef = useRef(null);
+  
+  const isRefreshing = projectData?.activeJob && ['QUEUED', 'RUNNING'].includes(projectData.activeJob.status);
 
   const handleExportPDF = async () => {
     if (!pdfRef.current) return;
@@ -57,9 +59,20 @@ const ReportsTab = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Reports</Title>
-        <Text type="secondary">Generate and export professional reports for {project?.domain}.</Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Reports</Title>
+          <Text type="secondary">Generate and export professional reports for {project?.domain}.</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={isRefreshing} />} 
+          onClick={triggerRefresh} 
+          loading={isRefreshing}
+          style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+        >
+          {isRefreshing ? 'Refreshing...' : 'Refresh Report Data'}
+        </Button>
       </div>
 
       <Row gutter={[24, 24]}>

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Button, Typography, Table, Tag, Progress, Tooltip } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Button, Typography, Table, Tag, Progress, Tooltip, message } from 'antd';
+import { semrushApi } from '../../../api/semrushApi';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink } from 'lucide-react';
-import { ReloadOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import './DashboardTab.css'; 
@@ -10,11 +10,32 @@ import './DashboardTab.css';
 const { Title, Text } = Typography;
 
 const OrganicKeywordsTab = () => {
-  const { project, projectData } = useOutletContext();
-  
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const domain = project?.domain || 'this domain';
-  const data = projectData?.organicKeywords || [];
-  const loading = false;
+
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const data = localData || projectData?.organicKeywords || [];
+
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
+    try {
+      const res = await semrushApi.getOrganicResearch(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data.organicKeywordsData || []);
+        message.success('Organic Research updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Organic Research');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const columns = [
     { 
@@ -206,6 +227,15 @@ const OrganicKeywordsTab = () => {
                 <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
+                <Button 
+                  type="primary" 
+                  icon={<ReloadOutlined spin={refreshing} />} 
+                  onClick={handleRefresh} 
+                  loading={refreshing}
+                  style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                >
+                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
+                </Button>
                 <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
                   Export
                 </Button>
@@ -217,7 +247,7 @@ const OrganicKeywordsTab = () => {
                 dataSource={data}
                 columns={columns}
                 rowKey="key"
-                loading={loading}
+                loading={refreshing}
                 pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} keywords` }}
                 size="middle"
                 style={{ margin: 0 }}
@@ -234,7 +264,16 @@ const OrganicKeywordsTab = () => {
           >
             <BarChart2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Organic Keywords Data Available</Title>
-            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Refresh Intelligence' button at the top to fetch the latest insights.</Text>
+            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Refresh Data' button below to fetch the latest insights.</Text>
+            <Button 
+              type="primary" 
+              icon={<ReloadOutlined spin={refreshing} />} 
+              onClick={handleRefresh} 
+              loading={refreshing}
+              style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

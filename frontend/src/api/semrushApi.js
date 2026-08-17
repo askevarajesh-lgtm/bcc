@@ -45,18 +45,48 @@ export const semrushApi = {
     return response;
   },
 
+  getDomainOverview: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/domain-overview`, { params: { force } });
+    return response;
+  },
+
+  getOrganicResearch: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/organic-research`, { params: { force } });
+    return response;
+  },
+
+  getCompetitorAnalysis: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/competitor-analysis`, { params: { force } });
+    return response;
+  },
+
+  getBacklinks: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/backlinks`, { params: { force } });
+    return response;
+  },
+
+  getSiteAudit: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/site-audit`, { params: { force } });
+    return response;
+  },
+
+  getGeoAeo: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/geo-aeo`, { params: { force } });
+    return response;
+  },
+
   getKeywordMagicTool: async (id, params) => {
     const response = await api.get(`/semrush/projects/${id}/keyword-magic-tool`, { params });
     return response;
   },
 
-  getTrafficAnalytics: async (id, params) => {
-    const response = await api.get(`/semrush/projects/${id}/traffic-analytics`, { params });
+  getTrafficAnalytics: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/traffic-analytics`, { params: { force } });
     return response;
   },
 
   getPositionTracking: async (id, force = false) => {
-    const response = await api.get(`/semrush/projects/${id}/position-tracking${force ? '?force=true' : ''}`);
+    const response = await api.get(`/semrush/projects/${id}/position-tracking`, { params: { force } });
     return response;
   },
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover, Spin } from 'antd';
+import { Typography, Progress, Divider, Tabs, Button, Tag, Space, Table, Popover, Spin, message } from 'antd';
+import { semrushApi } from '../../../api/semrushApi';
+import { ReloadOutlined } from '@ant-design/icons';
 import { Download, Share2, Settings, AlertCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
@@ -77,16 +79,38 @@ const IssuePopover = ({ id }) => {
 };
 
 const SiteHealthTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const domain = project?.domain;
-  const [localData, setLocalData] = useState(projectData?.siteHealth);
-  const [loading, setLoading] = useState(false);
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   useEffect(() => {
     if (projectData?.siteHealth && !localData) {
       setLocalData(projectData.siteHealth);
     }
   }, [projectData]);
+
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
+    try {
+      const res = await semrushApi.getSiteAudit(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData({
+           rawData: res.data.data.siteHealthDetails,
+           overallScore: res.data.data.technicalScore?.value || 0
+        });
+        message.success('Site Audit updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Site Audit');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const auditData = localData?.rawData;
   const overallScore = localData?.overallScore ?? null;
@@ -141,6 +165,15 @@ const SiteHealthTab = () => {
           </div>
         </div>
         <Space>
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined spin={refreshing} />} 
+            onClick={handleRefresh} 
+            loading={refreshing}
+            style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh Audit'}
+          </Button>
         </Space>
       </div>
 

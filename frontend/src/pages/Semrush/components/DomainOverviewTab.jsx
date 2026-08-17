@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Tag, Tooltip, Progress, Space, Button } from 'antd';
+import { Typography, Table, Tag, Tooltip, Progress, Space, Button, message } from 'antd';
+import { semrushApi } from '../../../api/semrushApi';
 import { InfoCircleOutlined, InfoOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,18 +11,34 @@ import './DomainOverview.css';
 const { Title, Text } = Typography;
 
 const DomainOverviewTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const navigate = useNavigate();
   const domain = project?.domain || 'unknown.com';
   
-  const [data, setData] = useState(projectData?.overview || {});
-  const [backlinksData, setBacklinksData] = useState(projectData?.backlinksOverview || {});
-  const [loading, setLoading] = useState(false);
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (projectData?.overview) setData(projectData.overview);
-    if (projectData?.backlinksOverview) setBacklinksData(projectData.backlinksOverview);
-  }, [projectData]);
+  const data = localData || projectData?.overview || {};
+  const backlinksData = projectData?.backlinksOverview || {};
+
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
+    try {
+      const res = await semrushApi.getDomainOverview(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data);
+        message.success('Domain Overview updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Domain Overview');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0';
@@ -56,6 +73,17 @@ const DomainOverviewTab = () => {
   return (
     <div className="so-overview-container">
       {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={refreshing} />} 
+          onClick={handleRefresh} 
+          loading={refreshing}
+          style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+        >
+          {refreshing ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
+      </div>
 
       <div className="so-card">
         <div className="so-card-header" style={{ marginBottom: 12 }}>

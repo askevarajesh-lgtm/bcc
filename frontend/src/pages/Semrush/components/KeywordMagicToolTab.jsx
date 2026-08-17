@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Typography, Input, Select, Button, Space, Tag, Empty } from 'antd';
-import { SearchOutlined, DownloadOutlined, FilterOutlined } from '@ant-design/icons';
+import { Card, Table, Typography, Input, Select, Button, Space, Tag, Empty, message } from 'antd';
+import { SearchOutlined, DownloadOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { semrushApi } from '../../../api/semrushApi';
 import { useOutletContext } from 'react-router-dom';
 
@@ -40,6 +40,24 @@ const KeywordMagicToolTab = () => {
       console.error(err);
       setConfigStatus('failed');
       setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!query || data.length === 0) return;
+    setLoading(true);
+    try {
+      const res = await semrushApi.getKeywordMagicTool(projectId, { keyword: query, database, matchType });
+      if (res && res.data && res.data.success && res.data.data) {
+        setData(res.data.data);
+        message.success('Results updated successfully');
+      } else {
+        message.error(res?.data?.errorCode || 'Failed to refresh results');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
       setLoading(false);
     }
@@ -135,6 +153,14 @@ const KeywordMagicToolTab = () => {
           </Select>
           <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
             Search
+          </Button>
+          <Button 
+            type="default" 
+            icon={<ReloadOutlined spin={loading} />} 
+            onClick={handleRefresh} 
+            loading={loading}
+          >
+            Refresh Results
           </Button>
           <Button icon={<FilterOutlined />}>Filters</Button>
           <Button icon={<DownloadOutlined />}>Export</Button>

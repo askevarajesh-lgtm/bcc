@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card } from 'antd';
-import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
@@ -12,16 +12,37 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const PositionTrackingTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const domain = project?.domain;
   const projectId = project?._id;
 
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [localData, setLocalData] = useState(null);
   
-  // Use pre-fetched data from dashboard
-  const data = projectData?.positionTracking?.data || null;
-  const configStatus = projectData?.positionTracking?.status || 'campaign_required';
+  // Use pre-fetched data from dashboard or local data if refreshed
+  const data = localData || projectData?.positionTracking?.data || null;
+  const configStatus = localData ? 'available' : (projectData?.positionTracking?.status || 'campaign_required');
+
+  const handleRefresh = async () => {
+    if (!projectId) return;
+    setRefreshing(true);
+    try {
+      const res = await semrushApi.getPositionTracking(projectId, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data);
+        message.success('Rankings updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh rankings');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Wizard State
   const [step, setStep] = useState(1);
@@ -309,6 +330,15 @@ const PositionTrackingTab = () => {
               </Text>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
+              <Button 
+                type="primary" 
+                icon={<ReloadOutlined spin={refreshing} />} 
+                onClick={handleRefresh} 
+                loading={refreshing}
+                style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh Rankings'}
+              </Button>
               <Button icon={<SettingOutlined />} onClick={() => {
                  // Open configure modal or just reset config
                  setConfig({ ...config, keywordsText: rankings.map(r => r.keyword).join('\n')});

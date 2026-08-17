@@ -53,12 +53,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
   // Top Countries
   const geoData = (data.geo || []).slice(0, 5);
 
-  // Authority Score radar mock data strictly for visual shape (Semrush uses specific sub-scores not in basic API)
-  const radarData = [
-    { subject: 'Link Power', A: 80, fullMark: 100 },
-    { subject: 'Organic Traffic', A: 50, fullMark: 100 },
-    { subject: 'Natural Profile', A: 90, fullMark: 100 },
-  ];
+
 
   return (
     <div className="bl-container">
