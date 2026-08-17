@@ -16,7 +16,7 @@ const BacklinksTab = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (projectData && !localData) {
+    if (projectData) {
       setLocalData({
         overview: projectData.overview,
         backlinksOverview: projectData.backlinksOverview
@@ -26,28 +26,6 @@ const BacklinksTab = () => {
 
   const handleTabChange = (key) => {
     setActiveKey(key);
-  };
-
-  const handleAudit = async () => {
-    if (!domain) return;
-    try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const [overviewRes, backlinksRes] = await Promise.all([
-        semrushApi.getDomainOverview(domain, 'us', true),
-        semrushApi.getBacklinksOverview(domain, true)
-      ]);
-      
-      setLocalData(prev => ({
-        ...prev,
-        overview: overviewRes && overviewRes.length > 0 ? overviewRes[0] : prev?.overview,
-        backlinksOverview: backlinksRes && backlinksRes.length > 0 ? backlinksRes[0] : prev?.backlinksOverview
-      }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const EmptyState = ({ message }) => (
@@ -73,11 +51,6 @@ const BacklinksTab = () => {
            ]}
            style={{ flex: 1 }}
          />
-         <Space style={{ marginTop: 8 }}>
-           <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-             Audit Data
-           </Button>
-         </Space>
        </div>
 
        <div>

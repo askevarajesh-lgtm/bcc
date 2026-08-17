@@ -91,22 +91,6 @@ const SiteHealthTab = () => {
   const overallScore = localData?.overallScore || 0;
   const [activeTab, setActiveTab] = useState('overview');
 
-  const handleAudit = async () => {
-    if (!domain) return;
-    try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const res = await semrushApi.getSiteHealth(domain, 'us', true);
-      if (res) {
-        setLocalData(res);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!auditData) {
     return (
       <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
@@ -151,9 +135,6 @@ const SiteHealthTab = () => {
           </div>
         </div>
         <Space>
-          <Button type="primary" icon={<RefreshCw size={16} style={{ marginRight: 4 }} />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Audit Data
-          </Button>
         </Space>
       </div>
 

@@ -11,23 +11,15 @@ const CompetitorAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
   const [competitors, setCompetitors] = useState([]);
 
-  useEffect(() => {
-    if (project?.domain) {
-      fetchCompetitors();
-    }
-  }, [project]);
+  const [data, setData] = useState(null);
 
-  const fetchCompetitors = async (force = false) => {
-    try {
-      setLoading(true);
-      const res = await semrushApi.getCompetitorAnalysis(project.domain, 'us', 20, force);
-      setCompetitors(res || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (projectData?.overview?.competitors) {
+      setCompetitors(projectData.overview.competitors);
+    } else {
+      setCompetitors([]);
     }
-  };
+  }, [projectData]);
 
   const columns = [
     {
@@ -94,9 +86,6 @@ const CompetitorAnalysisTab = () => {
           <Text type="secondary">Domains competing for the same keywords in organic search.</Text>
         </div>
         <Space>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => fetchCompetitors(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Audit Data
-          </Button>
           <Button icon={<DownloadOutlined />}>Export</Button>
         </Space>
       </div>

@@ -16,26 +16,10 @@ const OrganicKeywordsTab = () => {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    if (projectData?.organicKeywords && data.length === 0) {
+    if (projectData?.organicKeywords) {
       setData(projectData.organicKeywords);
     }
   }, [projectData]);
-
-  const handleAudit = async () => {
-    if (!domain) return;
-    try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const res = await semrushApi.getDomainKeywordsDrilldown(domain, 100, true);
-      if (res) {
-        setData(res);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const columns = [
     { 
@@ -258,10 +242,7 @@ const OrganicKeywordsTab = () => {
           >
             <BarChart2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Organic Keywords Data Available</Title>
-            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Audit Data' button to fetch the latest insights from Semrush.</Text>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading}>
-              Audit Data
-            </Button>
+            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Refresh Intelligence' button at the top to fetch the latest insights.</Text>
           </motion.div>
         )}
       </AnimatePresence>

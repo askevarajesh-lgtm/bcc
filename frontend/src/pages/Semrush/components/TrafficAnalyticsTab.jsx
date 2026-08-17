@@ -13,27 +13,10 @@ const TrafficAnalyticsTab = () => {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    if (project?.domain) {
-      fetchTrafficData();
-    }
+    // Traffic Analytics requires a specific add-on. For the Intelligence background job,
+    // this data is omitted to save credits. Show empty state or mock state.
+    setData(null);
   }, [project]);
-
-  const fetchTrafficData = async (force = false) => {
-    try {
-      setLoading(true);
-      const res = await semrushApi.getTrafficAnalytics(project.domain, force);
-      // Semrush returns an array for this typically, we want the first item or empty
-      if (res && res.length > 0) {
-        setData(res[0]);
-      } else {
-        setData(null);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '40px' }}><Spin size="large" /></div>;
@@ -43,7 +26,7 @@ const TrafficAnalyticsTab = () => {
     return (
       <Card>
         <Empty 
-          description="Traffic Analytics data not available for this domain. This may require the Traffic Analytics API add-on."
+          description="Traffic Analytics data not available. This requires connecting a live Semrush API key with the Traffic Analytics add-on. Use the global 'Refresh Intelligence' button for high-level snapshot data."
         />
       </Card>
     );
@@ -56,11 +39,6 @@ const TrafficAnalyticsTab = () => {
           <Title level={3} style={{ margin: 0 }}>Traffic Analytics</Title>
           <Text type="secondary">Estimated total traffic and engagement across all devices.</Text>
         </div>
-        <Space>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => fetchTrafficData(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Audit Data
-          </Button>
-        </Space>
       </div>
 
       {data.isFallback ? (

@@ -51,14 +51,8 @@ ${content}
 
 Based on the content, evaluate the website and return a strictly formatted JSON object with the following schema exactly (NO markdown formatting, just raw JSON):
 {
-  "eeatSignals": <Number 0-100 based on visible expertise, author bios, trust signals>,
-  "aiReadability": <Number 0-100 based on clear structure and NLP-friendly writing>,
-  "llmFormatting": <Number 0-100 based on scannable points, bullet lists, short paragraphs>,
-  "schemaUsage": <Number 0-100 based on likely structured data presence deduced from content>,
-  "answerIntent": <Number 0-100 based on direct, concise answers to implied questions>,
-  "voiceSearchOptimization": <Number 0-100 based on conversational tone and Q&A formatting>,
   "issues": [
-    { "category": "GEO or AEO", "priority": "High or Medium", "title": "<Short title>", "description": "<Detailed description>", "impact": "<e.g., -10 Score>" }
+    { "category": "GEO or AEO", "priority": "High or Medium", "title": "<Short title>", "description": "<Detailed description>" }
   ],
   "recommendations": [
     { "category": "GEO or AEO", "type": "Missing Entities or Weak Headings etc.", "title": "<Actionable title>", "description": "<How to fix>" }
@@ -88,12 +82,12 @@ Ensure there are exactly 2 issues and 2 recommendations. Be critical but fair in
 
     const result = JSON.parse(jsonStr);
     return {
-      eeatSignals: result.eeatSignals || 60,
-      aiReadability: result.aiReadability || 65,
-      llmFormatting: result.llmFormatting || 60,
-      schemaUsage: result.schemaUsage || 50,
-      answerIntent: result.answerIntent || 60,
-      voiceSearchOptimization: result.voiceSearchOptimization || 50,
+      eeatSignals: result.eeatSignals || null,
+      aiReadability: result.aiReadability || null,
+      llmFormatting: result.llmFormatting || null,
+      schemaUsage: result.schemaUsage || null,
+      answerIntent: result.answerIntent || null,
+      voiceSearchOptimization: result.voiceSearchOptimization || null,
       issues: result.issues || [],
       recommendations: result.recommendations || []
     };
@@ -114,65 +108,51 @@ exports.calculateScores = async (projectId, companyId, clientId) => {
 
   // 1. Fetch Semrush / DataForSEO Metrics (using existing stats)
   const seoMetrics = {
-    authorityScore: website.stats?.domainAuthority || 40,
-    technicalScore: website.stats?.lastAuditScore || 65,
-    contentScore: 70, // placeholder
-    organicTraffic: website.stats?.totalKeywords * 5 || 0,
-    backlinks: website.stats?.totalBacklinks || 0,
-    coreWebVitals: 80,
-    schemaScore: 50
+    authorityScore: website.stats?.domainAuthority || null,
+    technicalScore: website.stats?.lastAuditScore || null,
+    contentScore: null,
+    organicTraffic: website.stats?.organicTraffic || null,
+    backlinks: website.stats?.backlinks || null,
+    coreWebVitals: null,
+    schemaScore: null
   };
 
   // 2. Fetch AI Analysis
   const aiAnalysis = await analyzePageWithAI(domain);
 
-  // 3. Compute deterministic scores
-  const seoScore = Math.round(
-    (seoMetrics.authorityScore * 0.3) + 
-    (seoMetrics.technicalScore * 0.4) + 
-    (seoMetrics.coreWebVitals * 0.3)
-  );
+  // 3. Compute deterministic scores (Set to null temporarily until Phase 6)
+  const seoScore = null;
 
   const geoMetrics = {
     websiteAuthority: seoMetrics.authorityScore,
-    topicalAuthority: 65,
-    keywordCoverage: Math.min(100, website.stats?.totalKeywords / 10 || 50),
-    semanticCoverage: 70,
-    entityCoverage: 60,
-    contentFreshness: 80,
+    topicalAuthority: null,
+    keywordCoverage: null,
+    semanticCoverage: null,
+    entityCoverage: null,
+    contentFreshness: null,
     eeatSignals: aiAnalysis.eeatSignals,
     aiReadability: aiAnalysis.aiReadability,
     llmFormatting: aiAnalysis.llmFormatting,
-    historicalGrowth: 15,
-    aiVisibilityPrediction: 75
+    historicalGrowth: null,
+    aiVisibilityPrediction: null
   };
 
-  const geoScore = Math.round(
-    (geoMetrics.eeatSignals * 0.25) +
-    (geoMetrics.aiReadability * 0.25) +
-    (geoMetrics.llmFormatting * 0.2) +
-    (geoMetrics.semanticCoverage * 0.3)
-  );
+  const geoScore = null;
 
   const aeoMetrics = {
     faqSchema: aiAnalysis.schemaUsage,
-    qAndACoverage: 65,
+    qAndACoverage: null,
     answerIntent: aiAnalysis.answerIntent,
-    snippetOptimization: 60,
+    snippetOptimization: null,
     voiceSearchScore: aiAnalysis.voiceSearchOptimization,
-    conversationalContent: 70,
-    semanticQuestions: 75,
-    answerAccuracy: 85
+    conversationalContent: null,
+    semanticQuestions: null,
+    answerAccuracy: null
   };
 
-  const aeoScore = Math.round(
-    (aeoMetrics.answerIntent * 0.3) +
-    (aeoMetrics.faqSchema * 0.2) +
-    (aeoMetrics.voiceSearchScore * 0.2) +
-    (aeoMetrics.conversationalContent * 0.3)
-  );
+  const aeoScore = null;
 
-  const overallScore = Math.round((seoScore + geoScore + aeoScore) / 3);
+  const overallScore = null;
 
   // Save to DB (historical snapshot)
   const scoreRecord = await OptimizationScore.create({

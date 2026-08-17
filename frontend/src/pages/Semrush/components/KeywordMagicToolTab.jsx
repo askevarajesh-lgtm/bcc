@@ -14,17 +14,10 @@ const KeywordMagicToolTab = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async () => {
-    if (!keyword) return;
-    try {
-      setLoading(true);
-      setHasSearched(true);
-      const res = await semrushApi.getKeywordMagicTool(keyword, 'us', matchType, true);
-      setData(res || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    // Legacy Keyword Magic Tool used live API fetch. For the Intelligence background job,
+    // this data is omitted to save credits. Show empty state or mock state.
+    setHasSearched(true);
+    setData([]);
   };
 
   const columns = [
@@ -115,7 +108,7 @@ const KeywordMagicToolTab = () => {
             scroll={{ x: 'max-content' }}
           />
         ) : (
-          <Empty description={hasSearched ? "No results found for this keyword." : "Enter a seed keyword to get started"} />
+          <Empty description={hasSearched ? "Live Keyword Magic Tool is disabled. Please connect a live Semrush API account for this premium feature." : "Enter a seed keyword to get started"} />
         )}
       </Card>
     </div>

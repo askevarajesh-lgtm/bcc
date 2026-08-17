@@ -26,7 +26,8 @@ class SemrushService {
       // If force is false, try to use cache
       if (!force && cached) {
         const timestamp = cached.updatedAt || cached.createdAt;
-        const isExpired = !timestamp || (new Date() > new Date(new Date(timestamp).getTime() + (this.cacheDurationHours * 60 * 60 * 1000)));
+        const cacheDurationHours = parseInt(process.env.SEMRUSH_CACHE_TTL_HOURS || '24', 10);
+        const isExpired = !timestamp || (new Date() > new Date(new Date(timestamp).getTime() + (cacheDurationHours * 60 * 60 * 1000)));
         if (!isExpired) {
           // Silenced Cache HIT log to prevent terminal spam when tracking many keywords
           return cached.data;
@@ -195,7 +196,6 @@ class SemrushService {
                 // We fetched up to 100 keywords for distribution calculation, but only store top 10 for the table
                 overviewData[0].topKeywords = keywordsData.slice(0, 10).map(k => {
                     let intentsRaw = k.Intents || k.In || '';
-                    if (!intentsRaw && Math.random() > 0.5) intentsRaw = '0'; // Fallback if API fails to provide for some reason
                     
                     const intentList = [];
                     if (intentsRaw.includes('0')) intentList.push('C');
@@ -240,8 +240,7 @@ class SemrushService {
                     const features = k['SERP Features by Position'] || k.Fp || '';
                     if (features) {
                         serpFeatureCount++;
-                        // Usually, AI Overviews are not tracked perfectly in standard Fp yet, so this is a placeholder check
-                        if (features.toLowerCase().includes('ai')) aiOverviewCount++;
+                        if (features.toLowerCase().includes('ai') || features.toLowerCase().includes('overview')) aiOverviewCount++;
                     }
                 });
                 
@@ -664,39 +663,8 @@ class SemrushService {
                   }
                   
                   if (pagesList.length === 0) {
-                      try {
-                          const organicData = await this.getDomainOverview(cleanDomain, database, force);
-                          const keywords = organicData[0]?.topKeywords || [];
-                          if (keywords.length > 0) {
-                              const uniqueUrls = [...new Set(keywords.map(k => k.url).filter(Boolean))];
-                              pagesList = uniqueUrls.slice(0, 15).map((url, idx) => {
-                                  let path = url.replace(/^https?:\/\/[^\/]+/, '');
-                                  if (!path || path === '/') path = 'Homepage';
-                                  else path = path.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                                  
-                                  return {
-                                      id: idx + 1,
-                                      url: url,
-                                      title: path,
-                                      statusCode: 200,
-                                      depth: (url.match(/\//g) || []).length > 2 ? 2 : 1,
-                                      errors: auditData.errors > 0 && Math.random() > 0.7 ? 1 : 0,
-                                      warnings: auditData.warnings > 0 && Math.random() > 0.5 ? 1 : 0,
-                                      notices: auditData.notices > 0 ? 1 : 0
-                                  };
-                              });
-                          }
-                      } catch (e) {
-                          console.error('Fallback real URL fetch failed', e.message);
-                      }
-                      
-                      if (pagesList.length === 0) {
-                          pagesList = [
-                              { id: 1, url: `https://${cleanDomain}/`, title: 'Homepage', statusCode: 200, depth: 1, errors: auditData.errors > 0 ? 1 : 0, warnings: 1, notices: 0 },
-                              { id: 2, url: `https://${cleanDomain}/about`, title: 'About Us', statusCode: 200, depth: 2, errors: 0, warnings: auditData.warnings > 0 ? 1 : 0, notices: 0 },
-                              { id: 3, url: `https://${cleanDomain}/contact`, title: 'Contact Support', statusCode: 200, depth: 2, errors: 0, warnings: 0, notices: auditData.notices > 0 ? 1 : 0 }
-                          ];
-                      }
+                      // API returned no crawled pages.
+                      pagesList = [];
                   }
                   
                   auditData.crawledPagesList = pagesList;
@@ -738,29 +706,14 @@ class SemrushService {
               }
           }
 
-          // FALLBACK PROXY LOGIC (If no project exists or API fails)
+          // FALLBACK LOGIC (If no project exists or API fails)
           return {
               isBasicHealth: false,
-              overallScore: 85,
-              insights: { strengths: [{ title: 'Good Overall Health', desc: 'Site Health is 85%' }], weaknesses: [{ title: 'Error #39', desc: '4 issues found' }] },
-              rawData: {
-                 pages_crawled: 100,
-                 errors: 4,
-                 warnings: 12,
-                 notices: 25,
-                 healthy: 60,
-                 broken: 2,
-                 haveIssues: 30,
-                 redirected: 8,
-                 blocked: 0,
-                 defects: { '39': 4, '13': 8, '112': 12 },
-                 crawledPagesList: [
-                    { id: 1, url: `https://${cleanDomain}/`, title: 'Homepage', statusCode: 200, depth: 1, errors: 0, warnings: 1, notices: 2 },
-                    { id: 2, url: `https://${cleanDomain}/about`, title: 'About Us', statusCode: 200, depth: 2, errors: 1, warnings: 0, notices: 0 },
-                    { id: 3, url: `https://${cleanDomain}/services`, title: 'Our Services', statusCode: 404, depth: 2, errors: 1, warnings: 0, notices: 0 }
-                 ]
-              },
-              error: 'Not Available from Semrush API - Using Mock Data'
+              overallScore: null,
+              insights: { strengths: [], weaknesses: [] },
+              rawData: null,
+              status: 'unavailable',
+              error: 'Site Audit data not available from Semrush API.'
           };
       } catch (err) {
           throw new Error('Failed to fetch Site Health. ' + err.message);

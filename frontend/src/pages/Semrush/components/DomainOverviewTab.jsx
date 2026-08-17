@@ -19,29 +19,10 @@ const DomainOverviewTab = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (projectData?.overview && Object.keys(data).length === 0) setData(projectData.overview);
-    if (projectData?.backlinksOverview && Object.keys(backlinksData).length === 0) setBacklinksData(projectData.backlinksOverview);
+    if (projectData?.overview) setData(projectData.overview);
+    if (projectData?.backlinksOverview) setBacklinksData(projectData.backlinksOverview);
   }, [projectData]);
 
-  const handleAudit = async () => {
-    if (!domain || domain === 'unknown.com') return;
-    try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const [overviewRes, backlinksRes] = await Promise.all([
-        semrushApi.getDomainOverview(domain, 'us', true),
-        semrushApi.getBacklinksOverview(domain, true)
-      ]);
-      
-      if (overviewRes && overviewRes.length > 0) setData(overviewRes[0]);
-      if (backlinksRes && backlinksRes.length > 0) setBacklinksData(backlinksRes[0]);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -75,11 +56,6 @@ const DomainOverviewTab = () => {
   return (
     <div className="so-overview-container">
       {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-          Audit Data
-        </Button>
-      </div>
 
       <div className="so-card">
         <div className="so-card-header" style={{ marginBottom: 12 }}>
