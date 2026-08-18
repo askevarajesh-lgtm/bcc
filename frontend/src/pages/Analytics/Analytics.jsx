@@ -1,171 +1,153 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Select, Button, DatePicker, message, Tag } from 'antd';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Typography, message } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Calendar as CalendarIcon, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
-import { analyticsApi } from '../../api/analyticsApi';
-import { useGetClientsQuery } from '../../api/clientApi';
+import { BarChart2, PieChart as PieChartIcon, Sparkles, Lightbulb } from 'lucide-react';
 import dayjs from 'dayjs';
 
+import { useGetClientsQuery } from '../../api/clientApi';
+import { useAnalyticsData } from './hooks/useAnalyticsData';
+import { useDebouncedValue } from './hooks/useDebouncedValue';
+import { exportRowsAsCsv } from './utils/csvExport';
+
+import DashboardFilters from './components/DashboardFilters';
+import DashboardSkeleton from './components/DashboardSkeleton';
+import ErrorState from './components/ErrorState';
 import AnalyticsTab from './tabs/AnalyticsTab';
 import AttributionTab from './tabs/AttributionTab';
+import SeoIntelligenceTab from './tabs/SeoIntelligenceTab';
+import AiInsightsTab from './tabs/AiInsightsTab';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+
+const TABS = [
+  { key: 'analytics', label: 'Analytics', icon: BarChart2, title: 'Analytics', description: 'Unified performance data across all channels and clients.' },
+  { key: 'attribution', label: 'Attribution', icon: PieChartIcon, title: 'Attribution', description: 'Understand which channels and touchpoints drive conversions.' },
+  { key: 'seo-intelligence', label: 'SEO Intelligence', icon: Sparkles, title: 'SEO Intelligence', description: 'Real metrics from Website Audit, Technical SEO, Keyword Intelligence, Rank Tracking, AEO, GEO, Competitor Intelligence, and Automation & Monitoring.' },
+  { key: 'ai-insights', label: 'AI Insights', icon: Lightbulb, title: 'AI Insights', description: 'Rule-based insights calculated from real traffic, ranking, and technical data — not model-generated summaries.' }
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState('analytics');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState('All Clients');
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm, 250);
 
   const { data: clientsData } = useGetClientsQuery({});
-  const clients = clientsData?.data || [];
+  const clients = useMemo(() => clientsData?.data || [], [clientsData]);
 
-  useEffect(() => {
-    // fetchAnalytics(); // Temporarily disabled while in "Coming Soon" state
-  }, [selectedClient, dateRange]);
+  const { data, loading, refreshing, error, lastUpdatedAt, refresh, retry } = useAnalyticsData({
+    clientId: selectedClient,
+    dateRange
+  });
 
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
-      const rangeParam = dateRange ? { start: dateRange[0].format('YYYY-MM-DD'), end: dateRange[1].format('YYYY-MM-DD') } : null;
-      const res = await analyticsApi.getAnalytics(selectedClient, rangeParam);
-      if (res.success) {
-        setData(res.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     if (!data) return message.warning('No data to export');
-    
     try {
-      const csvContent = "data:text/csv;charset=utf-8," 
-        + "Metric,Value\n"
-        + `Total Sessions,${data.metrics?.totalSessions || 0}\n`
-        + `Total Leads,${data.metrics?.totalLeads || 0}\n`
-        + `Ad Spend,${data.metrics?.totalAdSpend || '0'}\n`
-        + `Organic Share,${data.metrics?.organicTrafficShare || '0%'}`;
-      
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `analytics_export_${dayjs().format('YYYY-MM-DD')}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      exportRowsAsCsv({
+        filename: `analytics_summary_${dayjs().format('YYYY-MM-DD')}`,
+        headers: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }, { key: 'trend', label: 'Trend vs previous period' }],
+        rows: [
+          { metric: 'Sessions', value: data.metrics?.sessions ?? 0, trend: data.metrics?.sessionsTrend },
+          { metric: 'Users', value: data.metrics?.users ?? 0, trend: data.metrics?.usersTrend },
+          { metric: 'New Users', value: data.metrics?.newUsers ?? 0, trend: data.metrics?.newUsersTrend },
+          { metric: 'Returning Users', value: data.metrics?.returningUsers ?? 0, trend: data.metrics?.returningUsersTrend },
+          { metric: 'Organic Sessions', value: data.metrics?.organicSessions ?? 0, trend: data.metrics?.organicTrafficShare },
+          { metric: 'Clicks', value: data.metrics?.clicks ?? 0, trend: data.metrics?.clicksTrend },
+          { metric: 'Impressions', value: data.metrics?.impressions ?? 0, trend: data.metrics?.impressionsTrend },
+          { metric: 'CTR', value: data.metrics?.ctr ?? '0%', trend: data.metrics?.ctrTrend },
+          { metric: 'Average Position', value: data.metrics?.averagePosition ?? 0, trend: data.metrics?.averagePositionTrend },
+          { metric: 'Bounce Rate', value: data.metrics?.bounceRate ?? '0%', trend: data.metrics?.bounceRateTrend },
+          { metric: 'Engagement Rate', value: data.metrics?.engagementRate ?? '0%', trend: data.metrics?.engagementRateTrend },
+          { metric: 'Conversions', value: data.metrics?.conversions ?? 0, trend: data.metrics?.conversionsTrend },
+          { metric: 'Leads', value: data.metrics?.leads ?? 0, trend: data.metrics?.leadsTrend },
+          { metric: 'Revenue', value: data.metrics?.revenueFormatted ?? '₹0L', trend: data.metrics?.revenueTrend },
+          { metric: 'Conversion Rate', value: data.metrics?.conversionRate ?? '0%', trend: data.metrics?.conversionRateTrend },
+          { metric: 'Ad Spend', value: data.metrics?.totalAdSpend ?? '₹0L', trend: '' },
+          { metric: 'Blended ROAS', value: data.metrics?.blendedRoas ?? '0x', trend: '' }
+        ]
+      });
       message.success('Export successful');
-    } catch (error) {
-      console.error('Export failed', error);
+    } catch {
       message.error('Export failed');
     }
-  };
+  }, [data]);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
+  const activeTabMeta = TABS.find(t => t.key === activeTab);
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 24 } 
-    }
-  };
+  const renderBody = () => {
+    if (error) return <ErrorState message={error} onRetry={retry} retrying={loading} />;
+    if (loading) return <DashboardSkeleton />;
+    if (!data) return <ErrorState message="No analytics data was returned." onRetry={retry} retrying={loading} />;
 
-  // --- COMING SOON PLACEHOLDER ---
-  // Temporarily returning this screen to block access to the unfinished module.
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh', textAlign: 'center' }}>
-      <div style={{ background: 'var(--bg-secondary)', padding: '32px', borderRadius: '50%', marginBottom: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-        <BarChart2 size={48} style={{ color: 'var(--accent-secondary)' }} />
-      </div>
-      <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Analytics & Attribution</Title>
-      <Tag color="warning" style={{ borderRadius: 16, padding: '4px 12px', fontSize: 14, fontWeight: 600, marginBottom: 24, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>Upgrade Required</Tag>
-      <Text type="secondary" style={{ maxWidth: 450, fontSize: 16, lineHeight: 1.6 }}>
-        This module is available in this package. Purchase or upgrade your package to enable access.
-      </Text>
-    </motion.div>
-  );
-  // -------------------------------
-
-  const renderActiveTab = () => {
-    if (loading || !data) return <div style={{ textAlign: 'center', padding: '100px 0' }}>Loading analytics...</div>;
-    switch(activeTab) {
-      case 'analytics': return <AnalyticsTab data={data} />;
-      case 'attribution': return <AttributionTab data={data} />;
-      default: return <AnalyticsTab data={data} />;
-    }
+    if (activeTab === 'analytics') return <AnalyticsTab data={data} searchTerm={debouncedSearch} />;
+    if (activeTab === 'attribution') return <AttributionTab data={data} searchTerm={debouncedSearch} />;
+    if (activeTab === 'seo-intelligence') return <SeoIntelligenceTab data={data} searchTerm={debouncedSearch} />;
+    return <AiInsightsTab data={data} />;
   };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>{activeTab === 'analytics' ? 'Analytics' : 'Attribution'}</Title>
-          <Text type="secondary">
-            {activeTab === 'analytics' ? 'Unified performance data across all channels and clients.' : 'Understand which channels and touchpoints drive conversions.'}
-          </Text>
-        </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Select 
-            value={selectedClient} 
-            onChange={setSelectedClient}
-            style={{ width: 180, fontWeight: 600 }} 
-            size="large"
-          >
-            <Option value="All Clients">All Clients</Option>
-            {clients.map(c => <Option key={c._id} value={c._id}>{c.name}</Option>)}
-          </Select>
-          <RangePicker 
-            value={dateRange}
-            onChange={setDateRange}
-            style={{ borderRadius: 8, height: 40, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', fontWeight: 600 }}
-          />
-          {activeTab === 'analytics' && (
-            <Button type="primary" icon={<Download size={16} />} onClick={handleExport} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>
-              Export
-            </Button>
+          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>{activeTabMeta.title}</Title>
+          <Text type="secondary">{activeTabMeta.description}</Text>
+          {lastUpdatedAt && !loading && (
+            <div><Text type="secondary" style={{ fontSize: 12 }}>Last updated {dayjs(lastUpdatedAt).format('HH:mm:ss')}{data?.meta?.cache?.hit ? ' · cached' : ''}</Text></div>
           )}
         </div>
+
+        <DashboardFilters
+          clients={clients}
+          selectedClient={selectedClient}
+          onClientChange={setSelectedClient}
+          dateRange={dateRange}
+          onDateRangeChange={(val) => val && setDateRange(val)}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onRefresh={refresh}
+          refreshing={refreshing}
+          onExport={handleExport}
+          showExport={activeTab === 'analytics'}
+          previousDateRange={data?.meta?.previousDateRange}
+        />
       </motion.div>
 
-      <motion.div variants={itemVariants} style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 2 }}>
-        <div 
-          onClick={() => setActiveTab('analytics')}
-          style={{ 
-            paddingBottom: 16, 
-            borderBottom: activeTab === 'analytics' ? '3px solid var(--accent-secondary)' : '3px solid transparent', 
-            fontWeight: activeTab === 'analytics' ? 700 : 600, 
-            color: activeTab === 'analytics' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' 
-          }}
-        >
-          <BarChart2 size={18} color={activeTab === 'analytics' ? "var(--accent-secondary)" : "var(--text-secondary)"}/> Analytics
-        </div>
-        <div 
-          onClick={() => setActiveTab('attribution')}
-          style={{ 
-            paddingBottom: 16, 
-            borderBottom: activeTab === 'attribution' ? '3px solid var(--accent-secondary)' : '3px solid transparent', 
-            fontWeight: activeTab === 'attribution' ? 700 : 600, 
-            color: activeTab === 'attribution' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' 
-          }}
-        >
-          <PieChartIcon size={18} color={activeTab === 'attribution' ? "var(--accent-secondary)" : "var(--text-secondary)"}/> Attribution
-        </div>
+      <motion.div
+        variants={itemVariants}
+        role="tablist"
+        aria-label="Analytics dashboard sections"
+        style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 2 }}
+      >
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <div
+            key={key}
+            role="tab"
+            tabIndex={0}
+            aria-selected={activeTab === key}
+            onClick={() => setActiveTab(key)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab(key); } }}
+            style={{
+              paddingBottom: 16,
+              borderBottom: activeTab === key ? '3px solid var(--accent-secondary)' : '3px solid transparent',
+              fontWeight: activeTab === key ? 700 : 600,
+              color: activeTab === key ? 'var(--text-primary)' : 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s'
+            }}
+          >
+            <Icon size={18} color={activeTab === key ? 'var(--accent-secondary)' : 'var(--text-secondary)'} aria-hidden="true" /> {label}
+          </div>
+        ))}
       </motion.div>
 
       <AnimatePresence mode="wait">
@@ -178,11 +160,11 @@ const Analytics = () => {
             hidden: { opacity: 0, y: 10 },
             visible: { opacity: 1, y: 0, transition: { duration: 0.2, staggerChildren: 0.05 } }
           }}
+          role="tabpanel"
         >
-          {renderActiveTab()}
+          {renderBody()}
         </motion.div>
       </AnimatePresence>
-
     </motion.div>
   );
 };

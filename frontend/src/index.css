@@ -163,6 +163,26 @@ a {
   box-shadow: var(--shadow-sm);
 }
 
+/* Analytics dashboard: spinning refresh/retry icon */
+.spin-icon {
+  animation: analytics-spin 0.8s linear infinite;
+}
+
+@keyframes analytics-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Analytics dashboard: rows that support drill-down */
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
 .app-root-shell {
   min-height: 100vh;
   background: transparent !important;
