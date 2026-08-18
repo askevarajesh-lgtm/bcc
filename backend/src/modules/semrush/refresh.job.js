@@ -136,36 +136,12 @@ class IntelligenceRefreshWorker {
         Object.assign(normalizedSeo, providerNormalization.normalizeSemrushSiteHealth(semrushSiteHealth));
       }
 
-      const geoAeoIntelligenceService = require('./geoAeoIntelligence.service');
-      const geoAeoResult = await geoAeoIntelligenceService.evaluateDomain(domain);
+      const GeoAeoIntelligenceService = require('./geoAeoIntelligence.service');
+      const geoAeoResult = await new GeoAeoIntelligenceService().evaluateDomain(domain);
 
       try {
-        const { fetchPsi } = require('../aiCore/providers/psiProvider');
-        let perfResult = null;
-        try {
-          perfResult = await fetchPsi(`https://${domain}`, { strategy: 'mobile' });
-        } catch (e) {
-          console.warn('PSI fetch failed, falling back to DataForSEO:', e.message);
-        }
-        
-        if (!perfResult || perfResult.score === null) {
-          const { fetchPerformance } = require('../aiCore/providers/dataForSeoPerformanceProvider');
-          perfResult = await fetchPerformance(`https://${domain}`);
-        }
-
-        if (perfResult && perfResult.score !== null) {
-          const cwv = perfResult.coreWebVitals || {};
-          normalizedSeo.coreWebVitals = {
-            value: perfResult.score || 0,
-            status: 'available',
-            source: perfResult.raw?.onpage_score !== undefined ? 'DataForSEO' : 'Google PSI',
-            sourceType: 'live_test',
-            measuredAt: new Date(),
-            lcp: cwv.lcp,
-            fid: cwv.fid_or_inp,
-            cls: cwv.cls
-          };
-        }
+        // Removed PSI and DataForSEO fallback
+        // Core Web Vitals will be populated when we have a dedicated CWV source, for now leave it out or null.
       } catch (cwvErr) {
         console.error('Failed to fetch Core Web Vitals:', cwvErr.message);
       }
@@ -190,7 +166,11 @@ class IntelligenceRefreshWorker {
       if (canonicalDataset.geo.eeatSignals?.value !== undefined) completenessScore += 25;
 
       const issueService = require('./issue.service');
-      const { issues, recommendations } = issueService.generateIssuesAndRecommendations(canonicalDataset);
+      let { issues, recommendations } = issueService.generateIssuesAndRecommendations(canonicalDataset);
+      
+      if (geoAeoResult.success && geoAeoResult.recommendations && geoAeoResult.recommendations.length > 0) {
+        recommendations = [...geoAeoResult.recommendations, ...recommendations];
+      }
 
       const calcAverage = (metrics) => {
         const valid = metrics

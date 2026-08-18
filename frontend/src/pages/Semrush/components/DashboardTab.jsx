@@ -189,7 +189,7 @@ const DashboardTab = () => {
                   </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Ref. Domains</Text>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-primary)' }}>{formatNumber(backlinks.domains_num)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-primary)' }}>{formatNumber(backlinks.referringDomains)}</div>
                   </div>
                 </div>
               </div>
@@ -230,7 +230,7 @@ const DashboardTab = () => {
                 <div style={{ display: 'flex', gap: 24 }}>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Referring Domains</Text>
-                    <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>{formatNumber(backlinks.domains_num)}</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>{formatNumber(backlinks.referringDomains)}</div>
                     
                     <Text type="secondary" style={{ fontSize: 12 }}>Total Backlinks</Text>
                     <div style={{ fontSize: 18, fontWeight: 700 }}>{formatNumber(backlinks.total)}</div>
@@ -241,12 +241,12 @@ const DashboardTab = () => {
                       <span style={{ color: '#faad14', fontWeight: 600 }}>Nofollow</span>
                     </div>
                     <div style={{ height: 8, display: 'flex', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${(backlinks.follows_num / Math.max(1, backlinks.total)) * 100}%`, background: '#52c41a' }} />
+                      <div style={{ width: `${(backlinks.follow / Math.max(1, backlinks.total)) * 100}%`, background: '#52c41a' }} />
                       <div style={{ flex: 1, background: '#faad14' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)' }}>
-                      <span>{formatNumber(backlinks.follows_num)}</span>
-                      <span>{formatNumber(backlinks.nofollows_num)}</span>
+                      <span>{formatNumber(backlinks.follow)}</span>
+                      <span>{formatNumber(backlinks.nofollow)}</span>
                     </div>
                   </div>
                 </div>

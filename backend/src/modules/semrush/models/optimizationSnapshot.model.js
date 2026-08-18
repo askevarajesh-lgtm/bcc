@@ -83,7 +83,8 @@ const OptimizationSnapshotSchema = new mongoose.Schema({
     overall: { type: Number, default: null },
     seo: { type: Number, default: null },
     geo: { type: Number, default: null },
-    aeo: { type: Number, default: null }
+    aeo: { type: Number, default: null },
+    recommendations: [{ type: mongoose.Schema.Types.Mixed }]
   },
   
   scoreBreakdown: { type: mongoose.Schema.Types.Mixed, default: {} },

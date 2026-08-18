@@ -86,6 +86,7 @@ class ProviderNormalizationService {
         statusCodeGroups: snapshot.statusCodeGroups || auditData.statusCodeGroups || {},
         sitemapStats: auditData.sitemaps || {},
         crawlDepthStats: auditData.depths || {},
+        markupStats: auditData.markups || {},
         topIssues: snapshot.topIssues || auditData.topIssues || [],
         topInsights: snapshot.topInsights || auditData.topInsights || [],
         blockedPageStats: snapshot.blockedPageStats || auditData.blockedPageStats || {},

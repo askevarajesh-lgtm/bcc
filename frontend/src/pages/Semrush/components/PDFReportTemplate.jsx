@@ -95,15 +95,15 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
           </Title>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <Text>Total Backlinks</Text>
-            <Text strong>{formatNumber(backlinks.total)}</Text>
+            <Text strong>{formatNumber(backlinks.total || backlinks.backlinks)}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <Text>Referring Domains</Text>
-            <Text strong>{formatNumber(backlinks.domains_num)}</Text>
+            <Text strong>{formatNumber(backlinks.backlinksDetails?.referringDomains || 0)}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <Text>Follow Links</Text>
-            <Text strong style={{ color: '#10b981' }}>{formatNumber(backlinks.follows_num)}</Text>
+            <Text strong style={{ color: '#10b981' }}>{formatNumber(backlinks.backlinksDetails?.follow || 0)}</Text>
           </div>
         </Col>
         <Col span={12}>
@@ -112,15 +112,15 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
           </Title>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <Text>Overall Health Score</Text>
-            <Text strong style={{ color: health.score >= 80 ? '#10b981' : (health.score >= 60 ? '#f59e0b' : '#ef4444') }}>{health.score ?? 'Unavailable'}{health.score !== null && health.score !== undefined ? '%' : ''}</Text>
+            <Text strong style={{ color: health.overallScore >= 80 ? '#10b981' : (health.overallScore >= 60 ? '#f59e0b' : '#ef4444') }}>{health.overallScore ?? 'Unavailable'}{health.overallScore !== null && health.overallScore !== undefined ? '%' : ''}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <Text><CheckCircleOutlined style={{ color: '#10b981', marginRight: '4px' }}/> Passed Checks (Strengths)</Text>
-            <Text strong>{health.insights?.strengths?.length ?? 'Unavailable'}</Text>
+            <Text><CheckCircleOutlined style={{ color: '#10b981', marginRight: '4px' }}/> Passed Checks (Healthy Pages)</Text>
+            <Text strong>{formatNumber(health.siteHealthDetails?.healthy || 0)}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <Text><WarningOutlined style={{ color: '#ef4444', marginRight: '4px' }}/> Issues (Weaknesses)</Text>
-            <Text strong>{health.insights?.weaknesses?.length ?? 'Unavailable'}</Text>
+            <Text><WarningOutlined style={{ color: '#ef4444', marginRight: '4px' }}/> Issues (Errors & Warnings)</Text>
+            <Text strong>{formatNumber((health.siteHealthDetails?.errors?.length || 0) + (health.siteHealthDetails?.warnings?.length || 0))}</Text>
           </div>
         </Col>
       </Row>

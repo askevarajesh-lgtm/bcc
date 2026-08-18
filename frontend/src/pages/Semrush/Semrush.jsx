@@ -184,7 +184,7 @@ const Semrush = () => {
               { key: 'dashboard', label: 'Dashboard' },
               { key: 'domain-overview', label: 'Domain Overview' },
               { key: 'organic-keywords', label: 'Organic Research' },
-              { key: 'keyword-magic-tool', label: 'Keyword Magic' },
+              // { key: 'keyword-magic-tool', label: 'Keyword Magic' },
               { key: 'position-tracking', label: 'Position Tracking' },
               { key: 'competitor-analysis', label: 'Competitor Analysis' },
               { key: 'backlinks', label: 'Backlinks' },

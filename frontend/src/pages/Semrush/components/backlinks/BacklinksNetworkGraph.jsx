@@ -20,8 +20,8 @@ const BacklinksNetworkGraph = () => {
     ];
     const edges = [];
     
-    // Top Referring Pages/Domains if available
-    const topPages = (data.pages || []).slice(0, 15);
+    // Top Referring Domains/Pages if available
+    const topPages = (data.refDomainsList || data.indexedPages || []).slice(0, 15);
     const radius = 250;
     
     if (topPages.length > 0) {
@@ -33,10 +33,10 @@ const BacklinksNetworkGraph = () => {
         const y = 300 + r * Math.sin(angle);
         
         const id = `node-${idx}`;
-        // Extract domain from url if possible or use the url
-        let labelStr = p.url;
+        // Extract domain from url if possible or use the url or domain property
+        let labelStr = p.domain || p.url;
         try {
-           labelStr = new URL(p.url).hostname.replace('www.', '');
+           if (p.url) labelStr = new URL(p.url).hostname.replace('www.', '');
         } catch(e) {}
         
         nodes.push({

@@ -25,6 +25,8 @@ const semrushProjectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  semrushProjectId: { type: String, default: null },
+  semrushCampaignId: { type: String, default: null },
   latestSnapshot: { type: mongoose.Schema.Types.ObjectId, ref: 'OptimizationSnapshot', default: null },
   trackingConfig: {
     isActive: { type: Boolean, default: false },

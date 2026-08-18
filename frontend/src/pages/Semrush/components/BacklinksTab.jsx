@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Button, Space, message } from 'antd';
 import { semrushApi } from '../../../api/semrushApi';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import BacklinksOverview from './backlinks/BacklinksOverview';
 import BacklinksList from './backlinks/BacklinksList';
 import BacklinksAnchors from './backlinks/BacklinksAnchors';
@@ -55,6 +56,45 @@ const BacklinksTab = () => {
     setActiveKey(key);
   };
 
+  const handleExport = () => {
+    try {
+      const backlinks = localData?.backlinksOverview || projectData?.backlinksOverview || {};
+      const rawBacklinks = backlinks.rawBacklinks || [];
+      
+      if (rawBacklinks.length === 0) {
+        message.warning('No backlink data available to export.');
+        return;
+      }
+
+      // Map data for Excel
+      const exportData = rawBacklinks.map(row => ({
+        'Page AS': row.page_as || row.pageAs || '-',
+        'Source Title': row.source_title || '-',
+        'Source URL': row.source_url || '-',
+        'Target URL': row.target_url || '-',
+        'External Links': row.external || 0,
+        'Internal Links': row.internal || 0,
+        'Anchor': row.anchor || 'Empty Anchor',
+        'Follow': row.isFollow === false ? 'No' : 'Yes',
+        'First Seen': row.first_seen ? new Date(row.first_seen * 1000).toLocaleDateString() : '-'
+      }));
+
+      // Create workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Backlinks');
+
+      // Export
+      const filename = `${domain?.replace(/\./g, '_') || 'project'}_Backlinks.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      message.success('Backlink report exported successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      message.error('Failed to export backlink report.');
+    }
+  };
+
   const EmptyState = ({ message }) => (
     <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 8, padding: 40, textAlign: 'center', color: '#bfbfbf' }}>
       {message}
@@ -78,7 +118,14 @@ const BacklinksTab = () => {
            ]}
            style={{ flex: 1 }}
          />
-         <div style={{ paddingTop: 8 }}>
+         <div style={{ paddingTop: 8, display: 'flex', gap: '12px' }}>
+           <Button 
+             icon={<DownloadOutlined />} 
+             onClick={handleExport} 
+             style={{ borderRadius: 8, fontWeight: 600 }}
+           >
+             Export
+           </Button>
            <Button 
              type="primary" 
              icon={<ReloadOutlined spin={refreshing} />} 

@@ -339,7 +339,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                <span>URL</span>
                <span>Referring Domains</span>
             </div>
-            {(data.pages || []).slice(0, 5).map(p => (
+            {(data.indexedPages || []).slice(0, 5).map(p => (
                <div key={p.url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
                   <span style={{ color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                      <Tag color="#ffe8e6" style={{ color: '#ff7a45', border: 'none', marginRight: 8 }}>200</Tag>

@@ -5,6 +5,7 @@ import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import './DashboardTab.css'; 
 
 const { Title, Text } = Typography;
@@ -34,6 +35,41 @@ const OrganicKeywordsTab = () => {
       message.error('An error occurred during refresh');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      if (!data || data.length === 0) {
+        message.warning('No organic keywords data available to export.');
+        return;
+      }
+
+      // Map data for Excel
+      const exportData = data.map(row => ({
+        'Keyword': row.keyword || '-',
+        'Position': row.position || '-',
+        'Previous Position': row.previousPosition || '-',
+        'Search Volume': row.searchVolume || 0,
+        'Traffic %': Number(row.trafficPercent || 0).toFixed(2) + '%',
+        'Keyword Difficulty %': row.difficulty || 0,
+        'CPC (USD)': row.cpc || 0,
+        'URL': row.url || '-'
+      }));
+
+      // Create workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Organic Keywords');
+
+      // Export
+      const filename = `${domain?.replace(/\./g, '_') || 'project'}_Organic_Keywords.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      message.success('Organic Keywords report exported successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      message.error('Failed to export organic keywords report.');
     }
   };
 
@@ -236,7 +272,7 @@ const OrganicKeywordsTab = () => {
                 >
                   {refreshing ? 'Refreshing...' : 'Refresh Data'}
                 </Button>
-                <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+                <Button icon={<DownloadOutlined />} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600 }}>
                   Export
                 </Button>
               </div>

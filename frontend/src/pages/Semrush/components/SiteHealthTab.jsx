@@ -406,6 +406,23 @@ const SiteHealthTab = () => {
                 <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
               )}
             </div>
+
+            <div className="sa-col-6 sa-card" style={{ padding: 24 }}>
+              <Title level={5} style={{ marginBottom: 24 }}>Crawl Depth</Title>
+              {Object.keys(auditData.crawlDepthStats || {}).length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={Object.entries(auditData.crawlDepthStats).map(([depth, count]) => ({ depth: `${depth} clicks`, count })).filter(d => d.count > 0)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="depth" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 8 }} />
+                    <Bar dataKey="count" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
       )}

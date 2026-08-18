@@ -354,14 +354,22 @@ exports.getPositionTracking = async (req, res) => {
       return res.status(200).json({ success: true, status: 'campaign_required', data: { isConfigured: false } });
     }
     
+    if (!project.semrushCampaignId) {
+      return res.status(200).json({ success: true, status: 'unavailable', errorCode: 'campaign_unavailable', data: null });
+    }
+
     const domain = project.domain;
-    const database = project.trackingConfig.location || 'us';
+    const { database = 'in', device = 'Desktop' } = project.trackingConfig;
     const keywords = project.trackingConfig.keywords || [];
     const campaignId = project.semrushCampaignId;
     const force = req.query.force === 'true';
 
     const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId, force, req.companyId);
     
+    if (trackingData.error === 'campaign_unavailable') {
+      return res.status(200).json({ success: true, status: 'unavailable', errorCode: 'campaign_unavailable', data: null });
+    }
+
     res.status(200).json({ 
       success: true,
       status: 'available',
@@ -561,8 +569,8 @@ exports.getGeoAeo = async (req, res) => {
     
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
     
-    const geoAeoIntelligenceService = require('./geoAeoIntelligence.service');
-    const geoAeoResult = await new geoAeoIntelligenceService().evaluateDomain(project.domain, { force });
+    const GeoAeoIntelligenceService = require('./geoAeoIntelligence.service');
+    const geoAeoResult = await new GeoAeoIntelligenceService().evaluateDomain(project.domain, { force });
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });
     if (snapshot && geoAeoResult.success) {

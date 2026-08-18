@@ -1,90 +1,97 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
-const aiOrchestrator = require('../contentAI/providers/AIOrchestrator');
+const semrushService = require('./semrush.service');
+const { OpenAI } = require('openai');
 
 class GeoAeoIntelligenceService {
-  /**
-   * Fetches the homepage content of a domain and evaluates GEO/AEO metrics.
-   * Uses AIOrchestrator to generate scores deterministically based on visible text.
-   */
-  async evaluateDomain(domain) {
+  async evaluateDomain(domain, options = {}) {
     try {
-      const url = domain.startsWith('http') ? domain : `https://${domain}`;
-      let html = '';
-      
+      const generateUnavailableMetric = (source = 'Semrush') => ({
+        value: null,
+        source,
+        sourceType: 'api',
+        status: 'unavailable',
+        measuredAt: new Date()
+      });
+
+      // Fetch Semrush Overview to get SERP feature data
+      // (This will hit the cache if already fetched during the refresh job)
+      let aiOverviewPercent = null;
+      let faqFeaturePercent = null;
+
       try {
-        const response = await axios.get(url, { timeout: 15000 });
-        html = response.data;
+        const overviewData = await semrushService.getDomainOverview(domain, 'global', 'us', options.force);
+        if (overviewData && overviewData.length > 0 && overviewData[0].serpFeatures) {
+          aiOverviewPercent = Number(overviewData[0].serpFeatures.aiOverviews);
+        }
       } catch (err) {
-        console.error(`[INTELLIGENCE_GEOAEO] Failed to fetch domain ${domain}:`, err.message);
-        throw new Error('Failed to fetch domain content');
+        console.error('[INTELLIGENCE_GEOAEO] Failed to fetch Semrush data for AI/SERP features:', err.message);
       }
 
-      const $ = cheerio.load(html);
-      
-      // Remove scripts, styles, noscript, etc.
-      $('script, style, noscript, iframe, img, svg').remove();
-      
-      let textContent = $('body').text().replace(/\s+/g, ' ').trim();
-      
-      // Truncate to avoid blowing up token limits
-      if (textContent.length > 20000) {
-        textContent = textContent.substring(0, 20000);
+      const generateAvailableMetric = (val, source = 'Semrush') => ({
+        value: typeof val === 'number' && !isNaN(val) ? val : 0,
+        source,
+        sourceType: 'api',
+        status: 'available',
+        measuredAt: new Date()
+      });
+
+      // OpenAI Evaluation for GEO/AEO and Recommendations
+      let aiScores = { geo: {}, aeo: {}, recommendations: [] };
+      try {
+        if (process.env.OPENAI_API_KEY) {
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const prompt = `
+            You are an expert SEO, GEO (Generative Engine Optimization), and AEO (Answer Engine Optimization) analyst.
+            Evaluate the domain: ${domain}
+            
+            Return a JSON object containing estimated scores (0-100) and actionable recommendations.
+            Since you cannot crawl the site live, provide a realistic industry-standard estimate based on the domain's known authority and niche.
+
+            Expected JSON format:
+            {
+              "geo": {
+                "eeatSignals": 0,
+                "aiReadability": 0,
+                "llmFormatting": 0,
+                "semanticCoverage": 0
+              },
+              "aeo": {
+                "faqSchema": 0,
+                "answerIntent": 0,
+                "voiceSearchScore": 0,
+                "conversationalContent": 0
+              },
+              "recommendations": [
+                {
+                  "title": "Short, punchy title",
+                  "description": "Brief description of the issue or opportunity",
+                  "category": "SEO" | "GEO" | "AEO",
+                  "type": "Content Gap" | "Technical" | "Strategy",
+                  "about": "Detailed explanation of what the issue is and why it matters.",
+                  "howToFix": "Step-by-step or descriptive text on how to fix the issue."
+                }
+              ]
+            }
+            Return ONLY the raw JSON object, without any markdown formatting like \`\`\`json.
+          `;
+
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            response_format: { type: 'json_object' }
+          });
+
+          const rawJson = response.choices[0].message.content.trim();
+          aiScores = JSON.parse(rawJson);
+        }
+      } catch (err) {
+        console.error('[INTELLIGENCE_GEOAEO] OpenAI evaluation failed:', err.message);
       }
 
-      const prompt = `Evaluate the following homepage content for a domain: "${domain}"
-
-Content:
-"""
-${textContent}
-"""
-
-Please analyze the content and provide a JSON response containing scores from 0 to 100 for the following 8 metrics. Your evaluation must be objective based ONLY on the provided text.
-
-Metrics to evaluate:
-GEO (Generative Engine Optimization):
-- eeatSignals: (Experience, Expertise, Authoritativeness, Trustworthiness) Evidence of expert authorship, clear contact info, and trustworthy claims.
-- aiReadability: How easily an LLM can parse and summarize the content.
-- llmFormatting: Use of clear semantic HTML structures (headings, lists) that LLMs prefer.
-- semanticCoverage: Depth and breadth of the topics covered relating to the domain's core intent.
-
-AEO (Answer Engine Optimization):
-- faqSchema: Evidence of FAQ-style content or structured Q&A formats.
-- answerIntent: How well the content directly answers user questions quickly.
-- voiceSearchScore: Suitability of the content to be read aloud as a voice search answer (short, concise).
-- conversationalContent: Use of natural, conversational language over dense academic text.
-
-You MUST reply with ONLY a valid JSON object matching this exact schema:
-{
-  "eeatSignals": number,
-  "aiReadability": number,
-  "llmFormatting": number,
-  "semanticCoverage": number,
-  "faqSchema": number,
-  "answerIntent": number,
-  "voiceSearchScore": number,
-  "conversationalContent": number
-}
-`;
-
-      const systemInstruction = "You are an expert SEO, GEO, and AEO analysis AI. You output strictly valid JSON with no markdown formatting, no comments, and no explanation.";
-
-      // We ask the Orchestrator for the JSON
-      const resultText = await aiOrchestrator.generateContent(prompt, systemInstruction, { maxTokens: 1000 });
-      
-      // Clean up the response if it has markdown ticks
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('AI returned invalid JSON format');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Normalize into Intelligence canonical metric schema
-      const generateMetric = (val) => ({
-        value: typeof val === 'number' ? val : 0,
-        source: 'Anthropic Claude',
-        sourceType: 'ai_derived',
+      const generateAiMetric = (val, source = 'OpenAI AI Estimate') => ({
+        value: typeof val === 'number' && !isNaN(val) ? val : 0,
+        source,
+        sourceType: 'ai_estimate',
         status: 'available',
         measuredAt: new Date()
       });
@@ -92,24 +99,28 @@ You MUST reply with ONLY a valid JSON object matching this exact schema:
       return {
         success: true,
         geo: {
-          eeatSignals: generateMetric(parsed.eeatSignals),
-          aiReadability: generateMetric(parsed.aiReadability),
-          llmFormatting: generateMetric(parsed.llmFormatting),
-          semanticCoverage: generateMetric(parsed.semanticCoverage)
+          eeatSignals: aiScores.geo?.eeatSignals !== undefined ? generateAiMetric(aiScores.geo.eeatSignals) : generateUnavailableMetric(),
+          aiReadability: aiScores.geo?.aiReadability !== undefined ? generateAiMetric(aiScores.geo.aiReadability) : generateUnavailableMetric(),
+          llmFormatting: aiScores.geo?.llmFormatting !== undefined ? generateAiMetric(aiScores.geo.llmFormatting) : generateUnavailableMetric(),
+          semanticCoverage: aiScores.geo?.semanticCoverage !== undefined ? generateAiMetric(aiScores.geo.semanticCoverage) : generateUnavailableMetric(),
+          // Use actual Semrush AI Overview data if available
+          aiOverviewPresence: aiOverviewPercent !== null ? generateAvailableMetric(aiOverviewPercent) : generateUnavailableMetric()
         },
         aeo: {
-          faqSchema: generateMetric(parsed.faqSchema),
-          answerIntent: generateMetric(parsed.answerIntent),
-          voiceSearchScore: generateMetric(parsed.voiceSearchScore),
-          conversationalContent: generateMetric(parsed.conversationalContent)
-        }
+          faqSchema: aiScores.aeo?.faqSchema !== undefined ? generateAiMetric(aiScores.aeo.faqSchema) : generateUnavailableMetric(),
+          answerIntent: aiScores.aeo?.answerIntent !== undefined ? generateAiMetric(aiScores.aeo.answerIntent) : generateUnavailableMetric(),
+          voiceSearchScore: aiScores.aeo?.voiceSearchScore !== undefined ? generateAiMetric(aiScores.aeo.voiceSearchScore) : generateUnavailableMetric(),
+          conversationalContent: aiScores.aeo?.conversationalContent !== undefined ? generateAiMetric(aiScores.aeo.conversationalContent) : generateUnavailableMetric()
+        },
+        recommendations: aiScores.recommendations || []
       };
 
     } catch (error) {
-      console.error(`[INTELLIGENCE_GEOAEO] AI Evaluation failed:`, error.message);
+      console.error(`[INTELLIGENCE_GEOAEO] Evaluation failed:`, error.message);
       return { success: false, error: error.message };
     }
   }
 }
 
-module.exports = new GeoAeoIntelligenceService();
+module.exports = GeoAeoIntelligenceService;
+

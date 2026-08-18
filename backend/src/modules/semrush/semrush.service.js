@@ -112,23 +112,62 @@ class SemrushService {
         throw new Error(csvString);
     }
 
-    const lines = csvString.trim().split('\n');
+    const lines = [];
+    let currentLine = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    // Robust CSV parser matching Semrush format (semicolon delimited by default, but values can be quoted)
+    for (let i = 0; i < csvString.length; i++) {
+        const char = csvString[i];
+        
+        if (inQuotes) {
+            if (char === '"') {
+                if (i + 1 < csvString.length && csvString[i + 1] === '"') {
+                    currentField += '"';
+                    i++; // skip escaped quote
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                currentField += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ';') {
+                currentLine.push(currentField);
+                currentField = '';
+            } else if (char === '\n' || (char === '\r' && csvString[i+1] === '\n')) {
+                if (char === '\r') i++; // Skip \n
+                currentLine.push(currentField);
+                if (currentLine.length > 0 && currentLine.some(c => c !== '')) {
+                   lines.push(currentLine);
+                }
+                currentLine = [];
+                currentField = '';
+            } else if (char !== '\r') {
+                currentField += char;
+            }
+        }
+    }
+    
+    if (currentField !== '' || currentLine.length > 0) {
+        currentLine.push(currentField);
+        lines.push(currentLine);
+    }
+
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(';');
+    const headers = lines[0].map(h => h.replace(/["\r\n]/g, '').trim());
     const results = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const currentLine = lines[i].split(';');
       const obj = {};
-      
+      const row = lines[i];
       headers.forEach((header, index) => {
-        // Clean header name (remove carriage returns, quotes, etc)
-        const cleanHeader = header.replace(/["\r]/g, '');
-        const val = currentLine[index] ? currentLine[index].replace(/["\r]/g, '') : '';
-        obj[cleanHeader] = val;
+        obj[header] = row[index] ? row[index].trim() : '';
       });
-      
       results.push(obj);
     }
 
@@ -679,6 +718,8 @@ class SemrushService {
 
                   if (Array.isArray(pagesResponse.data)) {
                       pagesList = pagesResponse.data;
+                  } else if (pagesResponse.data && Array.isArray(pagesResponse.data.data)) {
+                      pagesList = pagesResponse.data.data;
                   } else if (pagesResponse.data && Array.isArray(pagesResponse.data.items)) {
                       pagesList = pagesResponse.data.items;
                   } else if (typeof pagesResponse.data === 'string' && pagesResponse.data.includes('\n')) {
