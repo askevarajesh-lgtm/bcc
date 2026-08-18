@@ -139,6 +139,37 @@ class IntelligenceRefreshWorker {
       const geoAeoIntelligenceService = require('./geoAeoIntelligence.service');
       const geoAeoResult = await geoAeoIntelligenceService.evaluateDomain(domain);
 
+      try {
+        const { fetchPsi } = require('../aiCore/providers/psiProvider');
+        let perfResult = null;
+        try {
+          perfResult = await fetchPsi(`https://${domain}`, { strategy: 'mobile' });
+        } catch (e) {
+          console.warn('PSI fetch failed, falling back to DataForSEO:', e.message);
+        }
+        
+        if (!perfResult || perfResult.score === null) {
+          const { fetchPerformance } = require('../aiCore/providers/dataForSeoPerformanceProvider');
+          perfResult = await fetchPerformance(`https://${domain}`);
+        }
+
+        if (perfResult && perfResult.score !== null) {
+          const cwv = perfResult.coreWebVitals || {};
+          normalizedSeo.coreWebVitals = {
+            value: perfResult.score || 0,
+            status: 'available',
+            source: perfResult.raw?.onpage_score !== undefined ? 'DataForSEO' : 'Google PSI',
+            sourceType: 'live_test',
+            measuredAt: new Date(),
+            lcp: cwv.lcp,
+            fid: cwv.fid_or_inp,
+            cls: cwv.cls
+          };
+        }
+      } catch (cwvErr) {
+        console.error('Failed to fetch Core Web Vitals:', cwvErr.message);
+      }
+
       const canonicalDataset = {
         seo: normalizedSeo,
         geo: previousSnapshot?.geo ? JSON.parse(JSON.stringify(previousSnapshot.geo)) : {},
@@ -162,7 +193,10 @@ class IntelligenceRefreshWorker {
       const { issues, recommendations } = issueService.generateIssuesAndRecommendations(canonicalDataset);
 
       const calcAverage = (metrics) => {
-        const valid = metrics.filter(m => m !== null && m !== undefined && !isNaN(m));
+        const valid = metrics
+          .filter(m => m !== null && m !== undefined && m !== '')
+          .map(m => Number(m))
+          .filter(m => !isNaN(m));
         if (valid.length === 0) return null;
         return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
       };
@@ -171,7 +205,8 @@ class IntelligenceRefreshWorker {
         overall: null,
         seo: calcAverage([
           canonicalDataset.seo.technicalScore?.value,
-          canonicalDataset.seo.authorityScore?.value
+          canonicalDataset.seo.authorityScore?.value,
+          canonicalDataset.seo.coreWebVitals?.value
         ]),
         geo: calcAverage([
           canonicalDataset.geo.eeatSignals?.value,

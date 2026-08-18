@@ -29,6 +29,8 @@ const OptimizationSnapshotSchema = new mongoose.Schema({
     technicalScore: { type: MetricSchema, default: () => ({}) },
     organicTraffic: { type: MetricSchema, default: () => ({}) },
     organicKeywords: { type: MetricSchema, default: () => ({}) },
+    paidTraffic: { type: MetricSchema, default: () => ({}) },
+    organicCost: { type: MetricSchema, default: () => ({}) },
     backlinks: { type: MetricSchema, default: () => ({}) },
     coreWebVitals: { type: MetricSchema, default: () => ({}) },
     competitors: [{ type: mongoose.Schema.Types.Mixed }],

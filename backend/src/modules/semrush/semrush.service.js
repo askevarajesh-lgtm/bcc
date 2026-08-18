@@ -282,12 +282,14 @@ class SemrushService {
             if (competitorsData && competitorsData.length > 0) {
                 overviewData[0].competitors = competitorsData.map(c => ({
                     domain: c.Domain || c.Dn,
-                    relevance: c['Competitor Relevance'] || c.Cr,
-                    commonKeywords: c['Common Keywords'] || c.Np,
-                    organicKeywords: c['Organic Keywords'] || c.Or,
-                    organicTraffic: c['Organic Traffic'] || c.Ot,
-                    seKeywords: c['Adwords Keywords'] || c.Ad || 0,
-                    comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] || c.Cr || 0) * 100))
+                    competitorRelevance: c['Competitor Relevance'] ?? c.Cr ?? 0,
+                    commonKeywords: c['Common Keywords'] ?? c.Np ?? 0,
+                    organicKeywords: c['Organic Keywords'] ?? c.Or ?? 0,
+                    organicTraffic: c['Organic Traffic'] ?? c.Ot ?? 0,
+                    organicCost: c['Organic Cost'] ?? c.Oc ?? 0,
+                    adwordsKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0,
+                    seKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0, // Keeping seKeywords for backward compatibility if needed
+                    comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] ?? c.Cr ?? 0) * 100))
                 }));
             }
         } catch (err) {
@@ -312,12 +314,13 @@ class SemrushService {
       const data = await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
       return data.map(c => ({
         domain: c.Domain || c.Dn,
-        competitorRelevance: c['Competitor Relevance'] || c.Cr,
-        commonKeywords: c['Common Keywords'] || c.Np,
-        organicKeywords: c['Organic Keywords'] || c.Or,
-        organicTraffic: c['Organic Traffic'] || c.Ot,
-        organicCost: c['Organic Cost'] || c.Oc,
-        adwordsKeywords: c['Adwords Keywords'] || c.Ad
+        competitorRelevance: c['Competitor Relevance'] ?? c.Cr ?? 0,
+        commonKeywords: c['Common Keywords'] ?? c.Np ?? 0,
+        organicKeywords: c['Organic Keywords'] ?? c.Or ?? 0,
+        organicTraffic: c['Organic Traffic'] ?? c.Ot ?? 0,
+        organicCost: c['Organic Cost'] ?? c.Oc ?? 0,
+        adwordsKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0,
+        comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] ?? c.Cr ?? 0) * 100))
       }));
     } catch (error) {
       console.error(`[Semrush] Failed to fetch competitor analysis for ${domain}`, error);
@@ -436,7 +439,7 @@ class SemrushService {
     }
   }
 
-  async getDomainKeywordsDrilldown(domain, database = 'us', limit = 100, force = false) {
+  async getDomainKeywordsDrilldown(domain, companyId, database = 'us', limit = 100, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `domain_keywords_drilldown_${cleanDomain}_${database}_${limit}`;
     const params = {
@@ -644,18 +647,36 @@ class SemrushService {
               try {
                   const auditUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/info`;
                   const pagesUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/pages`;
+                  const issuesUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/issues`;
                   
-                  // For Site Audit, we just hit the endpoint directly since it's a real-time status.
-                  // We don't use fetchWithCache here typically because of the /projects/ endpoint format.
-                  // But we should honor force if we wanted to implement caching. Right now it's live anyway.
-                  const [response, pagesResponse] = await Promise.all([
+                  const [response, pagesResponse, issuesResponse] = await Promise.all([
                       axios.get(auditUrl, { params: { key: process.env.SEMRUSH_API_KEY } }),
-                      axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] }))
+                      axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] })),
+                      axios.get(issuesUrl, { params: { key: process.env.SEMRUSH_API_KEY } }).catch(() => ({ data: null }))
                   ]);
                   const auditDataRaw = response.data;
                   const auditData = Array.isArray(auditDataRaw) ? auditDataRaw[0] : auditDataRaw;
                   let pagesList = [];
                   
+                  if (issuesResponse.data) {
+                      // Attach issues breakdown directly to auditData so normalizeSemrushSiteHealth can extract them
+                      const issuesList = Array.isArray(issuesResponse.data) ? issuesResponse.data : [];
+                      
+                      const errorsObj = {};
+                      const warningsObj = {};
+                      const noticesObj = {};
+                      
+                      issuesList.forEach(issue => {
+                          if (issue.severity === 'error') errorsObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                          else if (issue.severity === 'warning') warningsObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                          else if (issue.severity === 'notice') noticesObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                      });
+                      
+                      if (Object.keys(errorsObj).length > 0) auditData.errorsObj = errorsObj;
+                      if (Object.keys(warningsObj).length > 0) auditData.warningsObj = warningsObj;
+                      if (Object.keys(noticesObj).length > 0) auditData.noticesObj = noticesObj;
+                  }
+
                   if (Array.isArray(pagesResponse.data)) {
                       pagesList = pagesResponse.data;
                   } else if (pagesResponse.data && Array.isArray(pagesResponse.data.items)) {

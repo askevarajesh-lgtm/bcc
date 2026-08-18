@@ -33,7 +33,11 @@ const BacklinksTab = () => {
       if (res.data.success && res.data.data) {
         setLocalData({
            ...localData,
-           backlinksOverview: res.data.data.backlinksDetails
+           backlinksOverview: {
+             total: res.data.data.backlinks?.value,
+             score: res.data.data.authorityScore?.value,
+             ...(res.data.data.backlinksDetails || {})
+           }
         });
         message.success('Backlinks updated successfully');
         if (fetchProjectData) fetchProjectData();

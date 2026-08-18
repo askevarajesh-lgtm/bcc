@@ -4,6 +4,7 @@ const semrushService = require('./semrush.service');
 const trackingService = require('./semrush.tracking');
 const SemrushProject = require('./models/semrushProject.model');
 const SemrushProjectData = require('./models/semrushProjectData.model');
+const providerNormalization = require('./providerNormalization.service');
 
 const OptimizationSnapshot = require('./models/optimizationSnapshot.model');
 
@@ -24,11 +25,11 @@ exports.getProjects = async (req, res) => {
           aeoScore: snap.scores.aeo
         } : null,
         stats: {
-          siteHealth: snap.seo?.technicalScore?.value || null,
-          visibility: snap.seo?.authorityScore?.value || null,
-          organicTraffic: snap.seo?.organicTraffic?.value || null,
-          organicKeywords: snap.seo?.organicKeywords?.value || null,
-          backlinks: snap.seo?.backlinks?.value || null
+          siteHealth: snap.seo?.technicalScore?.value ?? null,
+          visibility: snap.seo?.authorityScore?.value ?? null,
+          organicTraffic: snap.seo?.organicTraffic?.value ?? null,
+          organicKeywords: snap.seo?.organicKeywords?.value ?? null,
+          backlinks: snap.seo?.backlinks?.value ?? null
         }
       };
     });
@@ -81,7 +82,8 @@ exports.getProjectById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Invalid project ID format' });
     }
     const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true })
-      .populate('latestSnapshot');
+      .populate('latestSnapshot')
+      .lean();
       
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
@@ -101,8 +103,9 @@ exports.getProjectById = async (req, res) => {
       overview: {
         'Organic Traffic': snap.seo.organicTraffic?.value,
         'Organic Keywords': snap.seo.organicKeywords?.value,
+        'Adwords Traffic': snap.seo.paidTraffic?.value ?? 0,
         Rank: snap.seo.authorityScore?.value,
-        visibility_index: snap.seo.authorityScore?.value,
+        visibility_index: snap.seo.semrushRank?.value,
         competitors: snap.seo.competitors || [],
         trend: snap.seo.trend || [],
         topKeywords: snap.seo.topKeywords || [],
@@ -357,7 +360,7 @@ exports.getPositionTracking = async (req, res) => {
     const campaignId = project.semrushCampaignId;
     const force = req.query.force === 'true';
 
-    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId, force);
+    const trackingData = await trackingService.getPositionTrackingData(domain, database, keywords, campaignId, force, req.companyId);
     
     res.status(200).json({ 
       success: true,
@@ -365,7 +368,7 @@ exports.getPositionTracking = async (req, res) => {
       source: 'semrush',
       data: {
         config: project.trackingConfig,
-        rankings: trackingData
+        ...(trackingData || { rankings: [] })
       },
       measuredAt: new Date().toISOString()
     });
@@ -393,7 +396,7 @@ exports.getDomainOverview = async (req, res) => {
     const domain = project.domain;
     const database = project.trackingConfig?.location || 'us';
 
-    const rawData = await semrushService.getDomainOverview(domain, database, force);
+    const rawData = await semrushService.getDomainOverview(domain, req.companyId, database, force);
     const normalizedData = providerNormalization.normalizeSemrushOverview(rawData);
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });
@@ -426,7 +429,7 @@ exports.getOrganicResearch = async (req, res) => {
     const domain = project.domain;
     const database = project.trackingConfig?.location || 'us';
 
-    const rawData = await semrushService.getDomainKeywordsDrilldown(domain, database, force);
+    const rawData = await semrushService.getDomainKeywordsDrilldown(domain, req.companyId, database, 100, force);
     
     // The previous implementation stored organic keywords data directly in snapshot.seo.organicKeywordsData
     const normalizedData = { organicKeywordsData: rawData || [] };
@@ -461,7 +464,7 @@ exports.getCompetitorAnalysis = async (req, res) => {
     const domain = project.domain;
     const database = project.trackingConfig?.location || 'us';
 
-    const rawData = await semrushService.getCompetitorAnalysis(domain, database, force);
+    const rawData = await semrushService.getCompetitorAnalysis(domain, req.companyId, database, 20, force);
     const normalizedData = { competitors: rawData || [] };
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });
@@ -492,7 +495,7 @@ exports.getBacklinks = async (req, res) => {
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
     
     const domain = project.domain;
-    const rawData = await semrushService.getBacklinksOverview(domain, force);
+    const rawData = await semrushService.getBacklinksOverview(domain, req.companyId, force);
     const normalizedData = providerNormalization.normalizeSemrushBacklinks(rawData);
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });
@@ -522,22 +525,14 @@ exports.getSiteAudit = async (req, res) => {
     
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
     
-    const campaignId = project.semrushCampaignId;
-    if (!campaignId) {
-      return res.status(200).json({ success: true, status: 'campaign_required', source: 'semrush', data: null });
-    }
+    const domain = project.domain;
 
-    const rawData = await semrushService.getSiteAuditCampaign(campaignId, force);
-    if (!rawData || !rawData.snapshot_id) {
-       return res.status(200).json({ success: true, status: 'unavailable', source: 'semrush', data: null });
+    const rawData = await semrushService.getSiteHealth(domain, req.companyId, 'us', force);
+    if (!rawData || rawData.status === 'unavailable' || rawData.status === 'failed') {
+       return res.status(200).json({ success: true, status: rawData?.status || 'unavailable', source: 'semrush', data: null });
     }
     
-    const snapshotDetails = await semrushService.getSiteAuditSnapshot(campaignId, rawData.snapshot_id, force);
-    
-    const normalizedData = providerNormalization.normalizeSemrushSiteHealth({
-       snapshotId: rawData.snapshot_id,
-       ...snapshotDetails
-    });
+    const normalizedData = providerNormalization.normalizeSemrushSiteHealth(rawData);
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });
     if (snapshot) {
@@ -611,7 +606,7 @@ exports.getTrafficAnalytics = async (req, res) => {
     const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true });
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-    const rawData = await semrushService.getTrafficAnalytics(project.domain, force);
+    const rawData = await semrushService.getTrafficAnalytics(project.domain, req.companyId, force);
     const normalizedData = providerNormalization.normalizeTrafficAnalytics(rawData);
     
     const snapshot = await OptimizationSnapshot.findOne({ projectId: id }).sort({ createdAt: -1 });

@@ -5,6 +5,7 @@ import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import { semrushApi } from '../../../api/semrushApi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import './DashboardTab.css'; // Reuse styles
 
 const { Title, Text } = Typography;
@@ -23,7 +24,9 @@ const PositionTrackingTab = () => {
   
   // Use pre-fetched data from dashboard or local data if refreshed
   const data = localData || projectData?.positionTracking?.data || null;
-  const configStatus = localData ? 'available' : (projectData?.positionTracking?.status || 'campaign_required');
+  const configStatus = localData 
+    ? 'available' 
+    : (projectData?.positionTracking?.status || 'campaign_required');
 
   const handleRefresh = async () => {
     if (!projectId) return;
@@ -72,8 +75,27 @@ const PositionTrackingTab = () => {
       });
       
       if (res.data.success) {
-        message.success('Tracking configured successfully! Please click "Refresh Intelligence" on the Dashboard to fetch your rankings.');
-        // Optionally trigger a top-level refresh here if we passed down a trigger, but for now just tell them to refresh
+        message.loading({ content: 'Fetching rankings from Semrush...', key: 'tracking', duration: 0 });
+        setShowWizard(false);
+        
+        // Immediately fetch live rankings so the table appears right away
+        try {
+          const rankRes = await semrushApi.getPositionTracking(projectId, true);
+          if (rankRes.data.success && rankRes.data.data) {
+            setLocalData(rankRes.data.data);
+            message.success({ content: 'Rankings loaded!', key: 'tracking', duration: 3 });
+          } else {
+            // Still dismiss the wizard even if rankings aren't ready yet
+            setLocalData({ 
+              config: { device: config.device, location: config.location }, 
+              rankings: rawKeywords.map(kw => ({ keyword: kw, position: '> 100', searchVolume: null, difficulty: null, cpc: null, intent: '', url: '-' }))
+            });
+            message.info({ content: 'Campaign configured. Rankings will update within 24h on Semrush.', key: 'tracking', duration: 4 });
+          }
+        } catch (fetchErr) {
+          message.warning({ content: 'Configured! Rankings will appear after next refresh.', key: 'tracking', duration: 3 });
+        }
+        if (fetchProjectData) fetchProjectData();
       }
     } catch (err) {
       message.error('Failed to configure tracking');
@@ -207,37 +229,12 @@ const PositionTrackingTab = () => {
       }
     },
     { 
-      title: 'Position', 
-      dataIndex: 'position', 
-      key: 'position', 
-      render: (val, record) => {
-        const pos = Number(val) || 101;
-        const prevPos = Number(record.previousPosition) || pos;
-        let diff = 0;
-        if (prevPos > 0 && prevPos !== pos && prevPos < 101 && pos < 101) diff = prevPos - pos;
-
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Tag color={pos <= 3 ? 'green' : pos <= 10 ? 'blue' : pos <= 100 ? 'default' : 'red'} style={{ margin: 0, fontWeight: 600, minWidth: 28, textAlign: 'center' }}>
-              {pos > 100 ? '> 100' : pos}
-            </Tag>
-            <div style={{ minWidth: 40 }}>
-              {diff > 0 && <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>}
-              {diff < 0 && <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>}
-              {diff === 0 && pos <= 100 && <span style={{ color: '#bfbfbf', display: 'flex', alignItems: 'center', fontSize: 12 }}><Minus size={14} style={{ marginRight: 2 }} /></span>}
-            </div>
-          </div>
-        );
-      },
-      sorter: (a, b) => (Number(a.position) || 101) - (Number(b.position) || 101)
-    },
-    { 
-      title: 'Volume', 
-      dataIndex: 'searchVolume', 
-      key: 'searchVolume', 
-      align: 'right',
-      render: val => <Text strong style={{ color: 'var(--text-secondary)' }}>{Number(val).toLocaleString()}</Text>,
-      sorter: (a, b) => Number(a.searchVolume) - Number(b.searchVolume)
+      title: 'SF', 
+      dataIndex: 'serpFeaturesCount', 
+      key: 'sf', 
+      align: 'center',
+      render: val => <Text type="secondary" style={{ fontSize: 12 }}>{val || '-'}</Text>,
+      sorter: (a, b) => (Number(a.serpFeaturesCount) || 0) - (Number(b.serpFeaturesCount) || 0)
     },
     { 
       title: 'KD %', 
@@ -246,7 +243,7 @@ const PositionTrackingTab = () => {
       align: 'center',
       render: val => {
         const kd = Number(val);
-        if (!kd) return '-';
+        if (!val && val !== 0) return '-';
         const getColor = (v) => {
           if (v > 84) return { color: '#cf1322', bg: '#fff1f0', border: '#ffa39e' }; 
           if (v > 69) return { color: '#d46b08', bg: '#fff7e6', border: '#ffd591' }; 
@@ -266,20 +263,74 @@ const PositionTrackingTab = () => {
       sorter: (a, b) => Number(a.difficulty) - Number(b.difficulty)
     },
     { 
-      title: 'Traffic %', 
-      dataIndex: 'trafficPercent', 
-      key: 'trafficPercent', 
-      align: 'right',
+      title: 'Pos. Prev', 
+      dataIndex: 'previousPosition', 
+      key: 'previousPosition', 
+      align: 'center',
       render: val => {
-        if (!val || val === '0') return '-';
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 60 }}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>{Number(val).toFixed(2)}%</span>
-            <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="var(--accent-primary)" trailColor="#f0f0f0" style={{ margin: 0, width: '100%' }} />
-          </div>
-        )
+        const pos = Number(val);
+        return <Text type="secondary">{pos > 100 || !pos ? '-' : pos}</Text>;
       },
-      sorter: (a, b) => Number(a.trafficPercent) - Number(b.trafficPercent)
+      sorter: (a, b) => (Number(a.previousPosition) || 101) - (Number(b.previousPosition) || 101)
+    },
+    { 
+      title: 'Pos. Cur', 
+      dataIndex: 'position', 
+      key: 'position', 
+      align: 'center',
+      render: val => {
+        const pos = Number(val);
+        if (pos > 100 || !pos) return <Text type="secondary">-</Text>;
+        return <Tag color={pos <= 3 ? 'green' : pos <= 10 ? 'blue' : 'default'} style={{ margin: 0, fontWeight: 600, minWidth: 28, textAlign: 'center' }}>{pos}</Tag>;
+      },
+      sorter: (a, b) => (Number(a.position) || 101) - (Number(b.position) || 101)
+    },
+    {
+      title: 'Diff',
+      key: 'diff',
+      align: 'center',
+      render: (_, record) => {
+        const pos = Number(record.position) || 101;
+        const prevPos = Number(record.previousPosition) || pos;
+        let diff = 0;
+        if (prevPos > 0 && prevPos !== pos && prevPos < 101 && pos < 101) diff = prevPos - pos;
+
+        if (diff > 0) return <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>;
+        if (diff < 0) return <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>;
+        return <span style={{ color: '#bfbfbf' }}>-</span>;
+      }
+    },
+    {
+      title: 'Visibility',
+      dataIndex: 'visibility',
+      key: 'visibility',
+      align: 'right',
+      render: val => val ? <Text>{Number(val).toFixed(2)}%</Text> : <Text type="secondary">-</Text>,
+      sorter: (a, b) => Number(a.visibility) - Number(b.visibility)
+    },
+    {
+      title: 'Est. Traffic',
+      dataIndex: 'traffic',
+      key: 'traffic',
+      align: 'right',
+      render: val => val ? <Text>{Number(val).toLocaleString()}</Text> : <Text type="secondary">-</Text>,
+      sorter: (a, b) => Number(a.traffic) - Number(b.traffic)
+    },
+    { 
+      title: 'Volume', 
+      dataIndex: 'searchVolume', 
+      key: 'searchVolume', 
+      align: 'right',
+      render: val => <Text strong style={{ color: 'var(--text-secondary)' }}>{val != null ? Number(val).toLocaleString() : '-'}</Text>,
+      sorter: (a, b) => Number(a.searchVolume) - Number(b.searchVolume)
+    },
+    { 
+      title: 'CPC', 
+      dataIndex: 'cpc', 
+      key: 'cpc', 
+      align: 'right',
+      render: val => val ? <Text type="secondary">${Number(val).toFixed(2)}</Text> : <Text type="secondary">-</Text>,
+      sorter: (a, b) => Number(a.cpc) - Number(b.cpc)
     },
     { 
       title: 'URL', 
@@ -307,8 +358,19 @@ const PositionTrackingTab = () => {
     );
   }
 
-  if (showWizard || configStatus === 'campaign_required' || (data && !data.isConfigured)) {
+  // Only show wizard if explicitly requested OR if no tracking has been configured yet at all
+  if (showWizard || (!localData && configStatus === 'campaign_required')) {
     return renderWizard();
+  }
+
+  // Show loading state while rankings are being fetched after campaign setup
+  if (refreshing && !data) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 16 }}>
+        <Spin size="large" />
+        <Text type="secondary">Fetching keyword rankings from Semrush...</Text>
+      </div>
+    );
   }
 
   const rankings = data?.rankings || [];
@@ -355,24 +417,75 @@ const PositionTrackingTab = () => {
 
           <Row gutter={24} style={{ marginBottom: 24 }}>
             <Col span={8}>
-              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Top 3 Keywords</Text>
-                <Title level={2} style={{ margin: 0, color: '#52c41a' }}>{top3}</Title>
+              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderTop: '4px solid #722ed1' }}>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Visibility</Text>
+                <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                  {data?.overview?.visibility ? Number(data.overview.visibility).toFixed(2) : '0.00'}%
+                </Title>
               </Card>
             </Col>
             <Col span={8}>
               <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Top 10 Keywords</Text>
-                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>{top10}</Title>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Est. Traffic</Text>
+                <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                  {data?.overview?.traffic ? Number(data.overview.traffic).toLocaleString() : '0'}
+                </Title>
               </Card>
             </Col>
             <Col span={8}>
               <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Total Tracked in Top 100</Text>
-                <Title level={2} style={{ margin: 0, color: '#722ed1' }}>{top100} / {rankings.length}</Title>
+                <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Avg. Position</Text>
+                <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                  {data?.overview?.avgPosition ? Number(data.overview.avgPosition).toFixed(2) : '0.00'}
+                </Title>
               </Card>
             </Col>
           </Row>
+
+          {data?.trend && data.trend.length > 0 && (
+            <div className="semrush-chart-card" style={{ padding: 24, marginBottom: 24, background: '#fff', borderRadius: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                 <div style={{ width: 12, height: 12, borderRadius: 2, background: '#722ed1', marginRight: 8 }} />
+                 <Text strong>{domain}</Text>
+              </div>
+              <div style={{ height: 300, width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.trend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12, fill: '#8c8c8c' }} 
+                      axisLine={{ stroke: '#f0f0f0' }} 
+                      tickLine={false} 
+                      tickFormatter={(val) => {
+                        const d = new Date(val);
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#8c8c8c' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tickFormatter={(val) => `${val}%`}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                      formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Visibility']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="visibility" 
+                      stroke="#722ed1" 
+                      strokeWidth={3} 
+                      dot={{ r: 4, fill: '#722ed1', strokeWidth: 0 }} 
+                      activeDot={{ r: 6, fill: '#722ed1', stroke: '#fff', strokeWidth: 2 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
             <Table 

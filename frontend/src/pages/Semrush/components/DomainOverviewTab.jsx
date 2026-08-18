@@ -27,7 +27,22 @@ const DomainOverviewTab = () => {
     try {
       const res = await semrushApi.getDomainOverview(project._id, true);
       if (res.data.success && res.data.data) {
-        setLocalData(res.data.data);
+        const raw = res.data.data;
+        // Map it the same way getProjectById does so localData matches projectData.overview
+        setLocalData({
+          'Organic Traffic': raw.organicTraffic?.value,
+          'Organic Keywords': raw.organicKeywords?.value,
+          Rank: raw.authorityScore?.value || data?.Rank, // Keep existing authority score if not in this response
+          visibility_index: raw.semrushRank?.value,
+          paidTraffic: raw.paidTraffic?.value,
+          competitors: raw.competitors || [],
+          trend: raw.trend || [],
+          topKeywords: raw.topKeywords || [],
+          positionDistribution: raw.positionDistribution || null,
+          intentDistribution: raw.intentDistribution || [],
+          organicKeywordsData: raw.organicKeywordsData || [],
+          serpFeatures: raw.serpFeatures || null
+        });
         message.success('Domain Overview updated successfully');
         if (fetchProjectData) fetchProjectData();
       } else {
