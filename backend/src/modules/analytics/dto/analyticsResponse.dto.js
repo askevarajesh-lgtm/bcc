@@ -3,6 +3,9 @@ function toAnalyticsResponseDto(dashboard) {
     meta: dashboard.meta,
     metrics: dashboard.metrics,
     websiteTraffic: dashboard.websiteTraffic,
+    searchTraffic: dashboard.searchTraffic,
+    topSearchQueries: dashboard.topSearchQueries,
+    topSearchPages: dashboard.topSearchPages,
     leadsByChannel: dashboard.leadsByChannel,
     channelBreakdown: dashboard.channelBreakdown,
     topLandingPages: dashboard.topLandingPages,
@@ -10,10 +13,8 @@ function toAnalyticsResponseDto(dashboard) {
     topDevices: dashboard.topDevices,
     topCountries: dashboard.topCountries,
     topReferrers: dashboard.topReferrers,
-    attribution: dashboard.attribution,
-    customerJourney: dashboard.customerJourney,
-    seoIntelligence: dashboard.seoIntelligence,
-    aiInsights: dashboard.aiInsights
+    gscInsights: dashboard.gscInsights,
+    gscPerformance: dashboard.gscPerformance
   };
 }
 

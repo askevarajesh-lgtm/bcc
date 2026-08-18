@@ -102,7 +102,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
     });
   }
 
-  if (hasPerm('Intelligence-Analytics & Attribution')) menuItems.push({ key: '/user/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics' });
+  if (hasPerm('Intelligence-Google Analytics')) menuItems.push({ key: '/user/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics' });
   if (hasPerm('Intelligence-MOS Score')) menuItems.push({ key: '/user/intelligence/mos', icon: getIcon(BarChart2), label: 'MOS Score' });
   if (hasPerm('Intelligence-ChatGPT')) menuItems.push({ key: '/user/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' });
   if (hasPerm('Intelligence-Canva')) menuItems.push({ key: '/user/intelligence/canva', icon: getIcon(Palette), label: 'Canva' });

@@ -1,10 +1,26 @@
 import api from '../services/api';
 
 export const analyticsApi = {
-  getAnalytics: async (clientId, dateRange) => {
+  getAnalytics: async (projectId, dateRange, bypassCache = false) => {
     const response = await api.get('/analytics', {
-      params: { clientId, dateRange: dateRange ? JSON.stringify(dateRange) : undefined }
+      params: { 
+        projectId, 
+        dateRange: dateRange ? JSON.stringify(dateRange) : undefined,
+        bypassCache
+      }
     });
+    return response.data;
+  },
+  configureGA4Property: async (projectId, ga4PropertyId) => {
+    const response = await api.put(`/analytics/projects/${projectId}/ga4`, { ga4PropertyId });
+    return response.data;
+  },
+  getProjects: async () => {
+    const response = await api.get('/analytics/projects');
+    return response.data;
+  },
+  createProject: async (data) => {
+    const response = await api.post('/analytics/projects', data);
     return response.data;
   }
 };

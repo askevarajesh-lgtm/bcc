@@ -111,7 +111,7 @@ const DataTable = ({
           rowKey={rowKey}
           size="middle"
           scroll={{ x: 'max-content' }}
-          pagination={{ pageSize, showSizeChanger: true, pageSizeOptions: [5, 10, 20, 50], hideOnSinglePage: filteredData.length <= pageSize }}
+          pagination={{ defaultPageSize: pageSize, showSizeChanger: true, pageSizeOptions: ['5', '10', '20', '50'], hideOnSinglePage: true }}
           locale={{ emptyText: emptyMessage }}
           rowClassName={() => (onRowClick ? 'hover-bg clickable-row' : 'hover-bg')}
           onRow={onRowClick ? (record) => ({

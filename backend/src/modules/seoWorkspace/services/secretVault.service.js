@@ -221,9 +221,17 @@ class SecretVaultService {
     // Provider specific refresh endpoints
     try {
       if (cred.provider === 'google_search_console' || cred.provider === 'google_analytics_4' || cred.provider === 'google_indexing') {
+        const clientId = cred.provider === 'google_analytics_4' 
+          ? (decryptedData.clientId || process.env.GA_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID)
+          : (decryptedData.clientId || process.env.GOOGLE_CLIENT_ID);
+          
+        const clientSecret = cred.provider === 'google_analytics_4'
+          ? (decryptedData.clientSecret || process.env.GA_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET)
+          : (decryptedData.clientSecret || process.env.GOOGLE_CLIENT_SECRET);
+
         const res = await axios.post('https://oauth2.googleapis.com/token', {
-          client_id: decryptedData.clientId || process.env.GOOGLE_CLIENT_ID,
-          client_secret: decryptedData.clientSecret || process.env.GOOGLE_CLIENT_SECRET,
+          client_id: clientId,
+          client_secret: clientSecret,
           refresh_token: decryptedData.refreshToken,
           grant_type: 'refresh_token'
         });

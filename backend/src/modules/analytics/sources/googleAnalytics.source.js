@@ -93,7 +93,8 @@ async function getBreakdown(propertyId, dimensionName, startDate, endDate, limit
         { name: 'sessions' },
         { name: 'bounceRate' },
         { name: 'engagementRate' },
-        { name: 'averageSessionDuration' }
+        { name: 'averageSessionDuration' },
+        { name: 'conversions' }
       ],
       orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
       limit
@@ -104,7 +105,8 @@ async function getBreakdown(propertyId, dimensionName, startDate, endDate, limit
       sessions: num(r.metricValues[0].value),
       bounceRate: num(r.metricValues[1].value) * 100,
       engagementRate: num(r.metricValues[2].value) * 100,
-      avgSessionDuration: num(r.metricValues[3].value)
+      avgSessionDuration: num(r.metricValues[3].value),
+      conversions: num(r.metricValues[4].value)
     }));
 
     return { connected: true, rows };

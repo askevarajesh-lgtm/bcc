@@ -1,5 +1,5 @@
 /**
- * Minimal leveled logger for the Analytics & Attribution module.
+ * Minimal leveled logger for the Google Analytics module.
  *
  * Every external data source (GA4, Search Console) fails independently and
  * on purpose falls back to a "not connected" result rather than throwing,

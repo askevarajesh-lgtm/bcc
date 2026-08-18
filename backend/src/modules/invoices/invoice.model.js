@@ -124,7 +124,7 @@ const invoiceSchema = new mongoose.Schema({
 invoiceSchema.index({ clientId: 1, adminId: 1, agencyId: 1, brandId: 1 });
 invoiceSchema.index({ proposalId: 1 });
 invoiceSchema.index({ paymentStatus: 1 });
-// Supports Analytics & Attribution revenue aggregations (date-ranged, per-agency/client)
+// Supports Google Analytics revenue aggregations (date-ranged, per-agency/client)
 invoiceSchema.index({ agencyId: 1, clientId: 1, createdAt: -1 });
 
 // Auto-generate invoice number

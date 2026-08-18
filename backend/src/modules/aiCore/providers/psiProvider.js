@@ -14,6 +14,7 @@ const PSI_ENDPOINT = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed
 /**
  * @param {string} siteUrl
  * @param {Object} [options]
+ * 
  * @param {'desktop'|'mobile'} [options.strategy='desktop']
  * @param {number} [options.timeoutMs=12000]
  * @returns {Promise<{ score: number|null, coreWebVitals: { lcp: number|null, fid_or_inp: number|null, cls: number|null }, raw: Object }>}

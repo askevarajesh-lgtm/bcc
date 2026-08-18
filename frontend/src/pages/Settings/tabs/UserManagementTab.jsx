@@ -80,7 +80,7 @@ const UserManagementTab = () => {
           'Task Management', 'Websites', 'Task Analytics', 'Coordinator Tasks'
         ],
         'Intelligence': [
-          'Analytics & Attribution', 'MOS Score', 'ChatGPT', 'Canva', 
+          'Google Analytics', 'MOS Score', 'ChatGPT', 'Canva', 
           'AI Agent', 'Benchmarks', 'Reports', 'SEO Intelligence'
         ],
         'Agency Ops': [
@@ -111,7 +111,7 @@ const UserManagementTab = () => {
       if (hasF('marketplace')) groups.Workspace.push('Marketplace');
 
       // Intelligence
-      if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');
+      if (hasF('analytics')) groups.Intelligence.push('Google Analytics');
       if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
       if (hasF('canva')) groups.Intelligence.push('Canva');
       if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
@@ -148,7 +148,7 @@ const UserManagementTab = () => {
       groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables', 'Task Analytics', 'Coordinator Tasks');
 
       // Intelligence conditional modules
-      if (hasF('analytics')) groups.Intelligence.push('Analytics & Attribution');
+      if (hasF('analytics')) groups.Intelligence.push('Google Analytics');
       if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
       if (hasF('canva')) groups.Intelligence.push('Canva');
       if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');

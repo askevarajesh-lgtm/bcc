@@ -11,8 +11,8 @@ const cache = require('../../technicalSeo/providers/CacheProvider');
 const NAMESPACE = 'analytics';
 const DEFAULT_TTL_SECONDS = 5 * 60; // 5 minutes — long enough to absorb repeat renders/tab switches, short enough to stay fresh
 
-function buildKey({ agencyId, clientId, start, end }) {
-  return `${NAMESPACE}:${agencyId}:${clientId || 'all'}:${start}:${end}`;
+function buildKey({ agencyId, projectId, start, end }) {
+  return `${NAMESPACE}:${agencyId}:${projectId || 'all'}:${start}:${end}`;
 }
 
 async function getOrCompute(keyParts, computeFn, ttlSeconds = DEFAULT_TTL_SECONDS) {
@@ -28,8 +28,8 @@ async function getOrCompute(keyParts, computeFn, ttlSeconds = DEFAULT_TTL_SECOND
   return withCacheMeta;
 }
 
-async function invalidate({ agencyId, clientId, start, end }) {
-  await cache.delete(buildKey({ agencyId, clientId, start, end }));
+async function invalidate({ agencyId, projectId, start, end }) {
+  await cache.delete(buildKey({ agencyId, projectId, start, end }));
 }
 
 module.exports = { getOrCompute, invalidate, buildKey };

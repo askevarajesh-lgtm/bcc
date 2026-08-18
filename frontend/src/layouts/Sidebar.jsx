@@ -196,7 +196,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       label: 'INTELLIGENCE',
       icon: getIcon(Zap),
       children: [
-        { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Analytics & Attribution' },
+        { key: '/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics' },
         ...(['commander_admin', 'supreme_super_admin', 'agency_super_admin', 'agency_manager'].includes(role) ? [
           { key: '/intelligence/mos', icon: getIcon(Activity), label: getLabel('MOS Score', mosScore, 'warning') },
         ] : []),

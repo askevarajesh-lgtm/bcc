@@ -1,10 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Typography, message } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart2, PieChart as PieChartIcon, Sparkles, Lightbulb } from 'lucide-react';
+import { BarChart2, PieChart as PieChartIcon, Sparkles, LineChart as LineChartIcon } from 'lucide-react';
 import dayjs from 'dayjs';
 
-import { useGetClientsQuery } from '../../api/clientApi';
+
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { exportRowsAsCsv } from './utils/csvExport';
@@ -13,17 +13,15 @@ import DashboardFilters from './components/DashboardFilters';
 import DashboardSkeleton from './components/DashboardSkeleton';
 import ErrorState from './components/ErrorState';
 import AnalyticsTab from './tabs/AnalyticsTab';
-import AttributionTab from './tabs/AttributionTab';
-import SeoIntelligenceTab from './tabs/SeoIntelligenceTab';
-import AiInsightsTab from './tabs/AiInsightsTab';
+import InsightsTab from './tabs/InsightsTab';
+import PerformanceTab from './tabs/PerformanceTab';
 
 const { Title, Text } = Typography;
 
 const TABS = [
-  { key: 'analytics', label: 'Analytics', icon: BarChart2, title: 'Analytics', description: 'Unified performance data across all channels and clients.' },
-  { key: 'attribution', label: 'Attribution', icon: PieChartIcon, title: 'Attribution', description: 'Understand which channels and touchpoints drive conversions.' },
-  { key: 'seo-intelligence', label: 'SEO Intelligence', icon: Sparkles, title: 'SEO Intelligence', description: 'Real metrics from Website Audit, Technical SEO, Keyword Intelligence, Rank Tracking, AEO, GEO, Competitor Intelligence, and Automation & Monitoring.' },
-  { key: 'ai-insights', label: 'AI Insights', icon: Lightbulb, title: 'AI Insights', description: 'Rule-based insights calculated from real traffic, ranking, and technical data — not model-generated summaries.' }
+  { key: 'analytics', label: 'Analytics', icon: BarChart2, title: 'Analytics', description: 'Unified performance data across all channels and domains.' },
+  { key: 'insights', label: 'Insights', icon: Sparkles, title: 'Insights', description: 'Google Search Console insights showing your top and trending content.' },
+  { key: 'performance', label: 'Performance', icon: LineChartIcon, title: 'Performance', description: 'Google Search Console performance metrics.' }
 ];
 
 const containerVariants = {
@@ -38,16 +36,27 @@ const itemVariants = {
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState('analytics');
-  const [selectedClient, setSelectedClient] = useState('All Clients');
+  const [selectedProject, setSelectedProject] = useState('All Domains');
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm, 250);
 
-  const { data: clientsData } = useGetClientsQuery({});
-  const clients = useMemo(() => clientsData?.data || [], [clientsData]);
+  const [projects, setProjects] = useState([]);
+
+  const fetchProjects = useCallback(() => {
+    import('../../api/analyticsApi').then(({ analyticsApi }) => {
+      analyticsApi.getProjects().then(res => {
+        if (res.success) setProjects(res.data || []);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const { data, loading, refreshing, error, lastUpdatedAt, refresh, retry } = useAnalyticsData({
-    clientId: selectedClient,
+    projectId: selectedProject,
     dateRange
   });
 
@@ -91,9 +100,8 @@ const Analytics = () => {
     if (!data) return <ErrorState message="No analytics data was returned." onRetry={retry} retrying={loading} />;
 
     if (activeTab === 'analytics') return <AnalyticsTab data={data} searchTerm={debouncedSearch} />;
-    if (activeTab === 'attribution') return <AttributionTab data={data} searchTerm={debouncedSearch} />;
-    if (activeTab === 'seo-intelligence') return <SeoIntelligenceTab data={data} searchTerm={debouncedSearch} />;
-    return <AiInsightsTab data={data} />;
+    if (activeTab === 'insights') return <InsightsTab data={data} />;
+    return <PerformanceTab data={data} />;
   };
 
   return (
@@ -108,14 +116,15 @@ const Analytics = () => {
         </div>
 
         <DashboardFilters
-          clients={clients}
-          selectedClient={selectedClient}
-          onClientChange={setSelectedClient}
+          projects={projects}
+          selectedProject={selectedProject}
+          onProjectChange={setSelectedProject}
           dateRange={dateRange}
           onDateRangeChange={(val) => val && setDateRange(val)}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onRefresh={refresh}
+          onProjectsRefresh={fetchProjects}
           refreshing={refreshing}
           onExport={handleExport}
           showExport={activeTab === 'analytics'}

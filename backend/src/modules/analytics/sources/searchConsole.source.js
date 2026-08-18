@@ -34,18 +34,32 @@ function getAuth() {
   return cachedAuth;
 }
 
-async function getSearchTotals(siteUrl, startDate, endDate) {
+async function getSearchTotals(siteUrl, startDate, endDate, type = 'web') {
   const auth = getAuth();
   if (!auth || !siteUrl) {
     return { connected: false, clicks: 0, impressions: 0, ctr: 0, position: 0 };
   }
 
-  try {
+  const executeQuery = async (urlToQuery) => {
     const searchconsole = google.searchconsole({ version: 'v1', auth });
-    const res = await searchconsole.searchanalytics.query({
-      siteUrl,
-      requestBody: { startDate, endDate, dimensions: ['date'], rowLimit: 1000 }
+    return await searchconsole.searchanalytics.query({
+      siteUrl: urlToQuery,
+      requestBody: { startDate, endDate, dimensions: ['date'], rowLimit: 1000, type }
     });
+  };
+
+  try {
+    let res;
+    try {
+      res = await executeQuery(siteUrl);
+    } catch (err) {
+      if (err.message && err.message.includes('sufficient permission') && siteUrl.startsWith('http')) {
+        const bareDomain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        res = await executeQuery(`sc-domain:${bareDomain}`);
+      } else {
+        throw err;
+      }
+    }
 
     const rows = res.data.rows || [];
     const clicks = rows.reduce((sum, r) => sum + (r.clicks || 0), 0);
@@ -55,13 +69,61 @@ async function getSearchTotals(siteUrl, startDate, endDate) {
       ? rows.reduce((sum, r) => sum + (r.position || 0) * (r.impressions || 0), 0) / impressions
       : 0;
 
-    return { connected: true, clicks, impressions, ctr, position };
+    const searchTraffic = rows.map(r => ({
+      day: r.keys[0],
+      clicks: r.clicks || 0,
+      impressions: r.impressions || 0,
+      ctr: r.ctr ? r.ctr * 100 : 0,
+      position: r.position || 0
+    })).sort((a, b) => a.day.localeCompare(b.day));
+
+    return { connected: true, clicks, impressions, ctr, position, searchTraffic };
   } catch (error) {
     logger.error('GSC', `Search totals failed for ${siteUrl}`, error);
-    return { connected: false, error: error.message, clicks: 0, impressions: 0, ctr: 0, position: 0 };
+    return { connected: false, error: error.message, clicks: 0, impressions: 0, ctr: 0, position: 0, searchTraffic: [] };
+  }
+}
+
+async function getSearchBreakdown(siteUrl, dimension, startDate, endDate, limit = 50, type = 'web') {
+  const auth = getAuth();
+  if (!auth || !siteUrl) return [];
+
+  const executeQuery = async (urlToQuery) => {
+    const searchconsole = google.searchconsole({ version: 'v1', auth });
+    return await searchconsole.searchanalytics.query({
+      siteUrl: urlToQuery,
+      requestBody: { startDate, endDate, dimensions: [dimension], rowLimit: limit, type }
+    });
+  };
+
+  try {
+    let res;
+    try {
+      res = await executeQuery(siteUrl);
+    } catch (err) {
+      if (err.message && err.message.includes('sufficient permission') && siteUrl.startsWith('http')) {
+        const bareDomain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        res = await executeQuery(`sc-domain:${bareDomain}`);
+      } else {
+        throw err;
+      }
+    }
+
+    const rows = res.data.rows || [];
+    return rows.map(r => ({
+      dimension: r.keys[0],
+      clicks: r.clicks || 0,
+      impressions: r.impressions || 0,
+      ctr: r.ctr ? r.ctr * 100 : 0,
+      position: r.position || 0
+    })).sort((a, b) => b.clicks - a.clicks);
+  } catch (error) {
+    logger.error('GSC', `Search breakdown failed for ${siteUrl} on ${dimension}`, error);
+    return [];
   }
 }
 
 module.exports = {
-  getSearchTotals
+  getSearchTotals,
+  getSearchBreakdown
 };

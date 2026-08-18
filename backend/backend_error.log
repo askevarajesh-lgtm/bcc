@@ -965,4 +965,14 @@ Require stack:
     at async exports.updatePackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:283:9)\n\n2026-08-14T07:57:17.631Z\nError: Integration type "email" is invalid or not available in your scope.
     at validatePackageIntegrations (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:24:13)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async exports.updatePackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:283:9)\n\n
+    at async exports.updatePackage (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\packages\package.controller.js:283:9)\n\n2026-08-18T11:59:27.312Z\nReferenceError: mergedChannelRows is not defined
+    at buildAnalyticsDashboard (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\metrics.service.js:180:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.getOrCompute (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\analyticsCache.service.js:25:17)
+    at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n2026-08-18T11:59:28.635Z\nReferenceError: mergedChannelRows is not defined
+    at buildAnalyticsDashboard (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\metrics.service.js:180:27)
+    at async Object.getOrCompute (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\analyticsCache.service.js:25:17)
+    at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n2026-08-18T11:59:30.377Z\nReferenceError: mergedChannelRows is not defined
+    at buildAnalyticsDashboard (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\metrics.service.js:180:27)
+    at async Object.getOrCompute (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\analyticsCache.service.js:25:17)
+    at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n

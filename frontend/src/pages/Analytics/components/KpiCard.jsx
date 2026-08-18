@@ -33,14 +33,19 @@ const KpiCard = React.memo(function KpiCard({ label, value, trend, color, goodDi
     <motion.div variants={itemVariants} whileHover={{ scale: 1.02, transition: { duration: 0.2 } }} style={{ height: '100%' }}>
       <Card
         bodyStyle={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
-        style={{ borderRadius: 0, height: '100%', background: 'var(--bg-secondary)', border: 'none', boxShadow: 'var(--shadow-sm)' }}
+        style={{
+          borderRadius: 16,
+          height: '100%',
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)',
+          backgroundColor: 'var(--bg-secondary)',
+          border: `1px solid ${color}33`,
+          boxShadow: `0 8px 24px -4px ${color}15`,
+          overflow: 'hidden'
+        }}
         role="group"
         aria-label={`${label}: ${value}${trend ? `, ${trend} versus previous period` : ''}`}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 16, height: 16, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} aria-hidden="true" />
-        <div style={{ position: 'absolute', top: 0, right: 0, width: 16, height: 16, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }} aria-hidden="true" />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: 16, height: 16, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} aria-hidden="true" />
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 16, height: 16, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }} aria-hidden="true" />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${color}, transparent)` }} aria-hidden="true" />
 
         <Tooltip title={description}>
           <Text type="secondary" style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textAlign: 'center', marginBottom: 16, cursor: description ? 'help' : 'default' }}>

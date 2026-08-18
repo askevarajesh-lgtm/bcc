@@ -61,7 +61,13 @@ const ChartCard = ({ title, subtitle, height = 320, isEmpty, emptyState, childre
           </div>
         }
         className="glassmorphism"
-        style={{ borderRadius: 16, height: '100%', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
+        style={{ 
+          borderRadius: 20, 
+          height: '100%', 
+          border: '1px solid var(--border-color)', 
+          boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+          background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)'
+        }}
         bodyStyle={{ padding: 24 }}
       >
         <div ref={containerRef} style={{ height }}>

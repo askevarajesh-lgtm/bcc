@@ -14,7 +14,7 @@ const availableFeatures = [
   { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },
   { id: 'ads', label: 'Performance Ads' },
-  { id: 'analytics', label: 'Analytics & Attribution' },
+  { id: 'analytics', label: 'Google Analytics' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
   { id: 'benchmark', label: 'Benchmark' },

@@ -25,6 +25,7 @@ router.route('/projects')
   .post(blockViewOnly, workspaceController.createProject);
 
 router.put('/projects/:projectId/settings', blockViewOnly, workspaceController.updateSettings);
+router.put('/projects/:projectId/credentials/ga4', blockViewOnly, workspaceController.configureGA4Property);
 
 // Audits
 router.get('/audits', workspaceController.getAudits);

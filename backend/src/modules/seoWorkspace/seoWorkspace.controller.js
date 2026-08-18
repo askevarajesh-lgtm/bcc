@@ -128,10 +128,13 @@ exports.createProject = async (req, res) => {
     const companyId = req.user.companyId || req.user.agencyId || req.user._id;
     const { domain, siteUrl, name, clientId, projectId, targetLocations, searchEngines, languages } = req.body;
 
-    const projectDomain = domain || siteUrl;
+    let projectDomain = domain || siteUrl;
     if (!projectDomain || !name) {
       return res.status(400).json({ success: false, message: 'Domain/siteUrl and name are required.' });
     }
+
+    // Normalize domain
+    projectDomain = projectDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
     const resolvedClientId = clientId || req.user._id;
 
@@ -181,6 +184,25 @@ exports.updateSettings = async (req, res) => {
       targetType: 'Project', targetId: project._id, projectId: project._id,
       action: 'settings_updated', fromValue: fromSettings, toValue: settings, userId: req.user._id
     });
+
+    res.json({ success: true, data: project });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.configureGA4Property = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { ga4PropertyId } = req.body;
+    const companyId = req.user.companyId || req.user.agencyId || req.user._id;
+
+    const project = await WorkspaceProject.findOneAndUpdate(
+      { _id: projectId, companyId, isDeleted: false },
+      { $set: { 'credentials.ga4PropertyId': ga4PropertyId } },
+      { new: true }
+    );
+    if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
     res.json({ success: true, data: project });
   } catch (error) {

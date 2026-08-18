@@ -7,7 +7,7 @@ import { analyticsApi } from '../../../api/analyticsApi';
  * superseded by a newer filter change (prevents a slow, stale response from
  * overwriting fresher data — a real race condition, not a style choice).
  */
-export function useAnalyticsData({ clientId, dateRange }) {
+export function useAnalyticsData({ projectId, dateRange }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -16,7 +16,7 @@ export function useAnalyticsData({ clientId, dateRange }) {
 
   const requestIdRef = useRef(0);
 
-  const fetchAnalytics = useCallback(async ({ silent = false } = {}) => {
+  const fetchAnalytics = useCallback(async ({ silent = false, bypassCache = false } = {}) => {
     const thisRequestId = ++requestIdRef.current;
     if (silent) setRefreshing(true); else setLoading(true);
     setError(null);
@@ -25,7 +25,7 @@ export function useAnalyticsData({ clientId, dateRange }) {
       const rangeParam = dateRange
         ? { start: dateRange[0].format('YYYY-MM-DD'), end: dateRange[1].format('YYYY-MM-DD') }
         : null;
-      const res = await analyticsApi.getAnalytics(clientId, rangeParam);
+      const res = await analyticsApi.getAnalytics(projectId, rangeParam, bypassCache);
 
       // A newer request has already started — discard this stale response.
       if (thisRequestId !== requestIdRef.current) return;
@@ -45,15 +45,15 @@ export function useAnalyticsData({ clientId, dateRange }) {
         setRefreshing(false);
       }
     }
-  }, [clientId, dateRange]);
+  }, [projectId, dateRange]);
 
   useEffect(() => {
     fetchAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, dateRange?.[0]?.valueOf(), dateRange?.[1]?.valueOf()]);
+  }, [projectId, dateRange?.[0]?.valueOf(), dateRange?.[1]?.valueOf()]);
 
-  const refresh = useCallback(() => fetchAnalytics({ silent: true }), [fetchAnalytics]);
-  const retry = useCallback(() => fetchAnalytics({ silent: false }), [fetchAnalytics]);
+  const refresh = useCallback(({ bypassCache = false } = {}) => fetchAnalytics({ silent: true, bypassCache }), [fetchAnalytics]);
+  const retry = useCallback(() => fetchAnalytics({ silent: false, bypassCache: true }), [fetchAnalytics]);
 
   return { data, loading, refreshing, error, lastUpdatedAt, refresh, retry };
 }

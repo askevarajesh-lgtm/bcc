@@ -175,7 +175,7 @@ const leadSchema = new mongoose.Schema(
 );
 
 leadSchema.index({ companyId: 1, createdAt: -1 });
-// Supports Analytics & Attribution aggregations (per-client, date-ranged lead/channel queries)
+// Supports Google Analytics aggregations (per-client, date-ranged lead/channel queries)
 leadSchema.index({ companyId: 1, clientId: 1, createdAt: -1 });
 leadSchema.index({ companyId: 1, source: 1, createdAt: -1 });
 

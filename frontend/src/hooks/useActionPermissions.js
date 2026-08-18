@@ -34,7 +34,7 @@ export function useActionPermissions(path) {
   
   if (path === '/salespipeline' || path === '/ops/salespipeline' || path === '/agency/salespipeline') moduleName = 'Agency Ops-Sales Pipeline';
 
-  if (path === '/analytics') moduleName = 'Intelligence-Analytics & Attribution';
+  if (path === '/analytics') moduleName = 'Intelligence-Google Analytics';
   if (path === '/mos') moduleName = 'Intelligence-MOS Score';
   if (path === '/chatgpt') moduleName = 'Intelligence-ChatGPT';
   if (path === '/canva') moduleName = 'Intelligence-Canva';
@@ -79,7 +79,7 @@ export function useActionPermissions(path) {
         'Workspace-Strategy', 'Workspace-SEO / AEO / GEO', 'Workspace-Content', 'Workspace-AI Studio', 'Workspace-Social Media',
         'Workspace-Performance Ads', 'Workspace-CRM & Leads', 'Workspace-Automation', 'Workspace-Websites',
         'Workspace-Meetings', 'Workspace-Calendar', 'Workspace-Deliverables',
-        'Intelligence-Analytics & Attribution', 'Intelligence-MOS Score', 'Intelligence-ChatGPT', 'Intelligence-Canva',
+        'Intelligence-Google Analytics', 'Intelligence-MOS Score', 'Intelligence-ChatGPT', 'Intelligence-Canva',
         'Intelligence-AI Agent', 'Intelligence-Benchmarks', 'Intelligence-Reports', 'Intelligence-SEO Intelligence',
         'HRMS-SEO Panel', 'HRMS-Daily Reports', 'HRMS-Performance'
       ];
