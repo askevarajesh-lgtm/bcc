@@ -135,25 +135,6 @@ const DashboardFilters = React.memo(function DashboardFilters({
           aria-label="Select date range"
         />
 
-        {previousDateRange && (
-          <Tooltip title={`Trends compare this range against ${previousDateRange.start} → ${previousDateRange.end} (the immediately preceding period of equal length).`}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-tertiary)', cursor: 'help' }}>
-              <Info size={14} />
-              <Text type="secondary" style={{ fontSize: 12 }}>vs previous period</Text>
-            </span>
-          </Tooltip>
-        )}
-
-        <Input
-          placeholder="Search pages, channels, devices…"
-          prefix={<Search size={14} style={{ color: 'var(--text-tertiary)' }} />}
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          allowClear
-          style={{ width: 220, height: 40, borderRadius: 8 }}
-          aria-label="Search dashboard tables"
-        />
-
         <Tooltip title="Refresh data">
           <Button
             icon={<RotateCw size={16} className={refreshing ? 'spin-icon' : ''} />}

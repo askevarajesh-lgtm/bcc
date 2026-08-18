@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
-import { exportRowsAsCsv } from './utils/csvExport';
+import { exportRowsAsCsv, exportDetailedReportAsCsv } from './utils/csvExport';
 
 import DashboardFilters from './components/DashboardFilters';
 import DashboardSkeleton from './components/DashboardSkeleton';
@@ -63,30 +63,11 @@ const Analytics = () => {
   const handleExport = useCallback(() => {
     if (!data) return message.warning('No data to export');
     try {
-      exportRowsAsCsv({
-        filename: `analytics_summary_${dayjs().format('YYYY-MM-DD')}`,
-        headers: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }, { key: 'trend', label: 'Trend vs previous period' }],
-        rows: [
-          { metric: 'Sessions', value: data.metrics?.sessions ?? 0, trend: data.metrics?.sessionsTrend },
-          { metric: 'Users', value: data.metrics?.users ?? 0, trend: data.metrics?.usersTrend },
-          { metric: 'New Users', value: data.metrics?.newUsers ?? 0, trend: data.metrics?.newUsersTrend },
-          { metric: 'Returning Users', value: data.metrics?.returningUsers ?? 0, trend: data.metrics?.returningUsersTrend },
-          { metric: 'Organic Sessions', value: data.metrics?.organicSessions ?? 0, trend: data.metrics?.organicTrafficShare },
-          { metric: 'Clicks', value: data.metrics?.clicks ?? 0, trend: data.metrics?.clicksTrend },
-          { metric: 'Impressions', value: data.metrics?.impressions ?? 0, trend: data.metrics?.impressionsTrend },
-          { metric: 'CTR', value: data.metrics?.ctr ?? '0%', trend: data.metrics?.ctrTrend },
-          { metric: 'Average Position', value: data.metrics?.averagePosition ?? 0, trend: data.metrics?.averagePositionTrend },
-          { metric: 'Bounce Rate', value: data.metrics?.bounceRate ?? '0%', trend: data.metrics?.bounceRateTrend },
-          { metric: 'Engagement Rate', value: data.metrics?.engagementRate ?? '0%', trend: data.metrics?.engagementRateTrend },
-          { metric: 'Conversions', value: data.metrics?.conversions ?? 0, trend: data.metrics?.conversionsTrend },
-          { metric: 'Leads', value: data.metrics?.leads ?? 0, trend: data.metrics?.leadsTrend },
-          { metric: 'Revenue', value: data.metrics?.revenueFormatted ?? '₹0L', trend: data.metrics?.revenueTrend },
-          { metric: 'Conversion Rate', value: data.metrics?.conversionRate ?? '0%', trend: data.metrics?.conversionRateTrend },
-          { metric: 'Ad Spend', value: data.metrics?.totalAdSpend ?? '₹0L', trend: '' },
-          { metric: 'Blended ROAS', value: data.metrics?.blendedRoas ?? '0x', trend: '' }
-        ]
+      exportDetailedReportAsCsv({
+        filename: `detailed_analytics_report_${dayjs().format('YYYY-MM-DD')}`,
+        data: data
       });
-      message.success('Export successful');
+      message.success('Detailed report exported successfully');
     } catch {
       message.error('Export failed');
     }

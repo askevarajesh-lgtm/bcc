@@ -258,22 +258,6 @@ const AnalyticsTab = ({ data, searchTerm = '' }) => {
         </div>
       )}
 
-      {topSearchPages.length > 0 && (
-        <div style={{ marginBottom: 40 }}>
-          <DataTable
-            title="Top Search Pages"
-            subtitle="Top landing pages ranked by organic clicks · selected date range"
-            columns={topSearchPagesCols}
-            dataSource={topSearchPages}
-            rowKey="page"
-            searchTerm={searchTerm}
-            searchableFields={['page']}
-            exportFilename="top-search-pages"
-            emptyMessage="No page-level Search Console data for this range yet."
-          />
-        </div>
-      )}
-
       {(pieData.length > 0 || deviceData.length > 0) && (
         <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
           {pieData.length > 0 && (
