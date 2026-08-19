@@ -7,6 +7,7 @@ const SemrushProjectData = require('./models/semrushProjectData.model');
 const providerNormalization = require('./providerNormalization.service');
 
 const OptimizationSnapshot = require('./models/optimizationSnapshot.model');
+const intelligenceComparisonService = require('./intelligenceComparison.service');
 
 exports.getProjects = async (req, res) => {
   try {
@@ -75,12 +76,61 @@ exports.createProject = async (req, res) => {
 
 const IntelligenceRefreshJob = require('./models/intelligenceRefreshJob.model');
 
+const mapSnapshotData = (snap, activeJob) => {
+  return snap?.seo ? {
+    overview: {
+      'Organic Traffic': snap.seo.organicTraffic?.value,
+      'Organic Keywords': snap.seo.organicKeywords?.value,
+      'Adwords Traffic': snap.seo.paidTraffic?.value ?? 0,
+      Rank: snap.seo.authorityScore?.value,
+      visibility_index: snap.seo.semrushRank?.value,
+      competitors: snap.seo.competitors || [],
+      trend: snap.seo.trend || [],
+      topKeywords: snap.seo.topKeywords || [],
+      positionDistribution: snap.seo.positionDistribution || null,
+      intentDistribution: snap.seo.intentDistribution || null
+    },
+    backlinksOverview: {
+      total: snap.seo.backlinks?.value,
+      score: snap.seo.authorityScore?.value,
+      ...(snap.seo.backlinksDetails || {})
+    },
+    siteHealth: {
+      overallScore: snap.seo.technicalScore?.value ?? null,
+      rawData: snap.seo.siteHealthDetails || null
+    },
+    organicKeywords: snap.seo.organicKeywordsData || [],
+    trafficAnalytics: snap.seo.trafficAnalytics || null,
+    positionTracking: snap.seo.positionTracking || null,
+    snapshot: snap,
+    activeJob: activeJob ? {
+      status: activeJob.status,
+      startedAt: activeJob.startedAt,
+      id: activeJob._id
+    } : null
+  } : {
+    overview: {},
+    backlinksOverview: {},
+    siteHealth: {},
+    organicKeywords: [],
+    trafficAnalytics: null,
+    positionTracking: null,
+    snapshot: snap,
+    activeJob: activeJob ? {
+      status: activeJob.status,
+      startedAt: activeJob.startedAt,
+      id: activeJob._id
+    } : null
+  };
+};
+
 exports.getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ success: false, message: 'Invalid project ID format' });
     }
+
     const project = await SemrushProject.findOne({ _id: id, companyId: req.companyId, isActive: true })
       .populate('latestSnapshot')
       .lean();
@@ -98,53 +148,7 @@ exports.getProjectById = async (req, res) => {
       status: { $in: ['QUEUED', 'RUNNING'] }
     });
 
-    // Map snapshot to old data shape so frontend tabs don't crash
-    const mappedData = snap.seo ? {
-      overview: {
-        'Organic Traffic': snap.seo.organicTraffic?.value,
-        'Organic Keywords': snap.seo.organicKeywords?.value,
-        'Adwords Traffic': snap.seo.paidTraffic?.value ?? 0,
-        Rank: snap.seo.authorityScore?.value,
-        visibility_index: snap.seo.semrushRank?.value,
-        competitors: snap.seo.competitors || [],
-        trend: snap.seo.trend || [],
-        topKeywords: snap.seo.topKeywords || [],
-        positionDistribution: snap.seo.positionDistribution || null,
-        intentDistribution: snap.seo.intentDistribution || null
-      },
-      backlinksOverview: {
-        total: snap.seo.backlinks?.value,
-        score: snap.seo.authorityScore?.value,
-        ...(snap.seo.backlinksDetails || {})
-      },
-      siteHealth: {
-        overallScore: snap.seo.technicalScore?.value ?? null,
-        rawData: snap.seo.siteHealthDetails || null
-      },
-      organicKeywords: snap.seo.organicKeywordsData || [],
-      trafficAnalytics: snap.seo.trafficAnalytics || null,
-      positionTracking: snap.seo.positionTracking || null,
-      // Pass the raw snapshot alongside the mapped data for refactored tabs
-      snapshot: snap,
-      activeJob: activeJob ? {
-        status: activeJob.status,
-        startedAt: activeJob.startedAt,
-        id: activeJob._id
-      } : null
-    } : {
-      overview: {},
-      backlinksOverview: {},
-      siteHealth: {},
-      organicKeywords: [],
-      trafficAnalytics: null,
-      positionTracking: null,
-      snapshot: snap,
-      activeJob: activeJob ? {
-        status: activeJob.status,
-        startedAt: activeJob.startedAt,
-        id: activeJob._id
-      } : null
-    };
+    const mappedData = mapSnapshotData(snap, activeJob);
     
     res.status(200).json({ success: true, project, data: mappedData });
   } catch (error) {
@@ -703,6 +707,110 @@ exports.getLatestSnapshot = async (req, res) => {
     res.status(200).json({ success: true, data: snapshot });
   } catch (error) {
     console.error('[Semrush Controller - getLatestSnapshot]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getSnapshotById = async (req, res) => {
+  try {
+    const { id, snapshotId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(snapshotId)) {
+      return res.status(404).json({ success: false, message: 'Invalid project or snapshot ID format' });
+    }
+
+    const snap = await OptimizationSnapshot.findOne({ _id: snapshotId, projectId: id, companyId: req.companyId });
+    if (!snap) {
+      return res.status(404).json({ success: false, message: 'Snapshot not found' });
+    }
+
+    const mappedData = mapSnapshotData(snap, null);
+    res.status(200).json({ success: true, data: mappedData });
+  } catch (error) {
+    console.error('[Semrush Controller - getSnapshotById]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getActivitySnapshots = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+    
+    const snapshots = await OptimizationSnapshot.find({ projectId: id, companyId: req.companyId })
+      .select('_id collectedAt createdAt')
+      .sort({ collectedAt: -1 });
+      
+    const snapshotsByDate = {};
+    for (const snap of snapshots) {
+      const date = new Date(snap.collectedAt);
+      const dateStr = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
+      if (!snapshotsByDate[dateStr]) {
+        snapshotsByDate[dateStr] = [];
+      }
+      snapshotsByDate[dateStr].push(snap);
+    }
+    
+    const dailySnapshots = Object.values(snapshotsByDate).map(daySnaps => {
+      let closestSnap = daySnaps[0];
+      let minDiff = Infinity;
+      for (const snap of daySnaps) {
+        const date = new Date(snap.collectedAt);
+        const msSinceMidnight = date.getHours() * 3600000 + date.getMinutes() * 60000 + date.getSeconds() * 1000;
+        if (msSinceMidnight < minDiff) {
+          minDiff = msSinceMidnight;
+          closestSnap = snap;
+        }
+      }
+      return closestSnap;
+    });
+
+    dailySnapshots.sort((a, b) => new Date(b.collectedAt) - new Date(a.collectedAt));
+
+    res.status(200).json({ success: true, snapshots: dailySnapshots });
+  } catch (error) {
+    console.error('[Semrush Controller - getActivitySnapshots]', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getActivityComparison = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid project ID format' });
+    }
+
+    let current, previous;
+
+    if (from && to) {
+      previous = await OptimizationSnapshot.findOne({ _id: from, projectId: id, companyId: req.companyId });
+      current = await OptimizationSnapshot.findOne({ _id: to, projectId: id, companyId: req.companyId });
+      
+      if (!current || !previous) {
+        return res.status(404).json({ success: false, message: 'One or both snapshots not found' });
+      }
+    } else {
+      const snapshots = await OptimizationSnapshot.find({ projectId: id, companyId: req.companyId })
+        .sort({ collectedAt: -1 })
+        .limit(2);
+        
+      if (snapshots.length === 0) {
+        return res.status(404).json({ success: false, message: 'No snapshots found' });
+      }
+      
+      current = snapshots[0];
+      previous = snapshots.length > 1 ? snapshots[1] : null;
+    }
+
+    const comparison = intelligenceComparisonService.compareSnapshots(previous, current);
+
+    res.status(200).json({ success: true, data: comparison });
+  } catch (error) {
+    console.error('[Semrush Controller - getActivityComparison]', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

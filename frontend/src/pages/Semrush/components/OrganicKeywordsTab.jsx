@@ -6,6 +6,7 @@ import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import SnapshotSelector from './SnapshotSelector';
 import './DashboardTab.css'; 
 
 const { Title, Text } = Typography;
@@ -18,6 +19,36 @@ const OrganicKeywordsTab = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const data = localData || projectData?.organicKeywords || [];
+
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(projectData?.organicKeywords || []);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(project._id, snapshotId);
+      if (res.data.success && res.data.data) {
+        const organicKeywordsData = res.data.data.organicKeywords;
+        if (!organicKeywordsData || organicKeywordsData.length === 0) {
+          setSnapshotError(true);
+        } else {
+          setLocalData(organicKeywordsData);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!project?._id) return;
@@ -250,35 +281,51 @@ const OrganicKeywordsTab = () => {
 
   return (
     <div className="semrush-dashboard-container">
-      <AnimatePresence mode="wait">
-        {data && data.length > 0 ? (
-          <motion.div 
-            key="content"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Organic Keywords for <span style={{ color: '#722ed1' }}>{domain}</span></Title>
+          <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
+        </div>
+        
+        <SnapshotSelector 
+          projectId={project?._id} 
+          tabKey="organic-research" 
+          onSnapshotSelect={handleSnapshotSelect} 
+        />
+        
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined spin={refreshing} />} 
+            onClick={handleRefresh} 
+            loading={refreshing}
+            style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <div>
-                <Title level={3} style={{ margin: 0 }}>Organic Keywords for <span style={{ color: '#722ed1' }}>{domain}</span></Title>
-                <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
-              </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Button 
-                  type="primary" 
-                  icon={<ReloadOutlined spin={refreshing} />} 
-                  onClick={handleRefresh} 
-                  loading={refreshing}
-                  style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
-                </Button>
-                <Button icon={<DownloadOutlined />} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600 }}>
-                  Export
-                </Button>
-              </div>
-            </div>
-
-            <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
+          <Button icon={<DownloadOutlined />} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600 }}>
+            Export
+          </Button>
+        </div>
+      </div>
+      
+      {snapshotError ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Historical data not available for this snapshot.</Text>
+        </div>
+      ) : snapshotLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Loading historical data...</Text>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          {data && data.length > 0 ? (
+            <motion.div 
+              key="content"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
               <Table 
                 dataSource={data}
                 columns={columns}
@@ -305,14 +352,14 @@ const OrganicKeywordsTab = () => {
               type="primary" 
               icon={<ReloadOutlined spin={refreshing} />} 
               onClick={handleRefresh} 
-              loading={refreshing}
-              style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-            >
-              {refreshing ? 'Refreshing...' : 'Refresh Data'}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh Data'}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };

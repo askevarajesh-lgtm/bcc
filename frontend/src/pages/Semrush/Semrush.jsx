@@ -40,6 +40,7 @@ const Semrush = () => {
     else if (path.includes('/competitor-analysis')) setActiveTab('competitor-analysis');
     else if (path.includes('/traffic-analytics')) setActiveTab('traffic-analytics');
     else if (path.includes('/reports')) setActiveTab('reports');
+    else if (path.includes('/activity')) setActiveTab('activity');
     else setActiveTab('dashboard');
   }, [location]);
 
@@ -191,6 +192,7 @@ const Semrush = () => {
               { key: 'site-health', label: 'Site Audit' },
               // { key: 'traffic-analytics', label: 'Traffic Analytics' },
               { key: 'reports', label: 'Reports' },
+              { key: 'activity', label: 'Activity' },
             ]}
           />
         </div>

@@ -6,6 +6,7 @@ import { Download, Share2, Settings, AlertCircle, ChevronRight, RefreshCw } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import SnapshotSelector from './SnapshotSelector';
 import './SiteHealthTab.css';
 
 const { Title, Text } = Typography;
@@ -90,6 +91,36 @@ const SiteHealthTab = () => {
     }
   }, [projectData]);
 
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(projectData?.siteHealth || null);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(project._id, snapshotId);
+      if (res.data.success && res.data.data) {
+        const healthData = res.data.data.siteHealth;
+        if (!healthData || !healthData.rawData || Object.keys(healthData.rawData).length === 0) {
+          setSnapshotError(true);
+        } else {
+          setLocalData(healthData);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     if (!project?._id) return;
     setRefreshing(true);
@@ -152,19 +183,26 @@ const SiteHealthTab = () => {
     { key: 'statistics', label: 'Statistics' }
   ];
 
+  const scoreColor = overallScore >= 80 ? '#38cb89' : (overallScore >= 50 ? '#faad14' : '#ff4d4f');
+
   return (
     <div className="site-audit-container">
       {/* Top Header Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Site Audit: <span style={{ color: 'var(--accent-primary)' }}>{domain}</span></Title>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 16 }}>
-            <span>Desktop</span>
-            <span>JS rendering: Disabled</span>
-            <span>Pages crawled: <span style={{ color: '#faad14', fontWeight: 600 }}>{pages_crawled}/100</span></span>
-          </div>
+          <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            Site Audit: <span style={{ color: 'var(--accent-primary)' }}>{domain}</span>
+            {overallScore !== null && <Tag color={scoreColor}>{overallScore}% Health</Tag>}
+          </Title>
+          <Text type="secondary">Review technical SEO issues affecting your website's performance.</Text>
         </div>
-        <Space>
+        
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <SnapshotSelector 
+            projectId={project?._id} 
+            tabKey="site-health" 
+            onSnapshotSelect={handleSnapshotSelect} 
+          />
           <Button 
             type="primary" 
             icon={<ReloadOutlined spin={refreshing} />} 
@@ -174,14 +212,24 @@ const SiteHealthTab = () => {
           >
             {refreshing ? 'Refreshing...' : 'Refresh Audit'}
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} />
+      {snapshotError ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Historical data not available for this snapshot.</Text>
+        </div>
+      ) : snapshotLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Loading historical data...</Text>
+        </div>
+      ) : (
+        <>
+          <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} />
 
-      {activeTab === 'overview' && (
-        <AnimatePresence mode="wait">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="site-audit-grid">
+          {activeTab === 'overview' && (
+            <AnimatePresence mode="wait">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="site-audit-grid">
             
             {/* Top Row - Only real metrics */}
             <div className="sa-col-6 sa-card">
@@ -427,6 +475,8 @@ const SiteHealthTab = () => {
         </AnimatePresence>
       )}
 
+        </>
+      )}
     </div>
   );
 };

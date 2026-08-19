@@ -24,6 +24,9 @@ router.get('/projects/:id/keyword-magic-tool', semrushController.getKeywordMagic
 // Snapshots
 router.get('/projects/:id/snapshots', semrushController.getHistoricalSnapshots);
 router.get('/projects/:id/snapshots/latest', semrushController.getLatestSnapshot);
+router.get('/projects/:id/snapshots/:snapshotId', semrushController.getSnapshotById);
+router.get('/projects/:id/activity/snapshots', semrushController.getActivitySnapshots);
+router.get('/projects/:id/activity/compare', semrushController.getActivityComparison);
 
 // Page-level sub-module refresh endpoints
 router.get('/projects/:id/domain-overview', semrushController.getDomainOverview);

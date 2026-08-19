@@ -9,6 +9,7 @@ import { semrushApi } from '../../../api/semrushApi';
 import { geoAeoApi } from '../../../api/geoAeoApi';
 import ScoreGaugeCard from '../../SEO/components/ScoreGaugeCard';
 import RecommendationsTable from '../../SEO/components/RecommendationsTable';
+import SnapshotSelector from './SnapshotSelector';
 import './DashboardTab.css';
 
 const { Title, Text } = Typography;
@@ -19,10 +20,17 @@ const DashboardTab = () => {
   const navigate = useNavigate();
 
   const domain = project?.domain;
-  const data = projectData?.overview || {};
-  const backlinks = projectData?.backlinksOverview || {};
-  const health = projectData?.siteHealth || {};
-  const keywords = projectData?.organicKeywords || [];
+
+  const [localData, setLocalData] = useState(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const displayData = localData || projectData || {};
+
+  const data = displayData.overview || {};
+  const backlinks = displayData.backlinksOverview || {};
+  const health = displayData.siteHealth || {};
+  const keywords = displayData.organicKeywords || [];
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || isNaN(num)) return 'Unavailable';
@@ -39,13 +47,35 @@ const DashboardTab = () => {
 
   const topKeywords = keywords.slice(0, 3);
 
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(null);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(project._id, snapshotId);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Rely exclusively on projectData from Outlet
+    // Rely exclusively on projectData from Outlet unless historically viewing
   }, [projectId]);
 
-  const isRefreshing = projectData?.activeJob && ['QUEUED', 'RUNNING'].includes(projectData.activeJob.status);
+  const isRefreshing = displayData.activeJob && ['QUEUED', 'RUNNING'].includes(displayData.activeJob.status);
 
-  const currentScore = projectData?.snapshot?.scores || { overall: null, seo: null, geo: null, aeo: null };
+  const currentScore = displayData.snapshot?.scores || { overall: null, seo: null, geo: null, aeo: null };
   const prevScore = {}; // Semrush snapshot doesn't track diffs natively yet without time-series queries
 
   return (
@@ -55,13 +85,31 @@ const DashboardTab = () => {
           <Title level={3} style={{ margin: 0, fontWeight: 800 }}>AI Optimization Intelligence</Title>
           <Text type="secondary">Enterprise SEO, GEO, and AEO tracking and analysis.</Text>
         </div>
-        <Button type="primary" icon={<ReloadOutlined spin={isRefreshing} />} onClick={triggerRefresh} loading={isRefreshing} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-          {isRefreshing ? 'Analyzing...' : 'Refresh AI Analysis'}
-        </Button>
+        
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <SnapshotSelector 
+            projectId={project?._id} 
+            tabKey="dashboard" 
+            onSnapshotSelect={handleSnapshotSelect} 
+          />
+          <Button type="primary" icon={<ReloadOutlined spin={isRefreshing} />} onClick={triggerRefresh} loading={isRefreshing} style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+            {isRefreshing ? 'Analyzing...' : 'Refresh AI Analysis'}
+          </Button>
+        </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {projectData && currentScore ? (
+      {snapshotError ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Historical data not available for this snapshot.</Text>
+        </div>
+      ) : snapshotLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16, color: 'var(--text-secondary)' }}>Loading analysis data...</div>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          {displayData && currentScore ? (
           <motion.div 
             key="content"
             initial={{ opacity: 0 }}
@@ -264,7 +312,8 @@ const DashboardTab = () => {
             <Text type="secondary">Click the 'Refresh AI Analysis' button above to fetch the latest insights.</Text>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+      )}
     </div>
   );
 };

@@ -40,8 +40,23 @@ export const semrushApi = {
     return response;
   },
 
+  getSnapshotById: async (id, snapshotId) => {
+    const response = await api.get(`/semrush/projects/${id}/snapshots/${snapshotId}`);
+    return response;
+  },
+
   getHistoricalSnapshots: async (id) => {
     const response = await api.get(`/semrush/projects/${id}/snapshots`);
+    return response;
+  },
+
+  getActivitySnapshots: async (id) => {
+    const response = await api.get(`/semrush/projects/${id}/activity/snapshots`);
+    return response;
+  },
+
+  getActivityComparison: async (id, params = {}) => {
+    const response = await api.get(`/semrush/projects/${id}/activity/compare`, { params });
     return response;
   },
 

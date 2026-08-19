@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import { semrushApi } from '../../../api/semrushApi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import SnapshotSelector from './SnapshotSelector';
 import './DashboardTab.css'; // Reuse styles
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,9 +38,39 @@ const PositionTrackingTab = () => {
     ? 'available' 
     : dataStatus;
 
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(projectData?.positionTracking?.data || null);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(projectId, snapshotId);
+      if (res.data.success && res.data.data) {
+        const ptData = res.data.data.positionTracking?.data;
+        if (!ptData || Object.keys(ptData).length === 0) {
+          setSnapshotError(true);
+        } else {
+          setLocalData(ptData);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
   useEffect(() => {
     // If tracking is configured but data is entirely missing (e.g. stale snapshot), trigger fetch
-    if (isConfigured && !data && !refreshing && configStatus !== 'campaign_unavailable') {
+    if (isConfigured && !data && !refreshing && configStatus !== 'campaign_unavailable' && !snapshotLoading && !snapshotError) {
       handleRefresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
