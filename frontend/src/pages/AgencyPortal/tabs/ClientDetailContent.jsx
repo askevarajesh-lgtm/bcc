@@ -32,6 +32,7 @@ const INTEGRATIONS_LIST = [
 const ClientDetailContent = ({
   selectedClient,
   allowedFeatures,
+  allowedIntegrations = [],
   getStatusColor,
   getScoreColor,
   onTaskClick,
@@ -358,10 +359,14 @@ const ClientDetailContent = ({
                   let updatedIntegrations = [...currentIntegrations];
 
                   const FEATURE_INTEGRATION_AUTO_MAP = { hrms: 'ekta', crm: 'website' };
-                  if (checked && FEATURE_INTEGRATION_AUTO_MAP[featId]) {
+                  if (FEATURE_INTEGRATION_AUTO_MAP[featId]) {
                     const linkedInt = FEATURE_INTEGRATION_AUTO_MAP[featId];
-                    if (!updatedIntegrations.includes(linkedInt)) {
-                      updatedIntegrations.push(linkedInt);
+                    if (checked) {
+                      if (!updatedIntegrations.includes(linkedInt)) {
+                        updatedIntegrations.push(linkedInt);
+                      }
+                    } else {
+                      updatedIntegrations = updatedIntegrations.filter(i => i !== linkedInt);
                     }
                   }
 

@@ -9,6 +9,7 @@ import ClientPackagesTab from './ClientPackagesTab';
 import TaxSettingsTab from '../../Settings/tabs/TaxSettingsTab';
 import NotificationsTab from '../../Settings/tabs/NotificationsTab';
 import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
+import UserManagementTab from '../../Settings/tabs/UserManagementTab';
 import { Percent, Bell, Link2 } from 'lucide-react';
 import PhoneInput from '../../../components/common/PhoneInput';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -585,14 +586,29 @@ const AgencySettingsTab = () => {
 
   const baseItems = [
     {
+      key: 'account',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><User size={16} /> My Account</span>,
+      children: <MyAccountContent />,
+    },
+    {
       key: 'agency',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Building2 size={16} /> Agency Profile</span>,
       children: <AgencyProfileContent />,
     },
     {
-      key: 'account',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><User size={16} /> My Account</span>,
-      children: <MyAccountContent />,
+      key: 'user-management',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Users size={16} /> User Management</span>,
+      children: <UserManagementTab />,
+    },
+    {
+      key: 'integrations',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={16} /> Integrations</span>,
+      children: <IntegrationsTab />,
+    },
+    {
+      key: 'tax-settings',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Percent size={16} /> Tax Settings</span>,
+      children: <TaxSettingsTab />,
     },
     {
       key: 'subscription',
@@ -605,24 +621,14 @@ const AgencySettingsTab = () => {
       children: <ClientPackagesTab />,
     },
     {
-      key: 'tax-settings',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Percent size={16} /> Tax Settings</span>,
-      children: <TaxSettingsTab />,
-    },
-    {
       key: 'notifications',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bell size={16} /> Notifications</span>,
       children: <NotificationsTab />,
     },
-    {
-      key: 'integrations',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={16} /> Integrations</span>,
-      children: <IntegrationsTab />,
-    },
   ];
 
   const items = user?.role === 'agency_manager' 
-    ? baseItems.filter(item => ['account', 'client-packages', 'tax-settings', 'notifications'].includes(item.key))
+    ? baseItems.filter(item => ['account', 'user-management', 'integrations', 'tax-settings', 'client-packages', 'notifications'].includes(item.key))
     : baseItems;
 
   return (

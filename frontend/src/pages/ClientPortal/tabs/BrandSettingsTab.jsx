@@ -384,8 +384,8 @@ const BrandSettingsTab = () => {
           tabBarStyle={{ fontWeight: 600, color: 'var(--text-secondary)' }}
           items={[
             { key: 'details', label: <span><Building size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Brand Details</span>, children: brandDetailsContent },
-            { key: 'plans', label: <span><Package size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Brand Plans</span>, children: brandPlansContent },
             { key: 'integrations', label: <span><Plug size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Integrations</span>, children: <IntegrationsTab /> },
+            { key: 'plans', label: <span><Package size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Brand Plans</span>, children: brandPlansContent },
           ]}
         />
       </motion.div>
