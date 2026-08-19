@@ -36,7 +36,7 @@ const TrafficAnalyticsTab = () => {
 
   if (configStatus !== 'available' || !data) {
     let msg = "Traffic Analytics data not available.";
-    if (configStatus === 'not_configured') msg = "Traffic Analytics — Semrush API not configured";
+    if (configStatus === 'not_configured') msg = "Traffic Analytics — SEO API not configured";
     if (configStatus === 'unavailable') msg = "Traffic Analytics — Temporarily unavailable";
     if (configStatus === 'failed') msg = "Traffic Analytics — Provider error";
     if (configStatus === 'rate_limited') msg = "Traffic Analytics — Rate limited";
@@ -76,7 +76,7 @@ const TrafficAnalyticsTab = () => {
         <Row gutter={[24, 24]}>
           <Col span={24}>
             <Card style={{ background: '#fffbe6', borderColor: '#ffe58f' }}>
-              <Text strong style={{ color: '#faad14' }}>Notice:</Text> Traffic Analytics add-on is not available on this Semrush API account. 
+              <Text strong style={{ color: '#faad14' }}>Notice:</Text> Traffic Analytics add-on is not available on this SEO API account. 
               Showing search traffic estimates based on standard Domain Analytics.
             </Card>
           </Col>

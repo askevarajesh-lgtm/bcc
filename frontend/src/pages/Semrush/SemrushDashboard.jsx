@@ -154,7 +154,7 @@ const SemrushDashboard = () => {
       key: 'name',
       render: (text, record) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Text strong style={{ color: 'var(--accent-primary)', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/semrush/${record._id}`)}>
+          <Text strong style={{ color: 'var(--accent-primary)', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/seo-aeo-geo/${record._id}`)}>
             {text}
           </Text>
           <Text type="secondary" style={{ fontSize: 12 }}>{record.domain}</Text>
@@ -258,7 +258,7 @@ const SemrushDashboard = () => {
             rowKey="_id"
             pagination={false}
             onRow={(record) => ({
-              onClick: () => navigate(`/intelligence/semrush/${record._id}`),
+              onClick: () => navigate(`/intelligence/seo-aeo-geo/${record._id}`),
               style: { cursor: 'pointer' }
             })}
           />

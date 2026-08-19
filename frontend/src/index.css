@@ -223,7 +223,7 @@ a {
   height: 112px;
   line-height: normal;
   padding: 24px 36px 20px;
-  background: rgba(255, 255, 255, 0.78) !important;
+  background: white;
   border-bottom: 1px solid rgba(226, 232, 240, 0.78);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.035);
   backdrop-filter: blur(18px);

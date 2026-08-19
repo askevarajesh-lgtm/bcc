@@ -54,7 +54,7 @@ const Semrush = () => {
     } catch (error) {
       console.error(error);
       message.error('Failed to load project data');
-      navigate('/intelligence/semrush');
+      navigate('/intelligence/seo-aeo-geo');
     } finally {
       setLoading(false);
     }
@@ -115,8 +115,8 @@ const Semrush = () => {
 
   const handleTabChange = (key) => {
     setActiveTab(key);
-    if (key === 'dashboard') navigate(`/intelligence/semrush/${projectId}`);
-    else navigate(`/intelligence/semrush/${projectId}/${key}`);
+    if (key === 'dashboard') navigate(`/intelligence/seo-aeo-geo/${projectId}`);
+    else navigate(`/intelligence/seo-aeo-geo/${projectId}/${key}`);
   };
 
   if (loading) {
@@ -138,7 +138,7 @@ const Semrush = () => {
             <Button 
               type="text" 
               icon={<ArrowLeftOutlined style={{ fontSize: '18px' }} />} 
-              onClick={() => navigate('/intelligence/semrush')} 
+              onClick={() => navigate('/intelligence/seo-aeo-geo')} 
               style={{ padding: '4px 8px' }}
             />
             <div className="semrush-domain-info">

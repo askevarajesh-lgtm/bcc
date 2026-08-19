@@ -39,10 +39,18 @@ const PhoneInput = ({
     } else if (countryCodeValue) {
       const currentCallingCode = getCountryCallingCode(internalIso);
       if (currentCallingCode !== String(countryCodeValue)) {
-        setInternalIso(getIsoFromCallingCode(String(countryCodeValue)));
+        const newIso = getIsoFromCallingCode(String(countryCodeValue));
+        setInternalIso(newIso);
+        if (onCountryIsoChange) {
+          onCountryIsoChange(newIso);
+        }
+      } else if (!isoCountryValue && onCountryIsoChange) {
+         // Even if the calling code matches internalIso, but parent's isoCountryValue is empty, 
+         // we should notify the parent of the current internalIso so the validator works.
+         onCountryIsoChange(internalIso);
       }
     }
-  }, [countryCodeValue, isoCountryValue, internalIso]);
+  }, [countryCodeValue, isoCountryValue, internalIso, onCountryIsoChange]);
 
   const countries = useMemo(() => getCountries(), []);
   

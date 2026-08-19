@@ -149,7 +149,7 @@ const BacklinkAnalyticsTab = () => {
             className="semrush-empty-state"
           >
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
-            <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from Semrush.</Text>
+            <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from the SEO module.</Text>
           </motion.div>
         )}
       </AnimatePresence>

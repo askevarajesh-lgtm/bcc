@@ -124,7 +124,7 @@ const KeywordMagicToolTab = () => {
 
   const getEmptyDescription = () => {
     if (!hasSearched) return "Enter a seed keyword to get started";
-    if (configStatus === 'not_configured') return "Keyword Magic — Semrush API not configured";
+    if (configStatus === 'not_configured') return "Keyword Magic — SEO API not configured";
     if (configStatus === 'unavailable') return "Keyword Magic — Temporarily unavailable";
     if (configStatus === 'failed') return "Keyword Magic — Provider error";
     if (configStatus === 'rate_limited') return "Keyword Magic — Rate limited";

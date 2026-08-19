@@ -151,7 +151,7 @@ const SiteHealthTab = () => {
     return (
       <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
         <Title level={4} style={{ color: '#8c8c8c' }}>No Site Audit Data</Title>
-        <Text style={{ display: 'block', marginBottom: 16 }}>Please use the 'Refresh Data' button at the top right of the dashboard to fetch the latest insights from Semrush.</Text>
+        <Text style={{ display: 'block', marginBottom: 16 }}>Please use the 'Refresh Data' button at the top right of the dashboard to fetch the latest insights from the SEO module.</Text>
       </div>
     );
   }
@@ -424,7 +424,7 @@ const SiteHealthTab = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
               )}
             </div>
 
@@ -451,7 +451,7 @@ const SiteHealthTab = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
               )}
             </div>
 
@@ -468,7 +468,7 @@ const SiteHealthTab = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by Semrush API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
               )}
             </div>
           </motion.div>

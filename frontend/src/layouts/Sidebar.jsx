@@ -207,7 +207,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
         // { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
-        { key: '/intelligence/semrush', icon: getIcon(Search), label: 'SEO/AEO/GEO' },
+        { key: '/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO' },
       ],
     },
 

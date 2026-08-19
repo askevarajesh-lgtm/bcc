@@ -317,8 +317,8 @@ const AppRoutes = () => {
           <Route path="intelligence/benchmarks" element={<Benchmarks />} />
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
-          <Route path="intelligence/semrush" element={<SemrushDashboard />} />
-          <Route path="intelligence/semrush/:projectId" element={<Semrush />}>
+          <Route path="intelligence/seo-aeo-geo" element={<SemrushDashboard />} />
+          <Route path="intelligence/seo-aeo-geo/:projectId" element={<Semrush />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardTab />} />
             <Route path="domain-overview" element={<DomainOverviewTab />} />

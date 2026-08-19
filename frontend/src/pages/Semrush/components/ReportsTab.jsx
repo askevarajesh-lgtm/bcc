@@ -194,7 +194,7 @@ const ReportsTab = () => {
       pdf.setTextColor(...textColor);
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Top organic keywords driving traffic to the domain based on Semrush data.', 14, nextY);
+      pdf.text('Top organic keywords driving traffic to the domain based on SEO Intelligence data.', 14, nextY);
       nextY += 10;
 
       const topKeywords = keywords.slice(0, 25);

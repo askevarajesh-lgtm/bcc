@@ -202,7 +202,7 @@ const PositionTrackingTab = () => {
       });
       
       if (res.data.success) {
-        message.loading({ content: 'Fetching rankings from Semrush...', key: 'tracking', duration: 0 });
+        message.loading({ content: 'Fetching keyword rankings...', key: 'tracking', duration: 0 });
         setShowWizard(false);
         
         // Immediately fetch live rankings so the table appears right away
@@ -217,7 +217,7 @@ const PositionTrackingTab = () => {
               config: { device: config.device, location: config.location }, 
               rankings: rawKeywords.map(kw => ({ keyword: kw, position: null, searchVolume: null, difficulty: null, cpc: null, intent: '', url: null }))
             });
-            message.info({ content: 'Campaign configured. Rankings will update within 24h on Semrush.', key: 'tracking', duration: 4 });
+            message.info({ content: 'Campaign configured. Rankings will update within 24h.', key: 'tracking', duration: 4 });
           }
         } catch (fetchErr) {
           message.warning({ content: 'Configured! Rankings will appear after next refresh.', key: 'tracking', duration: 3 });
@@ -482,7 +482,7 @@ const PositionTrackingTab = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 16 }}>
         <Spin size="large" />
-        <Text type="secondary">Fetching keyword rankings from Semrush...</Text>
+        <Text type="secondary">Fetching keyword rankings...</Text>
       </div>
     );
   }

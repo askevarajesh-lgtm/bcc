@@ -145,7 +145,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
       {/* Footer */}
       <div style={{ marginTop: '60px', paddingTop: '24px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
         <Text type="secondary" style={{ fontSize: '12px' }}>
-          This report was automatically generated. Data provided by Semrush via API integration.
+          This report was automatically generated. Data provided by Agency Growth OS via API integration.
         </Text>
       </div>
 

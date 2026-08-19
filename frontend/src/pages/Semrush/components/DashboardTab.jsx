@@ -204,7 +204,7 @@ const DashboardTab = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-                    No historical trend data available from Semrush
+                    No historical trend data available from SEO Intelligence
                   </div>
                 )}
               </div>            </div>
