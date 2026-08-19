@@ -353,6 +353,7 @@ exports.syncLeads = async (req, res, next) => {
     const { accessToken } = integration.config;
     let targetAccessToken = accessToken;
     const manualPage = (integration.config.pages || []).find(p => p.pageId === pageId);
+    let clientId = manualPage ? manualPage.clientId : null;
 
     if (manualPage && manualPage.accessToken && manualPage.accessToken !== accessToken) {
       targetAccessToken = manualPage.accessToken;
@@ -428,6 +429,11 @@ exports.syncLeads = async (req, res, next) => {
               });
               
               if (existing) {
+                if (clientId && !existing.clientId) {
+                  existing.clientId = clientId;
+                  existing.isClientLead = true;
+                  await existing.save();
+                }
                 duplicateCount++;
                 continue;
               }
@@ -451,6 +457,8 @@ exports.syncLeads = async (req, res, next) => {
               
               await Lead.create({
                 companyId,
+                clientId: clientId || null,
+                isClientLead: !!clientId,
                 createdBy: req.user ? req.user._id : null,
                 fullName: fullName || 'Unknown',
                 email,
@@ -679,6 +687,7 @@ exports.handleWebhook = async (req, res) => {
             const integrations = await Integration.find({ type: 'facebook_leads', isActive: true });
             let validIntegration = null;
             let pageAccessToken = null;
+            let clientId = null;
             
             for (const intg of integrations) {
               try {
@@ -686,6 +695,7 @@ exports.handleWebhook = async (req, res) => {
                 if (manualPage && manualPage.accessToken) {
                   validIntegration = intg;
                   pageAccessToken = manualPage.accessToken;
+                  clientId = manualPage.clientId;
                   break;
                 }
 
@@ -738,6 +748,8 @@ exports.handleWebhook = async (req, res) => {
             
             await Lead.create({
               companyId,
+              clientId: clientId || null,
+              isClientLead: !!clientId,
               createdBy: validIntegration.companyId, // Or a system user ID
               fullName: fullName || 'Unknown',
               email,
@@ -823,6 +835,7 @@ exports.connectManualPage = async (req, res, next) => {
         pageId: page.id,
         pageName: page.name,
         accessToken: pageAccessToken,
+        clientId: req.body.clientId || null,
         addedAt: new Date()
       });
       await Integration.findByIdAndUpdate(integration._id, {
