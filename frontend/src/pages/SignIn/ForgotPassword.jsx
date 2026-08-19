@@ -64,21 +64,15 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: values.email }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to send OTP.');
+      const res = await api.post('/auth/forgot-password', { email: values.email });
+      if (!res.data.success) {
+        throw new Error(res.data.error || 'Failed to send OTP.');
       }
       setEmail(values.email);
-      message.success(data.message);
+      message.success(res.data.message || 'OTP Sent!');
       setCurrentStep(1);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }
@@ -88,21 +82,15 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: values.otp }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Invalid OTP.');
+      const res = await api.post('/auth/verify-otp', { email, otp: values.otp });
+      if (!res.data.success) {
+        throw new Error(res.data.error || 'Invalid OTP.');
       }
       setOtp(values.otp);
       message.success('OTP Verified');
       setCurrentStep(2);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }
@@ -117,20 +105,14 @@ const ForgotPassword = () => {
       return;
     }
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, newPassword: values.password }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to reset password.');
+      const res = await api.post('/auth/reset-password', { email, otp, newPassword: values.password });
+      if (!res.data.success) {
+        throw new Error(res.data.error || 'Failed to reset password.');
       }
       message.success('Password successfully reset. You can now log in.');
       navigate('/signin');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }
