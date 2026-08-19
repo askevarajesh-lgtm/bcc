@@ -143,14 +143,16 @@ const AgencyPackagesTab = () => {
         ? [...prev.features, featureId]
         : prev.features.filter(f => f !== featureId);
 
-      // Auto-enable the linked integration when its feature is turned ON
-      // (HRMS -> Ekta HR Integration, CRM & Leads -> Lead Management
-      // Integration). Only if it exists in the DB result (availableIntegrations).
+      let nextIntegrations = prev.integrations;
       const linkedIntegration = FEATURE_INTEGRATION_AUTO_MAP[featureId];
       const existsInDb = linkedIntegration && availableIntegrations.some(i => i.type === linkedIntegration);
-      const nextIntegrations = (checked && linkedIntegration && existsInDb && !prev.integrations.includes(linkedIntegration))
-        ? [...prev.integrations, linkedIntegration]
-        : prev.integrations;
+      if (linkedIntegration && existsInDb) {
+        if (checked && !prev.integrations.includes(linkedIntegration)) {
+          nextIntegrations = [...prev.integrations, linkedIntegration];
+        } else if (!checked && prev.integrations.includes(linkedIntegration)) {
+          nextIntegrations = prev.integrations.filter(i => i !== linkedIntegration);
+        }
+      }
 
       return { ...prev, features: nextFeatures, integrations: nextIntegrations };
     });

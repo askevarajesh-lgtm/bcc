@@ -20,12 +20,23 @@ import { useAuth } from '../../contexts/AuthContext';
 const { Title, Text } = Typography;
 
 const SettingsPage = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const location = useLocation();
+
+  const hasFullCrmAccess = () => {
+    if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) return true;
+    const crm = user?.permissions?.['Workspace-CRM & Leads'];
+    if (crm) {
+      const isManagerRole = ['agency_manager', 'admin', 'brand_admin', 'brand_manager'].includes(role);
+      const isAllChecked = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerRole) && (crm.Edit || isManagerRole) && (crm.Delete || isManagerRole);
+      return isAllChecked;
+    }
+    return false;
+  };
 
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('tab') === 'integrations') return '2';
+    if (params.get('tab') === 'integrations' && hasFullCrmAccess()) return '2';
     if (location.state?.activeTab) return location.state.activeTab;
     if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) return '1';
     if (['agency_manager', 'brand_manager'].includes(role)) return '7';
@@ -34,7 +45,7 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('tab') === 'integrations') {
+    if (params.get('tab') === 'integrations' && hasFullCrmAccess()) {
       setActiveTab('2');
     } else if (location.state?.activeTab) {
       setActiveTab(location.state.activeTab);
@@ -61,7 +72,7 @@ const SettingsPage = () => {
   const renderContent = () => {
     switch(activeTab) {
       case '1': return <AgencyTab />;
-      case '2': return <IntegrationsTab />;
+      case '2': return hasFullCrmAccess() ? <IntegrationsTab /> : <UserSettingsTab />;
       case '3': return <TeamAccessTab />;
       case '4': return <NotificationsTab />;
       case '5': return <BackendConfigTab />;
@@ -96,10 +107,10 @@ const SettingsPage = () => {
   if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) {
     allowedKeys = allTabs.map(t => t.key);
   } else if (['agency_manager', 'brand_manager'].includes(role)) {
-    allowedKeys = ['2', '4', '7', '12', '9', '11'];
+    allowedKeys = [hasFullCrmAccess() ? '2' : null, '4', '7', '12', '9', '11'].filter(Boolean);
   } else {
     // agency_user, brand_team_user, client, agency_client
-    allowedKeys = ['4', '9'];
+    allowedKeys = [hasFullCrmAccess() ? '2' : null, '4', '9'].filter(Boolean);
   }
 
   const tabItems = allTabs.filter(t => allowedKeys.includes(t.key));

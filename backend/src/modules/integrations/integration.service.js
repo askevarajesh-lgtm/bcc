@@ -14,6 +14,7 @@ const ClientCompany = User;
 const {
   getEffectivePackageIntegrations,
 } = require("../packages/packageAccess.service");
+const { isSupportedProductIntegration } = require("../../utils/supportedIntegrations");
 
 const assertIntegrationEnabledForCompany = async (
   companyId,
@@ -243,11 +244,17 @@ const getAllIntegrations = async (companyId, role, user) => {
   }
 
   const integrations = await Integration.find(query).sort({ type: 1 });
+  
+  // Enforce PRODUCT integration filter for product-level listing API
+  const productIntegrations = integrations.filter(integration => 
+    isSupportedProductIntegration(integration.type)
+  );
+
   if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     // Platform admins configure integrations/packages themselves -- never
     // restricted by either the company-level gate below or Package-level
     // entitlement (Layer 2, applied further down for consuming users only).
-    return integrations;
+    return productIntegrations;
   }
 
 
@@ -258,7 +265,7 @@ const getAllIntegrations = async (companyId, role, user) => {
     return [];
   }
   const allowed = await resolveCompanyIntegrations(company);
-  const companyFiltered = integrations.filter((integration) =>
+  const companyFiltered = productIntegrations.filter((integration) =>
     Boolean(allowed[integration.type]),
   );
 
@@ -285,6 +292,11 @@ const getPaymentIntegration = async (companyId) => {
 };
 
 const createIntegration = async (integrationData, companyId, role, user) => {
+  // Reject unsupported PRODUCT integration types
+  if (!isSupportedProductIntegration(integrationData.type)) {
+    throw new Error(`Unsupported integration type: ${integrationData.type}`);
+  }
+
   // Only super admin can create platform-level integrations
   if (integrationData.companyId === null && !["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
     throw new Error("Only super admin can create platform-level integrations");
@@ -339,6 +351,11 @@ const updateIntegration = async (
   const integration = await Integration.findOne(query);
   if (!integration) {
     throw new Error("Integration not found");
+  }
+
+  // Reject modifications to non-product integrations through the generic API
+  if (!isSupportedProductIntegration(integration.type)) {
+    throw new Error(`Cannot modify internal provider via product integration API: ${integration.type}`);
   }
 
   if (!["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {

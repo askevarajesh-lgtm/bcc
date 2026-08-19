@@ -5,6 +5,7 @@ import { Building2, User, Shield, Star, Briefcase, Link, CreditCard } from 'luci
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
+import ClientIntegrationsTab from './ClientIntegrationsTab';
 
 const availableFeatures = [
   { id: 'hrms', label: 'HRMS' },
