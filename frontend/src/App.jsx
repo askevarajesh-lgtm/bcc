@@ -37,6 +37,7 @@ import SemrushDashboard from './pages/Semrush/SemrushDashboard';
 import Semrush from './pages/Semrush/Semrush';
 import DashboardTab from './pages/Semrush/components/DashboardTab';
 import PositionTrackingTab from './pages/Semrush/components/PositionTrackingTab';
+import ActivityTab from './pages/Semrush/components/ActivityTab';
 import DomainOverviewTab from './pages/Semrush/components/DomainOverviewTab';
 import OrganicKeywordsTab from './pages/Semrush/components/OrganicKeywordsTab';
 import BacklinksTab from './pages/Semrush/components/BacklinksTab';
@@ -329,6 +330,7 @@ const AppRoutes = () => {
             <Route path="site-health" element={<SiteHealthTab />} />
             <Route path="traffic-analytics" element={<TrafficAnalyticsTab />} />
             <Route path="reports" element={<ReportsTab />} />
+            <Route path="activity" element={<ActivityTab />} />
           </Route>
 
 

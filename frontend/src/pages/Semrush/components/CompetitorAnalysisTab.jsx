@@ -3,6 +3,7 @@ import { Card, Table, Typography, Space, Button, Progress, Tooltip, Row, Col, me
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import { semrushApi } from '../../../api/semrushApi';
+import SnapshotSelector from './SnapshotSelector';
 
 const { Title, Text } = Typography;
 
@@ -13,6 +14,36 @@ const CompetitorAnalysisTab = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const competitors = localData || projectData?.overview?.competitors || projectData?.competitors || [];
+
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(projectData?.overview?.competitors || projectData?.competitors || []);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(project._id, snapshotId);
+      if (res.data.success && res.data.data) {
+        const overviewData = res.data.data.overview;
+        if (!overviewData || !overviewData.competitors || overviewData.competitors.length === 0) {
+          setSnapshotError(true);
+        } else {
+          setLocalData(overviewData.competitors);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!project?._id) return;
@@ -100,42 +131,50 @@ const CompetitorAnalysisTab = () => {
   ];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
+    <div style={{ padding: '0 0 40px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>Organic Competitors</Title>
-          <Text type="secondary">Domains competing for the same keywords in organic search.</Text>
+          <Text type="secondary">Domains competing for the same organic keywords as you.</Text>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Button 
-            type="primary" 
-            icon={<ReloadOutlined spin={refreshing} />} 
-            onClick={handleRefresh} 
-            loading={refreshing}
-            style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh Data'}
-          </Button>
-          <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Export
-          </Button>
-        </div>
+        
+        <SnapshotSelector 
+          projectId={project?._id} 
+          tabKey="competitor-analysis" 
+          onSnapshotSelect={handleSnapshotSelect} 
+        />
+        
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={refreshing} />} 
+          onClick={handleRefresh} 
+          loading={refreshing}
+          style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+        >
+          {refreshing ? 'Refreshing...' : 'Refresh Competitors'}
+        </Button>
       </div>
 
-      <Row gutter={[24, 24]}>
-        <Col span={24}>
-          <Card title="Organic Competitors List">
-            <Table
-              columns={columns}
-              dataSource={competitors}
-              rowKey="domain"
-              loading={refreshing}
-              pagination={false}
-              scroll={{ x: 'max-content' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {snapshotError ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Historical data not available for this snapshot.</Text>
+        </div>
+      ) : snapshotLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Loading historical data...</Text>
+        </div>
+      ) : (
+        <Card title="Organic Competitors List" bordered={false} style={{ borderRadius: 12 }}>
+          <Table
+            columns={columns}
+            dataSource={competitors}
+            rowKey="domain"
+            loading={refreshing}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+          />
+        </Card>
+      )}
     </div>
   );
 };

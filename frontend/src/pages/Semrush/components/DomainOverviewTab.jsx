@@ -6,6 +6,7 @@ import { ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, BarChart, Bar } from 'recharts';
 import { useOutletContext, useNavigate } from 'react-router-dom';
+import SnapshotSelector from './SnapshotSelector';
 import './DomainOverview.css'; 
 
 const { Title, Text } = Typography;
@@ -20,6 +21,36 @@ const DomainOverviewTab = () => {
 
   const data = localData || projectData?.overview || {};
   const backlinksData = projectData?.backlinksOverview || {};
+
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const handleSnapshotSelect = async (snapshotId) => {
+    if (snapshotId === 'latest') {
+      setLocalData(projectData?.overview || null);
+      setSnapshotError(false);
+      return;
+    }
+    
+    setSnapshotLoading(true);
+    setSnapshotError(false);
+    try {
+      const res = await semrushApi.getSnapshotById(project._id, snapshotId);
+      if (res.data.success && res.data.data) {
+        const overviewData = res.data.data.overview;
+        if (!overviewData || Object.keys(overviewData).length === 0) {
+          setSnapshotError(true);
+        } else {
+          setLocalData(overviewData);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSnapshotError(true);
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!project?._id) return;
@@ -87,8 +118,13 @@ const DomainOverviewTab = () => {
 
   return (
     <div className="so-overview-container">
-      {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <SnapshotSelector 
+          projectId={project?._id} 
+          tabKey="domain-overview" 
+          onSnapshotSelect={handleSnapshotSelect} 
+        />
+        
         <Button 
           type="primary" 
           icon={<ReloadOutlined spin={refreshing} />} 
@@ -100,8 +136,19 @@ const DomainOverviewTab = () => {
         </Button>
       </div>
 
-      <div className="so-card">
-        <div className="so-card-header" style={{ marginBottom: 12 }}>
+      {snapshotError ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Historical data not available for this snapshot.</Text>
+        </div>
+      ) : snapshotLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <Text type="secondary">Loading historical data...</Text>
+        </div>
+      ) : (
+        <>
+          {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
+          <div className="so-card">
+            <div className="so-card-header" style={{ marginBottom: 12 }}>
           <div className="so-badge" style={{ background: '#e6f7ff', color: 'var(--accent-primary)', fontWeight: 600 }}>SEO</div>
         </div>
         <div className="so-seo-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
@@ -317,6 +364,8 @@ const DomainOverviewTab = () => {
         </div>
       </div>
       
+        </>
+      )}
     </div>
   );
 };

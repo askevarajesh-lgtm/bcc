@@ -8,6 +8,7 @@ const startCalendarScheduler = require('./src/modules/calendar/calendar.schedule
 const seoCronService = require('./src/modules/seoIntelligence/services/cron.service');
 const workspaceCronService = require('./src/modules/seoWorkspace/services/workspaceCron.service');
 const { startInvoiceCron } = require('./src/modules/invoices/invoiceCron.service');
+const semrushRefreshWorker = require('./src/modules/semrush/refresh.job');
 
 const PORT = process.env.PORT || 5500;
 
@@ -22,5 +23,6 @@ connectDB().then(() => {
     seoCronService.start();
     workspaceCronService.start();
     startInvoiceCron();
+    semrushRefreshWorker.startCron();
   });
 });

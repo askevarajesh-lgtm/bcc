@@ -11,6 +11,37 @@ class IntelligenceRefreshWorker {
     this.leaseTimeoutMs = 5 * 60 * 1000; // 5 minutes
   }
 
+  startCron() {
+    const cron = require('node-cron');
+    // Run daily at midnight local application time
+    cron.schedule('0 0 * * *', async () => {
+      console.log('[SemrushRefreshWorker] Running daily midnight refresh...');
+      try {
+        const projects = await SemrushProject.find({ isActive: true });
+        for (const project of projects) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          const existingSnapshot = await OptimizationSnapshot.findOne({
+            projectId: project._id,
+            collectedAt: { $gte: today, $lt: tomorrow }
+          });
+
+          if (!existingSnapshot) {
+            const db = project.trackingConfig?.location || 'us';
+            await this.queueRefresh(project._id, project.companyId, db);
+            console.log(`[SemrushRefreshWorker] Queued daily refresh for project: ${project.domain}`);
+          }
+        }
+      } catch (err) {
+        console.error('[SemrushRefreshWorker] Error in daily cron:', err);
+      }
+    });
+    console.log('[SemrushRefreshWorker] Daily midnight cron scheduled.');
+  }
+
   async recoverStaleJobs() {
     const staleThreshold = new Date(Date.now() - this.leaseTimeoutMs);
     await IntelligenceRefreshJob.updateMany(
