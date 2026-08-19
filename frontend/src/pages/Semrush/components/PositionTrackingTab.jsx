@@ -127,6 +127,16 @@ const PositionTrackingTab = () => {
         const intentCode = String(r.intent || '').split(',')[0];
         const intentMap = { '0': 'C', '1': 'I', '2': 'N', '3': 'T' };
         
+        let diff = '-';
+        if (r.position !== null && r.previousPosition !== null && r.position !== '> 100' && r.previousPosition !== '> 100') {
+          const pos = Number(r.position);
+          const prevPos = Number(r.previousPosition);
+          if (prevPos > 0 && prevPos !== pos) {
+            const d = prevPos - pos;
+            diff = d > 0 ? `+${d}` : `${d}`;
+          }
+        }
+        
         const rowData = [
           r.keyword || '',
           intentMap[intentCode] || '-',
@@ -134,7 +144,7 @@ const PositionTrackingTab = () => {
           r.difficulty !== null && r.difficulty !== undefined ? String(r.difficulty) : '-',
           r.previousPosition || '-',
           r.position || '-',
-          r.positionDiff !== null && r.positionDiff !== undefined ? String(r.positionDiff) : '-',
+          diff,
           r.visibility ? `${Number(r.visibility).toFixed(2)}%` : '0.00%',
           r.traffic ? Number(r.traffic).toLocaleString() : '0',
           r.searchVolume ? Number(r.searchVolume).toLocaleString() : '-',

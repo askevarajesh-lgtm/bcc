@@ -118,38 +118,162 @@ const ActivityTab = () => {
     });
   };
 
-  const renderDelta = (item) => {
-    if (!item) return <Text type="secondary">Not available</Text>;
-    if (item.status === 'unchanged') return <Text type="secondary"><MinusOutlined /> {item.curr !== null ? item.curr : 'Not available'}</Text>;
-    if (item.status === 'improved') return <Text type="success"><ArrowUpOutlined /> {item.curr} (+{item.delta})</Text>;
-    if (item.status === 'regression') return <Text type="danger"><ArrowDownOutlined /> {item.curr} ({item.delta})</Text>;
-    return <Text>{item.curr}</Text>;
-  };
+
 
   const renderScoreCard = (title, item) => {
     let color = 'var(--text-secondary)';
     let prefix = <MinusOutlined />;
+    let bgColor = 'var(--bg-primary)';
+    let accentColor = '#d9d9d9'; // Default gray
+    let tagColor = 'default';
+    let tagText = 'Unchanged';
     
     if (item?.status === 'improved') {
       color = '#38cb89';
       prefix = <ArrowUpOutlined />;
+      bgColor = 'linear-gradient(145deg, rgba(56, 203, 137, 0.1) 0%, var(--bg-primary) 100%)';
+      accentColor = '#38cb89';
+      tagColor = 'success';
+      tagText = 'Improved';
     } else if (item?.status === 'regression') {
       color = '#ff4d4f';
       prefix = <ArrowDownOutlined />;
+      bgColor = 'linear-gradient(145deg, rgba(255, 77, 79, 0.1) 0%, var(--bg-primary) 100%)';
+      accentColor = '#ff4d4f';
+      tagColor = 'error';
+      tagText = 'Declined';
+    } else if (item?.status === 'unchanged') {
+       color = 'var(--text-secondary)';
+       bgColor = 'linear-gradient(145deg, rgba(140, 140, 140, 0.05) 0%, var(--bg-primary) 100%)';
+       accentColor = '#d9d9d9';
+    }
+
+    const value = item?.curr !== null && item?.curr !== undefined ? item.curr : 'N/A';
+    const prevValue = item?.prev !== null && item?.prev !== undefined ? item.prev : 'N/A';
+
+    return (
+      <Card 
+        bordered={false} 
+        bodyStyle={{ padding: '20px 24px' }}
+        style={{ 
+          borderRadius: 16, 
+          height: '100%', 
+          background: bgColor,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)',
+          borderTop: `4px solid ${accentColor}`,
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        }}
+        hoverable
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</Text>
+          <Tag color={tagColor} style={{ margin: 0, borderRadius: 12, fontWeight: 500, padding: '0 8px' }}>{tagText}</Tag>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+            {value}
+          </span>
+          {item?.delta !== undefined && item?.delta !== 0 && (
+            <span style={{ 
+              fontSize: 14, 
+              fontWeight: 600, 
+              color,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              {prefix} {Math.abs(item.delta)}
+            </span>
+          )}
+          {item?.delta === 0 && item?.status === 'unchanged' && value !== 'N/A' && (
+             <span style={{ fontSize: 14, fontWeight: 600, color }}>
+               <MinusOutlined /> 0
+             </span>
+          )}
+        </div>
+
+        <div style={{ 
+          paddingTop: 12, 
+          borderTop: '1px dashed rgba(0,0,0,0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Previous: <strong style={{ color: 'var(--text-primary)' }}>{prevValue}</strong>
+          </Text>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderSummaryCard = (title, value, type) => {
+    let color = '#8c8c8c';
+    let prefix = <MinusOutlined />;
+    let bgColor = 'var(--bg-primary)';
+    let accentColor = '#d9d9d9'; // Default gray
+    let iconBg = 'rgba(140, 140, 140, 0.1)';
+    
+    if (type === 'improvements') {
+      color = '#38cb89';
+      prefix = <ArrowUpOutlined />;
+      bgColor = 'linear-gradient(135deg, rgba(56, 203, 137, 0.1) 0%, var(--bg-primary) 100%)';
+      accentColor = '#38cb89';
+      iconBg = 'rgba(56, 203, 137, 0.15)';
+    } else if (type === 'regressions') {
+      color = '#ff4d4f';
+      prefix = <ArrowDownOutlined />;
+      bgColor = 'linear-gradient(135deg, rgba(255, 77, 79, 0.1) 0%, var(--bg-primary) 100%)';
+      accentColor = '#ff4d4f';
+      iconBg = 'rgba(255, 77, 79, 0.15)';
+    } else if (type === 'unchanged') {
+       color = '#8c8c8c';
+       bgColor = 'linear-gradient(135deg, rgba(140, 140, 140, 0.05) 0%, var(--bg-primary) 100%)';
+       accentColor = '#d9d9d9';
+       iconBg = 'rgba(140, 140, 140, 0.15)';
     }
 
     return (
-      <Card bordered={false} style={{ borderRadius: 12, height: '100%' }}>
-        <Statistic
-          title={title}
-          value={item?.curr !== null ? item.curr : 'Not available'}
-          precision={0}
-          valueStyle={{ color, fontWeight: 600 }}
-          prefix={prefix}
-          suffix={item?.delta ? <span style={{ fontSize: 14, marginLeft: 8 }}>({item.delta > 0 ? '+' : ''}{item.delta})</span> : null}
-        />
-        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-          Previous: {item?.prev !== null ? item.prev : 'Not available'}
+      <Card 
+        bordered={false} 
+        bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column' }}
+        style={{ 
+          borderRadius: 16, 
+          height: '100%', 
+          background: bgColor,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)',
+          borderBottom: `4px solid ${accentColor}`,
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        }}
+        hoverable
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <Text style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
+              {title}
+            </Text>
+            <span style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+              {value}
+            </span>
+          </div>
+          <div style={{ 
+            width: 48, 
+            height: 48, 
+            borderRadius: 12, 
+            background: iconBg,
+            color: color,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 24
+          }}>
+            {prefix}
+          </div>
         </div>
       </Card>
     );
@@ -256,52 +380,34 @@ const ActivityTab = () => {
             </Text>
           </div>
 
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col span={6}>
-              <Card bordered={false} style={{ background: 'var(--bg-secondary)', borderRadius: 12 }}>
-                <Statistic title="Improvements" value={comparison.summary.improvements} valueStyle={{ color: '#38cb89' }} prefix={<ArrowUpOutlined />} />
-              </Card>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}>
+              {renderSummaryCard('Improvements', comparison.summary.improvements, 'improvements')}
             </Col>
-            <Col span={6}>
-              <Card bordered={false} style={{ background: 'var(--bg-secondary)', borderRadius: 12 }}>
-                <Statistic title="Regressions" value={comparison.summary.regressions} valueStyle={{ color: '#ff4d4f' }} prefix={<ArrowDownOutlined />} />
-              </Card>
+            <Col xs={24} sm={8}>
+              {renderSummaryCard('Regressions', comparison.summary.regressions, 'regressions')}
             </Col>
-            <Col span={6}>
-              <Card bordered={false} style={{ background: 'var(--bg-secondary)', borderRadius: 12 }}>
-                <Statistic title="Unchanged Metrics" value={comparison.summary.unchanged} valueStyle={{ color: 'var(--text-secondary)' }} prefix={<MinusOutlined />} />
-              </Card>
+            <Col xs={24} sm={8}>
+              {renderSummaryCard('Unchanged Metrics', comparison.summary.unchanged, 'unchanged')}
             </Col>
           </Row>
 
           <Title level={5}>Overall Scores</Title>
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col span={6}>{renderScoreCard('Overall Score', comparison.scores.overall)}</Col>
-            <Col span={6}>{renderScoreCard('SEO Score', comparison.scores.seo)}</Col>
-            <Col span={6}>{renderScoreCard('AEO Score', comparison.scores.aeo)}</Col>
-            <Col span={6}>{renderScoreCard('GEO Score', comparison.scores.geo)}</Col>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={12} lg={6}>{renderScoreCard('Overall Score', comparison.scores.overall)}</Col>
+            <Col xs={24} sm={12} lg={6}>{renderScoreCard('SEO Score', comparison.scores.seo)}</Col>
+            <Col xs={24} sm={12} lg={6}>{renderScoreCard('AEO Score', comparison.scores.aeo)}</Col>
+            <Col xs={24} sm={12} lg={6}>{renderScoreCard('GEO Score', comparison.scores.geo)}</Col>
           </Row>
 
           <Title level={5}>SEO Metrics Change</Title>
-          <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col span={8} style={{ marginBottom: 16 }}>
-                <Text type="secondary">Authority Score:</Text> {renderDelta(comparison.seo.authorityScore)}
-              </Col>
-              <Col span={8} style={{ marginBottom: 16 }}>
-                <Text type="secondary">Organic Traffic:</Text> {renderDelta(comparison.seo.organicTraffic)}
-              </Col>
-              <Col span={8} style={{ marginBottom: 16 }}>
-                <Text type="secondary">Organic Keywords:</Text> {renderDelta(comparison.seo.organicKeywords)}
-              </Col>
-              <Col span={8}>
-                <Text type="secondary">Backlinks:</Text> {renderDelta(comparison.seo.backlinks)}
-              </Col>
-              <Col span={8}>
-                <Text type="secondary">Site Health Score:</Text> {renderDelta(comparison.seo.technicalScore)}
-              </Col>
-            </Row>
-          </Card>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={12} lg={8}>{renderScoreCard('Authority Score', comparison.seo.authorityScore)}</Col>
+            <Col xs={24} sm={12} lg={8}>{renderScoreCard('Organic Traffic', comparison.seo.organicTraffic)}</Col>
+            <Col xs={24} sm={12} lg={8}>{renderScoreCard('Organic Keywords', comparison.seo.organicKeywords)}</Col>
+            <Col xs={24} sm={12} lg={8}>{renderScoreCard('Backlinks', comparison.seo.backlinks)}</Col>
+            <Col xs={24} sm={12} lg={8}>{renderScoreCard('Site Health Score', comparison.seo.technicalScore)}</Col>
+          </Row>
 
           {comparison.positionTracking && (comparison.positionTracking.improved.length > 0 || comparison.positionTracking.declined.length > 0 || comparison.positionTracking.new.length > 0 || comparison.positionTracking.unavailable.length > 0) && (
             <>
@@ -318,35 +424,30 @@ const ActivityTab = () => {
             </>
           )}
 
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col span={12}>
-              <Title level={5}>AEO Metrics Change</Title>
-              <Card bordered={false} style={{ borderRadius: 12, minHeight: 150 }}>
-                {Object.keys(comparison.aeo).length === 0 ? (
-                  <Text type="secondary">Not available</Text>
-                ) : (
-                  Object.keys(comparison.aeo).map(key => (
-                    <div key={key} style={{ marginBottom: 8 }}>
-                      <Text type="secondary" style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1')}:</Text> {renderDelta(comparison.aeo[key])}
-                    </div>
-                  ))
-                )}
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Title level={5}>GEO Metrics Change</Title>
-              <Card bordered={false} style={{ borderRadius: 12, minHeight: 150 }}>
-                {Object.keys(comparison.geo).length === 0 ? (
-                  <Text type="secondary">Not available</Text>
-                ) : (
-                  Object.keys(comparison.geo).map(key => (
-                    <div key={key} style={{ marginBottom: 8 }}>
-                      <Text type="secondary" style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1')}:</Text> {renderDelta(comparison.geo[key])}
-                    </div>
-                  ))
-                )}
-              </Card>
-            </Col>
+          <Title level={5}>AEO Metrics Change</Title>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            {Object.keys(comparison.aeo).length === 0 ? (
+              <Col span={24}><Text type="secondary">Not available</Text></Col>
+            ) : (
+              Object.keys(comparison.aeo).map(key => (
+                <Col xs={24} sm={12} lg={6} key={key}>
+                  {renderScoreCard(key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()), comparison.aeo[key])}
+                </Col>
+              ))
+            )}
+          </Row>
+
+          <Title level={5}>GEO Metrics Change</Title>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            {Object.keys(comparison.geo).length === 0 ? (
+              <Col span={24}><Text type="secondary">Not available</Text></Col>
+            ) : (
+              Object.keys(comparison.geo).map(key => (
+                <Col xs={24} sm={12} lg={6} key={key}>
+                  {renderScoreCard(key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()), comparison.geo[key])}
+                </Col>
+              ))
+            )}
           </Row>
 
           {comparison.siteHealth && (comparison.siteHealth.resolved.length > 0 || comparison.siteHealth.new.length > 0) && (

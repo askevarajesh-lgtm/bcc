@@ -41,7 +41,7 @@ const ReportsTab = () => {
   const handleExportPDF = () => {
     try {
       setGenerating(true);
-      message.loading({ content: 'Generating PDF Report...', key: 'pdfGen' });
+      message.loading({ content: 'Generating Comprehensive SEO Report...', key: 'pdfGen' });
 
       const pdf = new jsPDF({
         orientation: 'p',
@@ -53,6 +53,10 @@ const ReportsTab = () => {
       const backlinks = projectData?.backlinksOverview || {};
       const health = projectData?.siteHealth || {};
       const keywords = projectData?.organicKeywords || [];
+      const trackingRankings = projectData?.positionTracking?.data?.rankings || [];
+      const competitors = projectData?.overview?.competitors || [];
+      const rawBacklinks = backlinks.rawBacklinks || [];
+      const auditData = health.rawData || {};
 
       const formatNumber = (num) => {
         if (!num && num !== 0) return '0';
@@ -61,26 +65,65 @@ const ReportsTab = () => {
         return Number(num).toLocaleString();
       };
 
-      // Header
-      pdf.setFontSize(24);
-      pdf.setTextColor(17, 24, 39);
-      pdf.text('SEO Performance Report', 14, 22);
+      const primaryColor = [22, 119, 255]; // Blue
+      const successColor = [56, 203, 137]; // Green
+      const warningColor = [250, 140, 22]; // Orange
+      const errorColor = [255, 77, 79]; // Red
+      const headerColor = [240, 245, 255];
+      const textColor = [31, 41, 55];
+      const secondaryColor = [107, 114, 128];
 
-      pdf.setFontSize(10);
-      pdf.setTextColor(107, 114, 128);
-      pdf.text(`Prepared for ${project?.domain || 'Unknown Domain'}`, 14, 30);
-      pdf.text(`Generated On ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 140, 30);
+      // --- PAGE 1: COVER PAGE ---
+      pdf.setFillColor(...primaryColor);
+      pdf.rect(0, 0, 210, 297, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(48);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('SEO Performance', 20, 100);
+      pdf.text('Report', 20, 120);
 
-      pdf.setDrawColor(240, 240, 240);
-      pdf.line(14, 35, 196, 35);
-
-      // Executive Summary
       pdf.setFontSize(16);
-      pdf.setTextColor(55, 65, 81);
-      pdf.text('Executive Summary', 14, 45);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Comprehensive Analysis for:`, 20, 150);
+      
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${project?.domain || 'Unknown Domain'}`, 20, 160);
+
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Generated on: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 20, 270);
+      
+      pdf.text(`Agency Growth OS`, 160, 270);
+
+      // --- PAGE 2: EXECUTIVE SUMMARY ---
+      pdf.addPage();
+      
+      // Page Header helper
+      const addPageHeader = (title) => {
+        pdf.setFillColor(250, 250, 250);
+        pdf.rect(0, 0, 210, 30, 'F');
+        pdf.setTextColor(...primaryColor);
+        pdf.setFontSize(24);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(title, 14, 20);
+        pdf.setDrawColor(...primaryColor);
+        pdf.setLineWidth(1);
+        pdf.line(14, 25, 196, 25);
+      };
+
+      addPageHeader('Executive Summary');
+      let nextY = 40;
+
+      pdf.setTextColor(...textColor);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('This section provides a high-level overview of the most critical SEO KPIs.', 14, nextY);
+      nextY += 15;
 
       autoTable(pdf, {
-        startY: 50,
+        startY: nextY,
         head: [['Authority Score', 'Organic Traffic', 'Organic Keywords', 'Paid Keywords']],
         body: [[
             String(backlinks.score || data['Rank'] || '0'),
@@ -89,116 +132,179 @@ const ReportsTab = () => {
             formatNumber(data['Adwords Traffic'])
         ]],
         theme: 'grid',
-        headStyles: { fillColor: [248, 250, 252], textColor: [107, 114, 128], halign: 'center' },
-        bodyStyles: { halign: 'center', fontSize: 14, fontStyle: 'bold', textColor: [15, 23, 42] },
-        alternateRowStyles: { fillColor: [255, 255, 255] }
+        headStyles: { fillColor: primaryColor, textColor: 255, halign: 'center', fontSize: 12 },
+        bodyStyles: { halign: 'center', fontSize: 16, fontStyle: 'bold', textColor: textColor },
+        margin: { left: 14, right: 14 }
       });
 
-      let nextY = pdf.lastAutoTable.finalY + 15;
+      nextY = pdf.lastAutoTable.finalY + 20;
 
-      // Backlinks Profile
-      pdf.setFontSize(14);
-      pdf.setTextColor(55, 65, 81);
+      // Site Health Summary
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Site Health Summary', 14, nextY);
+      nextY += 10;
+      
+      const errorsData = Array.isArray(auditData.errors) ? auditData.errors : [];
+      const warningsData = Array.isArray(auditData.warnings) ? auditData.warnings : [];
+      const errorsCount = errorsData.reduce((acc, curr) => acc + curr.count, 0);
+      const warningsCount = warningsData.reduce((acc, curr) => acc + curr.count, 0);
+
+      autoTable(pdf, {
+        startY: nextY,
+        head: [['Health Score', 'Passed Checks', 'Errors', 'Warnings']],
+        body: [[
+            `${health.overallScore ?? 'N/A'}%`,
+            formatNumber(auditData.healthy || 0),
+            formatNumber(errorsCount),
+            formatNumber(warningsCount)
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: headerColor, textColor: textColor, halign: 'center' },
+        bodyStyles: { halign: 'center', fontSize: 14, fontStyle: 'bold', textColor: textColor },
+      });
+      
+      nextY = pdf.lastAutoTable.finalY + 20;
+
+      // Backlink Summary
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Backlink Profile', 14, nextY);
+      nextY += 10;
       
       autoTable(pdf, {
-        startY: nextY + 5,
-        head: [['Total Backlinks', 'Ref. Domains', 'Follow Links']],
+        startY: nextY,
+        head: [['Total Backlinks', 'Referring Domains', 'Follow Links', 'No-Follow']],
         body: [[
             formatNumber(backlinks.total || backlinks.backlinks),
-            formatNumber(backlinks.backlinksDetails?.referringDomains || 0),
-            formatNumber(backlinks.backlinksDetails?.follow || 0)
+            formatNumber(backlinks.backlinksDetails?.referringDomains || backlinks.referringDomains || 0),
+            formatNumber(backlinks.backlinksDetails?.follow || backlinks.follow || 0),
+            formatNumber(backlinks.backlinksDetails?.nofollow || backlinks.nofollow || 0)
         ]],
         theme: 'grid',
-        headStyles: { fillColor: [248, 250, 252], textColor: [107, 114, 128], halign: 'center' },
-        bodyStyles: { halign: 'center', fontSize: 12, fontStyle: 'bold', textColor: [15, 23, 42] },
-        margin: { right: 105 } // Left side
+        headStyles: { fillColor: headerColor, textColor: textColor, halign: 'center' },
+        bodyStyles: { halign: 'center', fontSize: 14, fontStyle: 'bold', textColor: textColor },
       });
 
-      const leftTableY = pdf.lastAutoTable.finalY;
+      // --- PAGE 3: ORGANIC KEYWORDS ---
+      pdf.addPage();
+      addPageHeader('Organic Search Performance');
+      nextY = 40;
 
-      // Site Health
-      pdf.text('Site Health', 110, nextY);
-      autoTable(pdf, {
-        startY: nextY + 5,
-        head: [['Health Score', 'Passed Checks', 'Issues']],
-        body: [[
-            `${health.overallScore ?? 'N/A'}`,
-            formatNumber(health.siteHealthDetails?.healthy || 0),
-            formatNumber((health.siteHealthDetails?.errors?.length || 0) + (health.siteHealthDetails?.warnings?.length || 0))
-        ]],
-        theme: 'grid',
-        headStyles: { fillColor: [248, 250, 252], textColor: [107, 114, 128], halign: 'center' },
-        bodyStyles: { halign: 'center', fontSize: 12, fontStyle: 'bold', textColor: [15, 23, 42] },
-        margin: { left: 110 } // Right side
-      });
+      pdf.setTextColor(...textColor);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Top organic keywords driving traffic to the domain based on Semrush data.', 14, nextY);
+      nextY += 10;
 
-      const rightTableY = pdf.lastAutoTable.finalY;
-      nextY = Math.max(leftTableY, rightTableY) + 15;
-
-      // Top Organic Keywords Table
-      pdf.setFontSize(16);
-      pdf.setTextColor(55, 65, 81);
-      pdf.text('Top Organic Keywords', 14, nextY);
-
-      const topKeywords = keywords.slice(0, 20);
-      const keywordsRows = topKeywords.map(k => [
-        k.keyword || '',
-        k.position || '-',
-        formatNumber(k.searchVolume),
-        k.keywordDifficulty || '-',
-        k.cpc || '-'
-      ]);
-
-      if (keywordsRows.length > 0) {
-          autoTable(pdf, {
-            startY: nextY + 5,
-            head: [['Keyword', 'Position', 'Search Volume', 'KD %', 'CPC ($)']],
-            body: keywordsRows,
-            theme: 'grid',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 10 }
-          });
-          nextY = pdf.lastAutoTable.finalY + 15;
-      } else {
-          pdf.setFontSize(10);
-          pdf.text('No organic keyword data available for this domain.', 14, nextY + 10);
-          nextY += 20;
-      }
-
-      // Position Tracking
-      const trackingRankings = projectData?.positionTracking?.data?.rankings || [];
-      if (trackingRankings.length > 0) {
-        pdf.setFontSize(16);
-        pdf.setTextColor(55, 65, 81);
-        pdf.text('Position Tracking', 14, nextY);
-        
-        const trackingRows = trackingRankings.slice(0, 20).map(k => [
+      const topKeywords = keywords.slice(0, 25);
+      if (topKeywords.length > 0) {
+        const keywordsRows = topKeywords.map(k => [
           k.keyword || '',
           k.position || '-',
           formatNumber(k.searchVolume),
-          k.difficulty || '-'
+          k.keywordDifficulty || '-',
+          k.cpc || '-'
         ]);
 
         autoTable(pdf, {
-          startY: nextY + 5,
-          head: [['Keyword', 'Current Position', 'Search Volume', 'Difficulty %']],
-          body: trackingRows,
-          theme: 'grid',
-          headStyles: { fillColor: [114, 46, 209] }, // Purple
-          styles: { fontSize: 10 }
+          startY: nextY,
+          head: [['Keyword', 'Position', 'Search Volume', 'KD %', 'CPC ($)']],
+          body: keywordsRows,
+          theme: 'striped',
+          headStyles: { fillColor: primaryColor, textColor: 255 },
+          styles: { fontSize: 10, textColor: textColor },
+          alternateRowStyles: { fillColor: [249, 250, 251] }
         });
-        nextY = pdf.lastAutoTable.finalY + 15;
+      } else {
+        pdf.text('No organic keyword data available.', 14, nextY + 10);
       }
 
-      // Competitor Analysis
-      const competitors = projectData?.overview?.competitors || [];
+      // --- PAGE 4: POSITION TRACKING ---
+      if (trackingRankings.length > 0) {
+        pdf.addPage();
+        addPageHeader('Position Tracking');
+        nextY = 40;
+        
+        pdf.setTextColor(...textColor);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Current rankings and visibility for tracked target keywords.', 14, nextY);
+        nextY += 10;
+
+        const trackingRows = trackingRankings.slice(0, 25).map(k => {
+          let diff = '-';
+          if (k.position !== null && k.previousPosition !== null && k.position !== '> 100' && k.previousPosition !== '> 100') {
+            const pos = Number(k.position);
+            const prevPos = Number(k.previousPosition);
+            if (prevPos > 0 && prevPos !== pos) {
+              const d = prevPos - pos;
+              diff = d > 0 ? `+${d}` : `${d}`;
+            }
+          }
+          
+          return [
+            k.keyword || '',
+            k.previousPosition || '-',
+            k.position || '-',
+            diff,
+            k.visibility ? `${Number(k.visibility).toFixed(2)}%` : '0.00%',
+            k.traffic ? formatNumber(k.traffic) : '0',
+            formatNumber(k.searchVolume)
+          ];
+        });
+
+        autoTable(pdf, {
+          startY: nextY,
+          head: [['Keyword', 'Prev. Pos', 'Curr. Pos', 'Diff', 'Visibility', 'Est. Traffic', 'Volume']],
+          body: trackingRows,
+          theme: 'striped',
+          headStyles: { fillColor: [114, 46, 209] }, // Purple
+          styles: { fontSize: 9, textColor: textColor },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+          columnStyles: { 0: { cellWidth: 50 } } // Give keyword more space
+        });
+      }
+
+      // --- PAGE 5: TOP BACKLINKS & COMPETITORS ---
+      pdf.addPage();
+      addPageHeader('Top Backlinks & Competitors');
+      nextY = 40;
+
+      if (rawBacklinks.length > 0) {
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Top Referring Backlinks', 14, nextY);
+        nextY += 10;
+        
+        const topBacklinks = rawBacklinks.slice(0, 15);
+        const tableRows = topBacklinks.map(r => [
+          r.page_as || r.pageAs || '-',
+          r.source_url || '-',
+          r.anchor || '-',
+          r.isFollow === false ? 'No' : 'Yes'
+        ]);
+
+        autoTable(pdf, {
+          startY: nextY,
+          head: [['Page AS', 'Source URL', 'Anchor', 'Follow']],
+          body: tableRows,
+          theme: 'grid',
+          headStyles: { fillColor: successColor, textColor: 255 },
+          styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
+          columnStyles: { 1: { cellWidth: 70 }, 2: { cellWidth: 40 } }
+        });
+        nextY = pdf.lastAutoTable.finalY + 20;
+      }
+
       if (competitors.length > 0) {
         pdf.setFontSize(16);
-        pdf.setTextColor(55, 65, 81);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...textColor);
         pdf.text('Main Competitors', 14, nextY);
+        nextY += 10;
         
-        const compRows = competitors.slice(0, 15).map(c => [
+        const compRows = competitors.slice(0, 10).map(c => [
           c.domain || '',
           formatNumber(c.competitorRelevance || 0),
           formatNumber(c.commonKeywords || 0),
@@ -206,16 +312,57 @@ const ReportsTab = () => {
         ]);
 
         autoTable(pdf, {
-          startY: nextY + 5,
+          startY: nextY,
           head: [['Competitor Domain', 'Relevance Score', 'Common Keywords', 'Total Keywords']],
           body: compRows,
-          theme: 'grid',
-          headStyles: { fillColor: [250, 140, 22] }, // Orange
+          theme: 'striped',
+          headStyles: { fillColor: warningColor, textColor: 255 },
           styles: { fontSize: 10 }
         });
       }
 
-      pdf.save(`${project?.domain?.replace(/\./g, '_') || 'project'}_SEO_Report.pdf`);
+      // --- PAGE 6: TECHNICAL SEO ISSUES ---
+      if (errorsCount > 0 || warningsCount > 0) {
+        pdf.addPage();
+        addPageHeader('Technical SEO Issues');
+        nextY = 40;
+
+        const addIssueTable = (title, issueData, bgColor) => {
+          const issues = issueData.map(d => ({ name: getIssueName(d.id), count: d.count })).filter(d => d.count > 0).sort((a, b) => b.count - a.count).slice(0, 15);
+          
+          if (issues.length > 0) {
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...textColor);
+            pdf.text(title, 14, nextY);
+            nextY += 5;
+            
+            autoTable(pdf, {
+              startY: nextY,
+              head: [['Issue Description', 'Pages Affected']],
+              body: issues.map(i => [i.name, formatNumber(i.count)]),
+              theme: 'grid',
+              headStyles: { fillColor: bgColor, textColor: 255 },
+              styles: { fontSize: 10 }
+            });
+            nextY = pdf.lastAutoTable.finalY + 15;
+          }
+        };
+
+        if (errorsCount > 0) addIssueTable('Top Errors', errorsData, errorColor);
+        if (warningsCount > 0) addIssueTable('Top Warnings', warningsData, warningColor);
+      }
+
+      // --- ADD PAGE NUMBERS ---
+      const pageCount = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(10);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`Page ${i} of ${pageCount}`, 196, 290, { align: 'right' });
+      }
+
+      pdf.save(`${project?.domain?.replace(/\./g, '_') || 'project'}_SEO_Comprehensive_Report.pdf`);
       
       message.success({ content: 'Report generated successfully!', key: 'pdfGen', duration: 3 });
     } catch (error) {
