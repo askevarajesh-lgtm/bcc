@@ -16,6 +16,7 @@ import ClientDetailContent from './ClientDetailContent';
 const { Title, Text } = Typography;
 
 const availableFeatures = [
+  { id: 'hrms', label: 'HRMS' },
   { id: 'crm', label: 'CRM & Leads' },
   { id: 'website', label: 'Website Builder' },
   { id: 'social', label: 'Social Media' },
@@ -49,7 +50,7 @@ const ClientsTab = () => {
   const [clientEditCountryCode, setClientEditCountryCode] = useState('91');
   const [clientEditCountryIso, setClientEditCountryIso] = useState('IN');
 
-  const { features: agencyFeatures } = useAuth();
+  const { user, features: agencyFeatures } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
 
   const { data: integrationsData } = useGetIntegrationsQuery();
@@ -636,6 +637,7 @@ const ClientsTab = () => {
           <ClientDetailContent
             selectedClient={selectedClient}
             allowedFeatures={allowedFeatures}
+            allowedIntegrations={user?.integrations || []}
             getStatusColor={getStatusColor}
             getScoreColor={getScoreColor}
             clientProposals={clientProposals}

@@ -24,10 +24,10 @@ const SettingsPage = () => {
   const location = useLocation();
 
   const hasFullCrmAccess = () => {
-    if (['commander_admin', 'agency_super_admin', 'brand_super_admin'].includes(role)) return true;
+    if (['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin'].includes(role)) return true;
     const crm = user?.permissions?.['Workspace-CRM & Leads'];
     if (crm) {
-      const isManagerRole = ['agency_manager', 'admin', 'brand_admin', 'brand_manager'].includes(role);
+      const isManagerRole = ['admin', 'brand_admin', 'brand_manager'].includes(role);
       const isAllChecked = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerRole) && (crm.Edit || isManagerRole) && (crm.Delete || isManagerRole);
       return isAllChecked;
     }
@@ -88,19 +88,19 @@ const SettingsPage = () => {
   };
 
   const allTabs = [
-    { key: '1', label: <strong style={{ fontWeight: 600 }}>Agency</strong> },
-    { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
-    { key: '4', label: <strong style={{ fontWeight: 600 }}>Notifications</strong> },
-    { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
-    { key: '12', label: <strong style={{ fontWeight: 600 }}>Tax Settings</strong> },
     { key: '9', label: <strong style={{ fontWeight: 600 }}>Profile</strong> },
-    ...(['commander_admin', 'brand_super_admin', 'brand_manager'].includes(role) ? [] : [
-      { key: '11', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> }
-    ]),
+    { key: '1', label: <strong style={{ fontWeight: 600 }}>Agency</strong> },
+    { key: '7', label: <strong style={{ fontWeight: 600 }}>User Management</strong> },
+    { key: '2', label: <strong style={{ fontWeight: 600 }}>Integrations</strong> },
+    { key: '12', label: <strong style={{ fontWeight: 600 }}>Tax Settings</strong> },
     ...(['brand_super_admin', 'brand_manager'].includes(role) ? [] : [
       { key: '8', label: <strong style={{ fontWeight: 600 }}>Agency Packages</strong> },
       { key: '10', label: <strong style={{ fontWeight: 600 }}>Direct Brand Packages</strong> }
     ]),
+    ...(['commander_admin', 'brand_super_admin', 'brand_manager'].includes(role) ? [] : [
+      { key: '11', label: <strong style={{ fontWeight: 600 }}>Client Packages</strong> }
+    ]),
+    { key: '4', label: <strong style={{ fontWeight: 600 }}>Notifications</strong> }
   ];
 
   let allowedKeys = [];

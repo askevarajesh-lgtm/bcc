@@ -370,6 +370,14 @@ const updateIntegration = async (
   if (integrationData.config !== undefined) {
     integration.markModified('config');
   }
+  
+  // Auto-populate missing required name to prevent Mongoose validation errors on legacy records
+  if (!integration.name) {
+    integration.name = integration.type 
+      ? integration.type.charAt(0).toUpperCase() + integration.type.slice(1) + " Integration" 
+      : "Unnamed Integration";
+  }
+
   await integration.save();
 
   return integration;
