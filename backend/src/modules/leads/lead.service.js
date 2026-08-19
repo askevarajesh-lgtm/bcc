@@ -282,10 +282,39 @@ const getLeadsForExport = async (
     accessFilter.clientId = query.companyId;
   }
   const leads = await Lead.find(accessFilter).sort({ createdAt: -1 }).lean();
+  let filteredLeads = leads;
+  
   if (filter === "reminder") {
-    return leads.filter((l) => (l.reminders || []).length > 0);
+    filteredLeads = filteredLeads.filter((l) => (l.reminders || []).length > 0);
   }
-  return leads;
+
+  if (query.startDate && query.endDate) {
+    const start = new Date(query.startDate);
+    const end = new Date(query.endDate);
+    filteredLeads = filteredLeads.filter((lead) => {
+      const customDate =
+        lead?.customData?.created_time ||
+        lead?.customData?.createdTime ||
+        lead?.customData?.createdtime;
+      const leadDate = customDate ? new Date(customDate) : new Date(lead.createdAt);
+      return leadDate >= start && leadDate <= end;
+    });
+  }
+
+  if (query.formName) {
+    const fnFilter = query.formName.toLowerCase();
+    filteredLeads = filteredLeads.filter((lead) => {
+      const formName = (
+        lead?.customData?.form_name ||
+        lead?.customData?.formName ||
+        lead?.formName ||
+        ""
+      ).toLowerCase();
+      return formName.includes(fnFilter);
+    });
+  }
+
+  return filteredLeads;
 };
 
 const addLeadReminder = async (leadId, companyId, currentUser, payload) => {
@@ -294,9 +323,8 @@ const addLeadReminder = async (leadId, companyId, currentUser, payload) => {
 
   lead.reminders.push(payload);
   lead.activityLogs.push({
-    actionType: "reminder_added",
-    performedBy: currentUser._id,
-    details: { description: payload.description, remindAt: payload.remindAt, remindTo: payload.remindTo },
+    message: `Reminder added for ${payload.remindTo}`,
+    createdAt: new Date(),
   });
   await lead.save();
   return lead.reminders[lead.reminders.length - 1];

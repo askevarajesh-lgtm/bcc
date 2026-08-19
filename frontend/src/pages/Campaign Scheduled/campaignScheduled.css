@@ -383,21 +383,189 @@
   font-size: 16px;
 }
 
-.campaign-logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.campaign-logs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
-.campaign-log-card {
-  border-radius: 12px;
+.campaign-log-card-premium {
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #fcfdfe 100%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0,0,0,0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
   overflow: hidden;
+}
+
+.campaign-log-card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0,0,0,0.04);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.campaign-log-card-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.campaign-log-card-premium:hover::before {
+  opacity: 1;
+}
+
+.premium-metric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.metric-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
   transition: all 0.2s ease;
 }
 
-.campaign-log-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 22px rgba(26, 50, 90, 0.08);
+.like-icon {
+  background: #edf6ff;
+  color: #1677ff;
+}
+
+.comment-icon {
+  background: #eef9f3;
+  color: #1f9d62;
+}
+
+.share-icon {
+  background: #f5f3ff;
+  color: #7a57ff;
+}
+
+.campaign-log-card-premium:hover .like-icon {
+  background: #1677ff;
+  color: #fff;
+}
+.campaign-log-card-premium:hover .comment-icon {
+  background: #1f9d62;
+  color: #fff;
+}
+.campaign-log-card-premium:hover .share-icon {
+  background: #7a57ff;
+  color: #fff;
+}
+
+.premium-card-title {
+  color: #1e293b;
+}
+.premium-card-subtitle {
+  color: #64748b;
+}
+.premium-card-text {
+  color: #475569;
+}
+.premium-metric-text {
+  color: #334155;
+}
+.premium-card-divider {
+  border-top: 1px solid #f1f5f9;
+}
+.premium-error-box {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+.premium-tag-failed {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #ef4444;
+}
+.premium-tag-success {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #22c55e;
+}
+.premium-platform-tag {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+.premium-view-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+.premium-view-btn:hover {
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  color: #fff;
+}
+
+/* Dark mode specific for premium card */
+[data-theme='dark'] .campaign-log-card-premium {
+  background: linear-gradient(145deg, hsl(223 29% 15%) 0%, hsl(223 24% 13%) 100%);
+  border-color: hsl(var(--border));
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+[data-theme='dark'] .campaign-log-card-premium:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  border-color: #6366f1;
+}
+[data-theme='dark'] .premium-card-title {
+  color: #f1f5f9;
+}
+[data-theme='dark'] .premium-card-subtitle {
+  color: #94a3b8;
+}
+[data-theme='dark'] .premium-card-text {
+  color: #cbd5e1;
+}
+[data-theme='dark'] .premium-metric-text {
+  color: #e2e8f0;
+}
+[data-theme='dark'] .premium-card-divider {
+  border-top: 1px solid hsl(var(--border));
+}
+[data-theme='dark'] .premium-error-box {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #ef4444;
+}
+[data-theme='dark'] .premium-tag-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+[data-theme='dark'] .premium-tag-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+[data-theme='dark'] .premium-platform-tag {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+[data-theme='dark'] .like-icon {
+  background: rgba(105, 177, 255, 0.16);
+  color: #91caff;
+}
+[data-theme='dark'] .comment-icon {
+  background: rgba(102, 240, 191, 0.16);
+  color: #66f0bf;
+}
+[data-theme='dark'] .share-icon {
+  background: rgba(154, 140, 255, 0.18);
+  color: #b8a7ff;
+}
+[data-theme='dark'] .premium-view-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
 }
 
 .campaign-log-card-head {

@@ -1,6 +1,6 @@
 const { sendError, sendSuccess } = require("../../utils/response");
 const leadService = require("./lead.service");
-const { uploadAnyFileToCloudinary } = require("../../utils/cloudinary");
+const { uploadAnyFileToCloudinary, uploadBufferToCloudinary } = require("../../utils/cloudinary");
 const { validatePhoneNumber } = require("../../utils/phoneValidation");
 
 const getLeads = async (req, res) => {
@@ -40,16 +40,14 @@ const createLead = async (req, res) => {
     } = req.body;
     if (
       !String(fullName || "").trim() ||
-      !String(companyName || "").trim() ||
       !String(phoneNumber || "").trim() ||
-      !String(projectType || "").trim() ||
       !String(source || "").trim() ||
       !String(status || "").trim()
     ) {
       return sendError(
         res,
         400,
-        "fullName, companyName, phoneNumber, projectType, source and status are required",
+        "fullName, phoneNumber, source and status are required",
       );
     }
 
@@ -92,16 +90,14 @@ const updateLead = async (req, res) => {
 
     if (
       !String(fullName || "").trim() ||
-      !String(companyName || "").trim() ||
       !String(phoneNumber || "").trim() ||
-      !String(projectType || "").trim() ||
       !String(source || "").trim() ||
       !String(status || "").trim()
     ) {
       return sendError(
         res,
         400,
-        "fullName, companyName, phoneNumber, projectType, source and status are required",
+        "fullName, phoneNumber, source and status are required",
       );
     }
 
@@ -177,10 +173,11 @@ const addLeadNote = async (req, res) => {
     if (req.file?.buffer) {
       const folder = `lead-notes/${noteType}`;
       const publicId = `lead-note-${req.params.id}-${Date.now()}`;
-      const uploadResult = await uploadAnyFileToCloudinary(
+      const uploadResult = await uploadBufferToCloudinary(
         req.file.buffer,
         folder,
         publicId,
+        { mimetype: req.file.mimetype }
       );
       fileUrl = uploadResult?.secure_url || "";
       fileName = req.file.originalname || "";
