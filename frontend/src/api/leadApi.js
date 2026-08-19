@@ -55,7 +55,7 @@ const createMutationHook = (method) => {
           let response;
           if (method === 'post') response = await api.post(url, body);
           else if (method === 'put') response = await api.put(url, body);
-          else if (method === 'delete') response = await api.delete(url, { data: body });
+          else if (method === 'delete') response = await api.delete(url, { data: typeof body === 'object' ? body : undefined });
           
           setError(null);
           return response.data;
@@ -139,6 +139,9 @@ export const useLazyExportLeadsCsvQuery = () => {
         const params = {
           filter: filter === "reminder" ? "reminder" : "all",
           ...(arg?.companyId ? { companyId: arg.companyId } : {}),
+          ...(typeof arg === "object" && arg?.startDate ? { startDate: arg.startDate } : {}),
+          ...(typeof arg === "object" && arg?.endDate ? { endDate: arg.endDate } : {}),
+          ...(typeof arg === "object" && arg?.formName ? { formName: arg.formName } : {}),
         };
         if (ids.length) {
           params.ids = ids.join(",");

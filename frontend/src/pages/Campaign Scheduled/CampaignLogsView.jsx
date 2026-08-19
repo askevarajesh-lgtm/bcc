@@ -5,9 +5,9 @@ import {
   LikeOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
-import { Card, Empty, Input, Pagination, Tag, Typography } from "antd";
+import { Button, Card, Empty, Input, Pagination, Space, Tag, Typography } from "antd";
 
-const { Text, Title } = Typography;
+const { Text, Title, Paragraph } = Typography;
 
 const PAGE_SIZE_OPTIONS = ["5", "10", "20", "50"];
 
@@ -132,7 +132,7 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
         </Card>
       ) : (
         <>
-          <div className="campaign-logs-list">
+          <div className="campaign-logs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginTop: '16px' }}>
             {paginatedPosts.map((log) => {
               const metrics = getPostMetrics(log);
               const platformLabels = log._platformId 
@@ -142,100 +142,72 @@ export default function CampaignLogsView({ posts = [], accounts = [] }) {
               return (
                 <Card
                   key={log._logId}
-                  className="campaign-scheduler-surface campaign-log-row campaign-log-card"
+                  className="campaign-log-card-premium"
+                  styles={{ body: { padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' } }}
+                  bordered={false}
                 >
-                  <div className="campaign-log-single-row">
-                    <div className="campaign-log-left">
-                      <div className="campaign-log-card-head">
-                        <div className="campaign-log-title-wrap">
-                          {log._platformStatus === "Failed" ? (
-                            <Tag color="error">Failed</Tag>
-                          ) : (
-                            <Tag color="green">Published</Tag>
-                          )}
-                          <Tag>{log.campaign || "General"}</Tag>
-                          <Text className="campaign-log-date">
-                            <CalendarOutlined /> {getScheduleText(log)}
-                          </Text>
-                        </div>
-                        <Text className="campaign-log-id">
-                          #{String(log.id || "").slice(0, 8)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <Text strong className="premium-card-title" style={{ fontSize: '16px', letterSpacing: '-0.3px', lineHeight: '1.2' }}>{log.campaign || "General Campaign"}</Text>
+                      <Text type="secondary" className="premium-card-subtitle" style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CalendarOutlined />
+                        {getScheduleText(log)}
+                      </Text>
+                    </div>
+                    {log._platformStatus === "Failed" ? (
+                      <Tag className="premium-tag-failed" style={{ margin: 0, border: 'none', borderRadius: '8px', padding: '4px 10px', fontWeight: 600 }}>Failed</Tag>
+                    ) : (
+                      <Tag className="premium-tag-success" style={{ margin: 0, border: 'none', borderRadius: '8px', padding: '4px 10px', fontWeight: 600 }}>Published</Tag>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, marginTop: '4px' }}>
+                    <div style={{ marginBottom: '14px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {platformLabels.length > 0 ? (
+                        platformLabels.map((label, idx) => (
+                          <Tag key={`${log._logId}-${idx}`} className="premium-platform-tag" style={{ margin: 0, borderRadius: '6px', padding: '2px 10px', fontWeight: 500, fontSize: '12px' }}>
+                            {label}
+                          </Tag>
+                        ))
+                      ) : (
+                        <Text type="secondary" style={{ fontSize: '12px' }}>No platforms</Text>
+                      )}
+                    </div>
+
+                    <Paragraph className="premium-card-text" style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
+                      {log.caption || "No caption provided"}
+                    </Paragraph>
+
+                    {log._platformStatus === "Failed" && log._platformError && (
+                      <div className="premium-error-box" style={{ padding: '10px 14px', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
+                        <Text type="danger" style={{ fontSize: '13px', fontWeight: 500 }}>
+                          {log._platformError}
                         </Text>
                       </div>
+                    )}
+                  </div>
 
-                      <Title level={6} className="campaign-log-caption">
-                        {log.caption || "-"}
-                      </Title>
-
-                      <div className="campaign-log-platforms">
-                        {platformLabels.length > 0 ? (
-                          platformLabels.map((label, idx) => (
-                            <Tag
-                              key={`${log._logId}-${idx}`}
-                              className="campaign-log-platform-tag"
-                            >
-                              {label}
-                            </Tag>
-                          ))
-                        ) : (
-                          <Text type="secondary">
-                            No platform mapping found
-                          </Text>
-                        )}
-                      </div>
-
-                      {log._platformStatus === "Failed" && log._platformError && (
-                        <div style={{ marginTop: 8 }}>
-                          <Text type="danger" style={{ fontSize: '0.85rem' }}>
-                            Error: {log._platformError}
-                          </Text>
-                        </div>
-                      )}
-                      
-                      {log._url && (
-                        <div style={{ marginTop: 8 }}>
-                          <Typography.Link href={log._url} target="_blank" rel="noopener noreferrer">
-                            View Post
-                          </Typography.Link>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="campaign-log-metric-group">
-                      <div className="campaign-log-metric-stat">
-                        <span className="campaign-log-metric-icon-small like">
-                          <LikeOutlined />
-                        </span>
-                        <div className="campaign-log-metric-info">
-                          <Text strong>{metrics.likes}</Text>
-                          <Text type="secondary" className="metric-label">
-                            Likes
-                          </Text>
-                        </div>
-                      </div>
-                      <div className="campaign-log-metric-stat">
-                        <span className="campaign-log-metric-icon-small comment">
-                          <CommentOutlined />
-                        </span>
-                        <div className="campaign-log-metric-info">
-                          <Text strong>{metrics.comments}</Text>
-                          <Text type="secondary" className="metric-label">
-                            Comments
-                          </Text>
-                        </div>
-                      </div>
-                      <div className="campaign-log-metric-stat">
-                        <span className="campaign-log-metric-icon-small share">
-                          <ShareAltOutlined />
-                        </span>
-                        <div className="campaign-log-metric-info">
-                          <Text strong>{metrics.shares}</Text>
-                          <Text type="secondary" className="metric-label">
-                            Shares
-                          </Text>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="premium-card-divider" style={{ paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Space size={20}>
+                      <span className="premium-metric">
+                        <span className="metric-icon like-icon"><LikeOutlined /></span>
+                        <Text strong className="premium-metric-text">{metrics.likes}</Text>
+                      </span>
+                      <span className="premium-metric">
+                        <span className="metric-icon comment-icon"><CommentOutlined /></span>
+                        <Text strong className="premium-metric-text">{metrics.comments}</Text>
+                      </span>
+                      <span className="premium-metric">
+                        <span className="metric-icon share-icon"><ShareAltOutlined /></span>
+                        <Text strong className="premium-metric-text">{metrics.shares}</Text>
+                      </span>
+                    </Space>
+                    
+                    {log._url && (
+                      <Button type="primary" size="small" className="premium-view-btn" href={log._url} target="_blank" rel="noopener noreferrer" style={{ borderRadius: '6px', border: 'none' }}>
+                        View Post
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );

@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Row, Col, Card, Typography, Select, Progress, Space, Avatar, Table, Button, Tag } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Row, Col, Card, Typography, Select, Progress, Space, Avatar, Table, Button, Tag, Input } from 'antd';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { TeamOutlined, FireOutlined, RiseOutlined, CheckCircleOutlined, TrophyOutlined, FilterOutlined, CalendarOutlined } from '@ant-design/icons';
@@ -12,6 +12,86 @@ const AdminDashboard = ({ leads = [] }) => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
+
+  const [timeframe, setTimeframe] = useState('Month');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [sourceFilter, setSourceFilter] = useState(null);
+  const [formNameFilter, setFormNameFilter] = useState(null);
+  const [ownerFilter, setOwnerFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleClearAll = () => {
+    setTimeframe('Month');
+    setStatusFilter('All');
+    setSourceFilter(null);
+    setFormNameFilter(null);
+    setOwnerFilter(null);
+    setSearchQuery('');
+  };
+
+  const getFormName = (lead) => {
+    return lead?.customData?.form_name || lead?.customData?.formName || lead?.formName || '';
+  };
+
+  const getActualLeadDate = (lead) => {
+    const customDate = lead?.customData?.created_time || lead?.customData?.createdTime || lead?.customData?.createdtime;
+    if (customDate) {
+      return dayjs(customDate);
+    }
+    return dayjs(lead?.createdAt);
+  };
+
+  const formNames = useMemo(() => {
+    const names = new Set();
+    leads.forEach(l => {
+      const name = getFormName(l);
+      if (name) names.add(name);
+    });
+    return Array.from(names);
+  }, [leads]);
+
+  const sourceOptions = useMemo(() => Array.from(new Set(leads.map(l => l.source).filter(Boolean))), [leads]);
+  const ownerOptions = useMemo(() => Array.from(new Set(leads.map(l => l.assignedTo).filter(Boolean))), [leads]);
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter(l => {
+      const leadDate = getActualLeadDate(l);
+      if (timeframe === 'Month' && leadDate) {
+        if (leadDate.isBefore(dayjs().subtract(30, 'day'))) return false;
+      } else if (timeframe === 'Week' && leadDate) {
+        if (leadDate.isBefore(dayjs().subtract(7, 'day'))) return false;
+      } else if (timeframe === 'Today' && leadDate) {
+        if (leadDate.isBefore(dayjs().startOf('day'))) return false;
+      }
+      
+      if (statusFilter !== 'All') {
+        const s = (l.status || '').toLowerCase();
+        if (statusFilter === 'New' && s !== 'new') return false;
+        if (statusFilter === 'Active' && !['contacted', 'in_progress', 'follow_up'].includes(s)) return false;
+        if (statusFilter === 'Converted' && s !== 'converted') return false;
+      }
+      
+      if (sourceFilter && l.source !== sourceFilter) return false;
+      if (formNameFilter && getFormName(l) !== formNameFilter) return false;
+      
+      if (ownerFilter) {
+        if (ownerFilter === 'Unassigned') {
+          if (l.assignedTo) return false;
+        } else {
+          if (l.assignedTo !== ownerFilter) return false;
+        }
+      }
+      
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = l.fullName?.toLowerCase().includes(q);
+        const matchesCompany = l.companyName?.toLowerCase().includes(q);
+        const matchesPhone = l.phoneNumber?.toLowerCase().includes(q);
+        if (!matchesName && !matchesCompany && !matchesPhone) return false;
+      }
+      return true;
+    });
+  }, [leads, timeframe, statusFilter, sourceFilter, formNameFilter, ownerFilter, searchQuery]);
 
   const {
     totalLeads,
@@ -27,7 +107,7 @@ const AdminDashboard = ({ leads = [] }) => {
     let newL = 0, activeL = 0, assignedL = 0, convertedL = 0;
     let contactReady = 0, phoneAdded = 0, emailAdded = 0, followUp = 0;
 
-    leads.forEach(l => {
+    filteredLeads.forEach(l => {
       const status = (l.status || '').toLowerCase();
       if (status === 'new') newL++;
       if (['contacted', 'in_progress', 'follow_up'].includes(status)) activeL++;
@@ -41,7 +121,7 @@ const AdminDashboard = ({ leads = [] }) => {
     });
 
     return {
-      totalLeads: leads.length,
+      totalLeads: filteredLeads.length,
       newLeads: newL,
       activeLeads: activeL,
       assignedLeads: assignedL,
@@ -51,7 +131,7 @@ const AdminDashboard = ({ leads = [] }) => {
       emailAddedLeads: emailAdded,
       followUpLeads: followUp,
     };
-  }, [leads]);
+  }, [filteredLeads]);
 
   const conversionRate = totalLeads ? Math.round((convertedLeads / totalLeads) * 100) : 0;
   const assignedRate = totalLeads ? Math.round((assignedLeads / totalLeads) * 100) : 0;
@@ -72,21 +152,12 @@ const AdminDashboard = ({ leads = [] }) => {
 
   const sourceData = useMemo(() => {
     const counts = {};
-    leads.forEach(l => {
+    filteredLeads.forEach(l => {
       const source = l.source || 'Unknown';
       counts[source] = (counts[source] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-  }, [leads]);
-
-  const projectMixData = useMemo(() => {
-    const counts = {};
-    leads.forEach(l => {
-      const p = l.projectType || 'General';
-      counts[p] = (counts[p] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
-  }, [leads]);
+  }, [filteredLeads]);
 
   const { trendData, statusMovementData } = useMemo(() => {
     const trends = {};
@@ -98,8 +169,9 @@ const AdminDashboard = ({ leads = [] }) => {
       movements[d] = 0;
     }
     
-    leads.forEach(l => {
-      const d = dayjs(l.createdAt).format('DD MMM');
+    filteredLeads.forEach(l => {
+      const leadDate = getActualLeadDate(l);
+      const d = leadDate.format('DD MMM');
       if (trends[d] !== undefined) trends[d]++;
       
       const updatedD = dayjs(l.updatedAt).format('DD MMM');
@@ -110,11 +182,11 @@ const AdminDashboard = ({ leads = [] }) => {
       trendData: Object.entries(trends).map(([date, count]) => ({ date, leads: count })),
       statusMovementData: Object.entries(movements).map(([date, count]) => ({ date, count }))
     };
-  }, [leads]);
+  }, [filteredLeads]);
 
   const ownerData = useMemo(() => {
     const owners = {};
-    leads.forEach(l => {
+    filteredLeads.forEach(l => {
       const o = l.assignedTo || 'Unassigned';
       if (!owners[o]) {
         owners[o] = { 
@@ -137,7 +209,7 @@ const AdminDashboard = ({ leads = [] }) => {
       contactReady: Math.round((o.contactReady / o.leads) * 100),
       conversionRate: Math.round((o.converted / o.leads) * 100)
     }));
-  }, [leads]);
+  }, [filteredLeads]);
 
   const kpiCards = [
     { title: 'Total Leads', val: totalLeads.toString(), sub: 'Last 30 days', icon: <TeamOutlined /> },
@@ -183,17 +255,46 @@ const AdminDashboard = ({ leads = [] }) => {
               <FilterOutlined style={{ color: 'var(--accent-primary)' }} />
               <strong style={{ color: 'var(--accent-primary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Dashboard Filters</strong>
             </div>
-            <Button size="small" style={{ borderRadius: 6, fontWeight: 600 }}>Clear all</Button>
+            <Button size="small" onClick={handleClearAll} style={{ borderRadius: 6, fontWeight: 600 }}>Clear all</Button>
           </div>
           <Title level={4} style={{ margin: '0 0 20px 0', fontWeight: 800 }}>View performance by week, month or pipeline stage</Title>
           
           <Row gutter={[16, 16]}>
-            <Col xs={12} md={4}><Select defaultValue="Month" style={{ width: '100%' }} size="large"><Select.Option value="Month">Month</Select.Option></Select></Col>
-            <Col xs={12} md={4}><Select defaultValue="All" style={{ width: '100%' }} size="large"><Select.Option value="All">All ({totalLeads})</Select.Option></Select></Col>
-            <Col xs={12} md={4}><Select placeholder="Source" style={{ width: '100%' }} size="large" /></Col>
-            <Col xs={12} md={4}><Select placeholder="Project" style={{ width: '100%' }} size="large" /></Col>
-            <Col xs={12} md={4}><Select placeholder="Owner" style={{ width: '100%' }} size="large" /></Col>
-            <Col xs={12} md={4}><Select placeholder="Search lead or company" style={{ width: '100%' }} size="large" /></Col>
+            <Col xs={12} md={4}>
+              <Select value={timeframe} onChange={setTimeframe} style={{ width: '100%' }} size="large">
+                <Select.Option value="Today">Today</Select.Option>
+                <Select.Option value="Week">This Week</Select.Option>
+                <Select.Option value="Month">Last 30 Days</Select.Option>
+                <Select.Option value="All Time">All Time</Select.Option>
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select value={statusFilter} onChange={setStatusFilter} style={{ width: '100%' }} size="large">
+                <Select.Option value="All">All ({filteredLeads.length})</Select.Option>
+                <Select.Option value="New">New</Select.Option>
+                <Select.Option value="Active">Active</Select.Option>
+                <Select.Option value="Converted">Converted</Select.Option>
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select allowClear value={sourceFilter} onChange={setSourceFilter} placeholder="Source" style={{ width: '100%' }} size="large">
+                {sourceOptions.map(s => <Select.Option key={s} value={s}>{s}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select allowClear showSearch value={formNameFilter} onChange={setFormNameFilter} placeholder="Form Name" style={{ width: '100%' }} size="large">
+                {formNames.map(f => <Select.Option key={f} value={f}>{f}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select allowClear showSearch value={ownerFilter} onChange={setOwnerFilter} placeholder="Owner" style={{ width: '100%' }} size="large">
+                {ownerOptions.map(o => <Select.Option key={o} value={o}>{o}</Select.Option>)}
+                <Select.Option value="Unassigned">Unassigned</Select.Option>
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Input allowClear value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search lead" style={{ width: '100%', borderRadius: 8 }} size="large" />
+            </Col>
           </Row>
         </Card>
       </motion.div>

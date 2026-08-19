@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Table, Tag, Space, Button, Typography, Input, Card, Modal, Select, Form, message, Upload, Row, Col, Tabs, Descriptions, Empty, DatePicker } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, AudioOutlined, PictureOutlined, VideoCameraOutlined, FileOutlined, WhatsAppOutlined } from '@ant-design/icons';
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined, AudioOutlined, PictureOutlined, VideoCameraOutlined, FileOutlined, WhatsAppOutlined, FacebookOutlined, CalendarOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { 
   useCreateLeadMutation, 
@@ -13,7 +13,8 @@ import {
   useDeleteLeadNoteMutation,
   useAddLeadReminderMutation
 } from '../../api/leadApi';
-import { useSyncWhatsAppLeadsMutation } from '../../api/integrationApi';
+import { useSyncWhatsAppLeadsMutation, useGetFacebookIntegrationsQuery, useLazyGetFacebookFormsQuery, useSyncFacebookLeadsMutation } from '../../api/integrationApi';
+import { useGetUsersDropdownQuery } from '../../api/userApi';
 import PhoneInput from '../../components/common/PhoneInput';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import dayjs from 'dayjs';
@@ -22,6 +23,7 @@ import { useActionPermissions } from "../../hooks/useActionPermissions";
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+const { RangePicker } = DatePicker;
 
 const CustomLabel = ({ text }) => (
   <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -36,6 +38,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   const [viewingLead, setViewingLead] = useState(null);
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState('text');
+  const [noteFile, setNoteFile] = useState(null);
   
   const [reminderDesc, setReminderDesc] = useState('');
   const [reminderDate, setReminderDate] = useState(null);
@@ -46,6 +49,9 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
 
   const [form] = Form.useForm();
   
+  const [dateRangeFilter, setDateRangeFilter] = useState(null);
+  const [formNameFilter, setFormNameFilter] = useState('');
+
   const currentViewingLead = viewingLead ? leads.find(l => l._id === viewingLead._id) || viewingLead : null;
   
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
@@ -55,18 +61,78 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   const [deleteLeadNote] = useDeleteLeadNoteMutation();
   const [addLeadReminder, { isLoading: isAddingReminder }] = useAddLeadReminderMutation();
   const { data: bdeData } = useGetAssignableBdeUsersQuery();
+  const { data: usersData, isLoading: isLoadingUsers } = useGetUsersDropdownQuery({});
+  
+  const bdeUsers = bdeData?.data?.users || [];
+  const allUsers = usersData?.data?.users || usersData?.data?.data || (Array.isArray(usersData?.data) ? usersData.data : []);
+
   const [exportCsv, { isFetching: isExporting }] = useLazyExportLeadsCsvQuery();
   const [importCsv, { isLoading: isImporting }] = useImportLeadsCsvMutation();
   const [syncWhatsApp, { isLoading: isSyncingWhatsApp }] = useSyncWhatsAppLeadsMutation();
+  const [activeTab, setActiveTab] = useState('all');
+  const [isFbSyncModalOpen, setIsFbSyncModalOpen] = useState(false);
+  const [selectedFbPageId, setSelectedFbPageId] = useState(null);
+  const [selectedFbFormIds, setSelectedFbFormIds] = useState([]);
 
-  const bdeUsers = bdeData?.data?.users || [];
+  const { data: fbIntegrationsData, isLoading: isLoadingFbIntegrations } = useGetFacebookIntegrationsQuery();
+  const fbPages = fbIntegrationsData?.data?.integrations || [];
+  
+  const [fetchFbForms, { data: fbFormsData, isFetching: isFetchingFbForms }] = useLazyGetFacebookFormsQuery();
+  const fbForms = fbFormsData?.data || [];
+  
+  const [syncFacebookLeads, { isLoading: isSyncingFbLeads }] = useSyncFacebookLeadsMutation();
+
+  const handleFbPageChange = (pageId) => {
+    setSelectedFbPageId(pageId);
+    setSelectedFbFormIds([]);
+    if (pageId) {
+      fetchFbForms({ pageId });
+    }
+  };
+
+  const handleSyncFacebook = async () => {
+    if (!selectedFbPageId || selectedFbFormIds.length === 0) {
+      message.error("Please select a page and at least one form");
+      return;
+    }
+    try {
+      const res = await syncFacebookLeads({ pageId: selectedFbPageId, formIds: selectedFbFormIds }).unwrap();
+      message.success(`Successfully synced ${res.data?.syncedCount || 0} leads from Facebook`);
+      setIsFbSyncModalOpen(false);
+      refetch?.();
+    } catch (error) {
+      message.error(error?.data?.message || 'Failed to sync Facebook leads');
+    }
+  };
+
+
+  const getFormName = (lead) => {
+    return lead?.customData?.form_name || lead?.customData?.formName || lead?.formName || '';
+  };
+
+  const uniqueFormNames = useMemo(() => {
+    const names = new Set();
+    leads.forEach(lead => {
+      const name = getFormName(lead);
+      if (name) names.add(name);
+    });
+    return Array.from(names);
+  }, [leads]);
+
+  const getActualLeadDate = (lead) => {
+    const customDate = lead?.customData?.created_time || lead?.customData?.createdTime || lead?.customData?.createdtime;
+    if (customDate) {
+      return dayjs(customDate);
+    }
+    return dayjs(lead?.createdAt);
+  };
 
   const columns = [
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Name</strong>, dataIndex: 'fullName', key: 'fullName', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Company</strong>, dataIndex: 'companyName', key: 'companyName' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>, dataIndex: 'phoneNumber', key: 'phoneNumber' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Email</strong>, dataIndex: 'email', key: 'email' },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Project Type</strong>, dataIndex: 'projectType', key: 'projectType', render: p => p || '—' },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Date</strong>, key: 'createdAt', render: (_, record) => getActualLeadDate(record).format('YYYY-MM-DD HH:mm') },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Form Name</strong>, key: 'formName', render: (_, record) => getFormName(record) || '—' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Source</strong>, dataIndex: 'source', key: 'source', render: s => <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>{s}</Tag> },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Status</strong>, dataIndex: 'status', key: 'status', render: s => <Tag color="blue" style={{ borderRadius: 6, fontWeight: 700, textTransform: 'uppercase' }}>{s}</Tag> },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Assigned To</strong>, dataIndex: 'assignedTo', key: 'assignedTo', render: a => a || '—' },
@@ -82,16 +148,36 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     }
   ];
 
+  const filteredLeads = leads.filter(lead => {
+    if (activeTab === 'reminders') {
+      if (!lead.reminders || lead.reminders.length === 0) return false;
+    }
+
+    let dateMatch = true;
+    if (dateRangeFilter && dateRangeFilter.length === 2) {
+      const start = dateRangeFilter[0].startOf('day');
+      const end = dateRangeFilter[1].endOf('day');
+      const leadDate = getActualLeadDate(lead);
+      dateMatch = leadDate.isAfter(start) && leadDate.isBefore(end);
+    }
+    
+    let formMatch = true;
+    if (formNameFilter) {
+      const formName = getFormName(lead).toLowerCase();
+      formMatch = formName.includes(formNameFilter.toLowerCase());
+    }
+    
+    return dateMatch && formMatch;
+  });
+
   const handleEditClick = (record) => {
     setEditingLead(record);
     setLeadCountryCode(record.countryCode || '91');
     setLeadCountryIso(record.countryIso || '');
     form.setFieldsValue({
       fullName: record.fullName,
-      companyName: record.companyName,
       phoneNumber: record.phoneNumber,
       email: record.email,
-      projectType: record.projectType,
       source: record.source,
       status: record.status?.toUpperCase(),
       assignedTo: record.assignedTo,
@@ -143,7 +229,16 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
 
   const handleExport = async () => {
     try {
-      const blob = await exportCsv('all').unwrap();
+      const exportParams = { filter: activeTab };
+      if (dateRangeFilter && dateRangeFilter.length === 2 && dateRangeFilter[0] && dateRangeFilter[1]) {
+        exportParams.startDate = dateRangeFilter[0].startOf('day').toISOString();
+        exportParams.endDate = dateRangeFilter[1].endOf('day').toISOString();
+      }
+      if (formNameFilter) {
+        exportParams.formName = formNameFilter;
+      }
+
+      const blob = await exportCsv(exportParams).unwrap();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -156,11 +251,12 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   };
 
   const handleAddNote = async () => {
-    if (!noteContent.trim() || !currentViewingLead) return;
+    if ((!noteContent.trim() && !noteFile) || !currentViewingLead) return;
     try {
-      await addLeadNote({ leadId: currentViewingLead._id, noteType, content: noteContent }).unwrap();
+      await addLeadNote({ leadId: currentViewingLead._id, noteType, content: noteContent, file: noteFile }).unwrap();
       message.success('Note added successfully');
       setNoteContent('');
+      setNoteFile(null);
       refetch?.();
     } catch (error) {
       message.error('Failed to add note');
@@ -226,13 +322,50 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
         bodyStyle={{ padding: 0 }} 
         style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', overflow: 'hidden' }}
       >
-        <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 16 }}>
           <Space>
-            <Button type="text" style={{ fontWeight: 600, color: 'var(--accent-primary)', borderBottom: '2px solid var(--accent-primary)', borderRadius: 0, paddingBottom: 8 }}>All leads</Button>
-            <Button type="text" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Reminder leads</Button>
+            <Button 
+              type="text" 
+              onClick={() => setActiveTab('all')}
+              style={{ 
+                fontWeight: 600, 
+                color: activeTab === 'all' ? 'var(--accent-primary)' : 'var(--text-secondary)', 
+                borderBottom: activeTab === 'all' ? '2px solid var(--accent-primary)' : '2px solid transparent', 
+                borderRadius: 0, 
+                paddingBottom: 8 
+              }}
+            >
+              All leads
+            </Button>
+            <Button 
+              type="text" 
+              onClick={() => setActiveTab('reminders')}
+              style={{ 
+                fontWeight: 600, 
+                color: activeTab === 'reminders' ? 'var(--accent-primary)' : 'var(--text-secondary)', 
+                borderBottom: activeTab === 'reminders' ? '2px solid var(--accent-primary)' : '2px solid transparent', 
+                borderRadius: 0, 
+                paddingBottom: 8 
+              }}
+            >
+              Reminder leads
+            </Button>
           </Space>
           
-          <Space>
+          <Space wrap>
+            <RangePicker onChange={val => setDateRangeFilter(val)} style={{ borderRadius: 8 }} />
+            <Select
+              placeholder="Filter by Form Name"
+              value={formNameFilter || undefined}
+              onChange={val => setFormNameFilter(val || '')}
+              style={{ width: 200, borderRadius: 8 }}
+              allowClear
+              showSearch
+            >
+              {uniqueFormNames.map(name => (
+                <Option key={name} value={name}>{name}</Option>
+              ))}
+            </Select>
             {canView && (
               <>
                 <Button 
@@ -242,6 +375,13 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                   style={{ borderRadius: 8, fontWeight: 600, borderColor: '#25D366', color: '#25D366' }}
                 >
                   Fetch WhatsApp Leads
+                </Button>
+                <Button 
+                  icon={<FacebookOutlined />} 
+                  onClick={() => setIsFbSyncModalOpen(true)} 
+                  style={{ borderRadius: 8, fontWeight: 600, borderColor: '#1877F2', color: '#1877F2' }}
+                >
+                  Fetch Facebook Leads
                 </Button>
                 <Upload accept=".csv" showUploadList={false} customRequest={({ file }) => handleImport(file)}>
                   <Button icon={<UploadOutlined />} loading={isImporting} style={{ borderRadius: 8, fontWeight: 600, borderColor: 'var(--border-color)' }}>Import</Button>
@@ -257,7 +397,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
         
         <Table 
           columns={columns} 
-          dataSource={leads} 
+          dataSource={filteredLeads} 
           rowKey="_id"
           pagination={{ pageSize: 10 }}
           rowSelection={{ type: 'checkbox' }}
@@ -289,14 +429,6 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="companyName" label={<CustomLabel text="Company Name" />} rules={[{ required: true, message: 'Company Name is required' }]}>
-                <Input size="large" placeholder="Company name" style={{ borderRadius: 6 }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Row gutter={24}>
-            <Col span={12}>
               <Form.Item 
                 name="phoneNumber" 
                 label={<CustomLabel text="Phone Number" />} 
@@ -322,24 +454,15 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                 />
               </Form.Item>
             </Col>
+          </Row>
+          
+          <Row gutter={24}>
             <Col span={12}>
               <Form.Item name="email" label={<CustomLabel text="Email" />}>
                 <Input size="large" placeholder="Email (optional)" style={{ borderRadius: 6 }} />
               </Form.Item>
             </Col>
-          </Row>
 
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item name="projectType" label={<CustomLabel text="Project Type" />} rules={[{ required: true, message: 'Project Type is required' }]}>
-                <Select size="large" placeholder="Select project type">
-                  <Option value="SEO">SEO</Option>
-                  <Option value="SMM">SMM</Option>
-                  <Option value="Website">Website</Option>
-                  <Option value="Performance Marketing">Performance Marketing</Option>
-                </Select>
-              </Form.Item>
-            </Col>
             <Col span={12}>
               <Form.Item name="source" label={<CustomLabel text="Lead Source" />} rules={[{ required: true, message: 'Source is required' }]} initialValue="Website">
                 <Select size="large">
@@ -363,6 +486,15 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                   <Option value="CONVERTED">CONVERTED</Option>
                   <Option value="LOST">LOST</Option>
                   <Option value="JUNK">JUNK</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="assignedTo" label={<CustomLabel text="Assigned To" />}>
+                <Select size="large" placeholder="Select User" allowClear loading={isLoadingUsers} showSearch>
+                  {allUsers.map(u => (
+                    <Option key={u._id} value={u.name || u.username}>{u.name || u.username}</Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -410,9 +542,9 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                     </Col>
                     <Col span={12}>
                       <span style={{ color: 'red' }}>*</span> <span style={{ fontWeight: 600, fontSize: 13 }}>Set reminder to</span>
-                      <Select style={{ width: '100%', marginTop: 4 }} placeholder="Select BDE" value={reminderTo} onChange={setReminderTo}>
-                        {bdeUsers.map(b => (
-                          <Option key={b._id} value={b.fullName || b.username}>{b.fullName || b.username}</Option>
+                      <Select style={{ width: '100%', marginTop: 4 }} placeholder="Select User" value={reminderTo} onChange={setReminderTo} loading={isLoadingUsers} showSearch>
+                        {allUsers.map(u => (
+                          <Option key={u._id} value={u.name || u.username}>{u.name || u.username}</Option>
                         ))}
                       </Select>
                     </Col>
@@ -445,18 +577,29 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                 <div style={{ padding: '12px 0' }}>
                   <Descriptions bordered column={3} size="middle" labelStyle={{ fontWeight: 600, color: 'var(--text-secondary)', background: 'transparent' }} contentStyle={{ color: 'var(--text-primary)' }}>
                     <Descriptions.Item label="Name">{currentViewingLead?.fullName || '—'}</Descriptions.Item>
-                    <Descriptions.Item label="Company Name">{currentViewingLead?.companyName || '—'}</Descriptions.Item>
                     <Descriptions.Item label="Phone Number">{currentViewingLead?.phoneNumber || '—'}</Descriptions.Item>
-                    
                     <Descriptions.Item label="Email">{currentViewingLead?.email || '—'}</Descriptions.Item>
-                    <Descriptions.Item label="Project Type"><Tag style={{borderRadius: 4}}>{currentViewingLead?.projectType || '—'}</Tag></Descriptions.Item>
+                    
+                    <Descriptions.Item label="Lead Date">{getActualLeadDate(currentViewingLead).format('YYYY-MM-DD HH:mm')}</Descriptions.Item>
+                    <Descriptions.Item label="Form Name">{getFormName(currentViewingLead) || '—'}</Descriptions.Item>
                     <Descriptions.Item label="Lead Source"><Tag color="purple" style={{borderRadius: 4}}>{currentViewingLead?.source || '—'}</Tag></Descriptions.Item>
                     
                     <Descriptions.Item label="Status"><Tag color="blue" style={{borderRadius: 4}}>{currentViewingLead?.status || 'NEW'}</Tag></Descriptions.Item>
                     <Descriptions.Item label="Assigned To">{currentViewingLead?.assignedTo || '—'}</Descriptions.Item>
-                    <Descriptions.Item label="Last Interaction">{currentViewingLead?.updatedAt ? dayjs(currentViewingLead.updatedAt).format('YYYY-MM-DD HH:mm') : '—'}</Descriptions.Item>
+                    <Descriptions.Item label="Last Interaction" span={3}>{currentViewingLead?.updatedAt ? dayjs(currentViewingLead.updatedAt).format('YYYY-MM-DD HH:mm') : '—'}</Descriptions.Item>
                     
                     <Descriptions.Item label="Notes" span={3}>{currentViewingLead?.notes || '—'}</Descriptions.Item>
+
+                    {currentViewingLead?.customData && typeof currentViewingLead.customData === 'object' && Object.entries(currentViewingLead.customData).map(([key, value]) => {
+                      const ignoredKeys = ['form_name', 'formname', 'formid', 'form_id', 'pageid', 'page_id', 'leadgenid', 'leadgen_id', 'adid', 'ad_id', 'adsetid', 'adset_id', 'campaignid', 'campaign_id', 'createdtime', 'created_time', 'id', 'is_organic', 'platform'];
+                      if (ignoredKeys.includes(key.toLowerCase())) return null;
+                      const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      return (
+                        <Descriptions.Item label={formattedKey} key={key}>
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value || '—')}
+                        </Descriptions.Item>
+                      );
+                    })}
                   </Descriptions>
                 </div>
               )
@@ -478,9 +621,25 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                     </Space>
                   </div>
                   
-                  <TextArea rows={4} value={noteContent} onChange={e => setNoteContent(e.target.value)} placeholder="Enter your note here..." style={{ borderRadius: 6, marginBottom: 16 }} />
+                  {noteType !== 'text' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Upload 
+                        beforeUpload={(file) => {
+                          setNoteFile(file);
+                          return false; // Prevent automatic upload
+                        }}
+                        onRemove={() => setNoteFile(null)}
+                        maxCount={1}
+                        fileList={noteFile ? [noteFile] : []}
+                      >
+                        <Button icon={<UploadOutlined />}>Select File to Upload</Button>
+                      </Upload>
+                    </div>
+                  )}
+
+                  <TextArea rows={4} value={noteContent} onChange={e => setNoteContent(e.target.value)} placeholder={noteType === 'text' ? "Enter your note here..." : "Enter an optional description for the file..."} style={{ borderRadius: 6, marginBottom: 16 }} />
                   
-                  <Button type="primary" loading={isAddingNote} onClick={handleAddNote} style={{ borderRadius: 6, fontWeight: 600, background: '#0e4ca2' }}>Add Note</Button>
+                  <Button type="primary" loading={isAddingNote} onClick={handleAddNote} style={{ borderRadius: 6, fontWeight: 600, background: '#0e4ca2' }} disabled={!noteContent.trim() && !noteFile}>Add Note</Button>
                   
                   <div style={{ marginTop: 32 }}>
                     <Title level={5} style={{ marginBottom: 16 }}>All Notes ({currentViewingLead?.leadNotes?.length || 0})</Title>
@@ -491,7 +650,19 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                         { title: 'S.No', render: (t,r,i) => i+1 },
                         { title: 'Date & Time', dataIndex: 'createdAt', render: d => dayjs(d).format('YYYY-MM-DD HH:mm') },
                         { title: 'Type', dataIndex: 'noteType', render: t => <Tag color="blue">{t?.toUpperCase()}</Tag> },
-                        { title: 'Content', dataIndex: 'content' },
+                        { 
+                          title: 'Content', 
+                          render: (_, record) => (
+                            <Space direction="vertical" size="small">
+                              {record.content && <span>{record.content}</span>}
+                              {record.fileUrl && (
+                                <a href={record.fileUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <FileOutlined /> View Attachment
+                                </a>
+                              )}
+                            </Space>
+                          )
+                        },
                         { title: 'Action', key: 'action', render: (_, record) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(record._id)} /> },
                       ]}
                       pagination={false}
@@ -511,8 +682,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
                   rowKey="_id"
                   columns={[
                     { title: 'Date', dataIndex: 'createdAt', render: d => dayjs(d).format('YYYY-MM-DD HH:mm:ss') },
-                    { title: 'Action', dataIndex: 'actionType', render: t => <Tag color="purple">{t?.toUpperCase()}</Tag> },
-                    { title: 'Details', dataIndex: 'details', render: d => typeof d === 'string' ? d : JSON.stringify(d) },
+                    { title: 'Message', dataIndex: 'message' },
                   ]}
                   pagination={false}
                   size="small"
@@ -523,6 +693,64 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
             }
           ]}
         />
+      </Modal>
+
+      <Modal
+        title="Fetch Facebook Leads"
+        open={isFbSyncModalOpen}
+        onCancel={() => setIsFbSyncModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsFbSyncModalOpen(false)}>Cancel</Button>,
+          <Button 
+            key="sync" 
+            type="primary" 
+            loading={isSyncingFbLeads} 
+            onClick={handleSyncFacebook}
+            disabled={!selectedFbPageId || selectedFbFormIds.length === 0}
+            style={{ background: '#1877F2', borderColor: '#1877F2' }}
+          >
+            Sync Leads
+          </Button>
+        ]}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text strong>Select Facebook Page:</Text>
+          <Select 
+            style={{ width: '100%', marginTop: 8 }} 
+            placeholder="Select Page" 
+            value={selectedFbPageId}
+            onChange={handleFbPageChange}
+            loading={isLoadingFbIntegrations}
+          >
+            {fbPages.map(page => (
+              <Option key={page.pageId} value={page.pageId}>{page.pageName}</Option>
+            ))}
+          </Select>
+          {fbPages.length === 0 && !isLoadingFbIntegrations && (
+            <Text type="danger" style={{ display: 'block', marginTop: 4 }}>No Facebook pages integrated. Please configure it in settings.</Text>
+          )}
+        </div>
+
+        {selectedFbPageId && (
+          <div>
+            <Text strong>Select Forms to Sync:</Text>
+            <Select 
+              mode="multiple"
+              style={{ width: '100%', marginTop: 8 }} 
+              placeholder="Select Forms" 
+              value={selectedFbFormIds}
+              onChange={val => setSelectedFbFormIds(val)}
+              loading={isFetchingFbForms}
+            >
+              {fbForms.map(form => (
+                <Option key={form.id} value={form.id}>{form.name}</Option>
+              ))}
+            </Select>
+            {fbForms.length === 0 && !isFetchingFbForms && (
+              <Text type="warning" style={{ display: 'block', marginTop: 4 }}>No forms found for this page.</Text>
+            )}
+          </div>
+        )}
       </Modal>
 
     </motion.div>

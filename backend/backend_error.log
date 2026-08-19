@@ -975,4 +975,26 @@ Require stack:
     at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n2026-08-18T11:59:30.377Z\nReferenceError: mergedChannelRows is not defined
     at buildAnalyticsDashboard (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\metrics.service.js:180:27)
     at async Object.getOrCompute (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\services\analyticsCache.service.js:25:17)
-    at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n
+    at async exports.getAnalytics (E:\Office Projects\Bcc\bcc\backend\src\modules\analytics\analytics.controller.js:27:23)\n\n2026-08-19T12:04:18.614Z\nSyntaxError: Unexpected token '"', ""6a858963f"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-08-19T12:04:42.388Z\nSyntaxError: Unexpected token '"', ""6a858963f"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at E:\Office Projects\Bcc\bcc\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:238:16)
+    at done (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
