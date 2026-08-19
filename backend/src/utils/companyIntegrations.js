@@ -1,5 +1,6 @@
 const Integration = require('../modules/integrations/integration.model');
 const mongoose = require('mongoose');
+const { isSupportedProductIntegration } = require('./supportedIntegrations');
 
 /**
  * Resolves the integrations that are available for a given company.
@@ -38,7 +39,7 @@ const resolveCompanyIntegrations = async (companyOrId) => {
 
   const allowedMap = {};
   integrations.forEach(i => {
-    if (i.type) {
+    if (i.type && isSupportedProductIntegration(i.type)) {
       allowedMap[i.type] = true;
     }
   });

@@ -1,6 +1,7 @@
 const Package = require('./package.model');
 const integrationService = require('../integrations/integration.service');
-const { getEffectivePackageIntegrations } = require('./packageAccess.service');
+const { getEffectivePackageIntegrations, resolveCompanyUser } = require('./packageAccess.service');
+const { isSupportedProductIntegration } = require('../../utils/supportedIntegrations');
 
 const VALID_TYPES = ['agency', 'client', 'directClient'];
 
@@ -17,7 +18,21 @@ const validatePackageIntegrations = async (integrations, req) => {
 
   const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
   const allowedIntegrations = await getEffectivePackageIntegrations(req.user);
-  const allowedTypes = new Set(allowedIntegrations);
+  const companyUser = await resolveCompanyUser(req.user);
+  
+  let finalAllowed = [...allowedIntegrations];
+  
+  if (companyUser && ['agency_super_admin', 'commander_admin', 'supreme_super_admin'].includes(companyUser.role)) {
+    // Remove disabled
+    const disabled = companyUser.disabledPackageIntegrations || [];
+    finalAllowed = finalAllowed.filter(i => !disabled.includes(i));
+    
+    // Add additional
+    const additional = companyUser.additionalIntegrations || [];
+    finalAllowed = [...new Set([...finalAllowed, ...additional])];
+  }
+
+  const allowedTypes = new Set(finalAllowed);
 
   for (const type of normalized) {
     if (!allowedTypes.has(type)) {
@@ -39,7 +54,7 @@ const normalizeIntegrations = (value) => {
     value
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
-      .filter(Boolean)
+      .filter((v) => Boolean(v) && isSupportedProductIntegration(v))
   )];
 };
 

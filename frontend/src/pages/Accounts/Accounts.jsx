@@ -503,7 +503,26 @@ const Accounts = () => {
           </Form.Item>
 
           <Form.Item label={<Text style={{ fontWeight: 600 }}>Included Modules</Text>} name="features">
-            <Checkbox.Group style={{ width: '100%' }}>
+            <Checkbox.Group 
+              style={{ width: '100%' }}
+              onChange={(checkedFeatures) => {
+                const currentIntegrations = form.getFieldValue('integrations') || [];
+                let newIntegrations = [...currentIntegrations];
+
+                const AUTO_MAP = { hrms: 'ekta', crm: 'website' };
+                
+                Object.keys(AUTO_MAP).forEach(feat => {
+                  const mappedInt = AUTO_MAP[feat];
+                  if (checkedFeatures.includes(feat)) {
+                    if (!newIntegrations.includes(mappedInt)) newIntegrations.push(mappedInt);
+                  } else {
+                    newIntegrations = newIntegrations.filter(i => i !== mappedInt);
+                  }
+                });
+
+                form.setFieldsValue({ integrations: newIntegrations });
+              }}
+            >
               <Row gutter={[16, 16]}>
                 {availableFeatures.map(feat => (
                   <Col span={12} key={feat.id}>

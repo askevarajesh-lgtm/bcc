@@ -5,6 +5,7 @@ import { CheckCircle, Download } from 'lucide-react';
 import TaskListView from '../../Tasks/TaskListView';
 import ClientBilling from './ClientBilling';
 import ClientActivity from './ClientActivity';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -41,7 +42,9 @@ const ClientDetailContent = ({
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [togglingFeatureId, setTogglingFeatureId] = useState(null);
+  const [togglingIntId, setTogglingIntId] = useState(null);
   const clientId = selectedClient?._id || selectedClient?.id;
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     if (!clientId) return;
@@ -390,6 +393,46 @@ const ClientDetailContent = ({
                 }
               };
 
+              const handleIntegrationToggle = async (intId, checked) => {
+                try {
+                  setTogglingIntId(intId);
+                  const currentIntegrations = selectedClient.integrations || [];
+                  const updatedIntegrations = checked
+                    ? [...currentIntegrations, intId]
+                    : currentIntegrations.filter(i => i !== intId);
+
+                  const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                  };
+
+                  const res = await fetch(`/api/brands/${clientId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({ 
+                      integrations: updatedIntegrations 
+                    })
+                  });
+
+                  const data = await res.json();
+                  if (data.success) {
+                    message.success(`Integration ${checked ? 'enabled' : 'disabled'}`);
+                    if (onClientUpdated) {
+                      onClientUpdated({
+                        ...selectedClient,
+                        integrations: data.data.integrations || []
+                      });
+                    }
+                  } else {
+                    message.error(data.message || 'Failed to update integration access');
+                  }
+                } catch (e) {
+                  message.error('An error occurred while updating integration access');
+                } finally {
+                  setTogglingIntId(null);
+                }
+              };
+
               return (
                 <div style={{ paddingTop: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
@@ -443,23 +486,38 @@ const ClientDetailContent = ({
                     <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'block' }}>Accessed Integrations</Text>
                     {(() => {
                       const clientIntegrations = selectedClient.integrations || [];
-                      if (clientIntegrations.length === 0) {
+                      const allowedIntegrations = (authUser?.integrations || []);
+                      
+                      const integrationsToShow = [...allowedIntegrations];
+                      clientIntegrations.forEach(intId => {
+                        if (!integrationsToShow.includes(intId)) {
+                          integrationsToShow.push(intId);
+                        }
+                      });
+
+                      if (integrationsToShow.length === 0) {
                         return (
                           <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
-                            No integrations accessed.
+                            No integrations available in scope.
                           </div>
                         );
                       }
 
-                      return clientIntegrations.map(intId => {
+                      return integrationsToShow.map(intId => {
                         const integrationDef = INTEGRATIONS_LIST.find(i => i.id === intId);
                         const label = integrationDef ? integrationDef.label : (intId.charAt(0).toUpperCase() + intId.slice(1));
+                        const enabled = clientIntegrations.includes(intId);
                         return (
-                          <div key={intId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-tertiary)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                            <div style={{ color: 'var(--accent-primary)' }}><CheckCircle size={15} /></div>
+                          <div key={intId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: enabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)', opacity: 1 }}>
+                            <div style={{ color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}><CheckCircle size={15} /></div>
                             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
                             <div style={{ marginLeft: 'auto' }}>
-                              <Tag color="blue" style={{ margin: 0, borderRadius: 12 }}>Enabled</Tag>
+                              <Switch
+                                size="small"
+                                checked={enabled}
+                                loading={togglingIntId === intId}
+                                onChange={(checked) => handleIntegrationToggle(intId, checked)}
+                              />
                             </div>
                           </div>
                         );

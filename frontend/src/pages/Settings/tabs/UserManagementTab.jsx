@@ -738,13 +738,32 @@ const UserManagementTab = () => {
         styles={{ body: { maxHeight: "70vh", overflowY: "auto", overflowX: "hidden" } }}
       >
         <Tabs 
-          items={Object.entries(permissionGroups).map(([group, modules]) => ({
-            key: group,
-            label: <strong style={{ fontWeight: 600 }}>{group}</strong>,
-            children: (
-              <Table
-                rowKey="module"
-                dataSource={modules.map(m => ({ module: m }))}
+          items={Object.entries(permissionGroups).map(([group, modules]) => {
+            let activeModules = [...modules];
+            
+            if (group === 'Workspace' && activeModules.includes('CRM & Leads')) {
+              const crm = draftPermissions['Workspace-CRM & Leads'] || {};
+              const isManagerCrm = isManagerRole;
+              const hasAllCrm = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerCrm) && (crm.Edit || isManagerCrm) && (crm.Delete || isManagerCrm);
+              if (hasAllCrm && !activeModules.includes('Lead Management Integration')) {
+                activeModules.push('Lead Management Integration');
+              }
+            } else if (group === 'HRMS' && activeModules.includes('Performance')) {
+              const perf = draftPermissions['HRMS-Performance'] || {};
+              const isManagerPerf = isManagerRole;
+              const hasAllPerf = (perf.Read || true) && (perf.View || true) && (perf.Create || isManagerPerf) && (perf.Edit || isManagerPerf) && (perf.Delete || isManagerPerf);
+              if (hasAllPerf && !activeModules.includes('Ekta HR Integration')) {
+                activeModules.push('Ekta HR Integration');
+              }
+            }
+            
+            return {
+              key: group,
+              label: <strong style={{ fontWeight: 600 }}>{group}</strong>,
+              children: (
+                <Table
+                  rowKey="module"
+                  dataSource={activeModules.map(m => ({ module: m }))}
                 pagination={false}
                 scroll={{ y: 400 }}
                 rowClassName={() => 'hover-bg'}
@@ -767,20 +786,46 @@ const UserManagementTab = () => {
                           (record.module === 'Dashboard' && field === 'Read') ||
                           (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field))
                         }
-                        onChange={(e) => setDraftPermissions(prev => ({
-                          ...prev,
-                          [`${group}-${record.module}`]: {
-                            ...(prev[`${group}-${record.module}`] || {}),
-                            [field]: e.target.checked
-                          }
-                        }))}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setDraftPermissions(prev => {
+                            const updated = {
+                              ...prev,
+                              [`${group}-${record.module}`]: {
+                                ...(prev[`${group}-${record.module}`] || {}),
+                                [field]: isChecked
+                              }
+                            };
+
+                            if (group === 'Workspace' && record.module === 'CRM & Leads') {
+                              const crm = updated['Workspace-CRM & Leads'];
+                              const isManagerCrm = isManagerRole;
+                              const isAllChecked = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerCrm) && (crm.Edit || isManagerCrm) && (crm.Delete || isManagerCrm);
+                              updated['Workspace-Lead Management Integration'] = {
+                                Read: isAllChecked, View: isAllChecked, Create: isAllChecked, Edit: isAllChecked, Delete: isAllChecked
+                              };
+                            }
+                            
+                            if (group === 'HRMS' && record.module === 'Performance') {
+                              const perf = updated['HRMS-Performance'];
+                              const isManagerPerf = isManagerRole;
+                              const isAllChecked = (perf.Read || true) && (perf.View || true) && (perf.Create || isManagerPerf) && (perf.Edit || isManagerPerf) && (perf.Delete || isManagerPerf);
+                              updated['HRMS-Ekta HR Integration'] = {
+                                Read: isAllChecked, View: isAllChecked, Create: isAllChecked, Edit: isAllChecked, Delete: isAllChecked
+                              };
+                            }
+
+                            return updated;
+                          });
+                        }}
                       />
                     )
                   }))
                 ]}
               />
             )
-          }))}
+          };
+          })}
           tabBarStyle={{ marginBottom: 16 }}
         />
       </Modal>

@@ -321,7 +321,7 @@ exports.updateBrand = async (req, res, next) => {
       filter.isDirect = true;
     }
 
-    const { name, email, phone, address, packageName, features, additionalIntegrations, disabledPackageIntegrations, mrr, extraUsers } = req.body;
+    const { name, email, phone, address, packageName, features, integrations, additionalIntegrations, disabledPackageIntegrations, mrr, extraUsers } = req.body;
     let updates = {};
 
     // Validate Phone Number
@@ -391,11 +391,18 @@ exports.updateBrand = async (req, res, next) => {
       finalDisabled = finalDisabled.filter(i => packageIntegrations.includes(i));
     } else {
       if (features !== undefined) updates.features = features;
-      if (additionalIntegrations !== undefined) {
-        finalAdditional = additionalIntegrations.filter(i => !packageIntegrations.includes(i));
-      }
-      if (disabledPackageIntegrations !== undefined) {
-        finalDisabled = disabledPackageIntegrations.filter(i => packageIntegrations.includes(i));
+      
+      if (integrations !== undefined) {
+        // Compute additional and disabled based on the provided explicit integrations array
+        finalAdditional = integrations.filter(i => !packageIntegrations.includes(i));
+        finalDisabled = packageIntegrations.filter(i => !integrations.includes(i));
+      } else {
+        if (additionalIntegrations !== undefined) {
+          finalAdditional = additionalIntegrations.filter(i => !packageIntegrations.includes(i));
+        }
+        if (disabledPackageIntegrations !== undefined) {
+          finalDisabled = disabledPackageIntegrations.filter(i => packageIntegrations.includes(i));
+        }
       }
     }
 

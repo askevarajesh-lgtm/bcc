@@ -1,5 +1,6 @@
 const { resolveCompanyIntegrations } = require('./companyIntegrations');
 const { getEffectivePackageIntegrations, resolveCompanyUser } = require('../modules/packages/packageAccess.service');
+const { isSupportedProductIntegration } = require('./supportedIntegrations');
 
 /**
  * @param {object} user - the requesting user (see packageAccess.service.js)
@@ -10,6 +11,10 @@ const { getEffectivePackageIntegrations, resolveCompanyUser } = require('../modu
  */
 const isIntegrationAllowedForUser = async (user, company, integrationType) => {
   if (!integrationType) return false;
+  
+  if (!isSupportedProductIntegration(integrationType)) {
+    return false;
+  }
 
   // Layer 1 -- company-level availability (existing, unchanged utility)
   const companyAllowed = await resolveCompanyIntegrations(company);

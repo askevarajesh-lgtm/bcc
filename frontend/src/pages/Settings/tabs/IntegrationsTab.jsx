@@ -361,8 +361,16 @@ const IntegrationsTab = () => {
   // themselves and are never restricted by this -- same bypass as backend.
   const isPlatformAdmin = PLATFORM_ADMIN_ROLES.includes(role);
   const entitledIntegrationTypes = user?.integrations || [];
-  const canSeeIntegration = (type) =>
-    isPlatformAdmin || entitledIntegrationTypes.includes(type);
+  const canSeeIntegration = (type) => {
+    if (isPlatformAdmin) return true;
+    if (entitledIntegrationTypes.includes(type)) return true;
+    
+    // Allow if user has explicit matrix permissions
+    if (type === 'website' && (user?.permissions?.['Workspace-Lead Management Integration']?.Read || user?.permissions?.['Workspace-CRM & Leads']?.Read)) return true;
+    if (type === 'ekta' && (user?.permissions?.['HRMS-Ekta HR Integration']?.Read || user?.permissions?.['HRMS-Performance']?.Read)) return true;
+    
+    return false;
+  };
 
   const handleToggle = async (integration, enabled) => {
     try {
@@ -458,9 +466,6 @@ const IntegrationsTab = () => {
     );
   }
 
-  const whatsappLeadsIntegration = integrations.find((i) => i.type === "whatsapp_leads");
-  const facebookLeadsIntegration = integrations.find((i) => i.type === "facebook_leads");
-
   return (
     <>
       <style>{cardStyles}</style>
@@ -500,19 +505,15 @@ const IntegrationsTab = () => {
               description="Send invoices, reports, and notifications via SendPulse email service"
             />
           )}
-          {(isCommanderAdmin || user?.features?.includes('crm')) && canSeeIntegration('website') && (
+          {(isCommanderAdmin || user?.features?.includes('crm') || user?.permissions?.['Workspace-CRM & Leads']?.Read || user?.permissions?.['Workspace-Lead Management Integration']?.Read) && canSeeIntegration('website') && (
             <IntegrationCard
               type="website"
               integration={websiteIntegration}
               isActiveOverride={
-                websiteIntegration?.isActive ||
-                whatsappLeadsIntegration?.isActive ||
-                facebookLeadsIntegration?.isActive || false
+                websiteIntegration?.isActive || false
               }
               isConfiguredOverride={
-                isWebsiteIntegrationConfigured(websiteIntegration) ||
-                Boolean(whatsappLeadsIntegration?.config && Object.keys(whatsappLeadsIntegration.config).length > 0) ||
-                Boolean(facebookLeadsIntegration?.config?.accessToken)
+                isWebsiteIntegrationConfigured(websiteIntegration)
               }
               icon={<WebsiteIcon />}
               title="Lead Management Integration"
@@ -528,7 +529,7 @@ const IntegrationsTab = () => {
               description="Configure QR codes and payment links for your organization"
             />
           )}
-          {(isCommanderAdmin || user?.features?.includes('hrms')) && canSeeIntegration('ekta') && (
+          {(isCommanderAdmin || user?.features?.includes('hrms') || user?.permissions?.['HRMS-Performance']?.Read || user?.permissions?.['HRMS-Ekta HR Integration']?.Read) && canSeeIntegration('ekta') && (
             <IntegrationCard
               type="ekta"
               integration={ektaIntegration}
@@ -538,7 +539,7 @@ const IntegrationsTab = () => {
             />
           )}
         </div>
-        {!isPlatformAdmin && entitledIntegrationTypes.length === 0 && (
+        {!isPlatformAdmin && ['whatsapp', 'sms', 'email', 'website', 'payment', 'ekta'].filter(canSeeIntegration).length === 0 && (
           <div style={{ padding: '40px 0', textAlign: 'center', color: '#999' }}>
             No integrations are included in your current package. Contact your administrator to upgrade.
           </div>
