@@ -21,18 +21,8 @@ class CronService {
           const keywords = await SeoKeyword.find({ projectId: project._id });
           
           for (const kw of keywords) {
-            // Randomly drop rank by 1-3 positions to simulate volatility for demo
-            if (Math.random() > 0.7) {
-              const drop = Math.floor(Math.random() * 3) + 1;
-              const currentRank = kw.ranking?.currentRank || 10;
-              kw.ranking.currentRank = currentRank + drop;
-              await kw.save();
-              
-              if (drop >= 2) {
-                console.log(`[Alert] Keyword "${kw.keyword}" dropped by ${drop} positions! Generating response task...`);
-                // In a real scenario, this would trigger AgentOrchestrator to generate a new task
-              }
-            }
+            // Actual rank tracking would happen via Semrush API here
+            // Removing fake rank drop simulation
           }
         }
       } catch (error) {

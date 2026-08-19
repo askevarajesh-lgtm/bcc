@@ -25,15 +25,9 @@ const semrushProjectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  stats: {
-    aiVisibility: { type: Number, default: 0 },
-    mentions: { type: Number, default: 0 },
-    siteHealth: { type: Number, default: 0 },
-    visibility: { type: Number, default: 0 },
-    organicTraffic: { type: Number, default: 0 },
-    organicKeywords: { type: Number, default: 0 },
-    backlinks: { type: Number, default: 0 }
-  },
+  semrushProjectId: { type: String, default: null },
+  semrushCampaignId: { type: String, default: null },
+  latestSnapshot: { type: mongoose.Schema.Types.ObjectId, ref: 'OptimizationSnapshot', default: null },
   trackingConfig: {
     isActive: { type: Boolean, default: false },
     searchEngine: { type: String, default: 'Google' },

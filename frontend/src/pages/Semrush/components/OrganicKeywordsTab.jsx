@@ -1,39 +1,75 @@
-import React from 'react';
-import { Button, Typography, Table, Tag, Progress, Tooltip } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Button, Typography, Table, Tag, Progress, Tooltip, message } from 'antd';
+import { semrushApi } from '../../../api/semrushApi';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink } from 'lucide-react';
-import { ReloadOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import './DashboardTab.css'; 
 
 const { Title, Text } = Typography;
 
 const OrganicKeywordsTab = () => {
-  const { project, projectData } = useOutletContext();
-  const domain = project?.domain;
-  const [data, setData] = React.useState(projectData?.organicKeywords || []);
-  const [loading, setLoading] = React.useState(false);
+  const { project, projectData, fetchProjectData } = useOutletContext();
+  const domain = project?.domain || 'this domain';
 
-  React.useEffect(() => {
-    if (projectData?.organicKeywords && data.length === 0) {
-      setData(projectData.organicKeywords);
-    }
-  }, [projectData]);
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleAudit = async () => {
-    if (!domain) return;
+  const data = localData || projectData?.organicKeywords || [];
+
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
     try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const res = await semrushApi.getDomainKeywordsDrilldown(domain, 100, true);
-      if (res) {
-        setData(res);
+      const res = await semrushApi.getOrganicResearch(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data.organicKeywordsData || []);
+        message.success('Organic Research updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Organic Research');
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      if (!data || data.length === 0) {
+        message.warning('No organic keywords data available to export.');
+        return;
+      }
+
+      // Map data for Excel
+      const exportData = data.map(row => ({
+        'Keyword': row.keyword || '-',
+        'Position': row.position || '-',
+        'Previous Position': row.previousPosition || '-',
+        'Search Volume': row.searchVolume || 0,
+        'Traffic %': Number(row.trafficPercent || 0).toFixed(2) + '%',
+        'Keyword Difficulty %': row.difficulty || 0,
+        'CPC (USD)': row.cpc || 0,
+        'URL': row.url || '-'
+      }));
+
+      // Create workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Organic Keywords');
+
+      // Export
+      const filename = `${domain?.replace(/\./g, '_') || 'project'}_Organic_Keywords.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      message.success('Organic Keywords report exported successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      message.error('Failed to export organic keywords report.');
     }
   };
 
@@ -227,10 +263,16 @@ const OrganicKeywordsTab = () => {
                 <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-                  Audit Data
+                <Button 
+                  type="primary" 
+                  icon={<ReloadOutlined spin={refreshing} />} 
+                  onClick={handleRefresh} 
+                  loading={refreshing}
+                  style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                >
+                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
                 </Button>
-                <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+                <Button icon={<DownloadOutlined />} onClick={handleExport} style={{ borderRadius: 8, fontWeight: 600 }}>
                   Export
                 </Button>
               </div>
@@ -241,7 +283,7 @@ const OrganicKeywordsTab = () => {
                 dataSource={data}
                 columns={columns}
                 rowKey="key"
-                loading={loading}
+                loading={refreshing}
                 pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} keywords` }}
                 size="middle"
                 style={{ margin: 0 }}
@@ -258,9 +300,15 @@ const OrganicKeywordsTab = () => {
           >
             <BarChart2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
             <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Organic Keywords Data Available</Title>
-            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Audit Data' button to fetch the latest insights from Semrush.</Text>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading}>
-              Audit Data
+            <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Refresh Data' button below to fetch the latest insights.</Text>
+            <Button 
+              type="primary" 
+              icon={<ReloadOutlined spin={refreshing} />} 
+              onClick={handleRefresh} 
+              loading={refreshing}
+              style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
             </Button>
           </motion.div>
         )}

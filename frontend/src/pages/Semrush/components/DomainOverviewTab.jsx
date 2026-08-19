@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Tag, Tooltip, Progress, Space, Button } from 'antd';
+import { Typography, Table, Tag, Tooltip, Progress, Space, Button, message } from 'antd';
+import { semrushApi } from '../../../api/semrushApi';
 import { InfoCircleOutlined, InfoOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,38 +11,50 @@ import './DomainOverview.css';
 const { Title, Text } = Typography;
 
 const DomainOverviewTab = () => {
-  const { project, projectData } = useOutletContext();
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const navigate = useNavigate();
   const domain = project?.domain || 'unknown.com';
   
-  const [data, setData] = useState(projectData?.overview || {});
-  const [backlinksData, setBacklinksData] = useState(projectData?.backlinksOverview || {});
-  const [loading, setLoading] = useState(false);
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (projectData?.overview && Object.keys(data).length === 0) setData(projectData.overview);
-    if (projectData?.backlinksOverview && Object.keys(backlinksData).length === 0) setBacklinksData(projectData.backlinksOverview);
-  }, [projectData]);
+  const data = localData || projectData?.overview || {};
+  const backlinksData = projectData?.backlinksOverview || {};
 
-  const handleAudit = async () => {
-    if (!domain || domain === 'unknown.com') return;
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
     try {
-      setLoading(true);
-      const { semrushApi } = await import('../../../api/semrushApi');
-      const [overviewRes, backlinksRes] = await Promise.all([
-        semrushApi.getDomainOverview(domain, 'us', true),
-        semrushApi.getBacklinksOverview(domain, true)
-      ]);
-      
-      if (overviewRes && overviewRes.length > 0) setData(overviewRes[0]);
-      if (backlinksRes && backlinksRes.length > 0) setBacklinksData(backlinksRes[0]);
-    } catch (error) {
-      console.error(error);
+      const res = await semrushApi.getDomainOverview(project._id, true);
+      if (res.data.success && res.data.data) {
+        const raw = res.data.data;
+        // Map it the same way getProjectById does so localData matches projectData.overview
+        setLocalData({
+          'Organic Traffic': raw.organicTraffic?.value,
+          'Organic Keywords': raw.organicKeywords?.value,
+          Rank: raw.authorityScore?.value || data?.Rank, // Keep existing authority score if not in this response
+          visibility_index: raw.semrushRank?.value,
+          paidTraffic: raw.paidTraffic?.value,
+          competitors: raw.competitors || [],
+          trend: raw.trend || [],
+          topKeywords: raw.topKeywords || [],
+          positionDistribution: raw.positionDistribution || null,
+          intentDistribution: raw.intentDistribution || [],
+          organicKeywordsData: raw.organicKeywordsData || [],
+          serpFeatures: raw.serpFeatures || null
+        });
+        message.success('Domain Overview updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Domain Overview');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
-  
+
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -54,10 +67,10 @@ const DomainOverviewTab = () => {
   const positionDistribution = data.positionDistribution || {};
 
   const serpPieData = [
-    { name: 'Organic', value: serpFeatures.organic || 85.1, color: '#5b61f4' },
-    { name: 'AI Overviews', value: serpFeatures.aiOverviews || 2.1, color: '#f772e3' },
-    { name: 'Other SERP Features', value: serpFeatures.otherFeatures || 12.8, color: '#38cb89' }
-  ];
+    { name: 'Organic', value: serpFeatures.organic ?? null, color: '#5b61f4' },
+    { name: 'AI Overviews', value: serpFeatures.aiOverviews ?? null, color: '#f772e3' },
+    { name: 'Other SERP Features', value: serpFeatures.otherFeatures ?? null, color: '#38cb89' }
+  ].filter(d => d.value !== null);
 
   const posDistData = Object.entries(positionDistribution).map(([key, val]) => ({
     name: key,
@@ -76,8 +89,14 @@ const DomainOverviewTab = () => {
     <div className="so-overview-container">
       {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button type="primary" icon={<ReloadOutlined />} onClick={handleAudit} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-          Audit Data
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={refreshing} />} 
+          onClick={handleRefresh} 
+          loading={refreshing}
+          style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+        >
+          {refreshing ? 'Refreshing...' : 'Refresh Data'}
         </Button>
       </div>
 
@@ -256,7 +275,7 @@ const DomainOverviewTab = () => {
       {/* 5. Competitors Section */}
       <div className="so-competitor-grid">
         <div className="so-card">
-           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length || 0}</span></h3>
+           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length ?? 'Unavailable'}</span></h3>
            <Table 
             className="so-table-minimal"
             dataSource={(data?.competitors || []).slice(0, 5)}

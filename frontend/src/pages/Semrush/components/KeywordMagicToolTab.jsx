@@ -1,27 +1,63 @@
-import React, { useState } from 'react';
-import { Card, Table, Typography, Input, Select, Button, Space, Tag, Empty } from 'antd';
-import { SearchOutlined, DownloadOutlined, FilterOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Typography, Input, Select, Button, Space, Tag, Empty, message } from 'antd';
+import { SearchOutlined, DownloadOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { semrushApi } from '../../../api/semrushApi';
+import { useOutletContext } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const KeywordMagicToolTab = () => {
+  const { project } = useOutletContext();
+  const domain = project?.domain;
+  const projectId = project?._id;
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [keyword, setKeyword] = useState('');
-  const [matchType, setMatchType] = useState('phrase');
+  const [query, setQuery] = useState(domain || '');
+  const [matchType, setMatchType] = useState('broad');
+  const [database, setDatabase] = useState('us');
   const [hasSearched, setHasSearched] = useState(false);
+  const [configStatus, setConfigStatus] = useState('available');
+
+  useEffect(() => {
+    if (query) handleSearch();
+  }, [projectId]);
 
   const handleSearch = async () => {
-    if (!keyword) return;
+    if (!query) return;
+    setLoading(true);
+    setHasSearched(true);
+    
     try {
-      setLoading(true);
-      setHasSearched(true);
-      const res = await semrushApi.getKeywordMagicTool(keyword, 'us', matchType, true);
-      setData(res || []);
-    } catch (error) {
-      console.error(error);
+      const res = await semrushApi.getKeywordMagicTool(projectId, { keyword: query, database, matchType });
+      if (res && res.data) {
+        setConfigStatus(res.data.status || 'available');
+        setData(res.data.data || []);
+      } else {
+        setData([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setConfigStatus('failed');
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!query || data.length === 0) return;
+    setLoading(true);
+    try {
+      const res = await semrushApi.getKeywordMagicTool(projectId, { keyword: query, database, matchType });
+      if (res && res.data && res.data.success && res.data.data) {
+        setData(res.data.data);
+        message.success('Results updated successfully');
+      } else {
+        message.error(res?.data?.errorCode || 'Failed to refresh results');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
       setLoading(false);
     }
@@ -53,7 +89,10 @@ const KeywordMagicToolTab = () => {
       title: 'Volume',
       dataIndex: 'Search Volume',
       key: 'Volume',
-      render: (text, record) => <Text>{Number(text || record.Nq || 0).toLocaleString()}</Text>
+      render: (text, record) => {
+        const val = text ?? record.Nq ?? null;
+        return <Text>{val !== null ? Number(val).toLocaleString() : 'Unavailable'}</Text>;
+      }
     },
     {
       title: 'Trend',
@@ -65,7 +104,9 @@ const KeywordMagicToolTab = () => {
       dataIndex: 'Keyword Difficulty Index',
       key: 'KD',
       render: (text, record) => {
-        const kd = Number(text || record.Kd || 0);
+        const val = text ?? record.Kd ?? null;
+        if (val === null) return <Text type="secondary">Unavailable</Text>;
+        const kd = Number(val);
         let color = kd > 70 ? 'red' : kd > 40 ? 'orange' : 'green';
         return <Tag color={color}>{kd.toFixed(1)}%</Tag>;
       }
@@ -74,9 +115,21 @@ const KeywordMagicToolTab = () => {
       title: 'CPC (USD)',
       dataIndex: 'CPC',
       key: 'CPC',
-      render: (text, record) => <Text>${Number(text || record.Cp || 0).toFixed(2)}</Text>
+      render: (text, record) => {
+        const val = text ?? record.Cp ?? null;
+        return <Text>{val !== null ? `$${Number(val).toFixed(2)}` : 'Unavailable'}</Text>;
+      }
     }
   ];
+
+  const getEmptyDescription = () => {
+    if (!hasSearched) return "Enter a seed keyword to get started";
+    if (configStatus === 'not_configured') return "Keyword Magic — Semrush API not configured";
+    if (configStatus === 'unavailable') return "Keyword Magic — Temporarily unavailable";
+    if (configStatus === 'failed') return "Keyword Magic — Provider error";
+    if (configStatus === 'rate_limited') return "Keyword Magic — Rate limited";
+    return "No results found for this keyword.";
+  };
 
   return (
     <div>
@@ -88,8 +141,8 @@ const KeywordMagicToolTab = () => {
         <Space style={{ marginBottom: 24, width: '100%' }} size="middle">
           <Input 
             placeholder="Enter keyword" 
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             style={{ width: 300 }}
             onPressEnter={handleSearch}
           />
@@ -99,23 +152,31 @@ const KeywordMagicToolTab = () => {
             <Option value="exact">Exact Match</Option>
           </Select>
           <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
-            Search / Audit
+            Search
+          </Button>
+          <Button 
+            type="default" 
+            icon={<ReloadOutlined spin={loading} />} 
+            onClick={handleRefresh} 
+            loading={loading}
+          >
+            Refresh Results
           </Button>
           <Button icon={<FilterOutlined />}>Filters</Button>
           <Button icon={<DownloadOutlined />}>Export</Button>
         </Space>
 
-        {data.length > 0 ? (
+        {data && data.length > 0 ? (
           <Table 
-            columns={columns}
-            dataSource={data}
-            rowKey={(record, index) => `${record.Ph}-${index}`}
+            dataSource={data} 
+            columns={columns} 
             loading={loading}
-            pagination={{ pageSize: 50 }}
+            rowKey={(record) => record.Keyword || record.Ph}
+            pagination={{ pageSize: 20 }}
             scroll={{ x: 'max-content' }}
           />
         ) : (
-          <Empty description={hasSearched ? "No results found for this keyword." : "Enter a seed keyword to get started"} />
+          <Empty description={getEmptyDescription()} />
         )}
       </Card>
     </div>

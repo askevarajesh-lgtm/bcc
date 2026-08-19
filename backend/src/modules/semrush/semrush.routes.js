@@ -17,14 +17,20 @@ router.delete('/projects/:id', semrushController.deleteProject);
 router.post('/projects/:id/tracking-config', semrushController.configureTracking);
 router.get('/projects/:id/position-tracking', semrushController.getPositionTracking);
 
-// Legacy Live Routes
-router.get('/domain-overview', semrushController.getDomainOverview);
-router.get('/keyword-research', semrushController.getKeywordResearch);
-router.get('/backlinks', semrushController.getBacklinksOverview);
-router.get('/site-health', semrushController.getSiteHealth);
-router.get('/domain-keywords-drilldown', semrushController.getDomainKeywordsDrilldown);
-router.get('/competitor-analysis', semrushController.getCompetitorAnalysis);
-router.get('/traffic-analytics', semrushController.getTrafficAnalytics);
-router.get('/keyword-magic-tool', semrushController.getKeywordMagicTool);
+// Interactive tools
+router.get('/projects/:id/traffic-analytics', semrushController.getTrafficAnalytics);
+router.get('/projects/:id/keyword-magic-tool', semrushController.getKeywordMagicTool);
+
+// Snapshots
+router.get('/projects/:id/snapshots', semrushController.getHistoricalSnapshots);
+router.get('/projects/:id/snapshots/latest', semrushController.getLatestSnapshot);
+
+// Page-level sub-module refresh endpoints
+router.get('/projects/:id/domain-overview', semrushController.getDomainOverview);
+router.get('/projects/:id/organic-research', semrushController.getOrganicResearch);
+router.get('/projects/:id/competitor-analysis', semrushController.getCompetitorAnalysis);
+router.get('/projects/:id/backlinks', semrushController.getBacklinks);
+router.get('/projects/:id/site-audit', semrushController.getSiteAudit);
+router.get('/projects/:id/geo-aeo', semrushController.getGeoAeo);
 
 module.exports = router;

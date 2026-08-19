@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Typography, Space, Button, Progress, Tooltip, Row, Col } from 'antd';
+import { Card, Table, Typography, Space, Button, Progress, Tooltip, Row, Col, message } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import { semrushApi } from '../../../api/semrushApi';
@@ -7,26 +7,38 @@ import { semrushApi } from '../../../api/semrushApi';
 const { Title, Text } = Typography;
 
 const CompetitorAnalysisTab = () => {
-  const { project } = useOutletContext();
-  const [loading, setLoading] = useState(false);
-  const [competitors, setCompetitors] = useState([]);
+  const { project, projectData, fetchProjectData } = useOutletContext();
+  
+  const [localData, setLocalData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (project?.domain) {
-      fetchCompetitors();
-    }
-  }, [project]);
+  const competitors = localData || projectData?.overview?.competitors || projectData?.competitors || [];
 
-  const fetchCompetitors = async (force = false) => {
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
     try {
-      setLoading(true);
-      const res = await semrushApi.getCompetitorAnalysis(project.domain, 'us', 20, force);
-      setCompetitors(res || []);
-    } catch (error) {
-      console.error(error);
+      const res = await semrushApi.getCompetitorAnalysis(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data.competitors || []);
+        message.success('Competitors updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh Competitors');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const renderMetric = (val, isCurrency = false) => {
+    if (val === null || val === undefined || val === '') return <Text type="secondary">Unavailable</Text>;
+    const num = Number(val);
+    if (isNaN(num)) return <Text type="secondary">Unavailable</Text>;
+    if (isCurrency) return <Text>${num.toLocaleString()}</Text>;
+    return <Text>{num.toLocaleString()}</Text>;
   };
 
   const columns = [
@@ -46,7 +58,8 @@ const CompetitorAnalysisTab = () => {
       dataIndex: 'competitorRelevance',
       key: 'relevance',
       render: (val) => {
-        const percent = Math.min(100, Number(val || 0) * 100).toFixed(1);
+        if (val === null || val === undefined) return <Text type="secondary">Unavailable</Text>;
+        const percent = Math.min(100, Number(val) * 100).toFixed(1);
         return (
           <Tooltip title={`Relevance score: ${val}`}>
             <Progress percent={percent} size="small" status="active" />
@@ -58,47 +71,55 @@ const CompetitorAnalysisTab = () => {
       title: 'Common Keywords',
       dataIndex: 'commonKeywords',
       key: 'commonKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Keywords',
       dataIndex: 'organicKeywords',
       key: 'organicKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Traffic',
       dataIndex: 'organicTraffic',
       key: 'organicTraffic',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     },
     {
       title: 'SE Traffic Cost',
       dataIndex: 'organicCost',
       key: 'organicCost',
-      render: (val) => <Text>${Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val, true)
     },
     {
       title: 'Ads Keywords',
       dataIndex: 'adwordsKeywords',
       key: 'adwordsKeywords',
-      render: (val) => <Text>{Number(val || 0).toLocaleString()}</Text>
+      render: (val) => renderMetric(val)
     }
   ];
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>Organic Competitors</Title>
           <Text type="secondary">Domains competing for the same keywords in organic search.</Text>
         </div>
-        <Space>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => fetchCompetitors(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Audit Data
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined spin={refreshing} />} 
+            onClick={handleRefresh} 
+            loading={refreshing}
+            style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
           </Button>
-          <Button icon={<DownloadOutlined />}>Export</Button>
-        </Space>
+          <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+            Export
+          </Button>
+        </div>
       </div>
 
       <Row gutter={[24, 24]}>
@@ -108,7 +129,7 @@ const CompetitorAnalysisTab = () => {
               columns={columns}
               dataSource={competitors}
               rowKey="domain"
-              loading={loading}
+              loading={refreshing}
               pagination={false}
               scroll={{ x: 'max-content' }}
             />

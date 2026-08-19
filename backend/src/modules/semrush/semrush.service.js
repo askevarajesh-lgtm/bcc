@@ -14,19 +14,22 @@ class SemrushService {
    * @param {boolean} [force=false] Force bypassing the cache
    * @returns {Promise<Object>} The JSON data
    */
-  async fetchWithCache(queryKey, params, overrideBaseUrl = null, force = false) {
+  async fetchWithCache(baseQueryKey, companyId, domain, params, overrideBaseUrl = null, force = false) {
     const apiKey = process.env.SEMRUSH_API_KEY;
     if (!apiKey) {
       throw new Error('SEMRUSH_API_KEY is not defined in environment variables');
     }
 
+    const queryKey = `${baseQueryKey}_${companyId.toString()}`;
+
     try {
-      const cached = await SemrushCache.findOne({ queryKey });
+      const cached = await SemrushCache.findOne({ queryKey, companyId });
       
       // If force is false, try to use cache
       if (!force && cached) {
         const timestamp = cached.updatedAt || cached.createdAt;
-        const isExpired = !timestamp || (new Date() > new Date(new Date(timestamp).getTime() + (this.cacheDurationHours * 60 * 60 * 1000)));
+        const cacheDurationHours = parseInt(process.env.SEMRUSH_CACHE_TTL_HOURS || '24', 10);
+        const isExpired = !timestamp || (new Date() > new Date(new Date(timestamp).getTime() + (cacheDurationHours * 60 * 60 * 1000)));
         if (!isExpired) {
           // Silenced Cache HIT log to prevent terminal spam when tracking many keywords
           return cached.data;
@@ -49,18 +52,11 @@ class SemrushService {
       const parsedData = this.parseCSVToJSON(response.data);
 
       // 4. Save to cache
-      if (force) {
-        await SemrushCache.findOneAndUpdate(
-          { queryKey },
-          { data: parsedData },
-          { upsert: true, returnDocument: 'after' }
-        );
-      } else {
-        await SemrushCache.create({
-          queryKey,
-          data: parsedData
-        });
-      }
+      await SemrushCache.findOneAndUpdate(
+        { queryKey, companyId },
+        { data: parsedData, domain, provider: 'semrush' },
+        { upsert: true, returnDocument: 'after' }
+      );
 
       // 5. Log sync success
       await SemrushSyncLog.create({
@@ -116,30 +112,69 @@ class SemrushService {
         throw new Error(csvString);
     }
 
-    const lines = csvString.trim().split('\n');
+    const lines = [];
+    let currentLine = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    // Robust CSV parser matching Semrush format (semicolon delimited by default, but values can be quoted)
+    for (let i = 0; i < csvString.length; i++) {
+        const char = csvString[i];
+        
+        if (inQuotes) {
+            if (char === '"') {
+                if (i + 1 < csvString.length && csvString[i + 1] === '"') {
+                    currentField += '"';
+                    i++; // skip escaped quote
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                currentField += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ';') {
+                currentLine.push(currentField);
+                currentField = '';
+            } else if (char === '\n' || (char === '\r' && csvString[i+1] === '\n')) {
+                if (char === '\r') i++; // Skip \n
+                currentLine.push(currentField);
+                if (currentLine.length > 0 && currentLine.some(c => c !== '')) {
+                   lines.push(currentLine);
+                }
+                currentLine = [];
+                currentField = '';
+            } else if (char !== '\r') {
+                currentField += char;
+            }
+        }
+    }
+    
+    if (currentField !== '' || currentLine.length > 0) {
+        currentLine.push(currentField);
+        lines.push(currentLine);
+    }
+
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(';');
+    const headers = lines[0].map(h => h.replace(/["\r\n]/g, '').trim());
     const results = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const currentLine = lines[i].split(';');
       const obj = {};
-      
+      const row = lines[i];
       headers.forEach((header, index) => {
-        // Clean header name (remove carriage returns, quotes, etc)
-        const cleanHeader = header.replace(/["\r]/g, '');
-        const val = currentLine[index] ? currentLine[index].replace(/["\r]/g, '') : '';
-        obj[cleanHeader] = val;
+        obj[header] = row[index] ? row[index].trim() : '';
       });
-      
       results.push(obj);
     }
 
     return results;
   }
 
-  async getDomainOverview(domain, database = 'us', force = false) {
+  async getDomainOverview(domain, companyId, database = 'us', force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `domain_overview_${cleanDomain}_${database}`;
     const params = {
@@ -148,7 +183,7 @@ class SemrushService {
       database: database,
       export_columns: 'Dn,Rk,Or,Ot,Oc,Ad,At,Ac'
     };
-    const overviewData = await this.fetchWithCache(queryKey, params, null, force);
+    const overviewData = await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
     
     // Fetch historical trend, top keywords, and competitors in parallel
     if (overviewData && overviewData.length > 0) {
@@ -164,9 +199,9 @@ class SemrushService {
 
         try {
             const [trendData, keywordsData, competitorsData] = await Promise.all([
-                this.fetchWithCache(`domain_rank_history_${cleanDomain}_${database}`, trendParams, null, force).catch(() => []),
-                this.fetchWithCache(`domain_organic_${cleanDomain}_${database}`, keywordsParams, null, force).catch(() => []),
-                this.fetchWithCache(`domain_organic_organic_${cleanDomain}_${database}`, competitorsParams, null, force).catch(() => [])
+                this.fetchWithCache(`domain_rank_history_${cleanDomain}_${database}`, companyId, domain, trendParams, null, force).catch(() => []),
+                this.fetchWithCache(`domain_organic_${cleanDomain}_${database}`, companyId, domain, keywordsParams, null, force).catch(() => []),
+                this.fetchWithCache(`domain_organic_organic_${cleanDomain}_${database}`, companyId, domain, competitorsParams, null, force).catch(() => [])
             ]);
             
             if (trendData && trendData.length > 0) {
@@ -193,9 +228,8 @@ class SemrushService {
                 }
 
                 // We fetched up to 100 keywords for distribution calculation, but only store top 10 for the table
-                overviewData[0].topKeywords = keywordsData.slice(0, 10).map(k => {
+                const mapKeyword = k => {
                     let intentsRaw = k.Intents || k.In || '';
-                    if (!intentsRaw && Math.random() > 0.5) intentsRaw = '0'; // Fallback if API fails to provide for some reason
                     
                     const intentList = [];
                     if (intentsRaw.includes('0')) intentList.push('C');
@@ -214,7 +248,10 @@ class SemrushService {
                         difficulty: k['Keyword Difficulty'] || k.Kd,
                         intents: intentList
                     };
-                });
+                };
+                
+                overviewData[0].topKeywords = keywordsData.slice(0, 10).map(mapKeyword);
+                overviewData[0].organicKeywordsData = keywordsData.slice(0, 100).map(mapKeyword);
                 
                 // Calculate Real Distributions based on up to 100 keywords
                 let intentCounts = { I: 0, N: 0, C: 0, T: 0 };
@@ -240,8 +277,7 @@ class SemrushService {
                     const features = k['SERP Features by Position'] || k.Fp || '';
                     if (features) {
                         serpFeatureCount++;
-                        // Usually, AI Overviews are not tracked perfectly in standard Fp yet, so this is a placeholder check
-                        if (features.toLowerCase().includes('ai')) aiOverviewCount++;
+                        if (features.toLowerCase().includes('ai') || features.toLowerCase().includes('overview')) aiOverviewCount++;
                     }
                 });
                 
@@ -285,12 +321,14 @@ class SemrushService {
             if (competitorsData && competitorsData.length > 0) {
                 overviewData[0].competitors = competitorsData.map(c => ({
                     domain: c.Domain || c.Dn,
-                    relevance: c['Competitor Relevance'] || c.Cr,
-                    commonKeywords: c['Common Keywords'] || c.Np,
-                    organicKeywords: c['Organic Keywords'] || c.Or,
-                    organicTraffic: c['Organic Traffic'] || c.Ot,
-                    seKeywords: c['Adwords Keywords'] || c.Ad || 0,
-                    comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] || c.Cr || 0) * 100))
+                    competitorRelevance: c['Competitor Relevance'] ?? c.Cr ?? 0,
+                    commonKeywords: c['Common Keywords'] ?? c.Np ?? 0,
+                    organicKeywords: c['Organic Keywords'] ?? c.Or ?? 0,
+                    organicTraffic: c['Organic Traffic'] ?? c.Ot ?? 0,
+                    organicCost: c['Organic Cost'] ?? c.Oc ?? 0,
+                    adwordsKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0,
+                    seKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0, // Keeping seKeywords for backward compatibility if needed
+                    comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] ?? c.Cr ?? 0) * 100))
                 }));
             }
         } catch (err) {
@@ -301,7 +339,7 @@ class SemrushService {
     return overviewData;
   }
 
-  async getCompetitorAnalysis(domain, database = 'us', limit = 20, force = false) {
+  async getCompetitorAnalysis(domain, companyId, database = 'us', limit = 20, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `competitor_analysis_${cleanDomain}_${database}_${limit}`;
     const params = {
@@ -312,15 +350,16 @@ class SemrushService {
       display_limit: limit
     };
     try {
-      const data = await this.fetchWithCache(queryKey, params, null, force);
+      const data = await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
       return data.map(c => ({
         domain: c.Domain || c.Dn,
-        competitorRelevance: c['Competitor Relevance'] || c.Cr,
-        commonKeywords: c['Common Keywords'] || c.Np,
-        organicKeywords: c['Organic Keywords'] || c.Or,
-        organicTraffic: c['Organic Traffic'] || c.Ot,
-        organicCost: c['Organic Cost'] || c.Oc,
-        adwordsKeywords: c['Adwords Keywords'] || c.Ad
+        competitorRelevance: c['Competitor Relevance'] ?? c.Cr ?? 0,
+        commonKeywords: c['Common Keywords'] ?? c.Np ?? 0,
+        organicKeywords: c['Organic Keywords'] ?? c.Or ?? 0,
+        organicTraffic: c['Organic Traffic'] ?? c.Ot ?? 0,
+        organicCost: c['Organic Cost'] ?? c.Oc ?? 0,
+        adwordsKeywords: c['Adwords Keywords'] ?? c.Ad ?? 0,
+        comLevel: Math.min(100, Math.round(Number(c['Competitor Relevance'] ?? c.Cr ?? 0) * 100))
       }));
     } catch (error) {
       console.error(`[Semrush] Failed to fetch competitor analysis for ${domain}`, error);
@@ -328,7 +367,7 @@ class SemrushService {
     }
   }
 
-  async getTrafficAnalytics(domain, force = false) {
+  async getTrafficAnalytics(domain, companyId, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `traffic_analytics_${cleanDomain}`;
     // Requires Traffic Analytics API add-on
@@ -337,7 +376,7 @@ class SemrushService {
       export_columns: 'visits,unique_visitors,page_views,bounce_rate,avg_visit_duration,mobile_share'
     };
     try {
-      const result = await this.fetchWithCache(queryKey, params, 'https://api.semrush.com/analytics/ta/api/v3/summary', force);
+      const result = await this.fetchWithCache(queryKey, companyId, domain, params, 'https://api.semrush.com/analytics/ta/api/v3/summary', force);
       if (result && result.length > 0) return result;
       throw new Error('Empty result from traffic_summary');
     } catch (error) {
@@ -353,7 +392,7 @@ class SemrushService {
       };
       
       try {
-        const fallbackData = await this.fetchWithCache(`traffic_analytics_fallback_${cleanDomain}`, fallbackParams, null, force);
+        const fallbackData = await this.fetchWithCache(`traffic_analytics_fallback_${cleanDomain}`, companyId, domain, fallbackParams, null, force);
         if (fallbackData && fallbackData.length > 0) {
            const d = fallbackData[0];
            const ot = Number(d.Ot || d['Organic Traffic'] || 0);
@@ -372,7 +411,7 @@ class SemrushService {
     }
   }
 
-  async getKeywordMagicTool(keyword, database = 'us', matchType = 'phrase', force = false) {
+  async getKeywordMagicTool(keyword, companyId, database = 'us', matchType = 'phrase', force = false) {
     const queryKey = `keyword_magic_${keyword}_${database}_${matchType}`;
     
     let type = 'phrase_related'; // Default to phrase match
@@ -387,14 +426,14 @@ class SemrushService {
       display_limit: 100
     };
     try {
-      return await this.fetchWithCache(queryKey, params, null, force);
+      return await this.fetchWithCache(queryKey, companyId, keyword, params, null, force);
     } catch (error) {
       console.error(`[Semrush] Failed to fetch keyword magic tool for ${keyword}`, error);
       return [];
     }
   }
 
-  async getKeywordResearch(keyword, database = 'us', force = false) {
+  async getKeywordResearch(keyword, companyId, database = 'us', force = false) {
     const isDomainLike = keyword.includes('.') && !keyword.includes(' ');
     
     if (isDomainLike) {
@@ -408,7 +447,7 @@ class SemrushService {
           display_limit: 100
         };
         try {
-            const data = await this.fetchWithCache(queryKey, params, null, force);
+            const data = await this.fetchWithCache(queryKey, companyId, cleanDomain, params, null, force);
             return data.map(item => ({
                 'Keyword': item.Keyword || item.Ph,
                 'Search Volume': item['Search Volume'] || item.Nq,
@@ -431,10 +470,15 @@ class SemrushService {
       export_columns: 'Ph,Nq,Cp,Co,Kd,In,Td',
       display_limit: 100
     };
-    return await this.fetchWithCache(queryKey, params, null, force);
+    try {
+      return await this.fetchWithCache(queryKey, companyId, keyword, params, null, force);
+    } catch (error) {
+      console.error(`[Semrush] Failed to fetch keyword research for ${keyword}`, error);
+      return [];
+    }
   }
 
-  async getDomainKeywordsDrilldown(domain, database = 'us', limit = 100, force = false) {
+  async getDomainKeywordsDrilldown(domain, companyId, database = 'us', limit = 100, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const queryKey = `domain_keywords_drilldown_${cleanDomain}_${database}_${limit}`;
     const params = {
@@ -446,7 +490,7 @@ class SemrushService {
     };
     
     try {
-        const data = await this.fetchWithCache(queryKey, params, null, force);
+        const data = await this.fetchWithCache(queryKey, companyId, domain, params, null, force);
         // Map to standard clean structure
         return data.map(item => ({
             keyword: item.Keyword || item.Ph,
@@ -466,7 +510,7 @@ class SemrushService {
     }
   }
 
-  async getBacklinksOverview(domain, force = false) {
+  async getBacklinksOverview(domain, companyId, force = false) {
     const cleanDomain = this.cleanDomain(domain);
     const overviewParams = {
       type: 'backlinks_overview',
@@ -521,13 +565,13 @@ class SemrushService {
     
     try {
         const [overview, anchors, refDomains, tlds, geo, pages, rawBacklinks] = await Promise.all([
-          this.fetchWithCache(`backlinks_overview_${cleanDomain}`, overviewParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_anchors_${cleanDomain}`, anchorsParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_refdomains_${cleanDomain}`, refDomainsParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_tld_${cleanDomain}`, tldParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_geo_${cleanDomain}`, geoParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_pages_${cleanDomain}`, pagesParams, baseUrl, force),
-          this.fetchWithCache(`backlinks_raw_${cleanDomain}`, rawBacklinksParams, baseUrl, force)
+          this.fetchWithCache(`backlinks_overview_${cleanDomain}`, companyId, domain, overviewParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_anchors_${cleanDomain}`, companyId, domain, anchorsParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_refdomains_${cleanDomain}`, companyId, domain, refDomainsParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_tld_${cleanDomain}`, companyId, domain, tldParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_geo_${cleanDomain}`, companyId, domain, geoParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_pages_${cleanDomain}`, companyId, domain, pagesParams, baseUrl, force),
+          this.fetchWithCache(`backlinks_raw_${cleanDomain}`, companyId, domain, rawBacklinksParams, baseUrl, force)
         ]);
         
         if (overview && overview.length > 0) {
@@ -608,7 +652,7 @@ class SemrushService {
     }
   }
 
-  async getSiteHealth(domain, database = 'us', force = false) {
+  async getSiteHealth(domain, companyId, database = 'us', force = false) {
       const cleanDomain = this.cleanDomain(domain);
       
       try {
@@ -620,7 +664,19 @@ class SemrushService {
               });
               const projects = projResponse.data;
               const project = projects.find(p => p.domain_unicode === cleanDomain || p.url === cleanDomain);
-              if (project) projectId = project.project_id;
+              if (project) {
+                  projectId = project.project_id;
+              } else {
+                  // Auto-create Semrush project and enable Site Audit
+                  const newProj = await this.createProject(cleanDomain);
+                  if (newProj && newProj.project_id) {
+                      projectId = newProj.project_id;
+                      await axios.post(`https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/enable`, {
+                          domain: cleanDomain,
+                          pageLimit: 100
+                      }, { params: { key: process.env.SEMRUSH_API_KEY } }).catch(e => console.error('Auto enable Site Audit failed', e.message));
+                  }
+              }
           } catch (e) {
               console.error('Failed to fetch Semrush projects:', e.message);
           }
@@ -630,20 +686,40 @@ class SemrushService {
               try {
                   const auditUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/info`;
                   const pagesUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/pages`;
+                  const issuesUrl = `https://api.semrush.com/reports/v1/projects/${projectId}/siteaudit/issues`;
                   
-                  // For Site Audit, we just hit the endpoint directly since it's a real-time status.
-                  // We don't use fetchWithCache here typically because of the /projects/ endpoint format.
-                  // But we should honor force if we wanted to implement caching. Right now it's live anyway.
-                  const [response, pagesResponse] = await Promise.all([
+                  const [response, pagesResponse, issuesResponse] = await Promise.all([
                       axios.get(auditUrl, { params: { key: process.env.SEMRUSH_API_KEY } }),
-                      axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] }))
+                      axios.get(pagesUrl, { params: { key: process.env.SEMRUSH_API_KEY, limit: 100 } }).catch(() => ({ data: [] })),
+                      axios.get(issuesUrl, { params: { key: process.env.SEMRUSH_API_KEY } }).catch(() => ({ data: null }))
                   ]);
-                  
-                  const auditData = response.data;
+                  const auditDataRaw = response.data;
+                  const auditData = Array.isArray(auditDataRaw) ? auditDataRaw[0] : auditDataRaw;
                   let pagesList = [];
                   
+                  if (issuesResponse.data) {
+                      // Attach issues breakdown directly to auditData so normalizeSemrushSiteHealth can extract them
+                      const issuesList = Array.isArray(issuesResponse.data) ? issuesResponse.data : [];
+                      
+                      const errorsObj = {};
+                      const warningsObj = {};
+                      const noticesObj = {};
+                      
+                      issuesList.forEach(issue => {
+                          if (issue.severity === 'error') errorsObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                          else if (issue.severity === 'warning') warningsObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                          else if (issue.severity === 'notice') noticesObj[issue.check_id || issue.id] = issue.pages_count || issue.count;
+                      });
+                      
+                      if (Object.keys(errorsObj).length > 0) auditData.errorsObj = errorsObj;
+                      if (Object.keys(warningsObj).length > 0) auditData.warningsObj = warningsObj;
+                      if (Object.keys(noticesObj).length > 0) auditData.noticesObj = noticesObj;
+                  }
+
                   if (Array.isArray(pagesResponse.data)) {
                       pagesList = pagesResponse.data;
+                  } else if (pagesResponse.data && Array.isArray(pagesResponse.data.data)) {
+                      pagesList = pagesResponse.data.data;
                   } else if (pagesResponse.data && Array.isArray(pagesResponse.data.items)) {
                       pagesList = pagesResponse.data.items;
                   } else if (typeof pagesResponse.data === 'string' && pagesResponse.data.includes('\n')) {
@@ -664,63 +740,23 @@ class SemrushService {
                   }
                   
                   if (pagesList.length === 0) {
-                      try {
-                          const organicData = await this.getDomainOverview(cleanDomain, database, force);
-                          const keywords = organicData[0]?.topKeywords || [];
-                          if (keywords.length > 0) {
-                              const uniqueUrls = [...new Set(keywords.map(k => k.url).filter(Boolean))];
-                              pagesList = uniqueUrls.slice(0, 15).map((url, idx) => {
-                                  let path = url.replace(/^https?:\/\/[^\/]+/, '');
-                                  if (!path || path === '/') path = 'Homepage';
-                                  else path = path.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                                  
-                                  return {
-                                      id: idx + 1,
-                                      url: url,
-                                      title: path,
-                                      statusCode: 200,
-                                      depth: (url.match(/\//g) || []).length > 2 ? 2 : 1,
-                                      errors: auditData.errors > 0 && Math.random() > 0.7 ? 1 : 0,
-                                      warnings: auditData.warnings > 0 && Math.random() > 0.5 ? 1 : 0,
-                                      notices: auditData.notices > 0 ? 1 : 0
-                                  };
-                              });
-                          }
-                      } catch (e) {
-                          console.error('Fallback real URL fetch failed', e.message);
-                      }
-                      
-                      if (pagesList.length === 0) {
-                          pagesList = [
-                              { id: 1, url: `https://${cleanDomain}/`, title: 'Homepage', statusCode: 200, depth: 1, errors: auditData.errors > 0 ? 1 : 0, warnings: 1, notices: 0 },
-                              { id: 2, url: `https://${cleanDomain}/about`, title: 'About Us', statusCode: 200, depth: 2, errors: 0, warnings: auditData.warnings > 0 ? 1 : 0, notices: 0 },
-                              { id: 3, url: `https://${cleanDomain}/contact`, title: 'Contact Support', statusCode: 200, depth: 2, errors: 0, warnings: 0, notices: auditData.notices > 0 ? 1 : 0 }
-                          ];
-                      }
+                      // API returned no crawled pages.
+                      pagesList = [];
                   }
                   
                   auditData.crawledPagesList = pagesList;
                   
-                  let score = auditData.quality?.value || auditData.health_score || auditData.score;
-                  
-                  if (typeof score !== 'number') {
-                      const crawled = auditData.pages_crawled || 1;
-                      const errs = auditData.errors || 0;
-                      const warns = auditData.warnings || 0;
-                      
-                      // Estimate score if not explicitly provided by the API
-                      const penalty = ((errs * 10) + (warns * 3)) / crawled;
-                      score = Math.max(10, Math.min(100, Math.round(100 - penalty)));
-                  }
+                  const snapshot = auditData.current_snapshot || {};
+                  let score = snapshot.quality?.value ?? auditData.quality?.value ?? auditData.health_score ?? auditData.score ?? null;
                   
                   // Map to the format DashboardTab expects
-                  const weaknesses = Object.entries(auditData.defects || {}).map(([id, count]) => ({ 
+                  const weaknesses = Object.entries(auditData.defects || snapshot.new || {}).map(([id, count]) => ({ 
                       title: `Error #${id}`, 
                       desc: `${count} issues found` 
                   }));
                   const strengths = [];
-                  if (score >= 70) strengths.push({ title: 'Good Overall Health', desc: `Site Health is ${score}%` });
-                  else if (score >= 90) strengths.push({ title: 'Excellent Health', desc: `Site Health is ${score}%` });
+                  if (score && score >= 70) strengths.push({ title: 'Good Overall Health', desc: `Site Health is ${score}%` });
+                  else if (score && score >= 90) strengths.push({ title: 'Excellent Health', desc: `Site Health is ${score}%` });
                   
                   if (!auditData.errors || auditData.errors.length === 0) {
                       strengths.push({ title: 'No Critical Errors', desc: '0 critical errors found during crawl.' });
@@ -738,29 +774,14 @@ class SemrushService {
               }
           }
 
-          // FALLBACK PROXY LOGIC (If no project exists or API fails)
+          // FALLBACK LOGIC (If no project exists or API fails)
           return {
               isBasicHealth: false,
-              overallScore: 85,
-              insights: { strengths: [{ title: 'Good Overall Health', desc: 'Site Health is 85%' }], weaknesses: [{ title: 'Error #39', desc: '4 issues found' }] },
-              rawData: {
-                 pages_crawled: 100,
-                 errors: 4,
-                 warnings: 12,
-                 notices: 25,
-                 healthy: 60,
-                 broken: 2,
-                 haveIssues: 30,
-                 redirected: 8,
-                 blocked: 0,
-                 defects: { '39': 4, '13': 8, '112': 12 },
-                 crawledPagesList: [
-                    { id: 1, url: `https://${cleanDomain}/`, title: 'Homepage', statusCode: 200, depth: 1, errors: 0, warnings: 1, notices: 2 },
-                    { id: 2, url: `https://${cleanDomain}/about`, title: 'About Us', statusCode: 200, depth: 2, errors: 1, warnings: 0, notices: 0 },
-                    { id: 3, url: `https://${cleanDomain}/services`, title: 'Our Services', statusCode: 404, depth: 2, errors: 1, warnings: 0, notices: 0 }
-                 ]
-              },
-              error: 'Not Available from Semrush API - Using Mock Data'
+              overallScore: null,
+              insights: { strengths: [], weaknesses: [] },
+              rawData: null,
+              status: 'unavailable',
+              error: 'Site Audit data not available from Semrush API.'
           };
       } catch (err) {
           throw new Error('Failed to fetch Site Health. ' + err.message);

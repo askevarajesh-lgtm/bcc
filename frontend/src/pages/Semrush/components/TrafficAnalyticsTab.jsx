@@ -1,66 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Typography, Row, Col, Statistic, Empty, Spin, Button, Space } from 'antd';
+import React, { useState } from 'react';
+import { Card, Typography, Row, Col, Statistic, Empty, Button, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import { semrushApi } from '../../../api/semrushApi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const { Title, Text } = Typography;
 
 const TrafficAnalyticsTab = () => {
-  const { project } = useOutletContext();
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
+  const { project, projectData, fetchProjectData } = useOutletContext();
+  const [refreshing, setRefreshing] = useState(false);
+  const [localData, setLocalData] = useState(null);
 
-  useEffect(() => {
-    if (project?.domain) {
-      fetchTrafficData();
-    }
-  }, [project]);
+  const rawData = localData || projectData?.trafficAnalytics;
+  const configStatus = rawData ? 'available' : 'unavailable';
+  const data = Array.isArray(rawData) ? rawData[0] : rawData;
 
-  const fetchTrafficData = async (force = false) => {
+  const handleRefresh = async () => {
+    if (!project?._id) return;
+    setRefreshing(true);
     try {
-      setLoading(true);
-      const res = await semrushApi.getTrafficAnalytics(project.domain, force);
-      // Semrush returns an array for this typically, we want the first item or empty
-      if (res && res.length > 0) {
-        setData(res[0]);
+      const res = await semrushApi.getTrafficAnalytics(project._id, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data);
+        message.success('Traffic Analytics updated successfully');
+        if (fetchProjectData) fetchProjectData();
       } else {
-        setData(null);
+        message.error(res.data.errorCode || 'Failed to refresh Traffic Analytics');
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      message.error('An error occurred during refresh');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  if (loading) {
-    return <div style={{ textAlign: 'center', padding: '40px' }}><Spin size="large" /></div>;
-  }
-
-  if (!data) {
+  if (configStatus !== 'available' || !data) {
+    let msg = "Traffic Analytics data not available.";
+    if (configStatus === 'not_configured') msg = "Traffic Analytics — Semrush API not configured";
+    if (configStatus === 'unavailable') msg = "Traffic Analytics — Temporarily unavailable";
+    if (configStatus === 'failed') msg = "Traffic Analytics — Provider error";
+    if (configStatus === 'rate_limited') msg = "Traffic Analytics — Rate limited";
+    
     return (
       <Card>
-        <Empty 
-          description="Traffic Analytics data not available for this domain. This may require the Traffic Analytics API add-on."
-        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Text strong>{msg}</Text>
+          <Button icon={<ReloadOutlined spin={refreshing} />} onClick={handleRefresh} loading={refreshing}>
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
+        </div>
+        <Empty description={msg} />
       </Card>
     );
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>Traffic Analytics</Title>
           <Text type="secondary">Estimated total traffic and engagement across all devices.</Text>
         </div>
-        <Space>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => fetchTrafficData(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-            Audit Data
-          </Button>
-        </Space>
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={refreshing} />} 
+          onClick={handleRefresh} 
+          loading={refreshing}
+          style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+        >
+          {refreshing ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
       </div>
 
       {data.isFallback ? (
@@ -71,19 +80,19 @@ const TrafficAnalyticsTab = () => {
               Showing search traffic estimates based on standard Domain Analytics.
             </Card>
           </Col>
-          <Col span={8}><Card><Statistic title="Total Search Traffic" value={Number(data.visits || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Organic Search Traffic" value={Number(data.organic_traffic || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Paid Search Traffic" value={Number(data.paid_traffic || 0).toLocaleString()} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Total Search Traffic" value={data.visits ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Organic Search Traffic" value={data.organic_traffic ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Paid Search Traffic" value={data.paid_traffic ?? 'Unavailable'} /></Card></Col>
         </Row>
       ) : (
         <Row gutter={[24, 24]}>
-          <Col span={8}><Card><Statistic title="Visits" value={Number(data.visits || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Unique Visitors" value={Number(data.unique_visitors || 0).toLocaleString()} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Pages / Visit" value={Number(data.page_views || 0) / Math.max(1, Number(data.visits || 1))} precision={2} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Visits" value={data.visits ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Unique Visitors" value={data.unique_visitors ?? 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Pages / Visit" value={data.page_views !== null && data.page_views !== undefined && data.visits ? (Number(data.page_views) / Number(data.visits)).toFixed(2) : 'Unavailable'} /></Card></Col>
           
-          <Col span={8}><Card><Statistic title="Avg. Visit Duration" value={`${Math.floor(Number(data.avg_visit_duration || 0) / 60)}m ${Number(data.avg_visit_duration || 0) % 60}s`} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Bounce Rate" value={`${(Number(data.bounce_rate || 0) * 100).toFixed(2)}%`} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Mobile Share" value={`${(Number(data.mobile_share || 0) * 100).toFixed(2)}%`} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Avg. Visit Duration" value={data.avg_visit_duration !== null && data.avg_visit_duration !== undefined ? `${Math.floor(Number(data.avg_visit_duration) / 60)}m ${Number(data.avg_visit_duration) % 60}s` : 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Bounce Rate" value={data.bounce_rate !== null && data.bounce_rate !== undefined ? `${(Number(data.bounce_rate) * 100).toFixed(2)}%` : 'Unavailable'} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Mobile Share" value={data.mobile_share !== null && data.mobile_share !== undefined ? `${(Number(data.mobile_share) * 100).toFixed(2)}%` : 'Unavailable'} /></Card></Col>
 
           <Col span={24}>
             <Card title="Traffic Trend">

@@ -20,8 +20,8 @@ const BacklinksNetworkGraph = () => {
     ];
     const edges = [];
     
-    // Top Referring Pages/Domains if available
-    const topPages = (data.pages || []).slice(0, 15);
+    // Top Referring Domains/Pages if available
+    const topPages = (data.refDomainsList || data.indexedPages || []).slice(0, 15);
     const radius = 250;
     
     if (topPages.length > 0) {
@@ -33,10 +33,10 @@ const BacklinksNetworkGraph = () => {
         const y = 300 + r * Math.sin(angle);
         
         const id = `node-${idx}`;
-        // Extract domain from url if possible or use the url
-        let labelStr = p.url;
+        // Extract domain from url if possible or use the url or domain property
+        let labelStr = p.domain || p.url;
         try {
-           labelStr = new URL(p.url).hostname.replace('www.', '');
+           if (p.url) labelStr = new URL(p.url).hostname.replace('www.', '');
         } catch(e) {}
         
         nodes.push({
@@ -55,29 +55,6 @@ const BacklinksNetworkGraph = () => {
           style: { stroke: '#a8a8a8', strokeWidth: 1.5 }
         });
       });
-    } else {
-        // Fallback dummy nodes
-        for (let i = 0; i < 12; i++) {
-           const angle = (i / 12) * 2 * Math.PI;
-           const r = radius + (Math.random() * 60 - 30);
-           const x = 400 + r * Math.cos(angle);
-           const y = 300 + r * Math.sin(angle);
-           const id = `dummy-${i}`;
-           nodes.push({
-              id,
-              position: { x, y },
-              data: { label: `Referrer ${i+1}` },
-              style: { background: 'white', border: '1px solid #d9d9d9', borderRadius: 6, padding: '6px 12px', fontSize: 12 },
-              draggable: true
-           });
-           edges.push({
-              id: `e-${id}-root`,
-              source: id,
-              target: 'root',
-              animated: true,
-              style: { stroke: '#a8a8a8', strokeWidth: 1.5 }
-           });
-        }
     }
     
     return { nodes, edges };

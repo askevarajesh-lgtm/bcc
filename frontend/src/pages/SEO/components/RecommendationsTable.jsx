@@ -1,8 +1,32 @@
 import React from 'react';
-import { Card, Table, Tag, Typography, Button } from 'antd';
+import { Card, Table, Tag, Typography, Button, Popover, Row, Col } from 'antd';
 import { Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
 
 const { Title, Text } = Typography;
+
+const RecommendationPopover = ({ record }) => (
+  <Row style={{ width: 600, minHeight: 150, margin: 0, padding: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }}>
+    {/* Left Pane - About the issue */}
+    <Col span={12} style={{ padding: '24px', background: '#ffffff' }}>
+      <Title level={5} style={{ marginTop: 0, marginBottom: 12, color: '#0f172a', fontWeight: 800 }}>
+        About the issue
+      </Title>
+      <Text style={{ fontSize: 14, color: '#475569', lineHeight: '1.6' }}>
+        {record.about || record.description}
+      </Text>
+    </Col>
+
+    {/* Right Pane - How to fix */}
+    <Col span={12} style={{ padding: '24px', background: '#eafff5' }}>
+      <Title level={5} style={{ marginTop: 0, marginBottom: 12, color: '#0f172a', fontWeight: 800 }}>
+        How to fix
+      </Title>
+      <Text style={{ fontSize: 14, color: '#475569', lineHeight: '1.6' }}>
+        {record.howToFix || "Follow the recommended guidelines to resolve this issue and improve your optimization score."}
+      </Text>
+    </Col>
+  </Row>
+);
 
 const RecommendationsTable = ({ recommendations = [], loading = false }) => {
   const columns = [
@@ -38,10 +62,21 @@ const RecommendationsTable = ({ recommendations = [], loading = false }) => {
       title: 'Action',
       key: 'action',
       width: 120,
-      render: () => (
-        <Button type="link" style={{ color: 'var(--accent-secondary)', fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-          Fix Now <ArrowRight size={14} />
-        </Button>
+      render: (_, record) => (
+        <Popover 
+          content={<RecommendationPopover record={record} />} 
+          trigger="click" 
+          placement="bottomRight" 
+          overlayInnerStyle={{ padding: 0, borderRadius: 12 }}
+          align={{ offset: [0, 8] }}
+        >
+          <Button 
+            type="link" 
+            style={{ color: 'var(--accent-secondary)', fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            Fix Now <ArrowRight size={14} />
+          </Button>
+        </Popover>
       ),
     },
   ];

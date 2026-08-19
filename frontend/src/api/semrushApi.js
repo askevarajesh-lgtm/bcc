@@ -1,40 +1,7 @@
 import api from '../services/api';
 
 export const semrushApi = {
-  getDomainOverview: async (domain, database = 'us', force = false) => {
-    const response = await api.get('/semrush/domain-overview', {
-      params: { domain, database, force }
-    });
-    return response.data.data;
-  },
 
-  getKeywordResearch: async (keyword, database = 'us', force = false) => {
-    const response = await api.get('/semrush/keyword-research', {
-      params: { keyword, database, force }
-    });
-    return response.data.data;
-  },
-
-  getBacklinksOverview: async (domain, force = false) => {
-    const response = await api.get('/semrush/backlinks', {
-      params: { domain, force }
-    });
-    return response.data.data;
-  },
-
-  getSiteHealth: async (domain, database = 'us', force = false) => {
-    const response = await api.get('/semrush/site-health', {
-      params: { domain, database, force }
-    });
-    return response.data.data;
-  },
-
-  getDomainKeywordsDrilldown: async (domain, limit = 100, force = false) => {
-    const response = await api.get('/semrush/domain-keywords-drilldown', {
-      params: { domain, limit, force }
-    });
-    return response.data.data;
-  },
 
   getProjects: async () => {
     const response = await api.get('/semrush/projects');
@@ -68,24 +35,62 @@ export const semrushApi = {
     return response;
   },
 
-  getCompetitorAnalysis: async (domain, database = 'us', limit = 20, force = false) => {
-    const response = await api.get('/semrush/competitor-analysis', {
-      params: { domain, database, limit, force }
-    });
-    return response.data.data;
+  getLatestSnapshot: async (id) => {
+    const response = await api.get(`/semrush/projects/${id}/snapshots/latest`);
+    return response;
   },
 
-  getTrafficAnalytics: async (domain, force = false) => {
-    const response = await api.get('/semrush/traffic-analytics', {
-      params: { domain, force }
-    });
-    return response.data.data;
+  getHistoricalSnapshots: async (id) => {
+    const response = await api.get(`/semrush/projects/${id}/snapshots`);
+    return response;
   },
 
-  getKeywordMagicTool: async (keyword, database = 'us', matchType = 'phrase', force = false) => {
-    const response = await api.get('/semrush/keyword-magic-tool', {
-      params: { keyword, database, matchType, force }
-    });
-    return response.data.data;
-  }
-};
+  getDomainOverview: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/domain-overview`, { params: { force } });
+    return response;
+  },
+
+  getOrganicResearch: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/organic-research`, { params: { force } });
+    return response;
+  },
+
+  getCompetitorAnalysis: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/competitor-analysis`, { params: { force } });
+    return response;
+  },
+
+  getBacklinks: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/backlinks`, { params: { force } });
+    return response;
+  },
+
+  getSiteAudit: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/site-audit`, { params: { force } });
+    return response;
+  },
+
+  getGeoAeo: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/geo-aeo`, { params: { force } });
+    return response;
+  },
+
+  getKeywordMagicTool: async (id, params) => {
+    const response = await api.get(`/semrush/projects/${id}/keyword-magic-tool`, { params });
+    return response;
+  },
+
+  getTrafficAnalytics: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/traffic-analytics`, { params: { force } });
+    return response;
+  },
+
+  getPositionTracking: async (id, force = false) => {
+    const response = await api.get(`/semrush/projects/${id}/position-tracking`, { params: { force } });
+    return response;
+  },
+
+  configureTracking: async (id, data) => {
+    const response = await api.post(`/semrush/projects/${id}/tracking-config`, data);
+    return response;
+  }};

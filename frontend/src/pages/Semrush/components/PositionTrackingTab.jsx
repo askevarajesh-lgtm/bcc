@@ -1,25 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card } from 'antd';
-import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card, Tabs } from 'antd';
+import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
-import api from '../../../services/api';
+import { semrushApi } from '../../../api/semrushApi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import './DashboardTab.css'; // Reuse styles
-
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
 const PositionTrackingTab = () => {
-  const { project } = useOutletContext();
+  const { project, projectData, fetchProjectData } = useOutletContext();
   const domain = project?.domain;
   const projectId = project?._id;
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [data, setData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [localData, setLocalData] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const pdfRef = useRef(null);
   
+  const isConfigured = project?.trackingConfig?.isActive;
+  
+  const dataStatus = projectData?.positionTracking?.errorCode === 'campaign_unavailable' 
+    ? 'campaign_unavailable' 
+    : (isConfigured ? 'available' : 'campaign_required');
+
+  const data = localData || projectData?.positionTracking?.data || null;
+  const configStatus = localData 
+    ? 'available' 
+    : dataStatus;
+
+  useEffect(() => {
+    // If tracking is configured but data is entirely missing (e.g. stale snapshot), trigger fetch
+    if (isConfigured && !data && !refreshing && configStatus !== 'campaign_unavailable') {
+      handleRefresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConfigured]);
+
+  const handleRefresh = async () => {
+    if (!projectId) return;
+    setRefreshing(true);
+    try {
+      const res = await semrushApi.getPositionTracking(projectId, true);
+      if (res.data.success && res.data.data) {
+        setLocalData(res.data.data);
+        message.success('Rankings updated successfully');
+        if (fetchProjectData) fetchProjectData();
+      } else {
+        message.error(res.data.errorCode || 'Failed to refresh rankings');
+      }
+    } catch (err) {
+      message.error('An error occurred during refresh');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Wizard State
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState({
@@ -28,24 +72,76 @@ const PositionTrackingTab = () => {
     keywordsText: ''
   });
 
-  useEffect(() => {
-    fetchTrackingData();
-  }, [projectId]);
-
-  const fetchTrackingData = async (force = false) => {
+  const handleExportPDF = () => {
     try {
-      setLoading(true);
-      const res = await api.get(`/semrush/projects/${projectId}/position-tracking${force ? '?force=true' : ''}`);
-      if (res.data.success) {
-        setData(res.data.data);
+      setGeneratingPdf(true);
+      message.loading({ content: 'Generating Tracking Table PDF...', key: 'pdfGen' });
+      
+      const rankings = data?.rankings || [];
+      if (rankings.length === 0) {
+        message.warning({ content: 'No tracking data available to export.', key: 'pdfGen', duration: 3 });
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      message.error('Failed to fetch tracking data');
+
+      const pdf = new jsPDF({
+        orientation: 'l', // Landscape to fit more columns
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      const tableColumn = ["Keyword", "Intent", "SF", "KD %", "Pos. Prev", "Pos.", "Diff", "Vis.", "Est. Traffic", "Volume", "CPC", "URL"];
+      const tableRows = [];
+      
+      rankings.forEach(r => {
+        const intentCode = String(r.intent || '').split(',')[0];
+        const intentMap = { '0': 'C', '1': 'I', '2': 'N', '3': 'T' };
+        
+        const rowData = [
+          r.keyword || '',
+          intentMap[intentCode] || '-',
+          r.serpFeaturesCount || '-',
+          r.difficulty !== null && r.difficulty !== undefined ? String(r.difficulty) : '-',
+          r.previousPosition || '-',
+          r.position || '-',
+          r.positionDiff !== null && r.positionDiff !== undefined ? String(r.positionDiff) : '-',
+          r.visibility ? `${Number(r.visibility).toFixed(2)}%` : '0.00%',
+          r.traffic ? Number(r.traffic).toLocaleString() : '0',
+          r.searchVolume ? Number(r.searchVolume).toLocaleString() : '-',
+          r.cpc ? `$${Number(r.cpc).toFixed(2)}` : '-',
+          r.url || '-'
+        ];
+        tableRows.push(rowData);
+      });
+
+      // Add a simple header
+      pdf.setFontSize(16);
+      pdf.text(`Position Tracking for ${domain}`, 14, 15);
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 22);
+
+      autoTable(pdf, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 28,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [114, 46, 209] }, // Purple color from theme
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+      });
+      
+      pdf.save(`${domain?.replace(/\./g, '_') || 'project'}_Position_Tracking.pdf`);
+      
+      message.success({ content: 'Table exported successfully!', key: 'pdfGen', duration: 3 });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      message.error({ content: 'Failed to export table.', key: 'pdfGen', duration: 3 });
     } finally {
-      setLoading(false);
+      setGeneratingPdf(false);
     }
   };
+
+  // We no longer fetch on mount, data is provided by context
 
   const handleStartTracking = async () => {
     const rawKeywords = config.keywordsText.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
@@ -58,15 +154,34 @@ const PositionTrackingTab = () => {
 
     try {
       setSaving(true);
-      const res = await api.post(`/semrush/projects/${projectId}/tracking-config`, {
+      const res = await semrushApi.configureTracking(projectId, {
         device: config.device,
         location: config.location,
         keywords: rawKeywords
       });
       
       if (res.data.success) {
-        message.success('Tracking configured successfully!');
-        await fetchTrackingData();
+        message.loading({ content: 'Fetching rankings from Semrush...', key: 'tracking', duration: 0 });
+        setShowWizard(false);
+        
+        // Immediately fetch live rankings so the table appears right away
+        try {
+          const rankRes = await semrushApi.getPositionTracking(projectId, true);
+          if (rankRes.data.success && rankRes.data.data) {
+            setLocalData(rankRes.data.data);
+            message.success({ content: 'Rankings loaded!', key: 'tracking', duration: 3 });
+          } else {
+            // Still dismiss the wizard even if rankings aren't ready yet
+            setLocalData({ 
+              config: { device: config.device, location: config.location }, 
+              rankings: rawKeywords.map(kw => ({ keyword: kw, position: null, searchVolume: null, difficulty: null, cpc: null, intent: '', url: null }))
+            });
+            message.info({ content: 'Campaign configured. Rankings will update within 24h on Semrush.', key: 'tracking', duration: 4 });
+          }
+        } catch (fetchErr) {
+          message.warning({ content: 'Configured! Rankings will appear after next refresh.', key: 'tracking', duration: 3 });
+        }
+        if (fetchProjectData) fetchProjectData();
       }
     } catch (err) {
       message.error('Failed to configure tracking');
@@ -111,7 +226,7 @@ const PositionTrackingTab = () => {
                 </Button>
                 <Button 
                   type={config.device === 'Mobile' ? 'primary' : 'default'}
-                  onClick={() => setConfig({...config, device: 'Mobile'})}
+                  onClick={() => setConfig({...config, Mobile: 'Mobile'})}
                   icon={<Smartphone size={14} />}
                 >
                   Mobile
@@ -167,6 +282,8 @@ const PositionTrackingTab = () => {
     </div>
   );
 
+  const formatNumber = (val) => val != null ? Number(val).toLocaleString() : '-';
+
   const columns = [
     { 
       title: 'Keyword', 
@@ -200,37 +317,12 @@ const PositionTrackingTab = () => {
       }
     },
     { 
-      title: 'Position', 
-      dataIndex: 'position', 
-      key: 'position', 
-      render: (val, record) => {
-        const pos = Number(val) || 101;
-        const prevPos = Number(record.previousPosition) || pos;
-        let diff = 0;
-        if (prevPos > 0 && prevPos !== pos && prevPos < 101 && pos < 101) diff = prevPos - pos;
-
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Tag color={pos <= 3 ? 'green' : pos <= 10 ? 'blue' : pos <= 100 ? 'default' : 'red'} style={{ margin: 0, fontWeight: 600, minWidth: 28, textAlign: 'center' }}>
-              {pos > 100 ? '> 100' : pos}
-            </Tag>
-            <div style={{ minWidth: 40 }}>
-              {diff > 0 && <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>}
-              {diff < 0 && <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>}
-              {diff === 0 && pos <= 100 && <span style={{ color: '#bfbfbf', display: 'flex', alignItems: 'center', fontSize: 12 }}><Minus size={14} style={{ marginRight: 2 }} /></span>}
-            </div>
-          </div>
-        );
-      },
-      sorter: (a, b) => (Number(a.position) || 101) - (Number(b.position) || 101)
-    },
-    { 
-      title: 'Volume', 
-      dataIndex: 'searchVolume', 
-      key: 'searchVolume', 
-      align: 'right',
-      render: val => <Text strong style={{ color: 'var(--text-secondary)' }}>{Number(val).toLocaleString()}</Text>,
-      sorter: (a, b) => Number(a.searchVolume) - Number(b.searchVolume)
+      title: 'SF', 
+      dataIndex: 'serpFeaturesCount', 
+      key: 'sf', 
+      align: 'center',
+      render: val => <Text type="secondary" style={{ fontSize: 12 }}>{val || '-'}</Text>,
+      sorter: (a, b) => (Number(a.serpFeaturesCount) || 0) - (Number(b.serpFeaturesCount) || 0)
     },
     { 
       title: 'KD %', 
@@ -239,7 +331,7 @@ const PositionTrackingTab = () => {
       align: 'center',
       render: val => {
         const kd = Number(val);
-        if (!kd) return '-';
+        if (!val && val !== 0) return '-';
         const getColor = (v) => {
           if (v > 84) return { color: '#cf1322', bg: '#fff1f0', border: '#ffa39e' }; 
           if (v > 69) return { color: '#d46b08', bg: '#fff7e6', border: '#ffd591' }; 
@@ -259,51 +351,122 @@ const PositionTrackingTab = () => {
       sorter: (a, b) => Number(a.difficulty) - Number(b.difficulty)
     },
     { 
-      title: 'Traffic %', 
-      dataIndex: 'trafficPercent', 
-      key: 'trafficPercent', 
+      title: 'Pos. Prev', 
+      dataIndex: 'previousPosition', 
+      key: 'previousPosition', 
+      render: (val) => val === null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text>{val}</Text>),
+      sorter: (a, b) => (a.previousPosition === null ? 101 : (a.previousPosition === '> 100' ? 101 : Number(a.previousPosition))) - (b.previousPosition === null ? 101 : (b.previousPosition === '> 100' ? 101 : Number(b.previousPosition)))
+    },
+    { 
+      title: 'Pos.', 
+      dataIndex: 'position', 
+      key: 'position', 
+      render: (val) => val === null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text strong>{val}</Text>),
+      sorter: (a, b) => (a.position === null ? 101 : (a.position === '> 100' ? 101 : Number(a.position))) - (b.position === null ? 101 : (b.position === '> 100' ? 101 : Number(b.position)))
+    },
+    {
+      title: 'Diff',
+      key: 'diff',
+      align: 'center',
+      render: (_, record) => {
+        if (record.position === null || record.previousPosition === null) return <Text type="secondary">Unavailable</Text>;
+        const pos = Number(record.position);
+        const prevPos = Number(record.previousPosition);
+        let diff = 0;
+        if (prevPos > 0 && prevPos !== pos && prevPos < 101 && pos < 101) diff = prevPos - pos;
+
+        if (diff > 0) return <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>;
+        if (diff < 0) return <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>;
+        return <span style={{ color: '#bfbfbf' }}>-</span>;
+      }
+    },
+    { title: 'Vis.', dataIndex: 'visibility', key: 'visibility', render: val => val === null ? <Text type="secondary">Unavailable</Text> : `${Number(val).toFixed(2)}%`, sorter: (a, b) => (a.visibility || 0) - (b.visibility || 0) },
+    { title: 'Est. Traffic', dataIndex: 'traffic', key: 'traffic', render: val => val === null ? <Text type="secondary">Unavailable</Text> : formatNumber(val), sorter: (a, b) => (a.traffic || 0) - (b.traffic || 0) },
+    { 
+      title: 'Volume', 
+      dataIndex: 'searchVolume', 
+      key: 'searchVolume', 
       align: 'right',
-      render: val => {
-        if (!val || val === '0') return '-';
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 60 }}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>{Number(val).toFixed(2)}%</span>
-            <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="var(--accent-primary)" trailColor="#f0f0f0" style={{ margin: 0, width: '100%' }} />
-          </div>
-        )
-      },
-      sorter: (a, b) => Number(a.trafficPercent) - Number(b.trafficPercent)
+      render: val => <Text strong style={{ color: 'var(--text-secondary)' }}>{val != null ? Number(val).toLocaleString() : '-'}</Text>,
+      sorter: (a, b) => Number(a.searchVolume) - Number(b.searchVolume)
+    },
+    { 
+      title: 'CPC', 
+      dataIndex: 'cpc', 
+      key: 'cpc', 
+      align: 'right',
+      render: val => val ? <Text type="secondary">${Number(val).toFixed(2)}</Text> : <Text type="secondary">-</Text>,
+      sorter: (a, b) => Number(a.cpc) - Number(b.cpc)
     },
     { 
       title: 'URL', 
       dataIndex: 'url', 
       key: 'url', 
       align: 'center',
-      render: val => {
-        if (!val || val === '-') return '-';
-        return (
-          <Tooltip title={val}>
-            <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: '#e6f7ff', transition: 'all 0.2s', margin: '0 auto' }} onMouseOver={e => e.currentTarget.style.background = '#bae0ff'} onMouseOut={e => e.currentTarget.style.background = '#e6f7ff'}>
-              <ExternalLink size={14} />
-            </a>
-          </Tooltip>
-        );
-      }
+      render: val => val && val !== '-' && val !== null ? <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>{new URL(val.startsWith('http') ? val : `https://${val}`).pathname || val}</a> : <Text type="secondary">-</Text>
     }
   ];
 
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}><Spin size="large" /></div>;
+  if (configStatus === 'not_configured') {
+    return (
+      <Card style={{ margin: 24, padding: 40 }}>
+        <Empty description="Position Tracking — Provider not configured" />
+      </Card>
+    );
   }
 
-  if (data && !data.isConfigured) {
+  if (configStatus === 'campaign_unavailable') {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9', margin: 24 }}>
+        <Empty description="Position Tracking campaign unavailable" />
+      </div>
+    );
+  }
+
+  // Only show wizard if explicitly requested OR if no tracking has been configured at all
+  if (showWizard || !isConfigured) {
     return renderWizard();
+  }
+
+  if (!data) {
+    return (
+      <div style={{ padding: 100, textAlign: 'center' }}>
+        <Spin size="large" tip="Loading position tracking data..." />
+      </div>
+    );
+  }
+
+  // Show loading state while rankings are being fetched after campaign setup
+  if (refreshing && !data) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 16 }}>
+        <Spin size="large" />
+        <Text type="secondary">Fetching keyword rankings from Semrush...</Text>
+      </div>
+    );
   }
 
   const rankings = data?.rankings || [];
   const top3 = rankings.filter(r => Number(r.position) > 0 && Number(r.position) <= 3).length;
   const top10 = rankings.filter(r => Number(r.position) > 0 && Number(r.position) <= 10).length;
   const top100 = rankings.filter(r => Number(r.position) > 0 && Number(r.position) <= 100).length;
+
+  // Process data for the 3 bottom Tracking
+  const trackedRankings = rankings.filter(r => r.position && r.position !== '> 100');
+  
+  const topKeywords = [...trackedRankings]
+    .sort((a, b) => Number(a.position) - Number(b.position))
+    .slice(0, 5);
+
+  const positiveImpact = [...rankings]
+    .filter(r => r.visibilityDiff > 0)
+    .sort((a, b) => b.visibilityDiff - a.visibilityDiff)
+    .slice(0, 5);
+
+  const negativeImpact = [...rankings]
+    .filter(r => r.visibilityDiff < 0)
+    .sort((a, b) => a.visibilityDiff - b.visibilityDiff)
+    .slice(0, 5);
 
   return (
     <div className="semrush-dashboard-container">
@@ -319,55 +482,183 @@ const PositionTrackingTab = () => {
               </Text>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <Button icon={<RefreshCw size={16} />} onClick={() => fetchTrackingData(true)} loading={loading} style={{ borderRadius: 8, fontWeight: 600 }}>
-                Refresh
+              <Button 
+                type="primary" 
+                icon={<ReloadOutlined spin={refreshing} />} 
+                onClick={handleRefresh} 
+                loading={refreshing}
+                style={{ borderRadius: 8, fontWeight: 600, background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh Rankings'}
               </Button>
               <Button icon={<SettingOutlined />} onClick={() => {
                  // Open configure modal or just reset config
                  setConfig({ ...config, keywordsText: rankings.map(r => r.keyword).join('\n')});
                  setStep(2);
-                 setData({ isConfigured: false });
+                 setShowWizard(true);
               }}>
                 Settings
               </Button>
-              <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+              <Button 
+                icon={<DownloadOutlined />} 
+                onClick={handleExportPDF} 
+                loading={generatingPdf}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+              >
                 Export
               </Button>
             </div>
           </div>
 
-          <Row gutter={24} style={{ marginBottom: 24 }}>
+          <Tabs activeKey={activeTab} onChange={setActiveTab} style={{ marginBottom: 24 }}>
+            <Tabs.TabPane tab="Dashboard" key="dashboard" />
+            <Tabs.TabPane tab="Tracking" key="Tracking" />
+          </Tabs>
+
+          {activeTab === 'dashboard' && (
+            <>
+              <Row gutter={24} style={{ marginBottom: 24 }}>
+                <Col span={8}>
+                  <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderTop: '4px solid #722ed1' }}>
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Visibility</Text>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                      {data?.overview?.visibility ? Number(data.overview.visibility).toFixed(2) : '0.00'}%
+                    </Title>
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Est. Traffic</Text>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                      {data?.overview?.traffic ? Number(data.overview.traffic).toLocaleString() : '0'}
+                    </Title>
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Avg. Position</Text>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                      {data?.overview?.avgPosition ? Number(data.overview.avgPosition).toFixed(2) : '0.00'}
+                    </Title>
+                  </Card>
+                </Col>
+              </Row>
+
+              {data?.trend && data.trend.length > 0 && (
+                <div className="semrush-chart-card" style={{ padding: 24, marginBottom: 24, background: '#fff', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                     <div style={{ width: 12, height: 12, borderRadius: 2, background: '#722ed1', marginRight: 8 }} />
+                     <Text strong>{domain}</Text>
+                  </div>
+                  <div style={{ height: 300, width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={data.trend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 12, fill: '#8c8c8c' }} 
+                          axisLine={{ stroke: '#f0f0f0' }} 
+                          tickLine={false} 
+                          tickFormatter={(val) => {
+                            const d = new Date(val);
+                            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12, fill: '#8c8c8c' }} 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tickFormatter={(val) => `${val}%`}
+                        />
+                        <RechartsTooltip 
+                          contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Visibility']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="visibility" 
+                          stroke="#722ed1" 
+                          strokeWidth={3} 
+                          dot={{ r: 4, fill: '#722ed1', strokeWidth: 0 }} 
+                          activeDot={{ r: 6, fill: '#722ed1', stroke: '#fff', strokeWidth: 2 }} 
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Summary Tracking */}
+              <Row gutter={24} style={{ marginTop: 24, marginBottom: 24 }}>
             <Col span={8}>
-              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Top 3 Keywords</Text>
-                <Title level={2} style={{ margin: 0, color: '#52c41a' }}>{top3}</Title>
+              <Card title={<Text strong>Top Keywords</Text>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}>
+                <Table 
+                  dataSource={topKeywords}
+                  rowKey="keyword"
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
+                    { title: 'Pos.', dataIndex: 'position', key: 'position', render: (text, record) => (
+                      <span>
+                        {text}
+                        {record.diff1 > 0 && <span style={{ color: '#52c41a', marginLeft: 4, fontSize: 12 }}>↑ {record.diff1}</span>}
+                        {record.diff1 < 0 && <span style={{ color: '#ff4d4f', marginLeft: 4, fontSize: 12 }}>↓ {Math.abs(record.diff1)}</span>}
+                      </span>
+                    )},
+                    { title: 'Visibility', dataIndex: 'visibility', key: 'visibility', align: 'right', render: (val) => val ? `${Number(val).toFixed(2)}%` : '-' }
+                  ]}
+                />
               </Card>
             </Col>
+            
             <Col span={8}>
-              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Top 10 Keywords</Text>
-                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>{top10}</Title>
+              <Card title={<div style={{ display: 'flex', justifyContent: 'space-between' }}><Text strong>Positive Impact</Text></div>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}>
+                <Table 
+                  dataSource={positiveImpact}
+                  rowKey="keyword"
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
+                    { title: 'Visibility gain', dataIndex: 'visibilityDiff', key: 'visibilityDiff', align: 'right', render: (val) => <Text style={{ color: '#52c41a' }}>+{Number(val).toFixed(2)}%</Text> }
+                  ]}
+                />
               </Card>
             </Col>
+            
             <Col span={8}>
-              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Text type="secondary">Total Tracked in Top 100</Text>
-                <Title level={2} style={{ margin: 0, color: '#722ed1' }}>{top100} / {rankings.length}</Title>
+              <Card title={<div style={{ display: 'flex', justifyContent: 'space-between' }}><Text strong>Negative Impact</Text></div>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}>
+                <Table 
+                  dataSource={negativeImpact}
+                  rowKey="keyword"
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
+                    { title: 'Visibility loss', dataIndex: 'visibilityDiff', key: 'visibilityDiff', align: 'right', render: (val) => <Text style={{ color: '#ff4d4f' }}>{Number(val).toFixed(2)}%</Text> }
+                  ]}
+                />
               </Card>
             </Col>
           </Row>
+            </>
+          )}
 
-          <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
-            <Table 
-              dataSource={rankings}
-              columns={columns}
-              rowKey="keyword"
-              pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} keywords` }}
-              size="middle"
-              style={{ margin: 0 }}
-              rowClassName="semrush-table-row"
-            />
-          </div>
+          {activeTab === 'Tracking' && (
+            <div className="semrush-chart-card" style={{ padding: '0', overflow: 'hidden' }}>
+              <Table 
+                dataSource={rankings}
+                columns={columns}
+                rowKey="keyword"
+                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} keywords` }}
+                size="middle"
+                style={{ margin: 0 }}
+                rowClassName="semrush-table-row"
+              />
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>

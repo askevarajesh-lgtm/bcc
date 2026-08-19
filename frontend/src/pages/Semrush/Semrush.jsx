@@ -45,7 +45,6 @@ const Semrush = () => {
 
   const fetchProjectData = async () => {
     try {
-      setLoading(true);
       const res = await semrushApi.getProject(projectId);
       if (res.data.success) {
         setProject(res.data.project);
@@ -60,22 +59,46 @@ const Semrush = () => {
     }
   };
 
-
+  useEffect(() => {
+    let interval;
+    if (projectData?.activeJob && ['QUEUED', 'RUNNING'].includes(projectData.activeJob.status)) {
+      setRefreshing(true);
+      interval = setInterval(() => {
+        semrushApi.getProject(projectId).then(res => {
+          if (res.data.success) {
+            setProject(res.data.project);
+            setProjectData(res.data.data);
+            const status = res.data.data?.activeJob?.status;
+            if (!status || !['QUEUED', 'RUNNING'].includes(status)) {
+              setRefreshing(false);
+              message.success('Intelligence refresh completed!');
+              clearInterval(interval);
+            }
+          }
+        });
+      }, 5000);
+    } else {
+      setRefreshing(false);
+    }
+    return () => clearInterval(interval);
+  }, [projectData?.activeJob?.status, projectId]);
 
   const handleDatabaseChange = async (val) => {
     setSelectedDatabase(val);
+  };
+
+  const triggerRefresh = async () => {
     try {
       setRefreshing(true);
-      const res = await semrushApi.refreshProject(projectId, val.toLowerCase());
+      const res = await semrushApi.refreshProject(projectId, selectedDatabase.toLowerCase());
       if (res.data.success) {
-        message.success(`Data updated for ${val.toUpperCase()} database`);
-        setProject(res.data.project);
-        setProjectData(res.data.data);
+        message.info(`Refresh queued. Analyzing intelligence...`);
+        // Immediately fetch to get the new activeJob state
+        fetchProjectData();
       }
     } catch (error) {
       console.error(error);
-      message.error('Failed to update database');
-    } finally {
+      message.error('Failed to queue refresh');
       setRefreshing(false);
     }
   };
@@ -138,7 +161,15 @@ const Semrush = () => {
           </div>
           
           <div className="semrush-header-actions">
-
+            <Button 
+              type="primary" 
+              icon={<ReloadOutlined spin={refreshing} />} 
+              style={{ fontWeight: 600, borderRadius: 8, background: refreshing ? 'var(--accent-warning)' : 'var(--accent-primary)' }} 
+              onClick={triggerRefresh}
+              disabled={refreshing}
+            >
+              {refreshing ? 'Analyzing...' : 'Refresh Intelligence'}
+            </Button>
             <Button type="text" icon={<ShareAltOutlined />} style={{ fontWeight: 500 }} onClick={handleShare}>Share</Button>
             <Button type="text" icon={<ExportOutlined />} style={{ fontWeight: 500 }} onClick={handleExport}>Export</Button>
           </div>
@@ -153,7 +184,7 @@ const Semrush = () => {
               { key: 'dashboard', label: 'Dashboard' },
               { key: 'domain-overview', label: 'Domain Overview' },
               { key: 'organic-keywords', label: 'Organic Research' },
-              { key: 'keyword-magic-tool', label: 'Keyword Magic' },
+              // { key: 'keyword-magic-tool', label: 'Keyword Magic' },
               { key: 'position-tracking', label: 'Position Tracking' },
               { key: 'competitor-analysis', label: 'Competitor Analysis' },
               { key: 'backlinks', label: 'Backlinks' },
@@ -175,7 +206,7 @@ const Semrush = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Outlet context={{ project, projectData, setProjectData, fetchProjectData }} />
+            <Outlet context={{ project, projectData, setProjectData, fetchProjectData, triggerRefresh }} />
           </motion.div>
         </AnimatePresence>
       </div>
