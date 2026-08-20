@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 // import removed
 import { useParams } from "react-router-dom";
 import FacebookPageIDModal from "../Campaign Scheduled/FacebookPageIDModal";
@@ -71,9 +71,11 @@ const FacebookLeadsTab = () => {
   const [pageForForms, setPageForForms] = useState(null);
 
   const [connectManualPage, { isLoading: isConnectingManual }] = useConnectFacebookManualPageMutation();
+  const processedMessageRef = useRef(false);
 
-  // Parse callback outcomes from OAuth redirect parameters
+  // Parse callback outcomes from OAuth redirect parameters or popup messages
   useEffect(() => {
+    // 1. Handle if it happened in the same window (fallback)
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get("facebook_oauth");
     const reason = params.get("reason");
@@ -87,6 +89,29 @@ const FacebookLeadsTab = () => {
       message.error(`Facebook connection failed: ${reason || "Unknown error"}`);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    // 2. Handle if it happened in a popup window
+    const handleMessage = (event) => {
+      if (event.data?.type === 'FACEBOOK_OAUTH_SUCCESS') {
+        if (processedMessageRef.current) return;
+        processedMessageRef.current = true;
+
+        const { oauthStatus: popupStatus, reason: popupReason } = event.data;
+        if (popupStatus === "facebook_manual_setup" || popupStatus === "success") {
+          message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
+          setIsManualModalOpen(true);
+          refetch();
+        } else if (popupStatus === "error") {
+          message.error(`Facebook connection failed: ${popupReason || "Unknown error"}`);
+        }
+
+        setTimeout(() => {
+          processedMessageRef.current = false;
+        }, 2000);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [refetch]);
 
   const handleConnectFacebook = () => {
@@ -100,7 +125,14 @@ const FacebookLeadsTab = () => {
     const clientIdParam = selectedClientId
       ? `&clientId=${selectedClientId}`
       : "";
-    window.location.href = `${backendUrl}/api/facebook/auth?token=${token}&redirectPath=${encodeURIComponent(redirectPath)}${clientIdParam}`;
+    
+    const oauthUrl = `${backendUrl}/api/facebook/auth?token=${token}&redirectPath=${encodeURIComponent(redirectPath)}${clientIdParam}`;
+
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    window.open(oauthUrl, 'Facebook OAuth', `width=${width},height=${height},top=${top},left=${left}`);
   };
 
   const handleOpenSyncModal = (page) => {

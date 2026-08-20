@@ -612,4 +612,115 @@ exports.resetPassword = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.impersonate = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    // Security check: Only allow specific roles to impersonate
+    const allowedRoles = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to perform impersonation' });
+    }
+
+    const targetUser = await User.findById(userId).populate('plan').populate('agencyId').populate('brandId');
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: 'Target user not found' });
+    }
+
+    // Role-based scoping checks
+    if (req.user.role === 'commander_admin') {
+      if (targetUser.role === 'supreme_super_admin' || targetUser.role === 'commander_admin') {
+        return res.status(403).json({ success: false, error: 'Cannot impersonate this role' });
+      }
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+      // Must belong to the same agency
+      const userAgencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (targetUser.agencyId?._id?.toString() !== userAgencyId.toString() && targetUser._id.toString() !== userAgencyId.toString()) {
+        return res.status(403).json({ success: false, error: 'User does not belong to your agency' });
+      }
+    } else if (req.user.role === 'agency_client') {
+      // Must belong to the same brand (i.e. agency_client._id == targetUser.brandId)
+      if (targetUser.brandId?._id?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, error: 'User does not belong to your company' });
+      }
+    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
+      if (targetUser.brandId?._id?.toString() !== req.user.brandId?.toString() && targetUser._id.toString() !== req.user.brandId?.toString()) {
+        return res.status(403).json({ success: false, error: 'User does not belong to your brand' });
+      }
+    }
+
+    // Prepare token payload matching signin
+    const payload = {
+      _id: targetUser._id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role,
+      roleName: targetUser.roleName || targetUser.role,
+      companyName: targetUser.companyName,
+      industry: targetUser.industry,
+      agencyId: targetUser.agencyId ? targetUser.agencyId._id : null,
+      brandId: targetUser.brandId ? targetUser.brandId._id : null,
+      workspaceId: targetUser.workspaceId || targetUser.agencyId || targetUser.brandId || targetUser._id,
+      impersonatorId: req.user._id // keep track of who is actually logged in
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+    
+    // Resolve features and integrations
+    let features = targetUser.features || [];
+    let integrations = targetUser.integrations || [];
+    let effectiveLogo = targetUser.logo;
+    let effectiveLogoDark = targetUser.logoDark;
+    let planDetails = null;
+
+    if (targetUser.agencyId) {
+      if (!effectiveLogo) effectiveLogo = targetUser.agencyId.logo;
+      if (!effectiveLogoDark) effectiveLogoDark = targetUser.agencyId.logoDark;
+    }
+    if (targetUser.brandId) {
+      if (!effectiveLogo) effectiveLogo = targetUser.brandId.logo;
+      if (!effectiveLogoDark) effectiveLogoDark = targetUser.brandId.logoDark;
+    }
+    if (!effectiveLogo || !effectiveLogoDark) {
+      const commander = await User.findOne({ role: 'commander_admin' }).select('logo logoDark');
+      if (commander) {
+        if (!effectiveLogo) effectiveLogo = commander.logo;
+        if (!effectiveLogoDark) effectiveLogoDark = commander.logoDark;
+      }
+    }
+    
+    let rolePermissions = [];
+    if (targetUser.customRoleId) {
+      const customRole = await Role.findById(targetUser.customRoleId);
+      if (customRole) rolePermissions = customRole.permissions || [];
+    }
+    
+    let effectiveTheme = { primaryColor: '#10b981', secondaryColor: '#3b82f6' };
+    if (targetUser.theme && targetUser.theme.primaryColor) {
+        effectiveTheme = targetUser.theme;
+    } else if (targetUser.agencyId?.theme?.primaryColor) {
+        effectiveTheme = targetUser.agencyId.theme;
+    }
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        ...payload,
+        logo: effectiveLogo,
+        logoDark: effectiveLogoDark,
+        contactEmail: targetUser.contactEmail || (targetUser.brandId ? targetUser.brandId.contactEmail : null),
+        domain: targetUser.domain || (targetUser.brandId ? targetUser.brandId.domain : null),
+        features,
+        integrations,
+        permissions: rolePermissions,
+        plan: planDetails,
+        effectiveTheme
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 };

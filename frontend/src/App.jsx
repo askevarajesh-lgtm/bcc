@@ -158,7 +158,7 @@ function ScrollToTop() {
 
 function OAuthRedirectHandler() {
   const { search } = useLocation();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   
   if (!role) {
     return <Navigate to="/signin" replace />;
@@ -169,7 +169,7 @@ function OAuthRedirectHandler() {
       target = "/workspace/social";
   } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
       target = "/agency/social-media";
-  } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role)) {
+  } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role) || (role === 'user' && user?.brandId)) {
       target = "/client/workspace/social";
   } else {
       target = "/user/workspace/social";
@@ -180,20 +180,21 @@ function OAuthRedirectHandler() {
 
 // Protected Route Component
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   
   if (!role) {
     return <Navigate to="/signin" replace />;
   }
   
-  if (allowedRoles && !allowedRoles.includes(role)) {
+  const isClientUser = role === 'user' && user?.brandId;
+  const matchRole = isClientUser ? 'client_user' : role;
+
+  if (allowedRoles && !allowedRoles.includes(matchRole) && !allowedRoles.includes(role)) {
     if (['supreme_super_admin', 'superadmin'].includes(role)) return <Navigate to="/superadmin/dashboard" replace />;
     if (role === 'commander_admin') return <Navigate to="/dashboard" replace />;
     if (role === 'agency_super_admin') return <Navigate to="/agency/admin-overview" replace />;
     if (['agency_manager', 'agency'].includes(role)) return <Navigate to="/agency/overview" replace />;
-    if (role === 'brand_super_admin') return <Navigate to="/client/dashboard" replace />;
-    if (role === 'brand_manager') return <Navigate to="/client/dashboard" replace />;
-    if (['agency_client', 'brand_team_user', 'client'].includes(role)) return <Navigate to="/client/dashboard" replace />;
+    if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role) || isClientUser) return <Navigate to="/client/dashboard" replace />;
     return <Navigate to="/user/dashboard" replace />;
   }
   
@@ -208,7 +209,7 @@ const SeoRedirect = () => {
   if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
     return <Navigate to={`/agency/marketplace/seo/${sub}`} replace />;
   }
-  if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role)) {
+  if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role) || (role === 'user' && user?.brandId)) {
     return <Navigate to={`/client/marketplace/seo/${sub}`} replace />;
   }
   if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(role)) {
@@ -224,7 +225,7 @@ const AgencySeoRedirect = () => {
 };
 
 const AppRoutes = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   
   return (
     <Routes>
@@ -238,7 +239,7 @@ const AppRoutes = () => {
           role === 'commander_admin' ? '/dashboard' : 
           role === 'agency_super_admin' ? '/agency/admin-overview' :
           ['agency_manager', 'agency'].includes(role) ? '/agency/overview' : 
-          ['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role) ? '/client/dashboard' :
+          (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(role) || (role === 'user' && user?.brandId)) ? '/client/dashboard' :
           '/user/dashboard'
         } replace />
       ) : <SignIn />} />
@@ -442,7 +443,7 @@ const AppRoutes = () => {
       </Route>
 
       {/* Client Routes */}
-      <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['supreme_super_admin', 'superadmin', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client', 'client_user']} />}>
         <Route path="/client" element={<ClientLayout />}>
           <Route index element={<Navigate to="/client/dashboard" replace />} />
           <Route path="users" element={<BrandUsersTab />} />
@@ -620,6 +621,17 @@ const AppRoutes = () => {
 };
 
 function App() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const oauthStatus = searchParams.get("facebook_oauth");
+  const reason = searchParams.get("reason");
+
+  // Intercept popup OAuth redirects so the full app doesn't load inside the popup
+  if (oauthStatus && window.opener && window.opener !== window) {
+    window.opener.postMessage({ type: 'FACEBOOK_OAUTH_SUCCESS', oauthStatus, reason }, '*');
+    window.close();
+    return null;
+  }
+
   return (
     <Router>
       <ScrollToTop />

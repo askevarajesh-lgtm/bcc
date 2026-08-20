@@ -77,7 +77,7 @@ const Header = ({ collapsed, setCollapsed }) => {
     if (['supreme_super_admin', 'superadmin'].includes(role)) return '/superadmin/settings';
     if (['commander_admin'].includes(role)) return '/settings/company';
     if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) return '/agency/settings';
-    if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role)) return '/client/settings/company';
+    if (['brand_super_admin', 'brand_manager', 'agency_client', 'brand_team_user', 'client'].includes(role) || (role === 'user' && user?.brandId)) return '/client/settings/company';
     return '/user/settings';
   };
 
@@ -130,7 +130,7 @@ const Header = ({ collapsed, setCollapsed }) => {
         window.location.href = '/dashboard';
       } else if (['agency_super_admin', 'agency_manager'].includes(parsedUser.role)) {
         window.location.href = '/agency/overview';
-      } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(parsedUser.role)) {
+      } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(parsedUser.role) || (parsedUser.role === 'user' && parsedUser.brandId)) {
         window.location.href = '/client/dashboard';
       } else {
         window.location.href = '/';

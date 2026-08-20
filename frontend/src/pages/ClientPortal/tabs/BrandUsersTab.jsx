@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Button, Tag, Modal, Form, Input, message } from 'antd';
+import { Typography, Table, Button, Tag, Modal, Form, Input, message, Checkbox, Space, Popconfirm, Tooltip } from 'antd';
 import { motion } from 'framer-motion';
-import { Users, CheckCircle2, UserPlus } from 'lucide-react';
+import { Users, CheckCircle2, UserPlus, Edit2, Trash2, LogIn } from 'lucide-react';
 import PhoneInput from '../../../components/common/PhoneInput';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const { Title, Text } = Typography;
 
-const BrandUsersTab = () => {
+const BrandUsersTab = ({ user }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const [userCountryCode, setUserCountryCode] = useState('91');
   const [userCountryIso, setUserCountryIso] = useState('IN');
+
+  const parentFeatures = user?.features || [];
+  const availableFeatures = [
+    { id: 'hrms', label: 'HRMS' },
+    { id: 'crm', label: 'CRM & Leads' },
+    { id: 'website', label: 'Website Builder' },
+    { id: 'social', label: 'Social Media' },
+    { id: 'ads', label: 'Performance Ads' },
+    { id: 'analytics', label: 'Google Analytics' },
+    { id: 'chatgpt', label: 'Chatgpt' },
+    { id: 'canva', label: 'Canva' },
+    { id: 'benchmark', label: 'Benchmark' },
+  ].filter(f => parentFeatures.includes(f.id));
 
   const fetchUsers = async () => {
     try {
@@ -54,7 +70,8 @@ const BrandUsersTab = () => {
           phone: values.phone,
           countryCode: userCountryCode,
           password: values.password,
-          role: 'brand_manager'
+          role: 'user',
+          features: values.features || []
         })
       });
 
@@ -76,9 +93,91 @@ const BrandUsersTab = () => {
     }
   };
 
+  const handleEditUser = async (values) => {
+    try {
+      setSubmitLoading(true);
+      const res = await fetch(`/api/users/${editingUser._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name: values.name,
+          phone: values.phone,
+          countryCode: userCountryCode,
+          ...(values.password ? { password: values.password } : {}),
+          features: values.features || []
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        message.success('User updated successfully');
+        setIsEditModalOpen(false);
+        setEditingUser(null);
+        editForm.resetFields();
+        fetchUsers();
+      } else {
+        message.error(data.message || 'Failed to update user');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('User deleted successfully');
+        fetchUsers();
+      } else {
+        message.error(data.message || 'Failed to delete user');
+      }
+    } catch (error) {
+      message.error('An error occurred');
+    }
+  };
+
+  const handleLoginAs = async (userId) => {
+    try {
+      const res = await fetch(`/api/auth/impersonate/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('original_token', localStorage.getItem('token'));
+        localStorage.setItem('original_user', localStorage.getItem('user'));
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userRole', data.user.role);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        message.success(`Logged in as ${data.user.name}`);
+        window.location.href = '/client/dashboard';
+      } else {
+        message.error(data.error || 'Failed to login as user');
+      }
+    } catch (error) {
+      console.error(error);
+      message.error('An error occurred');
+    }
+  };
+
   const columns = [
     { title: 'Name', dataIndex: 'name', key: 'name', render: (text) => <strong style={{ color: 'var(--text-primary)' }}>{text}</strong> },
-    { title: 'Role', dataIndex: 'role', key: 'role', render: (text) => <Tag style={{ borderRadius: 12, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>{text.replace(/_/g, ' ').toUpperCase()}</Tag> },
+    { title: 'Role', dataIndex: 'role', key: 'role', render: (text) => <Tag style={{ borderRadius: 12, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>{(text || '').replace(/_/g, ' ').toUpperCase()}</Tag> },
     { title: 'Email', dataIndex: 'email', key: 'email', render: (text) => <Text type="secondary">{text}</Text> },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => {
       const displayStatus = status === 'active' ? 'Active' : 'Pending Invite';
@@ -89,7 +188,49 @@ const BrandUsersTab = () => {
         </span>
       );
     }},
-    { title: 'Actions', key: 'actions', align: 'right', render: () => <Button type="link" style={{ fontWeight: 600, color: 'var(--accent-secondary)' }}>Manage</Button> }
+    { title: 'Actions', key: 'actions', align: 'right', render: (_, record) => {
+      if (record._id === user?._id || record.role === 'agency_client') return <Text type="secondary">-</Text>;
+      
+      return (
+        <Space>
+          <Tooltip title="Login As">
+            <Button 
+              type="text" 
+              icon={<LogIn size={16} />} 
+              onClick={() => handleLoginAs(record._id)}
+            />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<Edit2 size={16} />} 
+              onClick={() => {
+                setEditingUser(record);
+                setUserCountryCode(record.countryCode || '91');
+                editForm.setFieldsValue({
+                  name: record.name,
+                  email: record.email,
+                  phone: record.phone,
+                  features: record.features || []
+                });
+                setIsEditModalOpen(true);
+              }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Delete the user"
+            description="Are you sure to delete this user?"
+            onConfirm={() => handleDeleteUser(record._id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Tooltip title="Delete">
+              <Button type="text" danger icon={<Trash2 size={16} />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      );
+    }}
   ];
 
   const containerVariants = {
@@ -172,9 +313,68 @@ const BrandUsersTab = () => {
           <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Please enter a password' }]}>
             <Input.Password placeholder="Enter a secure password" />
           </Form.Item>
+          {availableFeatures.length > 0 && (
+            <Form.Item name="features" label="Configure Permissions (Modules)">
+              <Checkbox.Group options={availableFeatures.map(f => ({ label: f.label, value: f.id }))} />
+            </Form.Item>
+          )}
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={submitLoading} block style={{ background: 'var(--accent-primary)', fontWeight: 700 }}>
               Create User
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: 18 }}>Edit User</span>}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditUser} style={{ marginTop: 24 }}>
+          <Form.Item name="name" label="Full Name" rules={[{ required: true, message: 'Please enter name' }]}>
+            <Input placeholder="e.g. Jane Doe" />
+          </Form.Item>
+          <Form.Item name="email" label="Email Address">
+            <Input type="email" disabled />
+          </Form.Item>
+          <Form.Item 
+            name="phone" 
+            label="Phone Number"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (isValidPhoneNumber(value, userCountryIso)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Please enter a valid phone number for the selected country'));
+                }
+              }
+            ]}
+          >
+            <PhoneInput 
+              size="large" 
+              style={{ borderRadius: 8 }} 
+              countryCodeValue={userCountryCode}
+              onCountryCodeChange={setUserCountryCode}
+              isoCountryValue={userCountryIso}
+              onCountryIsoChange={setUserCountryIso}
+            />
+          </Form.Item>
+          <Form.Item name="password" label="Password (Leave blank to keep current)">
+            <Input.Password placeholder="Enter a new password" />
+          </Form.Item>
+          {availableFeatures.length > 0 && (
+            <Form.Item name="features" label="Configure Permissions (Modules)">
+              <Checkbox.Group options={availableFeatures.map(f => ({ label: f.label, value: f.id }))} />
+            </Form.Item>
+          )}
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={submitLoading} block style={{ background: 'var(--accent-primary)', fontWeight: 700 }}>
+              Update User
             </Button>
           </Form.Item>
         </Form>

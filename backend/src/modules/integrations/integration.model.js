@@ -7,6 +7,11 @@ const integrationSchema = new mongoose.Schema(
       ref: "Company",
       default: null, // null for platform-level integrations
     },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null, // used for sub-user specific integrations
+    },
     type: {
       type: String,
       required: true,

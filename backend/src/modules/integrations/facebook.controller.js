@@ -27,8 +27,8 @@ exports.generateAuthUrl = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Company ID missing from user token' });
     }
 
-    // Embed both companyId and redirectPath in the state parameter
-    const stateObj = { companyId, redirectPath };
+    // Embed companyId, redirectPath, and userId in the state parameter
+    const stateObj = { companyId, redirectPath, userId: decoded._id };
     const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
     const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read', 'business_management', 'pages_read_user_content'].join(',');
     
@@ -60,6 +60,7 @@ exports.handleCallback = async (req, res, next) => {
     }
 
     const companyId = stateObj.companyId;
+    const ownerId = stateObj.userId || null;
 
     // 1. Exchange code for short-lived token
     const tokenRes = await axios.get(`https://graph.facebook.com/v18.0/oauth/access_token`, {
@@ -95,7 +96,7 @@ exports.handleCallback = async (req, res, next) => {
 
     // 4. Save to Database
     await Integration.findOneAndUpdate(
-      { companyId, type: 'facebook_leads' },
+      { companyId, type: 'facebook_leads', ownerId },
       {
         name: 'Facebook Leads Integration',
         isActive: true,
@@ -121,7 +122,8 @@ exports.handleCallback = async (req, res, next) => {
 exports.getIntegrations = async (req, res, next) => {
   try {
     const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const ownerId = (req.user && req.user.role === 'user') ? req.user._id : null;
+    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', ownerId, isActive: true });
     
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(200).json({ success: true, data: { isConnected: false, integrations: [] } });
@@ -459,6 +461,7 @@ exports.syncLeads = async (req, res, next) => {
                 companyId,
                 clientId: clientId || null,
                 isClientLead: !!clientId,
+                ownerId: integration.ownerId || null,
                 createdBy: req.user ? req.user._id : null,
                 fullName: fullName || 'Unknown',
                 email,
@@ -750,6 +753,7 @@ exports.handleWebhook = async (req, res) => {
               companyId,
               clientId: clientId || null,
               isClientLead: !!clientId,
+              ownerId: validIntegration.ownerId || null,
               createdBy: validIntegration.companyId, // Or a system user ID
               fullName: fullName || 'Unknown',
               email,

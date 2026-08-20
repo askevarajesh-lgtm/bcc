@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 // Roles that always get full Create/Edit/Delete/View access without needing permissions configured
 const ALWAYS_FULL_ACCESS_ROLES = [
   'supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin',
-  'agency_manager', 'admin', 'brand_admin', 'brand_manager'
+  'agency_manager', 'admin', 'brand_admin', 'brand_manager', 'agency_client'
 ];
 
 // Roles that are Employee-type (permission-controlled via their role's permission matrix)

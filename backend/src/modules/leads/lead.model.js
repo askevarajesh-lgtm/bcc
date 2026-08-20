@@ -96,6 +96,12 @@ const leadSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
     fullName: {
       type: String,
       trim: true,

@@ -18,13 +18,6 @@ const ClientWebsiteTab = () => {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
-      <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
-        <Title level={2} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>Website Management</Title>
-        <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>
-          Manage your landing pages, performance, and integrations.
-        </Text>
-      </motion.div>
-
       <motion.div variants={itemVariants} style={{ height: 'calc(100vh - 200px)', borderRadius: 16, overflow: 'hidden' }}>
         {/* We embed the WebsiteBuilder directly to give clients access to the same powerful tool */}
         <div style={{ transform: 'scale(1)', transformOrigin: 'top left', width: '100%', height: '100%', overflow: 'auto' }}>

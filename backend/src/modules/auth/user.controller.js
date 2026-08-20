@@ -36,9 +36,9 @@ exports.getUsers = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
       queryFilter.agencyId = null;
       queryFilter.brandId = null;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      queryFilter.brandId = req.user.brandId || req.user._id;
-      if (req.user.role === 'brand_manager') {
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role) || (req.user.role === 'user' && req.user.brandId)) {
+      queryFilter.brandId = req.user.brandId || (req.user.role === 'agency_client' ? req.user._id : null);
+      if (req.user.role === 'brand_manager' || req.user.role === 'agency_client' || req.user.role === 'user') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'brand_super_admin'] };
       } else {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
@@ -68,9 +68,9 @@ exports.getUsersDropdown = async (req, res, next) => {
       queryFilter.adminId = req.user._id;
       queryFilter.agencyId = null;
       queryFilter.brandId = null;
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      queryFilter.brandId = req.user.brandId || req.user._id;
-      if (req.user.role === 'brand_manager') {
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role) || (req.user.role === 'user' && req.user.brandId)) {
+      queryFilter.brandId = req.user.brandId || (req.user.role === 'agency_client' ? req.user._id : null);
+      if (req.user.role === 'brand_manager' || req.user.role === 'agency_client' || req.user.role === 'user') {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'brand_super_admin'] };
       } else {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
@@ -143,14 +143,21 @@ exports.createUser = async (req, res, next) => {
       userData.agencyId = null;
       userData.brandId = null;
       if (!SYSTEM_ROLES.includes(incomingRole)) userData.role = 'user';
-    } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      userData.brandId = req.user.brandId;
+    } else if (['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role) || (req.user.role === 'user' && req.user.brandId)) {
+      userData.brandId = req.user.brandId || (req.user.role === 'agency_client' ? req.user._id : null);
       userData.agencyId = req.user.agencyId;
       
       if (req.user.role === 'brand_super_admin') {
          userData.role = 'brand_manager'; // Brand Super Admin always creates Brand Managers
       } else {
-         userData.role = 'user'; // Brand Manager creates generic users (customRole determines their job)
+         userData.role = 'user'; // Brand Manager, Agency Client, and User create generic users
+      }
+
+      // Ensure features are a subset of the creator's features
+      if (['agency_client', 'user'].includes(req.user.role)) {
+        if (userData.features && Array.isArray(userData.features)) {
+          userData.features = userData.features.filter(f => (req.user.features || []).includes(f));
+        }
       }
     } else {
       // If created by any other agency user (e.g., Operation Head), assign agencyId
@@ -200,9 +207,8 @@ exports.createUser = async (req, res, next) => {
           if (pkg) maxUsers = pkg.userCount;
         } else {
           // Agency Client
-          const Package = require('../packages/package.model');
-          const pkg = await Package.findOne({ type: 'agency', name: brandDoc.packageName }); // Agency Packages might not be strictly filtered by createdBy if global, but we can assume name is unique enough for the agency
-          if (pkg) maxUsers = pkg.users; // Or maybe brand packages for agency clients are stored elsewhere? Wait, no, Agency Package is for the agency itself. Agency Clients might not have a package with user limit? 
+          // User limit is unlimited for agency clients
+          maxUsers = 0;
         }
 
         // Wait, if it's not direct, does the agency client have a limit?

@@ -365,6 +365,11 @@ const IntegrationsTab = () => {
     if (isPlatformAdmin) return true;
     if (entitledIntegrationTypes.includes(type)) return true;
     
+    // For agency client sub-users, check their features array
+    if (role === 'user' && user?.brandId) {
+      if (type === 'website' && (user?.features || []).includes('crm')) return true;
+    }
+
     // Allow if user has explicit matrix permissions
     if (type === 'website' && (user?.permissions?.['Workspace-Lead Management Integration']?.Read || user?.permissions?.['Workspace-CRM & Leads']?.Read)) return true;
     if (type === 'ekta' && (user?.permissions?.['HRMS-Ekta HR Integration']?.Read || user?.permissions?.['HRMS-Performance']?.Read)) return true;

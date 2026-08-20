@@ -25,6 +25,12 @@ const SettingsPage = () => {
 
   const hasFullCrmAccess = () => {
     if (['commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin'].includes(role)) return true;
+    
+    // For agency client sub-users, check their features array
+    if (role === 'user' && user?.brandId) {
+      return (user?.features || []).includes('crm');
+    }
+
     const crm = user?.permissions?.['Workspace-CRM & Leads'];
     if (crm) {
       const isManagerRole = ['admin', 'brand_admin', 'brand_manager'].includes(role);

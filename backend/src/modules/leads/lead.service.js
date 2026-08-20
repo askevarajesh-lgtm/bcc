@@ -27,6 +27,15 @@ const buildLeadAccessFilter = (companyId, currentUser) => {
       clientId: currentUser.clientId,
     };
   }
+  
+  if (userRole === "user" && currentUser.brandId) {
+    // Sub-users of Agency Client only see leads specifically assigned to them or owned by them
+    const userName = String(currentUser.name || "").trim();
+    return {
+      ...baseFilter,
+      $or: [{ assignedTo: userName }, { ownerId: currentUser._id }],
+    };
+  }
 
   if (userRole === "bde") {
     const userName = String(currentUser.name || "").trim();
@@ -98,6 +107,7 @@ const createLead = async (leadData, companyId, userId, currentUser) => {
     source: String(source || "").trim(),
     status: status || "new",
     assignedTo: assignedToValue,
+    ownerId: (userRole === "user" && currentUser.brandId) ? currentUser._id : null,
     notes: String(notes || "").trim(),
     customData: customData || {},
     activityLogs: [{ message: "Lead created" }],

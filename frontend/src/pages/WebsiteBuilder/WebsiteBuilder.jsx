@@ -93,10 +93,9 @@ const WebsiteBuilder = () => {
   const lastPart = pathParts[pathParts.length - 1];
   const { role } = useAuth();
 
-  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : (role === 'agency_client' ? 'websites' : 'overview');
+  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : 'overview';
 
   const handleTabClick = (tabId) => {
-    if (role === 'agency_client') return; // Prevent tab switching for client
     const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
     const basePath = match ? match[0] : '/workspace/website';
     navigate(`${basePath}/${tabId}`);
@@ -256,31 +255,29 @@ const WebsiteBuilder = () => {
       </motion.div>
 
       {/* Tabs Navigation */}
-      {role !== 'agency_client' && (
-        <motion.div variants={itemVariants} style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              style={{
-                padding: '12px 16px',
-                color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent',
-                fontWeight: activeTab === tab.id ? 800 : 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                marginBottom: -1,
-                transition: 'all 0.2s',
-              }}
-            >
-              {tab.icon} {tab.label}
-            </div>
-          ))}
-        </motion.div>
-      )}
+      <motion.div variants={itemVariants} style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 32, overflowX: 'auto', paddingBottom: 0 }}>
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            onClick={() => handleTabClick(tab.id)}
+            style={{
+              padding: '12px 16px',
+              color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === tab.id ? '3px solid var(--accent-primary)' : '3px solid transparent',
+              fontWeight: activeTab === tab.id ? 800 : 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              marginBottom: -1,
+              transition: 'all 0.2s',
+            }}
+          >
+            {tab.icon} {tab.label}
+          </div>
+        ))}
+      </motion.div>
 
       {/* Tab Content Area */}
       <motion.div

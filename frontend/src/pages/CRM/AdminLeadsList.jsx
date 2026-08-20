@@ -50,7 +50,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
   const [form] = Form.useForm();
   
   const [dateRangeFilter, setDateRangeFilter] = useState(null);
-  const [formNameFilter, setFormNameFilter] = useState('');
+  const [formNameFilter, setFormNameFilter] = useState([]);
 
   const currentViewingLead = viewingLead ? leads.find(l => l._id === viewingLead._id) || viewingLead : null;
   
@@ -131,7 +131,7 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Name</strong>, dataIndex: 'fullName', key: 'fullName', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>, dataIndex: 'phoneNumber', key: 'phoneNumber' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Email</strong>, dataIndex: 'email', key: 'email' },
-    { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Date</strong>, key: 'createdAt', render: (_, record) => getActualLeadDate(record).format('YYYY-MM-DD HH:mm') },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Date</strong>, key: 'createdAt', sorter: (a, b) => getActualLeadDate(a).valueOf() - getActualLeadDate(b).valueOf(), render: (_, record) => getActualLeadDate(record).format('DD-MM-YYYY HH:mm') },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Form Name</strong>, key: 'formName', render: (_, record) => getFormName(record) || '—' },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Lead Source</strong>, dataIndex: 'source', key: 'source', render: s => <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>{s}</Tag> },
     { title: <strong style={{ color: 'var(--text-secondary)' }}>Status</strong>, dataIndex: 'status', key: 'status', render: s => <Tag color="blue" style={{ borderRadius: 6, fontWeight: 700, textTransform: 'uppercase' }}>{s}</Tag> },
@@ -162,9 +162,9 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
     }
     
     let formMatch = true;
-    if (formNameFilter) {
+    if (formNameFilter && formNameFilter.length > 0) {
       const formName = getFormName(lead).toLowerCase();
-      formMatch = formName.includes(formNameFilter.toLowerCase());
+      formMatch = formNameFilter.some(filterItem => formName.includes(filterItem.toLowerCase()));
     }
     
     return dateMatch && formMatch;
@@ -234,8 +234,8 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
         exportParams.startDate = dateRangeFilter[0].startOf('day').toISOString();
         exportParams.endDate = dateRangeFilter[1].endOf('day').toISOString();
       }
-      if (formNameFilter) {
-        exportParams.formName = formNameFilter;
+      if (formNameFilter && formNameFilter.length > 0) {
+        exportParams.formName = formNameFilter.join(',');
       }
 
       const blob = await exportCsv(exportParams).unwrap();
@@ -355,10 +355,11 @@ const AdminLeadsList = ({ leads = [], refetch }) => {
           <Space wrap>
             <RangePicker onChange={val => setDateRangeFilter(val)} style={{ borderRadius: 8 }} />
             <Select
+              mode="multiple"
               placeholder="Filter by Form Name"
-              value={formNameFilter || undefined}
-              onChange={val => setFormNameFilter(val || '')}
-              style={{ width: 200, borderRadius: 8 }}
+              value={formNameFilter}
+              onChange={val => setFormNameFilter(val || [])}
+              style={{ minWidth: 200, borderRadius: 8 }}
               allowClear
               showSearch
             >

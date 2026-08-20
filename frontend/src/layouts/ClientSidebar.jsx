@@ -305,7 +305,6 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
   } else {
-    settingsChildren.push({ key: '/client/billing', icon: getIcon(CreditCard), label: 'Billing' });
     settingsChildren.push({ key: '/client/support', icon: getIcon(HelpCircle), label: 'Support' });
     settingsChildren.push({ key: '/client/settings/company', icon: getIcon(SettingsIcon), label: 'Settings' });
   }

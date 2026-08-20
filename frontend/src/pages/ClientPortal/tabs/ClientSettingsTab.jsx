@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Card, Row, Col, Avatar, Tag, Divider, Tabs, Modal, Checkbox, Button, message } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, Shield, Star, Briefcase, Link, CreditCard } from 'lucide-react';
+import { Building2, User, Shield, Star, Briefcase, Link, CreditCard, Users } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
 import ClientIntegrationsTab from './ClientIntegrationsTab';
+import BrandUsersTab from './BrandUsersTab';
 
 const availableFeatures = [
   { id: 'hrms', label: 'HRMS' },
@@ -230,21 +231,30 @@ const ClientSettingsTab = () => {
   };
 
   const tabItems = [
-    {
-      key: '1',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><User size={16} /> Profile</span>,
-      children: <ProfileContent user={user} />,
-    },
+    ...(user?.role === 'agency_client' ? [
+      {
+        key: '1',
+        label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><User size={16} /> Profile</span>,
+        children: <ProfileContent user={user} />,
+      },
+      {
+        key: '3',
+        label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Shield size={16} /> Subscription</span>,
+        children: <SubscriptionContent />,
+      }
+    ] : []),
     {
       key: '2',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Link size={16} /> Integrations</span>,
       children: <ClientIntegrationsTab user={freshUser} />,
     },
-    {
-      key: '3',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Shield size={16} /> Subscription</span>,
-      children: <SubscriptionContent />,
-    },
+    ...(['agency_client'].includes(user?.role) ? [
+      {
+        key: '4',
+        label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><Users size={16} /> Team</span>,
+        children: <BrandUsersTab user={freshUser || user} />,
+      }
+    ] : [])
   ];
 
   return (

@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       navigate('/dashboard');
     } else if (['agency_super_admin', 'agency_manager'].includes(user.role)) {
       navigate('/agency/overview');
-    } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(user.role)) {
+    } else if (['agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user', 'client'].includes(user.role) || (user.role === 'user' && user.brandId)) {
       navigate('/client/dashboard');
     } else {
       // Fallback for custom roles (like developer, seo, etc)

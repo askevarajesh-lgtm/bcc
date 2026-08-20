@@ -241,6 +241,12 @@ const getAllIntegrations = async (companyId, role, user) => {
     if (companyId) query.$or.push({ companyId });
   } else {
     query.companyId = companyId;
+    if (role === "user" && user.brandId) {
+      query.ownerId = user._id; // Sub-users only see their own integrations
+    } else {
+      // Admins see all company integrations (ownerId: null or anything)
+      // We don't filter by ownerId, so they see sub-users' integrations too
+    }
   }
 
   const integrations = await Integration.find(query).sort({ type: 1 });
