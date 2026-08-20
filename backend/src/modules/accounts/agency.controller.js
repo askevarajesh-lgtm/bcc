@@ -113,7 +113,11 @@ exports.createAgency = async (req, res, next) => {
     const planOrId = plan || packageId;
     if (planOrId) {
       const Package = require('../packages/package.model');
-      const pkg = await Package.findOne({ _id: planOrId, type: 'agency' });
+      let pkg = await Package.findOne({ _id: planOrId, type: 'agency' });
+      if (!pkg) {
+        const SubscriptionPlan = require('../subscriptions/subscription.model');
+        pkg = await SubscriptionPlan.findOne({ _id: planOrId });
+      }
       if (!pkg) {
         return res.status(400).json({ success: false, message: 'Selected package not found' });
       }
@@ -123,7 +127,9 @@ exports.createAgency = async (req, res, next) => {
       
       const now = new Date();
       req.body.subscriptionStartDate = now;
-      req.body.billingInterval = pkg.billingInterval || 'Monthly';
+      
+      const interval = pkg.billingInterval || pkg.interval || 'Monthly';
+      req.body.billingInterval = (interval === '/month' ? 'Monthly' : (interval === '/year' ? 'Yearly' : interval));
       
       if (req.body.billingInterval === 'Monthly') {
         req.body.subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
