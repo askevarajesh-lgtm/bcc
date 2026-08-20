@@ -272,10 +272,12 @@ router.get("/auth/facebook", (req, res) => {
       return;
     }
 
+    const platform = req.query.platform || "facebook";
     const context = {
       companyId: scope.companyId,
       clientCompanyId: scope.clientCompanyId || null,
       redirectUri: REDIRECT_URI,
+      platform,
     };
     const encodedState = Buffer.from(JSON.stringify(context)).toString(
       "base64",
@@ -315,7 +317,7 @@ router.get("/auth/instagram", (req, res) => {
   const clientQuery = req.query?.clientCompanyId
     ? `clientCompanyId=${encodeURIComponent(String(req.query.clientCompanyId))}`
     : "";
-  const query = [tokenQuery, clientQuery].filter(Boolean).join("&");
+  const query = [tokenQuery, clientQuery, "platform=instagram"].filter(Boolean).join("&");
   res.redirect(
     `/api/campaign-scheduled/auth/facebook${query ? `?${query}` : ""}`,
   );
@@ -541,20 +543,35 @@ router.get("/auth/facebook/callback", async (req, res) => {
       );
     }
 
+    // Fetch the pages they just authorized so we can list them in the frontend
+    let discoveredPages = [];
+    try {
+      const accountsRes = await axios.get(`${META_GRAPH}/me/accounts`, {
+        params: {
+          access_token: longToken,
+          fields: "id,name,access_token,instagram_business_account{id,username,name}",
+        },
+      });
+      discoveredPages = accountsRes.data?.data || [];
+    } catch (fetchErr) {
+      console.warn("[FB Callback] Failed to auto-discover pages:", fetchErr.message);
+    }
+
     // Save the User Access Token to the Discovery DB so the frontend API can retrieve it later
     // We use Discovery instead of session because cross-origin API calls don't send cookies reliably
     await Discovery.findOneAndUpdate(
       { id: `fb_temp_${companyId}` },
       {
         id: `fb_temp_${companyId}`,
-        data: { longToken, expiresAt },
+        data: { longToken, expiresAt, discoveredPages },
         createdAt: new Date(),
       },
       { upsert: true, new: true }
     );
 
+    const platform = decodedContext.platform || "facebook";
     res.redirect(
-      `${FRONTEND_URL}/campaigns-scheduled?oauth=facebook_manual_setup`,
+      `${FRONTEND_URL}/campaigns-scheduled?oauth=facebook_manual_setup&platform=${platform}`,
     );
   } catch (err) {
     const msg =
@@ -2213,12 +2230,16 @@ router.post("/posts", mediaUpload.single("media"), async (req, res, next) => {
       companyId: req.companyId,
       clientCompanyId: req.clientCompanyId,
     };
-    broadcastSSE("post_scheduled", { post: newPost }, scope);
-    broadcastSSE(
-      "posts_sync",
-      await getAllPosts(req.companyId, req.clientCompanyId),
-      scope,
-    );
+    
+    if (postMode !== "immediate") {
+      broadcastSSE("post_scheduled", { post: newPost }, scope);
+      broadcastSSE(
+        "posts_sync",
+        await getAllPosts(req.companyId, req.clientCompanyId),
+        scope,
+      );
+    }
+    
     res.status(201).json({ success: true, post: newPost });
   } catch (err) {
     console.error("[Campaign Scheduled] Create post failed:", err);
@@ -2323,12 +2344,14 @@ router.put("/posts/:id", mediaUpload.single("media"), async (req, res) => {
     companyId: req.companyId,
     clientCompanyId: req.clientCompanyId,
   };
-  broadcastSSE("post_updated", { post: updated }, scope);
-  broadcastSSE(
-    "posts_sync",
-    await getAllPosts(req.companyId, req.clientCompanyId),
-    scope,
-  );
+  if (updated.postMode !== "immediate") {
+    broadcastSSE("post_updated", { post: updated }, scope);
+    broadcastSSE(
+      "posts_sync",
+      await getAllPosts(req.companyId, req.clientCompanyId),
+      scope,
+    );
+  }
   res.json({ success: true, post: updated });
 });
 
@@ -2373,12 +2396,34 @@ router.post("/posts/:id/publish", async (req, res) => {
   ).lean();
 
   if (!post) {
-    res.status(409).json({
-      success: false,
-      error: "Post is already published or is currently being processed.",
+    const existingPost = await Post.findOne({
+      id: req.params.id,
+      companyId: req.companyId,
+      clientCompanyId: req.clientCompanyId || null,
+    }).lean();
+
+    if (!existingPost) {
+      return res.status(404).json({ success: false, error: "Post not found" });
+    }
+
+    return res.json({
+      success: true,
+      post: existingPost,
+      message: "Publishing already initiated in background...",
     });
-    return;
   }
+
+  const scope = {
+    companyId: req.companyId,
+    clientCompanyId: req.clientCompanyId,
+  };
+
+  // Broadcast the "Publishing" state to the frontend immediately before blocking on dispatchPost
+  broadcastSSE(
+    "posts_sync",
+    await getAllPosts(req.companyId, req.clientCompanyId),
+    scope,
+  );
 
   const result = await dispatchPost(post);
   const publicationMap = result.platformResults || {};
@@ -2411,10 +2456,6 @@ router.post("/posts/:id/publish", async (req, res) => {
     clientCompanyId: req.clientCompanyId || null,
   }).lean();
 
-  const scope = {
-    companyId: req.companyId,
-    clientCompanyId: req.clientCompanyId,
-  };
 
   if (result.success) {
     broadcastSSE("post_published", { post: updated }, scope);
@@ -2453,11 +2494,21 @@ router.post(
     ).lean();
 
     if (!post) {
-      res.status(409).json({
-        success: false,
-        error: "Post is already published or is currently being processed.",
+      const existingPost = await Post.findOne({
+        id: req.params.id,
+        companyId: req.companyId,
+        clientCompanyId: req.clientCompanyId || null,
+      }).lean();
+
+      if (!existingPost) {
+        return res.status(404).json({ success: false, error: "Post not found" });
+      }
+
+      return res.json({
+        success: true,
+        post: existingPost,
+        message: "Publishing already initiated in background...",
       });
-      return;
     }
 
     let finalMediaUrl = post.media_url;
@@ -2469,6 +2520,18 @@ router.post(
           originalname: req.file.originalname,
         }
       : null;
+
+    const scope = {
+      companyId: req.companyId,
+      clientCompanyId: req.clientCompanyId,
+    };
+
+    // Broadcast the "Publishing" state to the frontend immediately before returning
+    broadcastSSE(
+      "posts_sync",
+      await getAllPosts(req.companyId, req.clientCompanyId),
+      scope,
+    );
 
     // Send immediate response so Nginx doesn't timeout
     res.json({
@@ -2504,7 +2567,7 @@ router.post(
                 media_url: finalMediaUrl,
                 published_at: new Date().toISOString(),
                 error_message: null,
-                platform_publications: buildPublicationMap(result.deliveries),
+                platform_publications: result.platformResults || {},
                 ...(result.metrics
                   ? {
                       likes: result.metrics.likes,
@@ -2533,7 +2596,7 @@ router.post(
         } else {
           await Post.updateOne(
             { _id: post._id },
-            { $set: { status: "Failed", error_message: result.message } },
+            { $set: { status: "Failed", error_message: result.message, platform_publications: result.platformResults || {} } },
           );
           const updated = await Post.findOne({
             id: post.id,
@@ -2713,15 +2776,34 @@ router.get("/pinterest/boards/:accountId", async (req, res) => {
     res.status(500).json({ success: false, error: err?.response?.data?.message || err.message });
   }
 });
+router.get("/auth/facebook/discovery", authMiddleware, async (req, res) => {
+  try {
+    const companyId = req.companyId;
+    const tempDoc = await Discovery.findOne({ id: `fb_temp_${companyId}` });
+    
+    if (!tempDoc || !tempDoc.data) {
+      return res.status(200).json({ success: true, discoveredPages: [] });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      discoveredPages: tempDoc.data.discoveredPages || [] 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 
 router.post("/auth/facebook/manual-page", authMiddleware, async (req, res) => {
   try {
-    const { pageId, instaId } = req.body;
+    const { pageIds = [], instaIds = [] } = req.body;
     const companyId = req.companyId;
     const clientCompanyId = req.clientCompanyId || null;
 
-    if (!pageId) throw new Error("Page ID is required");
+    if (pageIds.length === 0 && instaIds.length === 0) {
+      throw new Error("At least one Page ID or Instagram ID is required");
+    }
 
     // Retrieve the temp token from the Discovery DB
     const tempDoc = await Discovery.findOne({ id: `fb_temp_${companyId}` });
@@ -2729,71 +2811,104 @@ router.post("/auth/facebook/manual-page", authMiddleware, async (req, res) => {
       throw new Error("OAuth session expired. Please connect again.");
     }
 
-    const { longToken, expiresAt } = tempDoc.data;
+    const { longToken, expiresAt, discoveredPages = [] } = tempDoc.data;
 
-    const manualPageRes = await axios.get(`${META_GRAPH}/${pageId}`, {
-      params: {
-        access_token: longToken,
-        fields: "id,name,access_token,instagram_business_account",
-      },
-    });
-
-    const page = manualPageRes.data;
-    if (!page || !page.id) {
-      throw new Error("Invalid Page ID or missing permissions");
-    }
-
-    const facebookAccountId = buildScopedAccountId("fb", companyId, page.id);
-    await upsertAccount(
-      {
-        id: facebookAccountId,
-        platform: "facebook",
-        page_id: page.id,
-        page_name: page.name,
-        ig_user_id: page.instagram_business_account?.id || null,
-        username: page.name,
-        access_token: page.access_token,
-        token_type: "page",
-        expires_at: expiresAt,
-        connected_at: new Date().toISOString(),
-      },
-      companyId,
-      clientCompanyId,
-    );
-
-    let finalIgId = null;
-
-    if (instaId) {
-      finalIgId = instaId;
-    } else if (page.instagram_business_account?.id) {
-      finalIgId = page.instagram_business_account.id;
-    }
-
-    if (finalIgId) {
-      const instagramAccountId = buildScopedAccountId("ig", companyId, finalIgId);
-      let igUsername = finalIgId;
+    // Connect Facebook Pages
+    for (const pageId of pageIds) {
+      let fbPageData = null;
       try {
-        const igRes = await axios.get(`${META_GRAPH}/${finalIgId}`, {
+        const manualPageRes = await axios.get(`${META_GRAPH}/${pageId}`, {
+          params: { access_token: longToken, fields: "id,name,access_token" },
+        });
+        fbPageData = manualPageRes.data;
+      } catch (err) {
+        console.warn(`[FB Manual Page] Failed to fetch page ${pageId}:`, err.message);
+        continue;
+      }
+
+      if (fbPageData && fbPageData.id) {
+        const facebookAccountId = buildScopedAccountId("fb", companyId, fbPageData.id);
+        await upsertAccount(
+          {
+            id: facebookAccountId,
+            platform: "facebook",
+            page_id: fbPageData.id,
+            page_name: fbPageData.name,
+            username: fbPageData.name,
+            access_token: fbPageData.access_token,
+            token_type: "page",
+            expires_at: expiresAt,
+            connected_at: new Date().toISOString(),
+          },
+          companyId,
+          clientCompanyId,
+        );
+      }
+    }
+
+    // Connect Instagram Accounts
+    for (const instaId of instaIds) {
+      let finalPageId = null;
+      let fallbackToUserToken = false;
+
+      // Check if we discovered the page in oauth callback
+      const discoveredPage = discoveredPages.find(p => p.instagram_business_account?.id === instaId);
+      if (discoveredPage) {
+        finalPageId = discoveredPage.id;
+      } else {
+        // Try to auto-discover
+        try {
+          const accountsRes = await axios.get(`${META_GRAPH}/me/accounts`, {
+            params: { access_token: longToken, fields: "id,name,access_token,instagram_business_account" },
+          });
+          const accounts = accountsRes.data?.data || [];
+          const matchingPage = accounts.find(p => p.instagram_business_account?.id === instaId);
+          if (matchingPage) {
+            finalPageId = matchingPage.id;
+          } else {
+            fallbackToUserToken = true;
+          }
+        } catch (err) {
+          fallbackToUserToken = true;
+        }
+      }
+
+      let fbPageData = null;
+      if (finalPageId) {
+        try {
+          const manualPageRes = await axios.get(`${META_GRAPH}/${finalPageId}`, {
+            params: { access_token: longToken, fields: "id,name,access_token" },
+          });
+          fbPageData = manualPageRes.data;
+        } catch (err) {
+          fallbackToUserToken = true;
+        }
+      }
+
+      const instagramAccountId = buildScopedAccountId("ig", companyId, instaId);
+      let igUsername = instaId;
+      try {
+        const igRes = await axios.get(`${META_GRAPH}/${instaId}`, {
           params: {
             fields: "username,name",
-            access_token: page.access_token,
+            access_token: fbPageData ? fbPageData.access_token : longToken,
           },
         });
-        igUsername = igRes.data.username || igRes.data.name || finalIgId;
+        igUsername = igRes.data.username || igRes.data.name || instaId;
       } catch (err) {
-        console.warn(`[FB Manual Page] Failed to fetch explicit IG details for ${finalIgId}:`, err.message);
+        console.warn(`[FB Manual Page] Failed to fetch explicit IG details for ${instaId}:`, err.message);
       }
 
       await upsertAccount(
         {
           id: instagramAccountId,
           platform: "instagram",
-          page_id: page.id,
-          page_name: page.name,
-          ig_user_id: finalIgId,
+          page_id: fbPageData ? fbPageData.id : null,
+          page_name: fbPageData ? fbPageData.name : null,
+          ig_user_id: instaId,
           username: igUsername,
-          access_token: page.access_token,
-          token_type: "page",
+          access_token: fbPageData ? fbPageData.access_token : longToken,
+          token_type: fbPageData ? "page" : "user",
           expires_at: expiresAt,
           connected_at: new Date().toISOString(),
         },

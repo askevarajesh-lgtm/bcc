@@ -62,7 +62,7 @@ const stringToColor = (str = "") => {
 const CoordinatorTasks = () => {
   const { token } = antTheme.useToken();
   const { user } = useAuth();
-  const { canAdd } = useActionPermissions("/tasks");
+  const { canAdd, canEdit, canDelete } = useActionPermissions("/coordinator-tasks");
   const [selectedDate, setSelectedDate] = useState(dayjs());
 
   const {
@@ -120,9 +120,39 @@ const CoordinatorTasks = () => {
 
   const coordinators = useMemo(() => {
     const allCoordinators = usersData?.data?.users || [];
-    if (user.role === "admin" || user.role === "super_admin") return allCoordinators;
-    return allCoordinators.filter((u) => u._id === user._id);
-  }, [usersData, user]);
+    const isAdminView = [
+      "admin",
+      "super_admin",
+      "superadmin",
+      "supreme_super_admin",
+      "commander_admin",
+      "agency_super_admin",
+      "agency_manager",
+      "brand_admin",
+      "brand_manager",
+    ].includes(user?.role);
+
+    if (isAdminView) {
+      // Agency managers/admins should see all tasks, even for users without the module enabled.
+      // So we must combine dropdown users with any users found in tasks.
+      const tasks = tasksData?.data?.tasks || [];
+      const userMap = new Map();
+
+      allCoordinators.forEach((u) => userMap.set(u._id, u));
+
+      tasks.forEach((task) => {
+        if (task.assignedTo && !userMap.has(task.assignedTo._id || task.assignedTo)) {
+          // Add the missing user from the task
+          const userObj = task.assignedTo._id ? task.assignedTo : { _id: task.assignedTo, name: 'Unknown User' };
+          userMap.set(userObj._id, userObj);
+        }
+      });
+
+      return Array.from(userMap.values());
+    }
+
+    return allCoordinators.filter((u) => u._id === user?._id);
+  }, [usersData, user, tasksData]);
 
   const tasksByCoordinator = useMemo(() => {
     const tasks = tasksData?.data?.tasks || [];
@@ -456,6 +486,7 @@ const CoordinatorTasks = () => {
                       onDelete={handleDeleteTask}
                       onClick={() => handleTaskClick(task)}
                       onPendingReason={handlePendingReasonClick}
+                      canDelete={canDelete}
                     />
                   ))
                 ) : (

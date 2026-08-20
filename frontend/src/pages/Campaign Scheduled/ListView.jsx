@@ -38,6 +38,8 @@ export default function ListView({
   onView,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
@@ -203,10 +205,13 @@ export default function ListView({
                         publications[id] ||
                         (account ? publications[account.id] : null) ||
                         publications[platformName];
-                      const isPublished = !!pubInfo;
+                        
+                      // Legacy records don't have status, so we assume published if pubInfo exists and doesn't explicitly say Failed
+                      const isPublished = pubInfo ? (pubInfo.status === "Published" || !pubInfo.status) : false;
                       const hasError =
-                        !isPublished &&
-                        (row.status === "Failed" || row.status === "Published");
+                        pubInfo?.status === "Failed" ||
+                        (!isPublished &&
+                          (row.status === "Failed" || row.status === "Published"));
                       const isPending =
                         row.status === "Scheduled" || row.status === "Draft";
 
@@ -268,6 +273,11 @@ export default function ListView({
                                     ? "Publishing Failed"
                                     : "Pending"}
                               </div>
+                              {hasError && pubInfo?.error && (
+                                <div style={{ color: "#ff4d4f", marginTop: 4 }}>
+                                  {pubInfo.error}
+                                </div>
+                              )}
                             </div>
                           }
                         >
@@ -507,7 +517,7 @@ export default function ListView({
                       onClick={() => onView?.(row)}
                     />
                   </Tooltip>
-                  {(row.status === "Draft" || row.status === "Failed") && (
+                  {canEdit && (row.status === "Draft" || row.status === "Failed") && (
                     <Tooltip title="Edit">
                       <Button
                         type="text"
@@ -517,23 +527,25 @@ export default function ListView({
                       />
                     </Tooltip>
                   )}
-                  <Popconfirm
-                    title="Delete this post?"
-                    description="This action cannot be undone."
-                    okText="Delete"
-                    cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => onDelete?.(row)}
-                  >
-                    <Tooltip title="Delete">
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        aria-label={`Delete ${row.caption}`}
-                      />
-                    </Tooltip>
-                  </Popconfirm>
+                  {canDelete && (
+                    <Popconfirm
+                      title="Delete this post?"
+                      description="This action cannot be undone."
+                      okText="Delete"
+                      cancelText="Cancel"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => onDelete?.(row)}
+                    >
+                      <Tooltip title="Delete">
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          aria-label={`Delete ${row.caption}`}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  )}
                 </Space>
               ),
             },

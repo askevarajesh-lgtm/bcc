@@ -51,15 +51,10 @@ const CoordinatorTaskCard = ({
   onPendingReason,
   showDate = false,
   readOnly = false,
+  canDelete = false,
 }) => {
   const { token } = antTheme.useToken();
   const status = STATUS_CONFIG[task.status] || STATUS_CONFIG.assigned;
-
-  const canDelete =
-    !readOnly &&
-    user &&
-    (user.role === "admin" || task.assignedBy?._id === user._id) &&
-    user.role !== "admin";
 
   const completedCount =
     task.checklist?.filter((item) => item.completed).length || 0;

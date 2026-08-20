@@ -20,6 +20,8 @@ connectDB().then(() => {
     startMosScheduler();
     startReportScheduler();
     startCalendarScheduler();
+    const { startCampaignScheduler } = require('./src/modules/campaign-scheduled/campaignScheduled.service');
+    startCampaignScheduler();
     seoCronService.start();
     workspaceCronService.start();
     startInvoiceCron();

@@ -5,6 +5,7 @@ import { Plus, Search, Trash2, ArrowRight, ArrowLeft, MessageCircle, MessageSqua
 import PhoneInput from "../../../components/common/PhoneInput";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { message } from "antd";
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
 
 import { motion } from "framer-motion";
 
@@ -113,6 +114,7 @@ const CreateWidgetView = ({ setView, handleCreateWidget, itemVariants }) => {
 };
 
 const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handleDeleteWidget, itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [formData, setFormData] = useState({
     name: activeWidget.name,
     status: activeWidget.status || "Draft",
@@ -268,15 +270,17 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
               </Col>
             </Row>
 
-            <Button 
-              type="primary" 
-              size="large"
-              block 
-              style={{ height: 48, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none" }}
-              onClick={() => handleUpdateWidget(formData)}
-            >
-              Save Widget Configuration
-            </Button>
+            {canEdit && (
+              <Button 
+                type="primary" 
+                size="large"
+                block 
+                style={{ height: 48, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 15, boxShadow: 'var(--shadow-md)' }}
+                onClick={() => handleUpdateWidget(formData)}
+              >
+                Save Widget Configuration
+              </Button>
+            )}
           </Card>
         </Col>
 
@@ -291,11 +295,13 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
             </div>
           </Card>
 
-          <Popconfirm title="Are you sure you want to delete this widget?" onConfirm={() => handleDeleteWidget(activeWidget.key)}>
-            <Button size="large" block danger style={{ height: 48, borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
-              Delete Widget
-            </Button>
-          </Popconfirm>
+          {canDelete && (
+            <Popconfirm title="Are you sure you want to delete this widget?" onConfirm={() => handleDeleteWidget(activeWidget.key)}>
+              <Button size="large" block danger style={{ height: 48, borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
+                Delete Widget
+              </Button>
+            </Popconfirm>
+          )}
         </Col>
       </Row>
     </motion.div>
@@ -304,6 +310,7 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
 
 
 const ChatWidgetsTab = ({ itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [view, setView] = useState("list");
   const [widgets, setWidgets] = useState([]);
   const [activeWidget, setActiveWidget] = useState(null);
@@ -440,15 +447,17 @@ const ChatWidgetsTab = ({ itemVariants }) => {
         key: "actions",
         align: "right",
         render: (_, record) => (
-          <span 
-            style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={() => {
-              setActiveWidget(record);
-              setView("configure");
-            }}
-          >
-            Edit <ArrowRight size={14} />
-          </span>
+          canEdit ? (
+            <span 
+              style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => {
+                setActiveWidget(record);
+                setView("configure");
+              }}
+            >
+              Edit <ArrowRight size={14} />
+            </span>
+          ) : null
         )
       },
     ];
@@ -467,14 +476,16 @@ const ChatWidgetsTab = ({ itemVariants }) => {
             </Text>
           </div>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<Plus size={18} />} 
-              style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
-              onClick={() => setView("create")}
-            >
-              Create Widget
-            </Button>
+            {canAdd && (
+              <Button 
+                type="primary" 
+                icon={<Plus size={18} />} 
+                style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
+                onClick={() => setView("create")}
+              >
+                Create Widget
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -510,7 +521,7 @@ const ChatWidgetsTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 15, fontWeight: 500 }}>
                     Click <strong style={{ color: "var(--text-primary)" }}>+ Create Widget</strong> to build customer engagement tools.
                   </Text>
-                  <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Widget</Button>
+                  {canAdd && <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Widget</Button>}
                 </div>
               )
             }}

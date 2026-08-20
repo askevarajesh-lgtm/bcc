@@ -61,7 +61,11 @@ const CreateCoordinatorTaskModal = ({
   const { data: companiesData, isLoading: companiesLoading } =
     useGetCompaniesDropdownQuery({ limit: 2000 });
 
-  const companies = companiesData?.data?.companies || [];
+  const companies =
+    companiesData?.data?.companies ||
+    companiesData?.data?.data ||
+    companiesData?.data ||
+    [];
 
   useEffect(() => {
     if (visible && task) {

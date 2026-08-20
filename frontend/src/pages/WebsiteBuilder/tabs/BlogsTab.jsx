@@ -732,7 +732,11 @@ const CreateCategoryView = ({ setView, handleCreateCategory, itemVariants, editD
 };
 
 
+import BlogPostEmbedView from './BlogPostEmbedView';
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
+
 const BlogsTab = ({ itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [view, setView] = useState("list"); // list, create, manage, settings
   const [blogs, setBlogs] = useState([]);
   const [activeBlog, setActiveBlog] = useState(null);
@@ -1003,9 +1007,11 @@ const BlogsTab = ({ itemVariants }) => {
             >
               Manage <ArrowRight size={14} />
             </span>
-            <Popconfirm title="Delete this blog?" onConfirm={() => handleDeleteBlog(record.key)}>
-              <Button type="text" danger icon={<Trash2 size={16} />} size="small" style={{ borderRadius: 6 }} />
-            </Popconfirm>
+            {canDelete && (
+              <Popconfirm title="Delete this blog?" onConfirm={() => handleDeleteBlog(record.key)}>
+                <Button type="text" danger icon={<Trash2 size={16} />} size="small" style={{ borderRadius: 6 }} />
+              </Popconfirm>
+            )}
           </Space>
         )
       },
@@ -1023,14 +1029,16 @@ const BlogsTab = ({ itemVariants }) => {
             </Text>
           </div>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<Plus size={18} />} 
-              style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
-              onClick={() => setView("create")}
-            >
-              New blog
-            </Button>
+            {canAdd && (
+              <Button 
+                type="primary" 
+                icon={<Plus size={18} />} 
+                style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
+                onClick={() => setView("create")}
+              >
+                New blog
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -1055,7 +1063,7 @@ const BlogsTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 15, fontWeight: 500 }}>
                     Click <strong style={{ color: "var(--text-primary)" }}>+ New blog</strong> to start writing articles.
                   </Text>
-                  <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Blog</Button>
+                  {canAdd && <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Blog</Button>}
                 </div>
               )
             }}
@@ -1091,15 +1099,19 @@ const BlogsTab = ({ itemVariants }) => {
               </div>
             </div>
             <Space>
-              <Button size="large" style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} onClick={() => setView("settings")} icon={<Settings size={16} />}>
-                Settings
-              </Button>
-              <Button size="large" type="primary" icon={<Plus size={16} />} style={{ backgroundColor: "#ea580c", border: "none", borderRadius: 8, fontWeight: 700 }} onClick={() => {
-                setEditingData(null);
-                manageSubTab === 'categories' ? setView("create-category") : setView("create-post");
-              }}>
-                {manageSubTab === 'categories' ? "New category" : "New post"}
-              </Button>
+              {canEdit && (
+                <Button size="large" style={{ borderRadius: 8, fontWeight: 700, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} onClick={() => setView("settings")} icon={<Settings size={16} />}>
+                  Settings
+                </Button>
+              )}
+              {canAdd && (
+                <Button size="large" type="primary" icon={<Plus size={16} />} style={{ backgroundColor: "#ea580c", border: "none", borderRadius: 8, fontWeight: 700 }} onClick={() => {
+                  setEditingData(null);
+                  manageSubTab === 'categories' ? setView("create-category") : setView("create-post");
+                }}>
+                  {manageSubTab === 'categories' ? "New category" : "New post"}
+                </Button>
+              )}
             </Space>
           </div>
 

@@ -51,6 +51,8 @@ export default function CampaignScheduledPage() {
   const [editingPost, setEditingPost] = useState(null);
   const [connectOpen, setConnectOpen] = useState(false);
   const [facebookModalOpen, setFacebookModalOpen] = useState(false);
+  const [facebookModalPlatform, setFacebookModalPlatform] = useState("facebook");
+  const [fbDiscoveredPages, setFbDiscoveredPages] = useState([]);
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const [loadingPlatform, setLoadingPlatform] = useState(null);
   const [disconnectingAccountId, setDisconnectingAccountId] = useState(null);
@@ -82,6 +84,11 @@ export default function CampaignScheduledPage() {
   const lastAppliedHeaderClientRef = useRef(headerSelectedClientId);
   const lastLoadErrorMessageRef = useRef("");
   const isAdminView = user?.role?.includes("admin") || user?.role?.includes("agency");
+
+  const isPrivilegedUser = ["supreme_super_admin", "commander_admin", "agency_super_admin", "agency_manager", "brand_super_admin", "brand_manager"].includes(user?.role);
+  const canCreate = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Create === true;
+  const canEdit = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Edit === true;
+  const canDelete = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Delete === true;
 
   // Bypassed company integrations check since the API slices were missing from this project
   useEffect(() => {
@@ -311,8 +318,20 @@ export default function CampaignScheduledPage() {
           fetchGoogleBusinessDiscovery(params.get("discoveryId"));
         }
       } else if (oauth === "facebook_manual_setup") {
-        message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
+        const platform = params.get("platform") || "facebook";
+        message.success(`${platform === "instagram" ? "Instagram" : "Facebook"} Login Successful! Please select your ID to complete connection.`);
+        setFacebookModalPlatform(platform);
         setFacebookModalOpen(true);
+        // Fetch discovered pages
+        campaignScheduledApi.getFacebookDiscovery(activeClientId)
+          .then(data => {
+            if (data && data.discoveredPages) {
+              setFbDiscoveredPages(data.discoveredPages);
+            }
+          })
+          .catch(err => {
+            console.warn("Failed to fetch FB discovery:", err);
+          });
       }
       window.history.replaceState({}, "", window.location.pathname);
       if (oauth !== "discovery" && oauth !== "facebook_manual_setup") {
@@ -507,6 +526,8 @@ export default function CampaignScheduledPage() {
         onView={handleViewPost}
         onEdit={openEditor}
         onDelete={handleDeletePost}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     );
   };
@@ -547,6 +568,7 @@ export default function CampaignScheduledPage() {
               isConnected={isConnected}
               schedulerStatus={schedulerStatus}
               onRefreshClick={loadInitial}
+              canCreate={canCreate}
             />
             {renderMain()}
           </main>
@@ -688,15 +710,18 @@ export default function CampaignScheduledPage() {
       
       <FacebookPageIDModal
         open={facebookModalOpen}
+        platform={facebookModalPlatform}
+        discoveredPages={fbDiscoveredPages}
         onCancel={() => setFacebookModalOpen(false)}
-        onConnect={async (pageId, instaId) => {
+        onConnect={async (pageIds, instaIds) => {
           try {
-            await campaignScheduledApi.connectFacebookManualPage(pageId, instaId, activeClientId);
+            await campaignScheduledApi.connectFacebookManualPage(pageIds, instaIds, activeClientId);
             message.success("Accounts successfully connected!");
             setFacebookModalOpen(false);
             loadInitial();
           } catch (err) {
-            message.error(err.message || "Failed to connect Facebook Page");
+            const errorMsg = err.message || "Failed to connect Accounts";
+            message.error(errorMsg);
           }
         }}
       />

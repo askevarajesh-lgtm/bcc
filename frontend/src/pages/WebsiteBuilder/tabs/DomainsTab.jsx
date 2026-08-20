@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Input, Table, Typography, Space, Tag, Card, Select, Row, Col, Divider, Popconfirm, message } from "antd";
 import { Plus, Search, Globe, ArrowRight, ArrowLeft, Info, Server, Activity, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -64,7 +65,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
     ? "That hostname is reserved for this application." 
     : null;
 
-    formData.propertyType === "Website" ? websites.length : 0;
+  const currentPropertiesLength = formData.propertyType === "Website" ? websites.length : 0;
 
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
@@ -145,6 +146,8 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
 };
 
 const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerifyDNS, verifying, itemVariants }) => {
+  const { canEdit, canDelete } = useActionPermissions('/website');
+
   return (
     <motion.div variants={itemVariants} className="builder-view-container">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, cursor: 'pointer', color: 'var(--accent-primary)', fontWeight: 700 }} onClick={() => setView("list")}>
@@ -202,17 +205,19 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
               </div>
             </div>
 
-            <Button 
-              type="primary" 
-              size="large" 
-              block 
-              loading={verifying}
-              disabled={activeDomain.status === "Connected"}
-              onClick={() => handleVerifyDNS(activeDomain.key)}
-              style={{ height: 56, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 16 }}
-            >
-              {activeDomain.status === "Connected" ? "Domain Connected & Active" : "Verify DNS & Activate"}
-            </Button>
+            {canEdit && (
+              <Button 
+                type="primary" 
+                size="large" 
+                block 
+                loading={verifying}
+                disabled={activeDomain.status === "Connected"}
+                onClick={() => handleVerifyDNS(activeDomain.key)}
+                style={{ height: 56, borderRadius: 12, fontWeight: 800, backgroundColor: "var(--accent-primary)", border: "none", fontSize: 16 }}
+              >
+                {activeDomain.status === "Connected" ? "Domain Connected & Active" : "Verify DNS & Activate"}
+              </Button>
+            )}
           </Card>
         </Col>
 
@@ -222,11 +227,13 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
             <div style={{ fontSize: 24, fontWeight: 900, color: activeDomain.status === 'Pending' ? 'var(--accent-warning)' : 'var(--accent-success)' }}>{activeDomain.status}</div>
           </Card>
 
-          <Popconfirm title="Are you sure you want to disconnect this domain?" onConfirm={() => handleDisconnect(activeDomain.key)}>
-            <Button size="large" block danger style={{ height: 48, borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
-              Disconnect Domain
-            </Button>
-          </Popconfirm>
+          {canDelete && (
+            <Popconfirm title="Are you sure you want to disconnect this domain?" onConfirm={() => handleDisconnect(activeDomain.key)}>
+              <Button size="large" block danger style={{ height: 48, borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
+                Disconnect Domain
+              </Button>
+            </Popconfirm>
+          )}
         </Col>
       </Row>
     </motion.div>
@@ -234,6 +241,7 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
 };
 
 const DomainsTab = ({ itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [view, setView] = useState("list");
   const [domains, setDomains] = useState([]);
   const [activeDomain, setActiveDomain] = useState(null);
@@ -371,15 +379,17 @@ const DomainsTab = ({ itemVariants }) => {
         key: "actions",
         align: "right",
         render: (_, record) => (
-          <span 
-            style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={() => {
-              setActiveDomain(record);
-              setView("manage");
-            }}
-          >
-            Manage <ArrowRight size={14} />
-          </span>
+          canEdit ? (
+            <span 
+              style={{ color: "var(--accent-primary)", fontWeight: 700, cursor: "pointer", display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => {
+                setActiveDomain(record);
+                setView("manage");
+              }}
+            >
+              Manage <ArrowRight size={14} />
+            </span>
+          ) : null
         )
       },
     ];
@@ -398,14 +408,16 @@ const DomainsTab = ({ itemVariants }) => {
             </Text>
           </div>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<Plus size={18} />} 
-              style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
-              onClick={() => setView("connect")}
-            >
-              Connect Domain
-            </Button>
+            {canAdd && (
+              <Button 
+                type="primary" 
+                icon={<Plus size={18} />} 
+                style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
+                onClick={() => setView("connect")}
+              >
+                Connect Domain
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -442,7 +454,7 @@ const DomainsTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 15, fontWeight: 500 }}>
                     Click <strong style={{ color: "var(--text-primary)" }}>+ Connect Domain</strong> to link your custom domains.
                   </Text>
-                  <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("connect")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Connect Domain</Button>
+                  {canAdd && <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("connect")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Connect Domain</Button>}
                 </div>
               )
             }}

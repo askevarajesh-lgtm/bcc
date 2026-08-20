@@ -4,6 +4,7 @@ import { Plus, Search, Folder, Sparkles, LayoutTemplate, Link2, Settings, FileTe
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
 import WebsiteTemplateLibraryModal from "./WebsiteTemplateLibraryModal";
 
 const { Title, Text } = Typography;
@@ -326,6 +327,7 @@ const CreateWebsiteModal = ({ open, onCancel, onCreate, loading, initialType = "
 };
 
 const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const screens = Grid.useBreakpoint();
   const hideText = !screens.xl; // hide text on smaller screens to save horizontal space
 
@@ -755,7 +757,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
           <Title level={2} style={{ margin: 0, marginBottom: 8, color: 'var(--text-primary)', fontWeight: 900 }}>{websiteName}</Title>
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Manage pages, settings, and tracking for this website.</Text>
         </div>
-        {role !== 'agency_client' && (
+        {canEdit && (
           <Button 
             size="large" 
             type="primary" 
@@ -788,17 +790,17 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
               <Card bodyStyle={{ padding: 32 }} style={{ borderRadius: 24, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>WEBSITE NAME</div>
-                  <Input size="large" value={websiteName} onChange={e => setWebsiteName(e.target.value)} style={{ borderRadius: 8 }} disabled={role === 'agency_client'} />
+                  <Input size="large" value={websiteName} onChange={e => setWebsiteName(e.target.value)} style={{ borderRadius: 8 }} disabled={!canEdit} />
                 </div>
                 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>DESCRIPTION</div>
-                  <TextArea size="large" value={description} onChange={e => setDescription(e.target.value)} style={{ borderRadius: 8, minHeight: 80 }} disabled={role === 'agency_client'} />
+                  <TextArea size="large" value={description} onChange={e => setDescription(e.target.value)} style={{ borderRadius: 8, minHeight: 80 }} disabled={!canEdit} />
                 </div>
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>STATUS</div>
-                  <Select size="large" value={status} onChange={setStatus} style={{ width: "100%" }} disabled={role === 'agency_client'}>
+                  <Select size="large" value={status} onChange={setStatus} style={{ width: "100%" }} disabled={!canEdit}>
                     <Option value="Draft">Draft</Option>
                     <Option value="Published">Published</Option>
                   </Select>
@@ -806,10 +808,10 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>FAVICON URL</div>
-                  <Input size="large" placeholder="https://example.com/favicon.png" style={{ borderRadius: 8 }} disabled={role === 'agency_client'} />
+                  <Input size="large" placeholder="https://example.com/favicon.png" style={{ borderRadius: 8 }} disabled={!canEdit} />
                 </div>
 
-                {role !== 'agency_client' && (
+                {canEdit && (
                   <div style={{ marginBottom: 32 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 8 }}>UPLOAD FAVICON</div>
                     <div style={{ border: "1px dashed var(--border-color)", borderRadius: 12, padding: "16px", textAlign: 'center', background: "var(--bg-primary)" }}>
@@ -823,7 +825,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                 <div style={{ border: "1px solid var(--border-color)", borderRadius: 16, padding: 24, marginBottom: 32, background: "var(--bg-primary)" }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><PenTool size={16} color="var(--accent-primary)"/> Theme</div>
-                    {role !== 'agency_client' && (
+                    {canEdit && (
                       <Button size="small" loading={syncingTheme} onClick={handleSyncTheme} style={{ borderRadius: 6, fontWeight: 600, fontSize: 12 }}>
                         Sync from pages
                       </Button>
@@ -833,7 +835,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>SITE FONT</div>
-                    <Select size="middle" value={fontFamily} onChange={setFontFamily} style={{ width: "100%" }} disabled={role === 'agency_client'}>
+                    <Select size="middle" value={fontFamily} onChange={setFontFamily} style={{ width: "100%" }} disabled={!canEdit}>
                       <Option value="Inter">Inter</Option>
                       <Option value="Poppins">Poppins</Option>
                       <Option value="Roboto">Roboto</Option>
@@ -850,10 +852,10 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                         type="color"
                         value={primaryColor}
                         onChange={e => setPrimaryColor(e.target.value)}
-                        disabled={role === 'agency_client'}
-                        style={{ width: 40, height: 32, padding: 0, border: '1px solid var(--border-color)', borderRadius: 6, background: 'none', cursor: role === 'agency_client' ? 'not-allowed' : 'pointer' }}
+                        disabled={!canEdit}
+                        style={{ width: 40, height: 32, padding: 0, border: '1px solid var(--border-color)', borderRadius: 6, background: 'none', cursor: !canEdit ? 'not-allowed' : 'pointer' }}
                       />
-                      <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                      <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={{ borderRadius: 6, fontSize: 13 }} disabled={!canEdit} />
                     </div>
                   </div>
                 </div>
@@ -866,27 +868,27 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                   <Row gutter={16} style={{ marginBottom: 16 }}>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>META (FB) PIXEL</div>
-                      <Input placeholder="123456789012345" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                      <Input placeholder="123456789012345" style={{ borderRadius: 6, fontSize: 13 }} disabled={!canEdit} />
                     </Col>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>GA4 ID</div>
-                      <Input placeholder="G-XXXXXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                      <Input placeholder="G-XXXXXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={!canEdit} />
                     </Col>
                   </Row>
 
                   <Row gutter={16} style={{ marginBottom: 24 }}>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>GTM ID</div>
-                      <Input placeholder="GTM-XXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                      <Input placeholder="GTM-XXXXXXX" style={{ borderRadius: 6, fontSize: 13 }} disabled={!canEdit} />
                     </Col>
                     <Col span={12}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-tertiary)", letterSpacing: 0.5, marginBottom: 6 }}>TIKTOK PIXEL</div>
-                      <Input placeholder="CXX000000000000X" style={{ borderRadius: 6, fontSize: 13 }} disabled={role === 'agency_client'} />
+                      <Input placeholder="CXX000000000000X" style={{ borderRadius: 6, fontSize: 13 }} disabled={!canEdit} />
                     </Col>
                   </Row>
                 </div>
 
-                {role !== 'agency_client' && (
+                {canEdit && (
                   <>
                     <Button type="primary" size="large" onClick={handleSaveSettings} block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 800, height: 48, marginBottom: 16, boxShadow: 'var(--shadow-md)' }}>
                       Save Changes
@@ -918,7 +920,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                   value={selectedChatWidgetId || "none"} 
                   onChange={setSelectedChatWidgetId}
                   style={{ width: "100%", marginBottom: 16 }} 
-                  disabled={role === 'agency_client'}
+                  disabled={!canEdit}
                 >
                   <Option value="none">— None —</Option>
                   {chatWidgets.map(w => (
@@ -927,7 +929,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                     </Option>
                   ))}
                 </Select>
-                {role !== 'agency_client' && (
+                {canEdit && (
                   <>
                     <Button 
                       size="large" 
@@ -954,7 +956,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                 <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
                   Connect a domain so visitors reach this property without /shop/ or /p/ paths.
                 </div>
-                {role !== 'agency_client' && (
+                {canEdit && (
                   <Button size="large" type="primary" block style={{ background: "var(--accent-primary)", border: "none", borderRadius: 12, fontWeight: 700, height: 48 }}>
                     Connect Domain
                   </Button>
@@ -1007,7 +1009,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                   <>
                     <div style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 32, fontWeight: 500 }}>Home page sets global header & footer for all other pages.</div>
 
-                    {role !== 'agency_client' && (
+                    {canAdd && (
                       <div style={{ display: "flex", gap: 16, marginBottom: 40, background: 'var(--bg-primary)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)' }}>
                         <Input size="large" placeholder="New page title (e.g. Services)" value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)} onPressEnter={handleAddPage} style={{ flex: 1, borderRadius: 8 }} />
                         <Button size="large" type="primary" loading={addingPage} onClick={handleAddPage} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 32px" }}>
@@ -1041,14 +1043,14 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                   setPages(pages.map(p => (p._id === page._id || p.key === page._id) ? { ...p, status: val } : p));
                                 }}
                                 style={{ width: 120 }}
-                                disabled={role === 'agency_client'}
+                                disabled={!canEdit}
                               >
                                 <Option value="Draft">Draft</Option>
                                 <Option value="Published">Published</Option>
                               </Select>
                             </div>
                             <div style={{ display: 'flex', gap: 12, paddingLeft: hideText ? 16 : 64, flexWrap: 'wrap' }}>
-                              {role !== 'agency_client' && (
+                              {canEdit && (
                                 <Tooltip title={hideText ? "Edit in Builder" : ""}>
                                   <Button type="primary" style={{ background: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} icon={<PenTool size={14} />} onClick={() => {
                                     const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
@@ -1060,7 +1062,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                               <Tooltip title={hideText ? "Preview" : ""}>
                                 <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Monitor size={14} />} onClick={() => window.open(`/preview/website/${activeWebsite.key}/page/${page._id || page.key}`, '_blank')}>{!hideText && "Preview"}</Button>
                               </Tooltip>
-                              {role !== 'agency_client' && (
+                              {canEdit && (
                                 <Tooltip title={hideText ? "AI Edit" : ""}>
                                   <Button 
                                     style={{ background: "rgba(13, 148, 136, 0.1)", borderColor: "transparent", color: 'var(--accent-secondary)', borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} 
@@ -1075,17 +1077,17 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                   </Button>
                                 </Tooltip>
                               )}
-                              {role !== 'agency_client' && (
+                              {canAdd && (
                                 <Tooltip title={hideText ? "Duplicate" : ""}>
                                   <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Copy size={14} />} onClick={() => handleDuplicatePage(page._id)}>{!hideText && "Duplicate"}</Button>
                                 </Tooltip>
                               )}
-                              {role !== 'agency_client' && (
+                              {canEdit && (
                                 <Tooltip title={hideText ? "Script" : ""}>
                                   <Button style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: 'var(--text-primary)', borderRadius: 8, fontWeight: 600, padding: hideText ? "0 12px" : "0 20px" }} icon={<Code2 size={14} />} onClick={() => handleOpenScriptModal(page)}>{!hideText && "Script"}</Button>
                                 </Tooltip>
                               )}
-                              {(role !== 'agency_client' && !page.isHome) && (
+                              {(canDelete && !page.isHome) && (
                                 <Tooltip title={hideText ? "Delete" : ""}>
                                   <Button danger style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)", borderRadius: 8, fontWeight: 700, padding: hideText ? "0 12px" : "0 20px" }} icon={<Trash2 size={14} />} onClick={() => handleDeletePage(page._id)}>{!hideText && "Delete"}</Button>
                                 </Tooltip>
@@ -1116,7 +1118,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                     ) : websiteBlogs.length === 0 ? (
                       <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 500 }}>
                         No blogs are linked to this website yet.
-                        {role !== 'agency_client' && (
+                        {canAdd && (
                           <div style={{ marginTop: 16 }}>
                             <Button type="primary" onClick={handleManageBlogs} style={{ background: "var(--text-primary)", border: "none", borderRadius: 8, fontWeight: 800, padding: "0 24px" }}>
                               Create a Blog
@@ -1156,7 +1158,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                                       <Tag style={{ margin: 0, background: post.status === 'published' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)', color: post.status === 'published' ? 'var(--accent-success)' : 'var(--text-tertiary)', border: 'none', fontWeight: 800, borderRadius: 6, fontSize: 10, textTransform: 'uppercase' }}>{post.status || 'draft'}</Tag>
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                      {role !== 'agency_client' && (
+                                      {canEdit && (
                                         <>
                                           <Tooltip title={hideText ? "Edit in Builder" : ""}>
                                             <Button
@@ -1330,6 +1332,7 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
 
 const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
   const { role } = useAuth();
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [viewType, setViewType] = useState("list");
   const [folderView, setFolderView] = useState("home");
   const [searchText, setSearchText] = useState("");
@@ -1669,7 +1672,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
             onClick: handleManage,
             style: { fontWeight: 600, color: 'var(--text-primary)', padding: '8px 12px' }
           },
-          ...(r.isWordpress ? [] : [
+          ...(r.isWordpress || !canAdd ? [] : [
             {
               key: 'clone',
               icon: <Copy size={16} />,
@@ -1714,17 +1717,17 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
             disabled: true,
             style: { fontWeight: 600, color: 'var(--text-secondary)', padding: '8px 12px' }
           },
-          {
+          ...(canDelete ? [{
             key: 'delete',
             icon: <Trash2 size={16} />,
             label: 'Delete',
             danger: true,
             onClick: () => handleDeleteWebsite(r.key),
             style: { fontWeight: 700, padding: '8px 12px' }
-          }
+          }] : [])
         ];
 
-        return role !== 'agency_client' ? (
+        return (
           <Space>
             <Dropdown 
               menu={{ items: menuItems }} 
@@ -1735,7 +1738,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
               <Button type="text" icon={<MoreVertical size={18} color="var(--text-secondary)" />} style={{ borderRadius: 8 }} />
             </Dropdown>
           </Space>
-        ) : <Button type="text" onClick={handleManage} style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>View</Button>;
+        );
       }
     },
   ];
@@ -1754,7 +1757,7 @@ const WebsitesTab = ({ itemVariants, initialAction, onActionComplete }) => {
           </Text>
         </div>
         <Space>
-          {role !== 'agency_client' && (
+          {canAdd && (
             <>
               <Button 
                 size="large"

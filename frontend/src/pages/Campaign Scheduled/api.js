@@ -211,10 +211,15 @@ export const campaignScheduledApi = {
       : "";
     window.location.href = `${BASE}/auth/facebook?token=${encodeURIComponent(token)}${extra}`;
   },
-  async connectFacebookManualPage(pageId, instaId, clientCompanyId = null) {
+  async connectFacebookManualPage(pageIds, instaIds, clientCompanyId = null) {
     return request("/auth/facebook/manual-page", {
       method: "POST",
-      body: JSON.stringify({ pageId, instaId }),
+      body: JSON.stringify({ pageIds, instaIds }),
+      clientCompanyId,
+    });
+  },
+  async getFacebookDiscovery(clientCompanyId = null) {
+    return request("/auth/facebook/discovery", {
       clientCompanyId,
     });
   },

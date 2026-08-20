@@ -7,8 +7,10 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 import FormBuilderView from './FormBuilderView';
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
 
 const FormsTab = ({ itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [activeSubTab, setActiveSubTab] = useState("builder");
   const [activeForm, setActiveForm] = useState(null);
   
@@ -233,7 +235,7 @@ const FormsTab = ({ itemVariants }) => {
       { title: "NAME", dataIndex: "name", key: "name", render: (t, record) => <span style={{ fontWeight: 800, color: 'var(--accent-primary)', cursor: 'pointer' }} onClick={() => setActiveForm(record)}>{t}</span> },
       { title: "STATUS", dataIndex: "status", key: "status", render: t => <Tag color="green" style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 700 }}>{t}</Tag> },
       { title: "UPDATED", dataIndex: "updatedAt", key: "updatedAt", render: t => <Text type="secondary" style={{ fontWeight: 500 }}>{new Date(t).toLocaleDateString()}</Text> },
-      { title: "ACTIONS", key: "actions", align: "right", render: (_, record) => <Button type="link" onClick={() => setActiveForm(record)} style={{ padding: 0, fontWeight: 700 }}>Edit</Button> },
+      { title: "ACTIONS", key: "actions", align: "right", render: (_, record) => canEdit ? <Button type="link" onClick={() => setActiveForm(record)} style={{ padding: 0, fontWeight: 700 }}>Edit</Button> : null },
     ];
 
     return (
@@ -266,7 +268,7 @@ const FormsTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 15, fontWeight: 500 }}>
                     Click <strong style={{ color: "var(--text-primary)" }}>+ Create Form</strong> to pick a template or start from scratch.
                   </Text>
-                  <Button type="primary" icon={<Plus size={18} />} onClick={() => setIsCreateModalOpen(true)} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Form</Button>
+                  {canAdd && <Button type="primary" icon={<Plus size={18} />} onClick={() => setIsCreateModalOpen(true)} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create Form</Button>}
                 </div>
               )
             }}
@@ -361,15 +363,17 @@ const FormsTab = ({ itemVariants }) => {
             >
               View
             </Button>
-            <Button 
-              type="text" 
-              danger 
-              icon={<Trash2 size={16} />} 
-              onClick={() => handleDeleteSubmission(record._id)}
-              style={{ padding: '4px 8px' }}
-            >
-              Delete
-            </Button>
+            {canDelete && (
+              <Button 
+                type="text" 
+                danger 
+                icon={<Trash2 size={16} />} 
+                onClick={() => handleDeleteSubmission(record._id)}
+                style={{ padding: '4px 8px' }}
+              >
+                Delete
+              </Button>
+            )}
           </Space>
         )
       }
@@ -448,7 +452,7 @@ const FormsTab = ({ itemVariants }) => {
           </Title>
           <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>{headerInfo.subtitle}</Text>
         </div>
-        {activeSubTab === "builder" && (
+        {(activeSubTab === "builder" && canAdd) && (
           <Space>
             <Button 
               type="primary" 

@@ -16,6 +16,7 @@ export function useActionPermissions(path) {
   let moduleName = path;
   if (path === '/projects') moduleName = 'Workspace-Projects';
   if (path === '/tasks') moduleName = 'Workspace-Task Management';
+  if (path === '/coordinator-tasks' || path === '/workspace/tasks/coordinator') moduleName = 'Workspace-Coordinator Tasks';
   if (path === '/proposals') moduleName = 'Workspace-Proposals';
   if (path === '/invoices') moduleName = 'Workspace-Invoices';
   if (path === '/master-items') moduleName = 'Workspace-Master Item';

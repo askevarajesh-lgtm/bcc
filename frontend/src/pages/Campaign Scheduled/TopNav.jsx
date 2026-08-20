@@ -11,6 +11,7 @@ export default function TopNav({
   isConnected,
   schedulerStatus,
   onRefreshClick,
+  canCreate = true,
 }) {
   return (
     <div className="campaign-scheduler-header">
@@ -31,14 +32,16 @@ export default function TopNav({
         >
           Refresh
         </Button>
-        <Button
-          size="large"
-          type="primary"
-          onClick={onCreateClick}
-          disabled={!isConnected}
-        >
-          Create New Post
-        </Button>
+        {canCreate && (
+          <Button
+            size="large"
+            type="primary"
+            onClick={onCreateClick}
+            disabled={!isConnected}
+          >
+            Create New Post
+          </Button>
+        )}
       </Space>
     </div>
   );

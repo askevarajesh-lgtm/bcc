@@ -469,13 +469,11 @@ async function postToInstagram(account, post, options = {}) {
     platformOption === "video_short" ||
     platformOption === "short";
 
-  if (mediaType === "VIDEO" && isReel) {
+  if (mediaType === "VIDEO") {
     containerPayload.media_type = "REELS";
     containerPayload.video_url = post.media_url;
+    // Always share to feed unless explicitly requested not to (but standard is to share)
     containerPayload.share_to_feed = true;
-  } else if (mediaType === "VIDEO") {
-    containerPayload.media_type = "VIDEO"; // Standard video post
-    containerPayload.video_url = post.media_url;
   } else {
     containerPayload.image_url = post.media_url;
   }
@@ -2330,6 +2328,11 @@ async function migrateLegacyPosts() {
   return migratedCount;
 }
 
+function startCampaignScheduler() {
+  console.log('[Campaign Scheduled] Scheduler started. Checking for due posts every 30 seconds.');
+  setInterval(processDuePosts, 30000);
+}
+
 module.exports = {
   REDIRECT_URI,
   META_GRAPH,
@@ -2365,6 +2368,7 @@ module.exports = {
   getPostYoutubeComments,
   migrateLinkedInPublishedPostMetrics,
   processDuePosts,
+  startCampaignScheduler,
   getValidAccessToken,
   refreshYoutubeAccessToken,
   migrateLegacyPosts,

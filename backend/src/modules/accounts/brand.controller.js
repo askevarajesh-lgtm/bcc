@@ -226,7 +226,21 @@ exports.updateBrandStatus = async (req, res, next) => {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
-    const hasEditPerm = req.user.permissions && req.user.permissions['Clients-Accounts'] && req.user.permissions['Clients-Accounts'].Edit;
+    
+    let hasEditPerm = false;
+    if (isEmployee) {
+      const dbUser = await User.findById(req.user._id);
+      if (dbUser && dbUser.customRoleId) {
+        const mongoose = require('mongoose');
+        const RoleModel = mongoose.models.Role || require('../roles/role.model');
+        const roleDoc = await RoleModel.findById(dbUser.customRoleId);
+        if (roleDoc && roleDoc.permissions && roleDoc.permissions['Clients-Accounts']) {
+          hasEditPerm = roleDoc.permissions['Clients-Accounts'].Edit;
+        }
+      }
+    } else if (req.user.permissions && req.user.permissions['Clients-Accounts']) {
+      hasEditPerm = req.user.permissions['Clients-Accounts'].Edit;
+    }
 
     if (!isAdmin && !isAgency && !(isEmployee && hasEditPerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
@@ -308,7 +322,21 @@ exports.updateBrand = async (req, res, next) => {
     const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
     const isAgency = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
     const isEmployee = !isAdmin && !isAgency && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
-    const hasEditPerm = req.user.permissions && req.user.permissions['Clients-Accounts'] && req.user.permissions['Clients-Accounts'].Edit;
+    
+    let hasEditPerm = false;
+    if (isEmployee) {
+      const dbUser = await User.findById(req.user._id);
+      if (dbUser && dbUser.customRoleId) {
+        const mongoose = require('mongoose');
+        const RoleModel = mongoose.models.Role || require('../roles/role.model');
+        const roleDoc = await RoleModel.findById(dbUser.customRoleId);
+        if (roleDoc && roleDoc.permissions && roleDoc.permissions['Clients-Accounts']) {
+          hasEditPerm = roleDoc.permissions['Clients-Accounts'].Edit;
+        }
+      }
+    } else if (req.user.permissions && req.user.permissions['Clients-Accounts']) {
+      hasEditPerm = req.user.permissions['Clients-Accounts'].Edit;
+    }
 
     if (!isAdmin && !isAgency && !(isEmployee && hasEditPerm)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });

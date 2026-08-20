@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import QRCode from "qrcode";
 import PhoneInput from "../../../components/common/PhoneInput";
 import { isValidPhoneNumber } from "libphonenumber-js";
+import { useActionPermissions } from "../../../hooks/useActionPermissions";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -637,6 +638,7 @@ const CreateQRView = ({ setView, handleCreateQR, itemVariants, forms = [], websi
 };
 
 const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [qrUrl, setQrUrl] = useState("");
   const [svgContent, setSvgContent] = useState("");
 
@@ -695,7 +697,7 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
           <Text type="secondary" style={{ fontSize: 15, fontWeight: 600 }}>{activeQR.type} · {activeQR.scans} scans</Text>
         </div>
         <Space>
-          <Button size="large" type="primary" onClick={() => setView("create")} icon={<Plus size={16} />} style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>New QR Code</Button>
+          {canAdd && <Button size="large" type="primary" onClick={() => setView("create")} icon={<Plus size={16} />} style={{ backgroundColor: "var(--accent-primary)", border: "none", borderRadius: 8, fontWeight: 800 }}>New QR Code</Button>}
         </Space>
       </div>
 
@@ -752,11 +754,13 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
             </div>
           </Card>
 
-          <Popconfirm title="Are you sure you want to delete this QR code?" onConfirm={() => handleDeleteQR(activeQR.key)}>
-            <Button size="large" block danger style={{ borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
-              Delete QR code
-            </Button>
-          </Popconfirm>
+          {canDelete && (
+            <Popconfirm title="Are you sure you want to delete this QR code?" onConfirm={() => handleDeleteQR(activeQR.key)}>
+              <Button size="large" block danger style={{ borderRadius: 12, fontWeight: 800, background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--accent-danger)" }}>
+                Delete QR code
+              </Button>
+            </Popconfirm>
+          )}
         </Col>
       </Row>
     </motion.div>
@@ -764,6 +768,7 @@ const ManageQRView = ({ activeQR, setView, handleDeleteQR, itemVariants }) => {
 };
 
 const QRLinksTab = ({ itemVariants }) => {
+  const { canAdd, canEdit, canDelete } = useActionPermissions('/website');
   const [view, setView] = useState("list"); 
   const [qrs, setQrs] = useState([]);
   const [activeQR, setActiveQR] = useState(null);
@@ -923,18 +928,20 @@ const QRLinksTab = ({ itemVariants }) => {
             >
               Manage <ArrowRight size={14} />
             </span>
-            <Popconfirm 
-              title="Are you sure you want to delete this QR code?" 
-              onConfirm={() => handleDeleteQR(record.key)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <span 
-                style={{ color: "var(--accent-danger)", fontWeight: 700, cursor: "pointer", display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            {canDelete && (
+              <Popconfirm 
+                title="Are you sure you want to delete this QR code?" 
+                onConfirm={() => handleDeleteQR(record.key)}
+                okText="Yes"
+                cancelText="No"
               >
-                <Trash2 size={14} /> Delete
-              </span>
-            </Popconfirm>
+                <span 
+                  style={{ color: "var(--accent-danger)", fontWeight: 700, cursor: "pointer", display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
+                  <Trash2 size={14} /> Delete
+                </span>
+              </Popconfirm>
+            )}
           </Space>
         )
       },
@@ -952,14 +959,16 @@ const QRLinksTab = ({ itemVariants }) => {
             </Text>
           </div>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<Plus size={18} />} 
-              style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
-              onClick={() => setView("create")}
-            >
-              Create QR Code
-            </Button>
+            {canAdd && (
+              <Button 
+                type="primary" 
+                icon={<Plus size={18} />} 
+                style={{ backgroundColor: "var(--accent-primary)", border: 'none', borderRadius: 8, fontWeight: 700, height: 44, padding: '0 24px', boxShadow: 'var(--shadow-md)' }}
+                onClick={() => setView("create")}
+              >
+                Create QR Code
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -984,7 +993,7 @@ const QRLinksTab = ({ itemVariants }) => {
                   <Text type="secondary" style={{ display: 'block', marginBottom: 32, fontSize: 15, fontWeight: 500 }}>
                     Click <strong style={{ color: "var(--text-primary)" }}>+ Create QR Code</strong> to generate trackable links.
                   </Text>
-                  <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create QR Code</Button>
+                  {canAdd && <Button type="primary" icon={<Plus size={18} />} onClick={() => setView("create")} style={{ borderRadius: 8, height: 44, background: 'var(--accent-primary)', border: 'none', fontWeight: 700, padding: '0 32px' }}>Create QR Code</Button>}
                 </div>
               )
             }}
