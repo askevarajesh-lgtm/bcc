@@ -3,12 +3,18 @@ import { Typography, Card, Row, Col, Button, Empty, Spin, Tag, Tooltip, message,
 import { Copy, Download, Trash2, Image as ImageIcon, Video, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAIStudio } from '../context/AIStudioContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 const AssetLibraryTab = () => {
   const { assets, loadingAssets, deleteAsset } = useAIStudio();
+  const { user } = useAuth();
+  
+  const canView = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Workspace-AI Studio']?.View;
+  const canDelete = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Workspace-AI Studio']?.Delete;
+
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
 
@@ -93,18 +99,22 @@ const AssetLibraryTab = () => {
                   </div>
                 }
                 actions={[
-                  <Tooltip title="View" key="view">
-                    <Button type="text" icon={<Eye size={16} />} onClick={() => handleViewAsset(asset)} />
-                  </Tooltip>,
-                  <Tooltip title="Copy URL" key="copy">
-                    <Button type="text" icon={<Copy size={16} />} onClick={() => handleCopyUrl(asset.url)} />
-                  </Tooltip>,
-                  <Tooltip title="Download" key="download">
-                    <Button type="text" icon={<Download size={16} />} onClick={() => handleDownload(asset.url, asset.type)} />
-                  </Tooltip>,
-                  <Tooltip title="Delete" key="delete">
-                    <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => deleteAsset(asset._id)} />
-                  </Tooltip>
+                  ...(canView ? [
+                    <Tooltip title="View" key="view">
+                      <Button type="text" icon={<Eye size={16} />} onClick={() => handleViewAsset(asset)} />
+                    </Tooltip>,
+                    <Tooltip title="Copy URL" key="copy">
+                      <Button type="text" icon={<Copy size={16} />} onClick={() => handleCopyUrl(asset.url)} />
+                    </Tooltip>,
+                    <Tooltip title="Download" key="download">
+                      <Button type="text" icon={<Download size={16} />} onClick={() => handleDownload(asset.url, asset.type)} />
+                    </Tooltip>
+                  ] : []),
+                  ...(canDelete ? [
+                    <Tooltip title="Delete" key="delete">
+                      <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => deleteAsset(asset._id)} />
+                    </Tooltip>
+                  ] : [])
                 ]}
                 className="glassmorphism"
                 style={{ borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}

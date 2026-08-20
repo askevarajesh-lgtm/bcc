@@ -43,7 +43,6 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   if (hasPerm('Workspace-Strategy')) menuItems.push({ key: '/user/workspace/strategy', icon: getIcon(Target), label: 'Strategy' });
-  if (hasPerm('Workspace-SEO / AEO / GEO')) menuItems.push({ key: '/user/workspace/seo', icon: getIcon(Search), label: 'SEO' });
   if (hasPerm('Workspace-Content')) menuItems.push({ key: '/user/workspace/content', icon: getIcon(FileText), label: 'Content' });
   if (hasPerm('Workspace-AI Studio')) menuItems.push({ key: '/user/workspace/aistudio', icon: getIcon(Palette), label: 'AI Studio' });
   if (hasPerm('Workspace-Social Media')) menuItems.push({ key: '/user/workspace/social', icon: getIcon(GitMerge), label: 'Social Media' });
@@ -109,6 +108,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Intelligence-AI Agent')) menuItems.push({ key: '/user/intelligence/agents', icon: getIcon(Target), label: 'AI Agent' });
   if (hasPerm('Intelligence-Benchmarks')) menuItems.push({ key: '/user/intelligence/benchmarks', icon: getIcon(TrendingUp), label: 'Benchmarks' });
   if (hasPerm('Intelligence-Reports')) menuItems.push({ key: '/user/intelligence/reports', icon: getIcon(FileText), label: 'Reports' });
+  if (hasPerm('Intelligence-SEO / AEO / GEO(semrush)') || hasPerm('Workspace-SEO / AEO / GEO')) menuItems.push({ key: '/user/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO' });
   // if (hasPerm('Intelligence-SEO Intelligence')) menuItems.push({ key: '/user/intelligence/seointelligence', icon: getIcon(Search), label: 'SEO Intelligence' });
 
   menuItems.push({ key: '/user/settings', icon: getIcon(Settings), label: 'Settings' });

@@ -50,7 +50,13 @@ const createMutationHook = (method) => {
         const execute = async () => {
           const config = typeof urlFn === 'function' ? urlFn(arg) : { url: urlFn, body: arg };
           const url = typeof config === 'string' ? config : config.url;
-          const body = typeof config === 'object' && config.body ? config.body : arg;
+          
+          let body = arg;
+          if (typeof config === 'object' && 'body' in config) {
+            body = config.body;
+          } else if (typeof config === 'string' && method === 'delete') {
+            body = undefined;
+          }
           
           let response;
           if (method === 'post') response = await api.post(url, body);
