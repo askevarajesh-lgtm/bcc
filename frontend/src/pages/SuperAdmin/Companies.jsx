@@ -26,7 +26,7 @@ const Companies = () => {
       setLoading(true);
       const [agenciesRes, plansRes] = await Promise.all([
         api.get('/agencies'),
-        api.get('/packages?type=agency')
+        api.get('/subscriptions')
       ]);
       
       setPlans(plansRes.data.data || []);
