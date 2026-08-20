@@ -19,6 +19,11 @@ const SemrushDashboard = () => {
   const navigate = useNavigate();
 
   const { user } = useAuth();
+
+  const canCreate = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Create || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Create;
+  const canEdit = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Edit || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Edit;
+  const canDelete = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Delete || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Delete;
+
   const [adminClients, setAdminClients] = useState([]);
   const { data: clientsData } = useGetClientsQuery({});
 
@@ -209,24 +214,26 @@ const SemrushDashboard = () => {
       key: 'backlinks',
       render: (val) => renderMetric(val)
     },
-    {
+    ...(canEdit || canDelete ? [{
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-          <Button type="text" icon={<Edit2 size={16} />} onClick={() => openEditModal(record)} />
-          <Popconfirm
-            title="Delete the project"
-            description="Are you sure to delete this project?"
-            onConfirm={() => handleDeleteProject(record._id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button type="text" danger icon={<Trash2 size={16} />} />
-          </Popconfirm>
+          {canEdit && <Button type="text" icon={<Edit2 size={16} />} onClick={() => openEditModal(record)} />}
+          {canDelete && (
+            <Popconfirm
+              title="Delete the project"
+              description="Are you sure to delete this project?"
+              onConfirm={() => handleDeleteProject(record._id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button type="text" danger icon={<Trash2 size={16} />} />
+            </Popconfirm>
+          )}
         </div>
       )
-    }
+    }] : [])
   ];
 
   return (
@@ -242,9 +249,11 @@ const SemrushDashboard = () => {
           </div>
         </div>
         <div>
-          <Button type="primary" icon={<FolderPlus size={16} />} onClick={() => { setEditingProject(null); form.resetFields(); setIsModalVisible(true); }} size="large" style={{ borderRadius: '8px' }}>
-            Create Folder
-          </Button>
+          {canCreate && (
+            <Button type="primary" icon={<FolderPlus size={16} />} onClick={() => { setEditingProject(null); form.resetFields(); setIsModalVisible(true); }} size="large" style={{ borderRadius: '8px' }}>
+              Create Folder
+            </Button>
+          )}
         </div>
       </div>
 

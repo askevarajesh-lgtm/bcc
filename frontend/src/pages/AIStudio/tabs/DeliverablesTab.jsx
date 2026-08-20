@@ -4,12 +4,17 @@ import { Plus, Eye, Send } from 'lucide-react';
 import api from '../../../services/api';
 import dayjs from 'dayjs';
 import { useAIStudio } from '../context/AIStudioContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const DeliverablesTab = () => {
   const { assets } = useAIStudio();
+  const { user } = useAuth();
+  const canCreate = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Workspace-AI Studio']?.Create;
+  const canView = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Workspace-AI Studio']?.View;
+  
   const [deliverables, setDeliverables] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -106,7 +111,7 @@ const DeliverablesTab = () => {
         return <Tag color={color}>{status || 'Pending'}</Tag>;
       },
     },
-    {
+    ...(canView ? [{
       title: 'Action',
       key: 'action',
       render: (_, record) => (
@@ -121,7 +126,7 @@ const DeliverablesTab = () => {
           View
         </Button>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -131,9 +136,11 @@ const DeliverablesTab = () => {
           <Title level={4}>Deliverables</Title>
           <Text type="secondary">Send AI-generated work to clients for approval.</Text>
         </div>
-        <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalVisible(true)}>
-          New Deliverable
-        </Button>
+        {canCreate && (
+          <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsModalVisible(true)}>
+            New Deliverable
+          </Button>
+        )}
       </div>
 
       <Card bordered={false} className="glassmorphism" style={{ borderRadius: 12 }}>

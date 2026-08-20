@@ -75,17 +75,18 @@ const UserManagementTab = () => {
         'General': [],
         'Clients': ['Accounts', 'Direct Brand'],
         'Workspace': [
-          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio',
+          // 'Strategy', 
+          'SEO / AEO / GEO', 'Content', 'AI Studio',
           'Social Media', 'Performance Ads', 'CRM & Leads',
           'Task Management', 'Websites', 'Task Analytics', 'Coordinator Tasks'
         ],
         'Intelligence': [
-          'Google Analytics', 'MOS Score', 'ChatGPT', 'Canva',
-          'AI Agent', // 'Benchmarks', 
-          'Reports', 'SEO Intelligence'
+          'Google Analytics', 'ChatGPT', 'Canva'
+          // 'Benchmarks', 
         ],
         'Agency Ops': [
-          'People', 'Time Tracking', 'Resources', 'Sales Pipeline',
+          'Time Tracking',
+          'Sales Pipeline',
           'Global Meetings', 'Global Calendar', 'Global Deliverables'
         ],
         'HRMS': ['Performance', 'Daily Reports', 'SEO Panel']
@@ -117,7 +118,7 @@ const UserManagementTab = () => {
       if (hasF('canva')) groups.Intelligence.push('Canva');
       // if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
       if (currentRole === 'agency_super_admin') {
-        groups.Intelligence.push('Performance', 'Reports');
+        groups.Intelligence.push('Performance');
       }
 
       // Agency Ops
@@ -155,10 +156,10 @@ const UserManagementTab = () => {
       // if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
 
       // Intelligence default modules
-      groups.Intelligence.push('Reports');
+      // groups.Intelligence.push('Reports');
 
       // Agency Ops default modules
-      groups['Agency Ops'].push('People', 'Time Tracking', 'Sales Pipeline');
+      groups['Agency Ops'].push('Time Tracking', 'Sales Pipeline');
 
       groups['HRMS'] = ['Performance', 'Daily Reports', 'SEO Panel'];
 
@@ -764,6 +765,8 @@ const UserManagementTab = () => {
                 activeModules.push('Ekta HR Integration');
               }
             }
+            
+            if (activeModules.length === 0) return null;
 
             return {
               key: group,
@@ -782,11 +785,11 @@ const UserManagementTab = () => {
                       key: field,
                       align: 'center',
                       render: (_, record) => {
-                        if (['Google Analytics', 'ChatGPT', 'Canva', 'Performance', 'Reports', 'Calendar'].includes(record.module) && field !== 'Read') return null;
-                        if (record.module === 'Performance Ads' && ['Create', 'Edit', 'Delete'].includes(field)) return null;
-                        if (record.module === 'Task Analytics' && ['Create', 'Edit', 'Delete'].includes(field)) return null;
-                        if (record.module === 'Deliverables' && !['Read', 'Create', 'Edit'].includes(field)) return null;
-                        if (record.module === 'Daily Reports' && !['Read', 'View'].includes(field)) return null;
+                        if (['Google Analytics', 'ChatGPT', 'Canva', 'Performance', 'Calendar'].includes(record.module) && field !== 'Read') return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
+                        if (record.module === 'Performance Ads' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
+                        if (record.module === 'Task Analytics' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
+                        if (record.module === 'Deliverables' && !['Read', 'Create', 'Edit'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
+                        if (record.module === 'Daily Reports' && !['Read', 'View'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         return (
                           <Checkbox
                             checked={
@@ -833,7 +836,7 @@ const UserManagementTab = () => {
                 />
               )
             };
-          })}
+          }).filter(Boolean)}
           tabBarStyle={{ marginBottom: 16 }}
         />
       </Modal>

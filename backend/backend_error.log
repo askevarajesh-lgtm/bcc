@@ -997,4 +997,26 @@ Require stack:
     at IncomingMessage.onEnd (E:\Office Projects\Bcc\bcc\backend\node_modules\raw-body\index.js:287:7)
     at IncomingMessage.emit (node:events:524:28)
     at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-08-20T12:49:38.850Z\nSyntaxError: Unexpected token '"', ""6a86f768f"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-08-20T12:49:52.733Z\nSyntaxError: Unexpected token '"', ""6a86f768f"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:137:10)
+    at parse (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Louis\Task\BCC\bcc 1\bcc\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n

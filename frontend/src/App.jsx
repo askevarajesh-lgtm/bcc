@@ -604,6 +604,21 @@ const AppRoutes = () => {
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
+          <Route path="intelligence/seo-aeo-geo" element={<SemrushDashboard />} />
+          <Route path="intelligence/seo-aeo-geo/:projectId" element={<Semrush />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardTab />} />
+            <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="position-tracking" element={<PositionTrackingTab />} />
+            <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
+            <Route path="keyword-magic-tool" element={<KeywordMagicToolTab />} />
+            <Route path="competitor-analysis" element={<CompetitorAnalysisTab />} />
+            <Route path="backlinks" element={<BacklinksTab />} />
+            <Route path="site-health" element={<SiteHealthTab />} />
+            <Route path="traffic-analytics" element={<TrafficAnalyticsTab />} />
+            <Route path="reports" element={<ReportsTab />} />
+            <Route path="activity" element={<ActivityTab />} />
+          </Route>
           
           <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Route>
