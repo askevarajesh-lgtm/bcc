@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, Button, Space, Tag, Input, Modal, Switch, 
+import {
+  Table, Button, Space, Tag, Input, Modal, Switch,
   Card, Tabs, Typography, Form, Select, Checkbox, Popconfirm, message
 } from 'antd';
-import { 
-  PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, 
-  LoginOutlined, StopOutlined, CheckCircleOutlined, ApiOutlined, SafetyCertificateOutlined 
+import {
+  PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined,
+  LoginOutlined, StopOutlined, CheckCircleOutlined, ApiOutlined, SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
@@ -36,21 +36,21 @@ const getRoleColor = (role) => {
 const UserManagementTab = () => {
   const { login, user } = useAuth();
   const [activeTab, setActiveTab] = useState('user');
-  
+
   // States for data
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
-  
+
   // Phone state for modal
   const [userCountryCode, setUserCountryCode] = useState('91');
   const [userCountryIso, setUserCountryIso] = useState('IN');
 
   // Search states
   const [userSearch, setUserSearch] = useState('');
-  
+
   // Modals state
   const [userModal, setUserModal] = useState({ open: false, record: null });
   const [userForm] = Form.useForm();
@@ -61,7 +61,7 @@ const UserManagementTab = () => {
 
   const [roleModal, setRoleModal] = useState({ open: false, record: null });
   const [roleForm] = Form.useForm();
-  
+
   const [viewUserModal, setViewUserModal] = useState({ open: false, record: null });
 
   const [permissionRoleId, setPermissionRoleId] = useState(null);
@@ -72,27 +72,28 @@ const UserManagementTab = () => {
 
     if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(currentRole)) {
       return {
-        'General': ['Command Center', 'Settings'],
-        'Clients': ['Accounts', 'SLA & Success', 'Direct Brand'],
+        'General': [],
+        'Clients': ['Accounts', 'Direct Brand'],
         'Workspace': [
-          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio', 
-          'Social Media', 'Performance Ads', 'CRM & Leads', 
+          'Strategy', 'SEO / AEO / GEO', 'Content', 'AI Studio',
+          'Social Media', 'Performance Ads', 'CRM & Leads',
           'Task Management', 'Websites', 'Task Analytics', 'Coordinator Tasks'
         ],
         'Intelligence': [
-          'Google Analytics', 'MOS Score', 'ChatGPT', 'Canva', 
-          'AI Agent', 'Benchmarks', 'Reports', 'SEO Intelligence'
+          'Google Analytics', 'MOS Score', 'ChatGPT', 'Canva',
+          'AI Agent', // 'Benchmarks', 
+          'Reports', 'SEO Intelligence'
         ],
         'Agency Ops': [
-          'People', 'Time Tracking', 'Resources', 'Sales Pipeline', 
+          'People', 'Time Tracking', 'Resources', 'Sales Pipeline',
           'Global Meetings', 'Global Calendar', 'Global Deliverables'
         ],
         'HRMS': ['Performance', 'Daily Reports', 'SEO Panel']
       };
     } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
       const groups = {
-        'General': ['Command Center', 'Settings'],
-        'Clients': ['Accounts', 'SLA & Success'],
+        'General': [],
+        'Clients': ['Accounts'],
         'Workspace': [],
         'Intelligence': [],
         'Agency Ops': [],
@@ -103,7 +104,7 @@ const UserManagementTab = () => {
       if (hasF('social')) groups.Workspace.push('Social Media');
       if (hasF('ads')) groups.Workspace.push('Performance Ads');
       if (hasF('crm')) groups.Workspace.push('CRM & Leads');
-      
+
       // Default Workspace Modules
       groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Task Analytics', 'Coordinator Tasks');
 
@@ -114,9 +115,9 @@ const UserManagementTab = () => {
       if (hasF('analytics')) groups.Intelligence.push('Google Analytics');
       if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
       if (hasF('canva')) groups.Intelligence.push('Canva');
-      if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
+      // if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
       if (currentRole === 'agency_super_admin') {
-         groups.Intelligence.push('Performance', 'Reports');
+        groups.Intelligence.push('Performance', 'Reports');
       }
 
       // Agency Ops
@@ -131,7 +132,7 @@ const UserManagementTab = () => {
       return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
       const groups = {
-        'General': ['Command Center', 'Settings'],
+        'General': [],
         'Clients': ['Support'],
         'Workspace': [],
         'Intelligence': [],
@@ -143,7 +144,7 @@ const UserManagementTab = () => {
       if (hasF('ads')) groups.Workspace.push('Performance Ads');
       if (hasF('crm')) groups.Workspace.push('CRM & Leads');
       if (hasF('website')) groups.Workspace.push('Websites');
-      
+
       // Workspace default modules
       groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables', 'Task Analytics', 'Coordinator Tasks');
 
@@ -151,8 +152,8 @@ const UserManagementTab = () => {
       if (hasF('analytics')) groups.Intelligence.push('Google Analytics');
       if (hasF('chatgpt')) groups.Intelligence.push('ChatGPT');
       if (hasF('canva')) groups.Intelligence.push('Canva');
-      if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
-      
+      // if (hasF('benchmark')) groups.Intelligence.push('Benchmarks');
+
       // Intelligence default modules
       groups.Intelligence.push('Reports');
 
@@ -164,7 +165,7 @@ const UserManagementTab = () => {
       return groups;
     }
     return {
-      'General': ['Dashboard', 'Tasks', 'Settings']
+      'General': ['Dashboard', 'Tasks']
     };
   };
 
@@ -245,13 +246,14 @@ const UserManagementTab = () => {
 
   // User Columns
   const userColumns = [
-    { title: <strong style={{color:'var(--text-secondary)'}}>NAME</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>EMAIL</strong>, dataIndex: 'email', key: 'email', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE</strong>, key: 'role', render: (_, record) => {
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>NAME</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>EMAIL</strong>, dataIndex: 'email', key: 'email', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>ROLE</strong>, key: 'role', render: (_, record) => {
         let displayRole = record.roleName || record.role;
         if (record.customRoleId) {
-           const customRole = roles.find(r => r._id === record.customRoleId);
-           if (customRole) displayRole = customRole.roleName || customRole.roleKey || displayRole;
+          const customRole = roles.find(r => r._id === record.customRoleId);
+          if (customRole) displayRole = customRole.roleName || customRole.roleKey || displayRole;
         }
         if (!displayRole) displayRole = 'Unknown';
         return (
@@ -259,17 +261,22 @@ const UserManagementTab = () => {
             {typeof displayRole === 'string' ? displayRole.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN'}
           </Tag>
         );
-    }},
-    { title: <strong style={{color:'var(--text-secondary)'}}>DEPARTMENT</strong>, key: 'department', render: (_, record) => {
-        return <span style={{fontWeight:500}}>{record.departmentName || '-'}</span>;
-    }},
-    { title: <strong style={{color:'var(--text-secondary)'}}>STATUS</strong>, dataIndex: 'isActive', key: 'isActive', render: isActive => (
+      }
+    },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>DEPARTMENT</strong>, key: 'department', render: (_, record) => {
+        return <span style={{ fontWeight: 500 }}>{record.departmentName || '-'}</span>;
+      }
+    },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>STATUS</strong>, dataIndex: 'isActive', key: 'isActive', render: isActive => (
         <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
           {isActive ? 'ACTIVE' : 'INACTIVE'}
         </Tag>
-    )},
+      )
+    },
     {
-      title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
+      title: <strong style={{ color: 'var(--text-secondary)' }}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
       render: (_, record) => (
         <Space size="middle">
           <Button type="text" icon={<EyeOutlined />} onClick={() => setViewUserModal({ open: true, record })} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>View</Button>
@@ -278,8 +285,8 @@ const UserManagementTab = () => {
             setUserModal({ open: true, record });
             let formRole = record.role;
             if (record.customRoleId) {
-               const customRole = roles.find(r => r._id === record.customRoleId);
-               if (customRole) formRole = customRole.roleKey || customRole._id;
+              const customRole = roles.find(r => r._id === record.customRoleId);
+              if (customRole) formRole = customRole.roleKey || customRole._id;
             }
             setUserCountryCode(record.countryCode || '91');
             // Reset ISO to let PhoneInput determine it based on country code
@@ -301,15 +308,17 @@ const UserManagementTab = () => {
 
   // Department Columns
   const deptColumns = [
-    { title: <strong style={{color:'var(--text-secondary)'}}>DEPARTMENT</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>SLUG</strong>, dataIndex: 'slug', key: 'slug', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>STATUS</strong>, dataIndex: 'status', key: 'status', render: status => (
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>DEPARTMENT</strong>, dataIndex: 'name', key: 'name', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>SLUG</strong>, dataIndex: 'slug', key: 'slug', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>STATUS</strong>, dataIndex: 'status', key: 'status', render: status => (
         <Tag color={status === 'active' ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
           {String(status).toUpperCase()}
         </Tag>
-    )},
+      )
+    },
     {
-      title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
+      title: <strong style={{ color: 'var(--text-secondary)' }}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
       render: (_, record) => (
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => {
@@ -334,24 +343,30 @@ const UserManagementTab = () => {
 
   // Role Columns
   const roleColumns = [
-    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE NAME</strong>, dataIndex: 'roleName', key: 'roleName', render: t => <strong style={{color:'var(--text-primary)'}}>{t}</strong> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>DEPARTMENT</strong>, key: 'department', render: (_, r) => (
-        <span style={{fontWeight:500}}>{departments.find(d => d._id === r.departmentId)?.name || <Tag color="blue" style={{borderRadius: 6}}>System</Tag>}</span>
-    )},
-    { title: <strong style={{color:'var(--text-secondary)'}}>ROLE KEY</strong>, dataIndex: 'roleKey', key: 'roleKey', render: t => <span style={{fontWeight:500}}>{t}</span> },
-    { title: <strong style={{color:'var(--text-secondary)'}}>STATUS</strong>, dataIndex: 'status', key: 'status', render: status => (
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>ROLE NAME</strong>, dataIndex: 'roleName', key: 'roleName', render: t => <strong style={{ color: 'var(--text-primary)' }}>{t}</strong> },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>DEPARTMENT</strong>, key: 'department', render: (_, r) => (
+        <span style={{ fontWeight: 500 }}>{departments.find(d => d._id === r.departmentId)?.name || <Tag color="blue" style={{ borderRadius: 6 }}>System</Tag>}</span>
+      )
+    },
+    { title: <strong style={{ color: 'var(--text-secondary)' }}>ROLE KEY</strong>, dataIndex: 'roleKey', key: 'roleKey', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>STATUS</strong>, dataIndex: 'status', key: 'status', render: status => (
         <Tag color={status === 'active' ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
           {String(status).toUpperCase()}
         </Tag>
-    )},
-    { title: <strong style={{color:'var(--text-secondary)'}}>ACCESS</strong>, key: 'access', render: (_, record) => (
+      )
+    },
+    {
+      title: <strong style={{ color: 'var(--text-secondary)' }}>ACCESS</strong>, key: 'access', render: (_, record) => (
         <Button type="text" icon={<SafetyCertificateOutlined />} onClick={() => {
           setPermissionRoleId(record._id);
           setDraftPermissions(record.permissions || {});
         }} style={{ color: 'var(--accent-info)', fontWeight: 600 }}>Configure Permissions</Button>
-    )},
+      )
+    },
     {
-      title: <strong style={{color:'var(--text-secondary)'}}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
+      title: <strong style={{ color: 'var(--text-secondary)' }}>ACTIONS</strong>, key: 'actions', align: 'right', fixed: 'right',
       render: (_, record) => (
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => {
@@ -456,8 +471,8 @@ const UserManagementTab = () => {
 
 
 
-  const filteredUsers = users.filter(u => 
-    (u.name || '').toLowerCase().includes((userSearch || '').toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    (u.name || '').toLowerCase().includes((userSearch || '').toLowerCase()) ||
     (u.email || '').toLowerCase().includes((userSearch || '').toLowerCase())
   );
 
@@ -472,10 +487,10 @@ const UserManagementTab = () => {
           <Text type="secondary" style={{ fontSize: 14, fontWeight: 500 }}>Manage users, departments, and roles.</Text>
         </div>
         {activeTab === 'user' && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { 
-            setUserModal({ open: true, record: null }); 
-            userForm.resetFields(); 
-            userForm.setFieldsValue({ status: 'active' }); 
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+            setUserModal({ open: true, record: null });
+            userForm.resetFields();
+            userForm.setFieldsValue({ status: 'active' });
             setUserCountryCode('91');
             setUserCountryIso('IN');
           }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
@@ -484,14 +499,14 @@ const UserManagementTab = () => {
         )}
       </div>
 
-      <Card 
-        className="glassmorphism" 
-        bodyStyle={{ padding: 0 }} 
+      <Card
+        className="glassmorphism"
+        bodyStyle={{ padding: 0 }}
         style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-sm)' }}
       >
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
           size="large"
           tabBarStyle={{ padding: '0 24px', margin: 0, borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }}
           items={[
@@ -501,25 +516,25 @@ const UserManagementTab = () => {
               children: (
                 <div>
                   <div style={{ padding: '24px 24px 0 24px' }}>
-                    <Input 
-                      placeholder="Search users by name or email..." 
+                    <Input
+                      placeholder="Search users by name or email..."
                       value={userSearch}
                       onChange={e => setUserSearch(e.target.value)}
                       prefix={<Search size={16} color="var(--text-tertiary)" />}
                       style={{ borderRadius: 10, maxWidth: 400, height: 44, fontWeight: 500 }}
                     />
                   </div>
-                  <Table 
-                    columns={userColumns} 
-                    dataSource={filteredUsers} 
-                    rowKey="_id" 
+                  <Table
+                    columns={userColumns}
+                    dataSource={filteredUsers}
+                    rowKey="_id"
                     pagination={{
                       pageSize: 10,
                       showSizeChanger: true,
                       pageSizeOptions: ['10', '20', '50'],
                       showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
                       position: ['bottomCenter']
-                    }} 
+                    }}
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
@@ -534,26 +549,26 @@ const UserManagementTab = () => {
               children: (
                 <div>
                   <div style={{ padding: '24px 24px 0 24px', display: 'flex', justifyContent: 'space-between' }}>
-                    <Input 
-                      placeholder="Search departments..." 
+                    <Input
+                      placeholder="Search departments..."
                       prefix={<Search size={16} color="var(--text-tertiary)" />}
                       style={{ borderRadius: 10, maxWidth: 400, height: 44, fontWeight: 500 }}
                     />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setDeptModal({open: true, record: null}); deptForm.resetFields(); deptForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setDeptModal({ open: true, record: null }); deptForm.resetFields(); deptForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
                       Add Department
                     </Button>
                   </div>
-                  <Table 
-                    columns={deptColumns} 
-                    dataSource={departments} 
-                    rowKey="_id" 
+                  <Table
+                    columns={deptColumns}
+                    dataSource={departments}
+                    rowKey="_id"
                     pagination={{
                       pageSize: 10,
                       showSizeChanger: true,
                       pageSizeOptions: ['10', '20', '50'],
                       showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
                       position: ['bottomCenter']
-                    }} 
+                    }}
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
@@ -568,26 +583,26 @@ const UserManagementTab = () => {
               children: (
                 <div>
                   <div style={{ padding: '24px 24px 0 24px', display: 'flex', justifyContent: 'space-between' }}>
-                    <Input 
-                      placeholder="Search roles..." 
+                    <Input
+                      placeholder="Search roles..."
                       prefix={<Search size={16} color="var(--text-tertiary)" />}
                       style={{ borderRadius: 10, maxWidth: 400, height: 44, fontWeight: 500 }}
                     />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setRoleModal({open: true, record: null}); roleForm.resetFields(); roleForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setRoleModal({ open: true, record: null }); roleForm.resetFields(); roleForm.setFieldsValue({ status: 'active' }); }} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: 8, fontWeight: 700, height: 40, padding: '0 24px' }}>
                       Add Role
                     </Button>
                   </div>
-                  <Table 
-                    columns={roleColumns} 
-                    dataSource={roles} 
-                    rowKey="_id" 
+                  <Table
+                    columns={roleColumns}
+                    dataSource={roles}
+                    rowKey="_id"
                     pagination={{
                       pageSize: 10,
                       showSizeChanger: true,
                       pageSizeOptions: ['10', '20', '50'],
                       showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
                       position: ['bottomCenter']
-                    }} 
+                    }}
                     style={{ padding: 24 }}
                     rowClassName={() => 'hover-bg'}
                     scroll={{ x: 'max-content' }}
@@ -601,10 +616,10 @@ const UserManagementTab = () => {
       </Card>
 
       {/* Modals */}
-      <Modal 
+      <Modal
         title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>{userModal.record ? 'Edit User' : 'Create User'}</div>}
-        open={userModal.open} 
-        onCancel={() => setUserModal({ open: false, record: null })} 
+        open={userModal.open}
+        onCancel={() => setUserModal({ open: false, record: null })}
         onOk={handleUserSubmit}
         confirmLoading={submitLoading}
         okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
@@ -618,8 +633,8 @@ const UserManagementTab = () => {
           <Form.Item name="email" label={<strong style={{ color: 'var(--text-secondary)' }}>Email Address</strong>} rules={[{ required: true, type: 'email' }]}>
             <Input size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
           </Form.Item>
-          <Form.Item 
-            name="phone" 
+          <Form.Item
+            name="phone"
             label={<strong style={{ color: 'var(--text-secondary)' }}>Phone Number</strong>}
             rules={[
               {
@@ -633,9 +648,9 @@ const UserManagementTab = () => {
               }
             ]}
           >
-            <PhoneInput 
-              size="large" 
-              style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} 
+            <PhoneInput
+              size="large"
+              style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               countryCodeValue={userCountryCode}
               onCountryCodeChange={setUserCountryCode}
               isoCountryValue={userCountryIso}
@@ -666,10 +681,10 @@ const UserManagementTab = () => {
         </Form>
       </Modal>
 
-      <Modal 
+      <Modal
         title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>{deptModal.record ? 'Edit Department' : 'Create Department'}</div>}
-        open={deptModal.open} 
-        onCancel={() => setDeptModal({ open: false, record: null })} 
+        open={deptModal.open}
+        onCancel={() => setDeptModal({ open: false, record: null })}
         onOk={handleDeptSubmit}
         confirmLoading={submitLoading}
         okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
@@ -692,10 +707,10 @@ const UserManagementTab = () => {
         </Form>
       </Modal>
 
-      <Modal 
+      <Modal
         title={<div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>{roleModal.record ? 'Edit Role' : 'Create Role'}</div>}
-        open={roleModal.open} 
-        onCancel={() => setRoleModal({ open: false, record: null })} 
+        open={roleModal.open}
+        onCancel={() => setRoleModal({ open: false, record: null })}
         onOk={handleRoleSubmit}
         confirmLoading={submitLoading}
         okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700, border: 'none' } }}
@@ -737,18 +752,11 @@ const UserManagementTab = () => {
         className="glassmorphism-modal"
         styles={{ body: { maxHeight: "70vh", overflowY: "auto", overflowX: "hidden" } }}
       >
-        <Tabs 
+        <Tabs
           items={Object.entries(permissionGroups).map(([group, modules]) => {
             let activeModules = [...modules];
-            
-            if (group === 'Workspace' && activeModules.includes('CRM & Leads')) {
-              const crm = draftPermissions['Workspace-CRM & Leads'] || {};
-              const isManagerCrm = isManagerRole;
-              const hasAllCrm = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerCrm) && (crm.Edit || isManagerCrm) && (crm.Delete || isManagerCrm);
-              if (hasAllCrm && !activeModules.includes('Lead Management Integration')) {
-                activeModules.push('Lead Management Integration');
-              }
-            } else if (group === 'HRMS' && activeModules.includes('Performance')) {
+
+            if (group === 'HRMS' && activeModules.includes('Performance')) {
               const perf = draftPermissions['HRMS-Performance'] || {};
               const isManagerPerf = isManagerRole;
               const hasAllPerf = (perf.Read || true) && (perf.View || true) && (perf.Create || isManagerPerf) && (perf.Edit || isManagerPerf) && (perf.Delete || isManagerPerf);
@@ -756,7 +764,7 @@ const UserManagementTab = () => {
                 activeModules.push('Ekta HR Integration');
               }
             }
-            
+
             return {
               key: group,
               label: <strong style={{ fontWeight: 600 }}>{group}</strong>,
@@ -764,67 +772,67 @@ const UserManagementTab = () => {
                 <Table
                   rowKey="module"
                   dataSource={activeModules.map(m => ({ module: m }))}
-                pagination={false}
-                scroll={{ y: 400 }}
-                rowClassName={() => 'hover-bg'}
-                columns={[
-                  { title: <strong style={{color:'var(--text-secondary)'}}>Module</strong>, dataIndex: 'module', key: 'module', render: t => <span style={{fontWeight:500}}>{t}</span> },
-                  ...['Read', 'View', 'Create', 'Edit', 'Delete'].map(field => ({
-                    title: <strong style={{color:'var(--text-secondary)'}}>{field}</strong>,
-                    key: field,
-                    align: 'center',
-                    render: (_, record) => (
-                      <Checkbox 
-                        checked={
-                          (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
-                          (!!draftPermissions[`${group}-${record.module}`]?.[field] || 
-                           (record.module === 'Dashboard' && field === 'Read') ||
-                           (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field)))
-                        }
-                        disabled={
-                          (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
-                          (record.module === 'Dashboard' && field === 'Read') ||
-                          (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field))
-                        }
-                        onChange={(e) => {
-                          const isChecked = e.target.checked;
-                          setDraftPermissions(prev => {
-                            const updated = {
-                              ...prev,
-                              [`${group}-${record.module}`]: {
-                                ...(prev[`${group}-${record.module}`] || {}),
-                                [field]: isChecked
-                              }
-                            };
-
-                            if (group === 'Workspace' && record.module === 'CRM & Leads') {
-                              const crm = updated['Workspace-CRM & Leads'];
-                              const isManagerCrm = isManagerRole;
-                              const isAllChecked = (crm.Read || false) && (crm.View || false) && (crm.Create || isManagerCrm) && (crm.Edit || isManagerCrm) && (crm.Delete || isManagerCrm);
-                              updated['Workspace-Lead Management Integration'] = {
-                                Read: isAllChecked, View: isAllChecked, Create: isAllChecked, Edit: isAllChecked, Delete: isAllChecked
-                              };
+                  pagination={false}
+                  scroll={{ y: 400 }}
+                  rowClassName={() => 'hover-bg'}
+                  columns={[
+                    { title: <strong style={{ color: 'var(--text-secondary)' }}>Module</strong>, dataIndex: 'module', key: 'module', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
+                    ...['Read', 'View', 'Create', 'Edit', 'Delete'].map(field => ({
+                      title: <strong style={{ color: 'var(--text-secondary)' }}>{field}</strong>,
+                      key: field,
+                      align: 'center',
+                      render: (_, record) => {
+                        if (['Google Analytics', 'ChatGPT', 'Canva', 'Performance', 'Reports', 'Calendar'].includes(record.module) && field !== 'Read') return null;
+                        if (record.module === 'Performance Ads' && ['Create', 'Edit', 'Delete'].includes(field)) return null;
+                        if (record.module === 'Task Analytics' && ['Create', 'Edit', 'Delete'].includes(field)) return null;
+                        if (record.module === 'Deliverables' && !['Read', 'Create', 'Edit'].includes(field)) return null;
+                        if (record.module === 'Daily Reports' && !['Read', 'View'].includes(field)) return null;
+                        return (
+                          <Checkbox
+                            checked={
+                              (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
+                                (!!draftPermissions[`${group}-${record.module}`]?.[field] ||
+                                  (record.module === 'Dashboard' && field === 'Read') ||
+                                  (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field)))
                             }
-                            
-                            if (group === 'HRMS' && record.module === 'Performance') {
-                              const perf = updated['HRMS-Performance'];
-                              const isManagerPerf = isManagerRole;
-                              const isAllChecked = (perf.Read || true) && (perf.View || true) && (perf.Create || isManagerPerf) && (perf.Edit || isManagerPerf) && (perf.Delete || isManagerPerf);
-                              updated['HRMS-Ekta HR Integration'] = {
-                                Read: isAllChecked, View: isAllChecked, Create: isAllChecked, Edit: isAllChecked, Delete: isAllChecked
-                              };
+                            disabled={
+                              (isManagerRole && ['Create', 'Edit', 'Delete'].includes(field)) ? true :
+                                (record.module === 'Dashboard' && field === 'Read') ||
+                                (['Task Management', 'Performance'].includes(record.module) && ['Read', 'View'].includes(field))
                             }
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setDraftPermissions(prev => {
+                                const updated = {
+                                  ...prev,
+                                  [`${group}-${record.module}`]: {
+                                    ...(prev[`${group}-${record.module}`] || {}),
+                                    [field]: isChecked
+                                  }
+                                };
 
-                            return updated;
-                          });
-                        }}
-                      />
-                    )
-                  }))
-                ]}
-              />
-            )
-          };
+
+
+                                if (group === 'HRMS' && record.module === 'Performance') {
+                                  const perf = updated['HRMS-Performance'];
+                                  const isManagerPerf = isManagerRole;
+                                  const isAllChecked = (perf.Read || true) && (perf.View || true) && (perf.Create || isManagerPerf) && (perf.Edit || isManagerPerf) && (perf.Delete || isManagerPerf);
+                                  updated['HRMS-Ekta HR Integration'] = {
+                                    Read: isAllChecked, View: isAllChecked, Create: isAllChecked, Edit: isAllChecked, Delete: isAllChecked
+                                  };
+                                }
+
+                                return updated;
+                              });
+                            }}
+                          />
+                        );
+                      }
+                    }))
+                  ]}
+                />
+              )
+            };
           })}
           tabBarStyle={{ marginBottom: 16 }}
         />
