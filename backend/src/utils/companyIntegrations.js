@@ -34,14 +34,14 @@ const resolveCompanyIntegrations = async (companyOrId) => {
     }
   }
 
-  // Find all integrations in scope to construct the availability map
-  const integrations = await Integration.find(query).lean();
-
   const allowedMap = {};
-  integrations.forEach(i => {
-    if (i.type && isSupportedProductIntegration(i.type)) {
-      allowedMap[i.type] = true;
-    }
+  
+  // By default, all supported product integrations are structurally available.
+  // The actual permission gating (Package Entitlements, disabled overrides)
+  // is handled by Layer 2 (integrationAccess.js / packageAccess.service.js).
+  const { SUPPORTED_INTEGRATIONS } = require('./supportedIntegrations');
+  SUPPORTED_INTEGRATIONS.forEach(type => {
+    allowedMap[type] = true;
   });
 
   return allowedMap;

@@ -39,7 +39,18 @@ exports.getAgencies = async (req, res, next) => {
       // Supreme Super Admin / Superadmin sees all top-level agencies
       filter.role = { $in: ['commander_admin', 'agency_super_admin'] };
     }
-    const agencies = await User.find(filter).populate('plan').sort({ createdAt: -1 });
+    const agencies = await User.find(filter).sort({ createdAt: -1 });
+
+    const Package = require('../packages/package.model');
+    const SubscriptionPlan = require('../subscriptions/subscription.model');
+    const planIds = [...new Set(agencies.map(a => a.plan).filter(Boolean))];
+    const [packages, subs] = await Promise.all([
+      Package.find({ _id: { $in: planIds } }).lean(),
+      SubscriptionPlan.find({ _id: { $in: planIds } }).lean()
+    ]);
+    const planMap = {};
+    packages.forEach(p => planMap[p._id.toString()] = p);
+    subs.forEach(s => planMap[s._id.toString()] = s);
 
     const data = await Promise.all(agencies.map(async (agency) => {
       const usersCount = await User.countDocuments({
@@ -55,6 +66,10 @@ exports.getAgencies = async (req, res, next) => {
       });
       
       const obj = agency.toObject();
+      if (obj.plan) {
+        obj.plan = planMap[obj.plan.toString()] || obj.plan;
+      }
+      
       let agencyMrr = obj.mrr || 0;
       if (!agencyMrr && obj.plan && obj.plan.price) {
           agencyMrr = parseFloat(String(obj.plan.price).replace(/[^\d.]/g, '')) || 0;
@@ -76,8 +91,8 @@ exports.getAgencies = async (req, res, next) => {
 
 exports.getAgency = async (req, res, next) => {
   try {
-    const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
-    const agency = await User.findOne({ _id: req.params.id, role: { $in: [targetRole] } });
+    const targetRoles = ['agency_super_admin', 'commander_admin'];
+    const agency = await User.findOne({ _id: req.params.id, role: { $in: targetRoles } });
     if (!agency) {
       return res.status(404).json({ success: false, message: 'Agency not found' });
     }
@@ -177,7 +192,7 @@ exports.createAgency = async (req, res, next) => {
 
     // Create the Company/Agency
     const agencyUser = await User.create({
-      name: name + ' Admin',
+      name: name,
       email,
       phone,
       countryCode: countryCode || (phone ? '91' : undefined),
@@ -232,13 +247,13 @@ exports.createAgency = async (req, res, next) => {
 
 exports.updateAgency = async (req, res, next) => {
   try {
-    const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
+    const targetRoles = ['agency_super_admin', 'commander_admin'];
     if (req.body.package && !req.body.plan) {
       req.body.plan = req.body.package;
       delete req.body.package;
     }
 
-    const currentAgency = await User.findOne({ _id: req.params.id, role: { $in: [targetRole] } });
+    const currentAgency = await User.findOne({ _id: req.params.id, role: { $in: targetRoles } });
     if (!currentAgency) {
       return res.status(404).json({ success: false, message: 'Agency not found' });
     }
@@ -250,7 +265,11 @@ exports.updateAgency = async (req, res, next) => {
     let packageUsers = 5;
     if (activePlanId) {
       const Package = require('../packages/package.model');
-      const pkg = await Package.findOne({ _id: activePlanId, type: 'agency' });
+      let pkg = await Package.findOne({ _id: activePlanId, type: 'agency' });
+      if (!pkg) {
+        const SubscriptionPlan = require('../subscriptions/subscription.model');
+        pkg = await SubscriptionPlan.findOne({ _id: activePlanId });
+      }
       if (!pkg && req.body.plan !== undefined && req.body.plan !== null) {
         return res.status(400).json({ success: false, message: 'Selected package not found' });
       }
@@ -336,7 +355,7 @@ exports.updateAgency = async (req, res, next) => {
     }
     
     const agency = await User.findOneAndUpdate(
-      { _id: req.params.id, role: { $in: [targetRole] } },
+      { _id: req.params.id, role: { $in: targetRoles } },
       req.body,
       { returnDocument: 'after', runValidators: true }
     );
@@ -351,8 +370,8 @@ exports.updateAgency = async (req, res, next) => {
 
 exports.deleteAgency = async (req, res, next) => {
   try {
-    const targetRole = req.user && req.user.role === 'commander_admin' ? 'agency_super_admin' : 'commander_admin';
-    const agency = await User.findOneAndDelete({ _id: req.params.id, role: { $in: [targetRole] } });
+    const targetRoles = ['agency_super_admin', 'commander_admin'];
+    const agency = await User.findOneAndDelete({ _id: req.params.id, role: { $in: targetRoles } });
     if (!agency) {
       return res.status(404).json({ success: false, message: 'Agency not found' });
     }

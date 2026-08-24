@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card, Tabs } from 'antd';
+import { Button, Typography, Table, Tag, Progress, Tooltip, Input, Select, Modal, Spin, message, Row, Col, Card, Tabs, Empty } from 'antd';
 import { DownloadOutlined, AimOutlined, PlusOutlined, SettingOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BarChart2, ArrowUp, ArrowDown, Minus, ExternalLink, Globe, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,20 +23,21 @@ const PositionTrackingTab = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [localData, setLocalData] = useState(null);
+  const [localError, setLocalError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const pdfRef = useRef(null);
   
   const isConfigured = project?.trackingConfig?.isActive;
   
-  const dataStatus = projectData?.positionTracking?.errorCode === 'campaign_unavailable' 
+  const dataStatus = (projectData?.positionTracking?.errorCode === 'campaign_unavailable' || localError === 'campaign_unavailable')
     ? 'campaign_unavailable' 
     : (isConfigured ? 'available' : 'campaign_required');
 
   const data = localData || projectData?.positionTracking?.data || null;
-  const configStatus = localData 
-    ? 'available' 
-    : dataStatus;
+  const configStatus = dataStatus === 'campaign_unavailable'
+    ? 'campaign_unavailable'
+    : (localData ? 'available' : dataStatus);
 
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotError, setSnapshotError] = useState(false);
@@ -79,16 +80,28 @@ const PositionTrackingTab = () => {
   const handleRefresh = async () => {
     if (!projectId) return;
     setRefreshing(true);
+    setLocalError(null);
     try {
       const res = await semrushApi.getPositionTracking(projectId, true);
       if (res.data.success && res.data.data) {
         setLocalData(res.data.data);
-        message.success('Rankings updated successfully');
+        const hasRankings = res.data.data.rankings && res.data.data.rankings.some(r => r.position != null);
+        if (hasRankings) {
+          message.success('Rankings updated successfully');
+        } else {
+          message.info('Rankings are still being gathered by Semrush. Please check back later.');
+        }
         if (fetchProjectData) fetchProjectData();
       } else {
-        message.error(res.data.errorCode || 'Failed to refresh rankings');
+        if (res.data.errorCode) {
+          setLocalError(res.data.errorCode);
+        }
+        if (res.data.errorCode !== 'campaign_unavailable') {
+          message.error(res.data.errorCode || 'Failed to refresh rankings');
+        }
       }
     } catch (err) {
+      setLocalError('error');
       message.error('An error occurred during refresh');
     } finally {
       setRefreshing(false);
@@ -395,22 +408,22 @@ const PositionTrackingTab = () => {
       title: 'Pos. Prev', 
       dataIndex: 'previousPosition', 
       key: 'previousPosition', 
-      render: (val) => val === null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text>{val}</Text>),
-      sorter: (a, b) => (a.previousPosition === null ? 101 : (a.previousPosition === '> 100' ? 101 : Number(a.previousPosition))) - (b.previousPosition === null ? 101 : (b.previousPosition === '> 100' ? 101 : Number(b.previousPosition)))
+      render: (val) => val == null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text>{val}</Text>),
+      sorter: (a, b) => (a.previousPosition == null ? 101 : (a.previousPosition === '> 100' ? 101 : Number(a.previousPosition))) - (b.previousPosition == null ? 101 : (b.previousPosition === '> 100' ? 101 : Number(b.previousPosition)))
     },
     { 
       title: 'Pos.', 
       dataIndex: 'position', 
       key: 'position', 
-      render: (val) => val === null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text strong>{val}</Text>),
-      sorter: (a, b) => (a.position === null ? 101 : (a.position === '> 100' ? 101 : Number(a.position))) - (b.position === null ? 101 : (b.position === '> 100' ? 101 : Number(b.position)))
+      render: (val) => val == null ? <Text type="secondary">Unavailable</Text> : (val === '> 100' ? <Text type="secondary">{val}</Text> : <Text strong>{val}</Text>),
+      sorter: (a, b) => (a.position == null ? 101 : (a.position === '> 100' ? 101 : Number(a.position))) - (b.position == null ? 101 : (b.position === '> 100' ? 101 : Number(b.position)))
     },
     {
       title: 'Diff',
       key: 'diff',
       align: 'center',
       render: (_, record) => {
-        if (record.position === null || record.previousPosition === null) return <Text type="secondary">Unavailable</Text>;
+        if (record.position == null || record.previousPosition == null) return <Text type="secondary">Unavailable</Text>;
         const pos = Number(record.position);
         const prevPos = Number(record.previousPosition);
         let diff = 0;
@@ -421,8 +434,8 @@ const PositionTrackingTab = () => {
         return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
       }
     },
-    { title: 'Vis.', dataIndex: 'visibility', key: 'visibility', render: val => val === null ? <Text type="secondary">Unavailable</Text> : `${Number(val).toFixed(2)}%`, sorter: (a, b) => (a.visibility || 0) - (b.visibility || 0) },
-    { title: 'Est. Traffic', dataIndex: 'traffic', key: 'traffic', render: val => val === null ? <Text type="secondary">Unavailable</Text> : formatNumber(val), sorter: (a, b) => (a.traffic || 0) - (b.traffic || 0) },
+    { title: 'Vis.', dataIndex: 'visibility', key: 'visibility', render: val => val == null ? <Text type="secondary">Unavailable</Text> : `${Number(val).toFixed(2)}%`, sorter: (a, b) => (a.visibility || 0) - (b.visibility || 0) },
+    { title: 'Est. Traffic', dataIndex: 'traffic', key: 'traffic', render: val => val == null ? <Text type="secondary">Unavailable</Text> : formatNumber(val), sorter: (a, b) => (a.traffic || 0) - (b.traffic || 0) },
     { 
       title: 'Volume', 
       dataIndex: 'searchVolume', 
@@ -448,7 +461,7 @@ const PositionTrackingTab = () => {
     }
   ];
 
-  if (configStatus === 'not_configured') {
+  if (configStatus === 'not_configured' && !showWizard) {
     return (
       <Card style={{ margin: 24, padding: 40 }}>
         <Empty description="Position Tracking — Provider not configured" />
@@ -456,10 +469,27 @@ const PositionTrackingTab = () => {
     );
   }
 
-  if (configStatus === 'campaign_unavailable') {
+  if (configStatus === 'campaign_unavailable' && !showWizard) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 0', background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9', margin: 24 }}>
-        <Empty description="Position Tracking campaign unavailable" />
+        <Empty 
+          description={
+            <span>
+              Position Tracking campaign is unavailable or has expired.
+            </span>
+          }
+        >
+          <Button 
+            type="primary" 
+            onClick={() => {
+              setConfig({ device: 'Desktop', location: 'us', keywordsText: '' });
+              setStep(1);
+              setShowWizard(true);
+            }}
+          >
+            Set Up New Campaign
+          </Button>
+        </Empty>
       </div>
     );
   }

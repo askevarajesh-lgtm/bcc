@@ -17,8 +17,8 @@ const {
   getAllAccounts,
 } = require("./campaignScheduled.service");
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CLIENT_ID = process.env.GA_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GA_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_BUSINESS_REDIRECT_URI =
   process.env.GOOGLE_BUSINESS_REDIRECT_URI ||
   `${process.env.APP_URL}/api/campaign-scheduled/auth/google-business/callback`;

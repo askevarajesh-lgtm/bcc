@@ -1,8 +1,8 @@
 const axios = require("axios");
 const { google } = require("googleapis");
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CLIENT_ID = process.env.GA_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GA_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 
 /**
  * Fetch Google Business Accounts

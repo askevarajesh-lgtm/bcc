@@ -175,7 +175,7 @@ exports.createBrand = async (req, res, next) => {
 
     // Create the User for this brand (which IS the Brand)
     const brand = await User.create({
-      name: name + ' Admin',
+      name: name,
       email,
       phone,
       countryCode,
@@ -369,7 +369,7 @@ exports.updateBrand = async (req, res, next) => {
 
     if (name) {
       updates.companyName = name;
-      updates.name = name + ' Admin';
+      updates.name = name;
     }
     if (email) updates.email = email;
     if (address) updates.address = address;

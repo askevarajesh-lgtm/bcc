@@ -189,7 +189,7 @@ const convertDealToClient = async (dealId, email, password, companyId, userRole,
   }
 
   const newClient = await User.create({
-    name: deal.name + ' Admin',
+    name: deal.name,
     email,
     password: password || undefined,
     role,
