@@ -65,7 +65,12 @@ const SEOList = () => {
 
   const paginationData = data?.data?.pagination;
   const seoEntries = data?.data?.data || [];
-  const total = paginationData?.total || seoEntries.length;
+  
+  const totalRef = React.useRef(0);
+  if (paginationData?.total !== undefined) {
+    totalRef.current = paginationData.total;
+  }
+  const total = paginationData?.total || seoEntries.length || totalRef.current;
 
   const uniqueWebsites = websitesData?.data || [];
 

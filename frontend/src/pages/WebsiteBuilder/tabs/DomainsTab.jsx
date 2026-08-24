@@ -61,7 +61,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
     return [];
   };
 
-  const error = formData.customDomain.includes("m1growth.com") 
+  const error = formData.customDomain.includes("bcc.askeva.io") || formData.customDomain.includes("m1.workforce.themilabs.com")
     ? "That hostname is reserved for this application." 
     : null;
 
@@ -184,7 +184,7 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>Target</span>
-                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>m1growth.com</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>bcc.askeva.io</span>
               </div>
             </div>
 
@@ -197,7 +197,7 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
               </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>HOST</div>
-                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>_m1growth-verify.{activeDomain.domain}</div>
+                <div style={{ fontWeight: 800, fontSize: 14, wordBreak: "break-all", color: 'var(--text-primary)' }}>_bcc-verify.{activeDomain.domain}</div>
               </div>
               <div>
                 <div style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>VALUE</div>

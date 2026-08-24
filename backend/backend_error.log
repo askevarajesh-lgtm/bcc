@@ -1045,4 +1045,20 @@ Require stack:
     at async exports.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:1097:20)\n\n2026-08-24T08:00:13.716Z\nError: Could not find the requested section: #chat-widget
     at Object.applyModifySection (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\services\websiteAiEdit.service.js:273:11)
     at exports.aiEditWebsite (D:\Louis\Task\BCC\bcc 1\bcc\backend\src\modules\websites\website.controller.js:1160:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n\n2026-08-24T10:55:59.842Z\nMongoServerError: E11000 duplicate key error collection: bcc.domains index: domain_1 dup key: { domain: "art.kinderbeeschools.com" }
+    at InsertOneOperation.handleOk (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (E:\Office Projects\Bcc\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (E:\Office Projects\Bcc\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async exports.connectDomain (E:\Office Projects\Bcc\bcc\backend\src\modules\domains\domain.controller.js:72:19)\n\n2026-08-24T10:56:05.486Z\nMongoServerError: E11000 duplicate key error collection: bcc.domains index: domain_1 dup key: { domain: "art.kinderbeeschools.com" }
+    at InsertOneOperation.handleOk (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at executeOperationWithRetries (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:194:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async executeOperation (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\operations\execute_operation.js:83:16)
+    at async Collection.insertOne (E:\Office Projects\Bcc\bcc\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (E:\Office Projects\Bcc\bcc\backend\node_modules\mongoose\lib\model.js:434:16)
+    at async maybeTracedSave (E:\Office Projects\Bcc\bcc\backend\node_modules\mongoose\lib\model.js:675:7)
+    at async exports.connectDomain (E:\Office Projects\Bcc\bcc\backend\src\modules\domains\domain.controller.js:72:19)\n\n

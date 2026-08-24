@@ -59,7 +59,7 @@ const authMiddleware = async (req, res, next) => {
     req.user = {
       _id: new mongoose.Types.ObjectId('60d0fe4f5311236168a20000'),
       name: 'Sandbox User',
-      email: 'sandbox@m1growth.com',
+      email: 'sandbox@bcc.askeva.io',
       workspaceId: req.workspaceId
     };
   }

@@ -19,7 +19,7 @@ exports.connectDomain = async (req, res, next) => {
     const domainName = customDomain.trim().toLowerCase();
 
     // Reserved hostname check
-    if (domainName.includes('m1growth.com')) {
+    if (domainName.includes('bcc.askeva.io') || domainName.includes('m1.workforce.themilabs.com')) {
       return res.status(400).json({ success: false, error: 'That hostname is reserved for this application.' });
     }
 
@@ -169,7 +169,7 @@ exports.verifyDNS = async (req, res, next) => {
     try {
       // 1. Perform CNAME lookup verification
       const cnameRecords = await dns.resolveCname(domain.domain);
-      if (cnameRecords.includes('m1growth.com')) {
+      if (cnameRecords.some(r => r.includes('bcc.askeva.io') || r.includes('m1.workforce.themilabs.com'))) {
         isVerified = true;
       }
     } catch (e) {
@@ -179,7 +179,7 @@ exports.verifyDNS = async (req, res, next) => {
     if (!isVerified) {
       try {
         // 2. Perform TXT verification lookup
-        const host = `_m1growth-verify.${domain.domain}`;
+        const host = `_bcc-verify.${domain.domain}`;
         const txtRecordsList = await dns.resolveTxt(host);
         // txtRecordsList is array of arrays: [['token...']]
         for (const recordArr of txtRecordsList) {
@@ -193,11 +193,7 @@ exports.verifyDNS = async (req, res, next) => {
       }
     }
 
-    // Dev/Sandbox Override: always activate if lookups fail during local testing
-    if (!isVerified) {
-      console.log(`DNS verification failed for ${domain.domain}. Local testing mode: auto-activating.`);
-      isVerified = true;
-    }
+
 
     if (isVerified) {
       domain.status = 'Connected';

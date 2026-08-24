@@ -232,7 +232,12 @@ const CampaignList = ({ isClientView = false, defaultTab = "campaigns" }) => {
   // Handle paginated response
   const paginationData = data?.data?.pagination;
   const campaigns = data?.data?.data || data?.data?.campaigns || [];
-  const total = paginationData?.total || campaigns.length;
+  
+  const totalRef = React.useRef(0);
+  if (paginationData?.total !== undefined) {
+    totalRef.current = paginationData.total;
+  }
+  const total = paginationData?.total || campaigns.length || totalRef.current;
 
   // Handle dropdown data
   const campaignsDropdown = campaignsDropdownData?.data?.campaigns || campaignsDropdownData?.campaigns || [];

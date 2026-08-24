@@ -1,6 +1,5 @@
 const Performance = require("./performance.model");
 const Task = require("../tasks/task.model");
-const Feedback = require("../feedback/feedback.model");
 const SalesTarget = require("../sales/sales.model");
 
 const calculatePerformance = async (userId, month, year, companyId) => {
@@ -11,7 +10,7 @@ const calculatePerformance = async (userId, month, year, companyId) => {
   if (!year || year < 2000 || year > 2100) throw new Error("Invalid year");
   if (!companyId) throw new Error("Company ID is required");
 
-  const user = await require("../users/user.model").findById(userId);
+  const user = await require("../auth/user.model").findById(userId);
   if (!user) throw new Error("User not found");
 
   // Verify user belongs to the company

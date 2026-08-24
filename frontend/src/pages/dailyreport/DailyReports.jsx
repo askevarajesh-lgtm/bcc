@@ -94,13 +94,21 @@ const DailyReports = () => {
   const [notifyMissingReports, { isLoading: isNotifying }] =
     useNotifyMissingYesterdayReportsMutation();
 
-  const reports = reportsData?.data?.reports || [];
   const reportsPaginationData = reportsData?.data?.pagination;
-  const reportsTotal = reportsPaginationData?.total || reports.length;
+  const reports = Array.isArray(reportsData?.data) ? reportsData.data : (reportsData?.data?.reports || []);
+  const reportsTotalRef = React.useRef(0);
+  if (reportsPaginationData?.total !== undefined) {
+    reportsTotalRef.current = reportsPaginationData.total;
+  }
+  const reportsTotal = reportsPaginationData?.total || reports.length || reportsTotalRef.current;
 
-  const userReports = historyData?.data?.userReports || [];
   const historyPaginationData = historyData?.data?.pagination;
-  const historyTotal = historyPaginationData?.total || userReports.length;
+  const userReports = Array.isArray(historyData?.data) ? historyData.data : (historyData?.data?.userReports || []);
+  const historyTotalRef = React.useRef(0);
+  if (historyPaginationData?.total !== undefined) {
+    historyTotalRef.current = historyPaginationData.total;
+  }
+  const historyTotal = historyPaginationData?.total || userReports.length || historyTotalRef.current;
 
   const handleSearchChange = (value) => {
     setSearchTerm(value);

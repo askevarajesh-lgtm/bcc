@@ -139,7 +139,12 @@ const TransactionsPage = () => {
   // Handle paginated response
   const paginationData = data?.pagination || data?.data?.pagination;
   const payments = Array.isArray(data?.data) ? data.data : (data?.data?.data || data?.data?.payments || data?.payments || []);
-  const total = paginationData?.total || payments.length;
+  
+  const totalRef = React.useRef(0);
+  if (paginationData?.total !== undefined) {
+    totalRef.current = paginationData.total;
+  }
+  const total = paginationData?.total || payments.length || totalRef.current;
 
   // Domain purchases data
   const domainPurchasesPaginationData = domainPurchasesData?.pagination || domainPurchasesData?.data?.pagination;

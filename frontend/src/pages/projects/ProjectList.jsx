@@ -145,7 +145,12 @@ const ProjectList = () => {
   // Handle paginated response
   const paginationData = data?.data?.pagination;
   const projects = data?.data?.data || data?.data?.projects || [];
-  const total = paginationData?.total || projects.length;
+  
+  const totalRef = React.useRef(0);
+  if (paginationData?.total !== undefined) {
+    totalRef.current = paginationData.total;
+  }
+  const total = paginationData?.total || projects.length || totalRef.current;
 
   // Use standard bulk selection hook
   const { rowSelection, handleClearSelection, selectionCount } =

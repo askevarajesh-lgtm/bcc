@@ -1,5 +1,5 @@
 const PerformanceScorecard = require("./performanceScorecard.model");
-const User = require("../users/user.model");
+const User = require("../auth/user.model");
 
 // Grade to score mapping
 const GRADE_SCORES = {

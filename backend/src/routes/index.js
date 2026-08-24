@@ -99,6 +99,7 @@ router.use('/competitor-intelligence', competitorIntelligenceRoutes);
 router.use('/time-tracking', require('../modules/timeTracking/timeTracking.routes'));
 router.use('/resources', require('../modules/resources/resources.routes'));
 // router.use('/business-intel', require('../modules/businessIntel/businessIntel.routes'));
+router.use('/hrms/performance', require('../modules/performance/performance.routes'));
 router.use('/websites', websiteRoutes);
 
 

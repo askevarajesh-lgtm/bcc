@@ -604,6 +604,8 @@ const AppRoutes = () => {
           
           {/* Keep legacy route temporarily for fallback if needed */}
           <Route path="performance" element={<PerformancePage />} />
+          <Route path="performance/history/:userId?" element={<PerformancePage />} />
+          <Route path="performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="intelligence/analytics" element={<Analytics />} />
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
