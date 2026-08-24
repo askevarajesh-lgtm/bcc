@@ -368,8 +368,7 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
               <Input 
                 value={formName} 
                 onChange={e => setFormName(e.target.value)} 
-                bordered={false} 
-                style={{ fontSize: 20, fontWeight: 800, padding: 0, height: "auto", color: "var(--text-primary)" }} 
+                style={{ width: 250 }} 
               />
             </div>
           </Space>

@@ -413,7 +413,11 @@ exports.updateBrand = async (req, res, next) => {
     if (packageName !== undefined) {
       updates.packageName = packageName;
       updates.features = packageFeatures;
-      updates.mrr = packageName ? (packagePrice || 0) : 0;
+      
+      if (mrr === undefined) {
+        let parsedPrice = parseFloat(String(packagePrice).replace(/[^\d.-]/g, ''));
+        updates.mrr = packageName ? (isNaN(parsedPrice) ? 0 : parsedPrice) : 0;
+      }
 
       finalAdditional = finalAdditional.filter(i => !packageIntegrations.includes(i));
       finalDisabled = finalDisabled.filter(i => packageIntegrations.includes(i));
