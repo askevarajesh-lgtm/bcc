@@ -124,7 +124,11 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
     launcherLabel: activeWidget.launcherLabel || "Chat",
     channels: activeWidget.channels || ["WhatsApp", "Email", "Live chat", "SMS"],
     whatsappPhone: activeWidget.whatsappPhone || "",
-    supportEmail: activeWidget.supportEmail || ""
+    supportEmail: activeWidget.supportEmail || "",
+    smsPhone: activeWidget.smsPhone || "",
+    facebookUrl: activeWidget.facebookUrl || "",
+    instagramUrl: activeWidget.instagramUrl || "",
+    voiceAiAgent: activeWidget.voiceAiAgent || ""
   });
 
   const toggleChannel = (channel) => {
@@ -244,31 +248,86 @@ const ConfigureWidgetView = ({ activeWidget, setView, handleUpdateWidget, handle
               </Row>
             </div>
 
-            <Row gutter={24} style={{ marginBottom: 32 }}>
-              <Col span={12}>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WHATSAPP NUMBER</div>
-                <PhoneInput 
-                  size="large"
-                  style={{ borderRadius: 8 }}
-                  countryCodeValue={formData.countryCode || '91'}
-                  onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
-                  isoCountryValue={formData.countryIso || 'IN'}
-                  onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
-                  value={formData.whatsappPhone}
-                  onChange={e => setFormData({...formData, whatsappPhone: e.target.value})}
-                />
-              </Col>
-              <Col span={12}>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>SUPPORT EMAIL</div>
-                <Input 
-                  size="large"
-                  placeholder="support@yoursite.com"
-                  value={formData.supportEmail}
-                  onChange={e => setFormData({...formData, supportEmail: e.target.value})}
-                  style={{ borderRadius: 8 }}
-                />
-              </Col>
-            </Row>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 32 }}>
+              {formData.channels.includes("WhatsApp") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WHATSAPP NUMBER</div>
+                  <PhoneInput 
+                    size="large"
+                    style={{ borderRadius: 8 }}
+                    countryCodeValue={formData.countryCode || '91'}
+                    onCountryCodeChange={val => setFormData({...formData, countryCode: val})}
+                    isoCountryValue={formData.countryIso || 'IN'}
+                    onCountryIsoChange={val => setFormData({...formData, countryIso: val})}
+                    value={formData.whatsappPhone}
+                    onChange={e => setFormData({...formData, whatsappPhone: e.target.value})}
+                  />
+                </div>
+              )}
+              {formData.channels.includes("Email") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>SUPPORT EMAIL</div>
+                  <Input 
+                    size="large"
+                    placeholder="support@yoursite.com"
+                    value={formData.supportEmail}
+                    onChange={e => setFormData({...formData, supportEmail: e.target.value})}
+                    style={{ borderRadius: 8 }}
+                  />
+                </div>
+              )}
+              {formData.channels.includes("SMS") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>SMS NUMBER</div>
+                  <PhoneInput 
+                    size="large"
+                    style={{ borderRadius: 8 }}
+                    countryCodeValue={formData.smsCountryCode || '1'}
+                    onCountryCodeChange={val => setFormData({...formData, smsCountryCode: val})}
+                    isoCountryValue={formData.smsCountryIso || 'US'}
+                    onCountryIsoChange={val => setFormData({...formData, smsCountryIso: val})}
+                    value={formData.smsPhone}
+                    onChange={e => setFormData({...formData, smsPhone: e.target.value})}
+                  />
+                </div>
+              )}
+              {formData.channels.includes("Facebook") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>FACEBOOK PAGE URL</div>
+                  <Input 
+                    size="large"
+                    placeholder="https://facebook.com/yourpage"
+                    value={formData.facebookUrl}
+                    onChange={e => setFormData({...formData, facebookUrl: e.target.value})}
+                    style={{ borderRadius: 8 }}
+                  />
+                </div>
+              )}
+              {formData.channels.includes("Instagram") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>INSTAGRAM PROFILE URL</div>
+                  <Input 
+                    size="large"
+                    placeholder="https://instagram.com/yourprofile"
+                    value={formData.instagramUrl}
+                    onChange={e => setFormData({...formData, instagramUrl: e.target.value})}
+                    style={{ borderRadius: 8 }}
+                  />
+                </div>
+              )}
+              {formData.channels.includes("Voice AI") && (
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>VOICE AI AGENT ID / PHONE</div>
+                  <Input 
+                    size="large"
+                    placeholder="Agent ID or Phone number for AI"
+                    value={formData.voiceAiAgent}
+                    onChange={e => setFormData({...formData, voiceAiAgent: e.target.value})}
+                    style={{ borderRadius: 8 }}
+                  />
+                </div>
+              )}
+            </div>
 
             {canEdit && (
               <Button 

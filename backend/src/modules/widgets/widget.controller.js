@@ -90,6 +90,10 @@ exports.updateWidget = async (req, res, next) => {
     if (updateData.channels) widget.channels = updateData.channels;
     if (updateData.whatsappPhone !== undefined) widget.whatsappPhone = updateData.whatsappPhone;
     if (updateData.supportEmail !== undefined) widget.supportEmail = updateData.supportEmail;
+    if (updateData.smsPhone !== undefined) widget.smsPhone = updateData.smsPhone;
+    if (updateData.facebookUrl !== undefined) widget.facebookUrl = updateData.facebookUrl;
+    if (updateData.instagramUrl !== undefined) widget.instagramUrl = updateData.instagramUrl;
+    if (updateData.voiceAiAgent !== undefined) widget.voiceAiAgent = updateData.voiceAiAgent;
 
     widget.updatedBy = req.user?._id;
     const saved = await widget.save();

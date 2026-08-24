@@ -12,6 +12,10 @@ const ChatWidgetSchema = new mongoose.Schema({
   channels: [{ type: String }], // WhatsApp, Live chat, Email, SMS, Facebook, Instagram, Voice AI
   whatsappPhone: { type: String, default: "" },
   supportEmail: { type: String, default: "" },
+  smsPhone: { type: String, default: "" },
+  facebookUrl: { type: String, default: "" },
+  instagramUrl: { type: String, default: "" },
+  voiceAiAgent: { type: String, default: "" },
   isDeleted: { type: Boolean, default: false, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId },
   updatedBy: { type: mongoose.Schema.Types.ObjectId }

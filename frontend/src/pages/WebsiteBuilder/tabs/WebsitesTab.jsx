@@ -923,9 +923,9 @@ const ManageWebsiteView = ({ activeWebsite, setView, itemVariants, role }) => {
                   disabled={!canEdit}
                 >
                   <Option value="none">— None —</Option>
-                  {chatWidgets.map(w => (
+                  {chatWidgets.filter(w => w.status !== 'Draft').map(w => (
                     <Option key={w._id} value={w._id}>
-                      {w.name} {w.status === 'Draft' ? '(Draft)' : ''}
+                      {w.name}
                     </Option>
                   ))}
                 </Select>

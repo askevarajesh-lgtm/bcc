@@ -12,10 +12,23 @@ const QREmbedView = () => {
   const [qrUrl, setQrUrl] = useState("");
 
   const resolveColor = (color) => {
-    if (!color) return 'var(--accent-primary)';
-    if (color === 'var(--accent-primary)') return 'var(--accent-primary)';
+    const getCssVar = (varName) => {
+      if (typeof window !== 'undefined') {
+        const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        return val || '#10b981';
+      }
+      return '#10b981';
+    };
+
+    if (!color) return getCssVar('--accent-primary');
+    if (color === 'var(--accent-primary)') return getCssVar('--accent-primary');
+    if (color.startsWith('var(')) {
+      const match = color.match(/var\((.*?)\)/);
+      const varName = match ? match[1] : '--accent-primary';
+      return getCssVar(varName);
+    }
     if (color.startsWith('#')) return color;
-    return 'var(--accent-primary)';
+    return getCssVar('--accent-primary');
   };
 
   useEffect(() => {

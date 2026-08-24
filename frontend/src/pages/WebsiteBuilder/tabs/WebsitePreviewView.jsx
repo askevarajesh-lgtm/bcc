@@ -11,6 +11,24 @@ const getWidgetScriptCode = (widget) => {
   const bottomOffset =
     widget.launcherPosition === "Bottom left" ? "30px" : "90px";
 
+  const brandColor = widget.brandColor || "#3b82f6";
+  let isLight = false;
+  if (brandColor.startsWith('#')) {
+    const hex = brandColor.replace('#', '');
+    if (hex.length === 3 || hex.length === 6) {
+      const r = parseInt(hex.length === 3 ? hex[0]+hex[0] : hex.substring(0, 2), 16);
+      const g = parseInt(hex.length === 3 ? hex[1]+hex[1] : hex.substring(2, 4), 16);
+      const b = parseInt(hex.length === 3 ? hex[2]+hex[2] : hex.substring(4, 6), 16);
+      isLight = ((r * 299 + g * 587 + b * 114) / 1000) > 200;
+    }
+  }
+  const headerText = isLight ? "#1e293b" : "#ffffff";
+  const headerSubText = isLight ? "#64748b" : "rgba(255,255,255,0.85)";
+  const iconColor = isLight ? "#1e293b" : brandColor;
+  const avatarBorder = isLight ? "#cbd5e1" : "rgba(255,255,255,0.4)";
+  const avatarBg = isLight ? "#f1f5f9" : "rgba(255,255,255,0.2)";
+  const launcherText = isLight ? "#1e293b" : "#ffffff";
+
   const channelsHtml = (widget.channels || [])
     .map((ch) => {
       let icon = "";
@@ -36,42 +54,44 @@ const getWidgetScriptCode = (widget) => {
 
       return `
       <a href="${link}" ${clickHandler} target="_blank" style="display:flex !important;align-items:center !important;gap:14px !important;padding:14px 18px !important;background:#ffffff !important;border:1px solid #e2e8f0 !important;border-radius:12px !important;color:#1e293b !important;text-decoration:none !important;font-weight:600 !important;font-size:14px !important;transition:all 0.2s !important;font-family:'Inter',sans-serif !important;box-sizing:border-box !important;text-transform:none !important;letter-spacing:normal !important;line-height:1.2 !important;width:100% !important;text-align:left !important;box-shadow:0 1px 3px rgba(0,0,0,0.02) !important;" onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e2e8f0';">
-        <span style="color:${widget.brandColor || "var(--accent-primary)"} !important; display:flex !important; align-items:center !important; justify-content:center !important; flex-shrink:0 !important;">${icon}</span>
+        <span style="color:${iconColor} !important; display:flex !important; align-items:center !important; justify-content:center !important; flex-shrink:0 !important;">${icon}</span>
         <span style="color:#1e293b !important; font-family:'Inter',sans-serif !important; font-size:14px !important; font-weight:600 !important;">${label}</span>
       </a>
     `;
     })
     .join("");
 
+  const widgetName = widget.name || "Chat";
+
   return `
     <div id="bcc-chat-widget" style="font-family:'Inter', sans-serif !important; position:fixed !important; bottom:${bottomOffset} !important; ${positionCss} z-index:999999 !important; display:block !important; margin:0 !important; padding:0 !important; box-sizing:border-box !important; border:none !important; background:none !important;">
       <!-- Launcher (DIV-based to prevent template button overrides) -->
-      <div onclick="toggleBccChat()" style="background:${widget.brandColor || "var(--accent-primary)"} !important; color:#ffffff !important; border:none !important; border-radius:50px !important; padding:14px 24px !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:10px !important; cursor:pointer !important; box-shadow:0 10px 25px -5px rgba(0,0,0,0.2) !important; font-weight:700 !important; font-size:15px !important; transition:all 0.3s !important; z-index:999999 !important; outline:none !important; width:auto !important; height:auto !important; min-width:unset !important; min-height:unset !important; max-width:none !important; max-height:none !important; line-height:1.2 !important; text-transform:none !important; letter-spacing:normal !important; font-family:'Inter', sans-serif !important; margin:0 !important; box-sizing:border-box !important;" onmouseover="this.style.transform='scale(1.05) translateY(-2px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
+      <div onclick="toggleBccChat()" style="background:${brandColor} !important; color:${launcherText} !important; border:${isLight ? '1px solid #cbd5e1' : 'none'} !important; border-radius:50px !important; padding:14px 24px !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:10px !important; cursor:pointer !important; box-shadow:0 10px 25px -5px rgba(0,0,0,0.2) !important; font-weight:700 !important; font-size:15px !important; transition:all 0.3s !important; z-index:999999 !important; outline:none !important; width:auto !important; height:auto !important; min-width:unset !important; min-height:unset !important; max-width:none !important; max-height:none !important; line-height:1.2 !important; text-transform:none !important; letter-spacing:normal !important; font-family:'Inter', sans-serif !important; margin:0 !important; box-sizing:border-box !important;" onmouseover="this.style.transform='scale(1.05) translateY(-2px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
         <svg style="width:24px !important;height:24px !important;fill:currentColor !important;display:inline-block !important;vertical-align:middle !important;margin:0 !important;padding:0 !important;flex-shrink:0 !important;" viewBox="0 0 24 24">
           <path d="M12 2C6.477 2 2 6.13 2 11.23c0 2.946 1.487 5.576 3.82 7.377a.75.75 0 01.246.685l-.758 3.51a.75.75 0 001.077.787l4.032-2.128a.75.75 0 01.62-.057c.928.326 1.93.504 2.963.504 5.523 0 10-4.13 10-9.23C22 6.13 17.523 2 12 2zm0 15c-.886 0-1.745-.148-2.544-.43a2.25 2.25 0 00-1.859.17l-2.48 1.309.467-2.164a2.25 2.25 0 00-.737-2.057C3.376 12.63 2.5 10.984 2.5 9.23 2.5 5.503 6.74 2.5 12 2.5s9.5 3.003 9.5 6.73c0 3.727-4.24 6.77-9.5 6.77z"/>
         </svg>
-        <span style="font-family:'Inter', sans-serif !important; font-size:15px !important; font-weight:700 !important; color:#ffffff !important; text-transform:none !important; letter-spacing:normal !important; line-height:1.2 !important; display:inline-block !important; margin:0 !important; padding:0 !important;">${widget.launcherLabel || "Chat"}</span>
+        <span style="font-family:'Inter', sans-serif !important; font-size:15px !important; font-weight:700 !important; color:${launcherText} !important; text-transform:none !important; letter-spacing:normal !important; line-height:1.2 !important; display:inline-block !important; margin:0 !important; padding:0 !important;">${widget.launcherLabel || "Chat"}</span>
       </div>
 
       <!-- Chat Window -->
       <div id="bcc-chat-window" style="display:none !important; position:absolute !important; bottom:70px !important; ${widget.launcherPosition === "Bottom left" ? "left: 0 !important;" : "right: 0 !important;"} width:360px !important; background:#ffffff !important; border-radius:20px !important; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.04) !important; border:1px solid #e2e8f0 !important; overflow:hidden !important; transition:all 0.3s ease !important; transform:translateY(10px) !important; opacity:0 !important; z-index:9999999 !important; font-family:'Inter', sans-serif !important; box-sizing:border-box !important;">
         <!-- Header -->
-        <div style="background:${widget.brandColor || "var(--accent-primary)"} !important; color:#ffffff !important; padding:24px 20px 20px 20px !important; position:relative !important; box-sizing:border-box !important; border-top-left-radius:20px !important; border-top-right-radius:20px !important; display:block !important; text-align:left !important;">
+        <div style="background:${brandColor} !important; border-bottom:${isLight ? '1px solid #f1f5f9' : 'none'} !important; color:${headerText} !important; padding:24px 20px 20px 20px !important; position:relative !important; box-sizing:border-box !important; border-top-left-radius:20px !important; border-top-right-radius:20px !important; display:block !important; text-align:left !important;">
           <div style="display:flex !important; align-items:center !important; gap:12px !important; margin-bottom:8px !important;">
             <!-- Avatar with online indicator -->
-            <div style="position:relative !important; width:40px !important; height:40px !important; background:rgba(255,255,255,0.2) !important; border-radius:50% !important; display:flex !important; align-items:center !important; justify-content:center !important; font-weight:700 !important; color:#ffffff !important; font-size:18px !important; border: 2px solid rgba(255,255,255,0.4) !important; font-family:'Inter',sans-serif !important; box-sizing:border-box !important;">
-              ${widget.name.charAt(0).toUpperCase()}
-              <span style="position:absolute !important; bottom:0 !important; right:0 !important; width:10px !important; height:10px !important; background:#22c55e !important; border:2px solid ${widget.brandColor || "var(--accent-primary)"} !important; border-radius:50% !important;"></span>
+            <div style="position:relative !important; width:40px !important; height:40px !important; background:${avatarBg} !important; border-radius:50% !important; display:flex !important; align-items:center !important; justify-content:center !important; font-weight:700 !important; color:${headerText} !important; font-size:18px !important; border: 2px solid ${avatarBorder} !important; font-family:'Inter',sans-serif !important; box-sizing:border-box !important;">
+              ${widgetName.charAt(0).toUpperCase()}
+              <span style="position:absolute !important; bottom:0 !important; right:0 !important; width:10px !important; height:10px !important; background:#22c55e !important; border:2px solid ${brandColor} !important; border-radius:50% !important;"></span>
             </div>
             <div style="display:block !important;">
-              <div style="font-weight:700 !important; font-size:16px !important; color:#ffffff !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin:0 !important;">${widget.name}</div>
-              <div style="font-size:12px !important; color:rgba(255,255,255,0.85) !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin-top:2px !important; font-weight:500 !important;">Online · Support Team</div>
+              <div style="font-weight:700 !important; font-size:16px !important; color:${headerText} !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin:0 !important;">${widgetName}</div>
+              <div style="font-size:12px !important; color:${headerSubText} !important; font-family:'Inter',sans-serif !important; line-height:1.2 !important; margin-top:2px !important; font-weight:500 !important;">Online · Support Team</div>
             </div>
           </div>
-          <div style="font-size:13px !important; color:rgba(255,255,255,0.95) !important; font-family:'Inter',sans-serif !important; line-height:1.4 !important; font-weight:400 !important; margin-top:12px !important;">
+          <div style="font-size:13px !important; color:${isLight ? '#475569' : 'rgba(255,255,255,0.95)'} !important; font-family:'Inter',sans-serif !important; line-height:1.4 !important; font-weight:400 !important; margin-top:12px !important;">
             ${widget.greeting || "Hi! How can we help you today?"}
           </div>
-          <div onclick="toggleBccChat()" style="position:absolute !important; top:20px !important; right:20px !important; background:transparent !important; border:none !important; color:#ffffff !important; font-size:22px !important; cursor:pointer !important; opacity:0.8 !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important; line-height:1 !important;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">×</div>
+          <div onclick="toggleBccChat()" style="position:absolute !important; top:20px !important; right:20px !important; background:transparent !important; border:none !important; color:${headerText} !important; font-size:22px !important; cursor:pointer !important; opacity:0.8 !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important; line-height:1 !important;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">×</div>
         </div>
 
         <!-- Channels list -->
@@ -86,9 +106,9 @@ const getWidgetScriptCode = (widget) => {
 
         <!-- Live Chat Sub-view (Initially Hidden) -->
         <div id="bcc-live-chat-panel" style="display:none !important; position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; background:#ffffff !important; flex-direction:column !important; z-index:100 !important; box-sizing:border-box !important;">
-          <div style="background:${widget.brandColor || "var(--accent-primary)"} !important; color:#ffffff !important; padding:16px !important; display:flex !important; align-items:center !important; gap:12px !important; box-sizing:border-box !important;">
-            <div onclick="closeLiveChatPopup()" style="background:transparent !important; border:none !important; color:#ffffff !important; font-size:20px !important; cursor:pointer !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important;">←</div>
-            <div style="font-weight:700 !important; font-size:15px !important; font-family:'Inter',sans-serif !important; color:#ffffff !important; text-transform:none !important;">Live Chat</div>
+          <div style="background:${brandColor} !important; border-bottom:${isLight ? '1px solid #f1f5f9' : 'none'} !important; color:${headerText} !important; padding:16px !important; display:flex !important; align-items:center !important; gap:12px !important; box-sizing:border-box !important;">
+            <div onclick="closeLiveChatPopup()" style="background:transparent !important; border:none !important; color:${headerText} !important; font-size:20px !important; cursor:pointer !important; outline:none !important; padding:0 !important; margin:0 !important; width:auto !important; height:auto !important;">←</div>
+            <div style="font-weight:700 !important; font-size:15px !important; font-family:'Inter',sans-serif !important; color:${headerText} !important; text-transform:none !important;">Live Chat</div>
           </div>
           <div id="bcc-chat-messages" style="flex:1 !important; padding:16px !important; overflow-y:auto !important; display:flex !important; flex-direction:column !important; gap:12px !important; background:#f8fafc !important; font-size:13px !important; box-sizing:border-box !important;">
             <div style="background:#ffffff !important; border:1px solid #e2e8f0 !important; padding:10px 14px !important; border-radius:12px !important; max-width:85% !important; align-self:flex-start !important; color:#1e293b !important; line-height:1.4 !important; font-family:'Inter',sans-serif !important; text-align:left !important; box-sizing:border-box !important;">
@@ -97,7 +117,7 @@ const getWidgetScriptCode = (widget) => {
           </div>
           <div style="padding:12px !important; border-top:1px solid #e2e8f0 !important; display:flex !important; gap:8px !important; box-sizing:border-box !important; background:#ffffff !important;">
             <input id="bcc-chat-input" type="text" placeholder="Type a message..." style="flex:1 !important; padding:8px 12px !important; border:1px solid #cbd5e1 !important; border-radius:8px !important; font-size:13px !important; outline:none !important; font-family:'Inter',sans-serif !important; background:#ffffff !important; color:#1e293b !important; box-sizing:border-box !important; height:auto !important;" onkeypress="handleBccChatKey(event)" />
-            <div onclick="sendBccChatMessage()" style="background:${widget.brandColor || "var(--accent-primary)"} !important; color:#ffffff !important; border:none !important; border-radius:8px !important; padding:10px 16px !important; cursor:pointer !important; font-weight:700 !important; font-size:13px !important; outline:none !important; font-family:'Inter',sans-serif !important; height:38px !important; box-sizing:border-box !important; display:flex !important; align-items:center !important; justify-content:center !important;">Send</div>
+            <div onclick="sendBccChatMessage()" style="background:${brandColor} !important; color:${launcherText} !important; border:${isLight ? '1px solid #cbd5e1' : 'none'} !important; border-radius:8px !important; padding:10px 16px !important; cursor:pointer !important; font-weight:700 !important; font-size:13px !important; outline:none !important; font-family:'Inter',sans-serif !important; height:38px !important; box-sizing:border-box !important; display:flex !important; align-items:center !important; justify-content:center !important;">Send</div>
           </div>
         </div>
       </div>

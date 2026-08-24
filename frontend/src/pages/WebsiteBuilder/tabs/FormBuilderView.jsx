@@ -409,9 +409,6 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
               {tab}
             </div>
           ))}
-          <div style={{ marginLeft: "auto", fontSize: 14, fontWeight: 700, color: "var(--text-secondary)", alignSelf: "center", cursor: "pointer", marginBottom: 8 }}>
-            Submissions
-          </div>
         </div>
       </div>
 
@@ -440,11 +437,11 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
-                <Card ref={setDroppableRef} bodyStyle={{ padding: "40px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} className="builder-canvas">
-                  {!isPreviewMode ? (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            {!isPreviewMode ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+                    <Card ref={setDroppableRef} bodyStyle={{ padding: "40px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} className="builder-canvas">
                       <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
                         {fields.length === 0 ? (
                           <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-secondary)" }}>
@@ -466,23 +463,46 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
                           ))
                         )}
                       </SortableContext>
-                      <DragOverlay dropAnimation={null}>
-                        {activeDragType ? (
-                          <div style={{ padding: '16px 24px', background: 'var(--bg-primary)', border: '1px solid var(--accent-primary)', borderRadius: 8, fontWeight: 600, color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)', opacity: 0.9, cursor: 'grabbing' }}>
-                            {activeDragType}
-                          </div>
-                        ) : activeDragField ? (
-                          <div style={{ padding: 16, border: '2px solid var(--accent-primary)', borderRadius: 12, background: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)', opacity: 0.9, cursor: 'grabbing', width: '100%' }}>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', marginBottom: 12 }}>
-                              {activeDragField.label} {activeDragField.required && <span style={{ color: "var(--accent-danger)" }}>*</span>}
-                            </div>
-                            <Input size="large" placeholder={activeDragField.placeholder} style={{ borderRadius: 8 }} readOnly />
-                          </div>
-                        ) : null}
-                      </DragOverlay>
-                    </DndContext>
-                  ) : (
-                    // PREVIEW MODE
+                    </Card>
+                  </div>
+
+                  <div style={{ width: 280, flexShrink: 0, position: 'sticky', top: 24 }}>
+                    <Card bodyStyle={{ padding: "0" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                      <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><ListPlus size={18} /> Add Fields</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {fieldTypes.map((item, idx) => (
+                          <DraggableSidebarItem 
+                            key={item} 
+                            item={item} 
+                            isLast={idx === fieldTypes.length - 1} 
+                            onAdd={addField} 
+                          />
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+                <DragOverlay dropAnimation={null}>
+                  {activeDragType ? (
+                    <div style={{ padding: '16px 24px', background: 'var(--bg-primary)', border: '1px solid var(--accent-primary)', borderRadius: 8, fontWeight: 600, color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)', opacity: 0.9, cursor: 'grabbing' }}>
+                      {activeDragType}
+                    </div>
+                  ) : activeDragField ? (
+                    <div style={{ padding: 16, border: '2px solid var(--accent-primary)', borderRadius: 12, background: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)', opacity: 0.9, cursor: 'grabbing', width: '100%' }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', marginBottom: 12 }}>
+                        {activeDragField.label} {activeDragField.required && <span style={{ color: "var(--accent-danger)" }}>*</span>}
+                      </div>
+                      <Input size="large" placeholder={activeDragField.placeholder} style={{ borderRadius: 8 }} readOnly />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            ) : (
+              <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+                  <Card bodyStyle={{ padding: "40px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }} className="builder-canvas">
                     <Form form={form} layout="vertical" onFinish={submitPreviewForm}>
                       {settings.headline && <Title level={3} style={{ textAlign: "center", marginBottom: 8, color: settings.accentColor || 'var(--text-primary)' }}>{settings.headline}</Title>}
                       {settings.subHeadline && <Text style={{ display: "block", textAlign: "center", marginBottom: 32, color: 'var(--text-secondary)', fontSize: 16 }}>{settings.subHeadline}</Text>}
@@ -507,30 +527,10 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
                         </Button>
                       </div>
                     </Form>
-                  )}
-                </Card>
-              </div>
-
-              {!isPreviewMode && (
-                <div style={{ width: 280, flexShrink: 0, position: 'sticky', top: 24 }}>
-                  <Card bodyStyle={{ padding: "0" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", background: 'var(--bg-secondary)', overflow: 'hidden' }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><ListPlus size={18} /> Add Fields</div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      {fieldTypes.map((item, idx) => (
-                        <DraggableSidebarItem 
-                          key={item} 
-                          item={item} 
-                          isLast={idx === fieldTypes.length - 1} 
-                          onAdd={addField} 
-                        />
-                      ))}
-                    </div>
                   </Card>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 

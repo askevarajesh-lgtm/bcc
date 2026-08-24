@@ -33,36 +33,20 @@ const CreateBlogView = ({ setView, handleCreateBlog, itemVariants, websites, sto
             style={{ borderRadius: 8 }} 
           />
         </div>
-        <Row gutter={24} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEBSITE (OPTIONAL)</div>
-            <Select 
-              size="large"
-              value={formData.website}
-              onChange={v => setFormData({...formData, website: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {websites.map(w => (
-                <Option key={w._id} value={w._id}>{w.name}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEB STORE (OPTIONAL)</div>
-            <Select 
-              size="large"
-              value={formData.webstore}
-              onChange={v => setFormData({...formData, webstore: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {stores.map(s => (
-                <Option key={s._id} value={s._id}>{s.name}</Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEBSITE (OPTIONAL)</div>
+          <Select 
+            size="large"
+            value={formData.website}
+            onChange={v => setFormData({...formData, website: v})}
+            style={{ width: "100%" }}
+          >
+            <Option value="—">—</Option>
+            {websites.map(w => (
+              <Option key={w._id} value={w._id}>{w.name}</Option>
+            ))}
+          </Select>
+        </div>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>DESCRIPTION</div>
           <TextArea 
@@ -125,36 +109,20 @@ const SettingsBlogView = ({ activeBlog, setView, handleUpdateBlog, itemVariants,
             style={{ borderRadius: 8 }} 
           />
         </div>
-        <Row gutter={24} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEBSITE</div>
-            <Select 
-              size="large"
-              value={formData.website}
-              onChange={v => setFormData({...formData, website: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {websites.map(w => (
-                <Option key={w._id} value={w._id}>{w.name}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={12}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEB STORE</div>
-            <Select 
-              size="large"
-              value={formData.webstore}
-              onChange={v => setFormData({...formData, webstore: v})}
-              style={{ width: "100%" }}
-            >
-              <Option value="—">—</Option>
-              {stores.map(s => (
-                <Option key={s._id} value={s._id}>{s.name}</Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>WEBSITE</div>
+          <Select 
+            size="large"
+            value={formData.website}
+            onChange={v => setFormData({...formData, website: v})}
+            style={{ width: "100%" }}
+          >
+            <Option value="—">—</Option>
+            {websites.map(w => (
+              <Option key={w._id} value={w._id}>{w.name}</Option>
+            ))}
+          </Select>
+        </div>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>POSTS PER PAGE (ARCHIVE)</div>
           <Input 
@@ -797,12 +765,12 @@ const BlogsTab = ({ itemVariants }) => {
             key: b._id,
             name: b.name,
             slug: b.slug,
-            assignedTo: 'Any site / store',
-            posts: b.postsCount || 0,
-            categories: b.categoriesCount || 0,
+            assignedTo: b.assignedTo || 'Any site / store',
+            posts: b.posts || 0,
+            categories: b.categories || 0,
             publicUrl: b.publicUrl || `/blog/${b.slug}`,
-            website: b.website || '—',
-            webstore: b.webstore || '—',
+            website: b.websiteId || '—',
+            webstore: b.storeId || '—',
             description: b.description || '',
             status: b.status || 'active',
             postsPerPage: b.postsPerPage || 12
@@ -1130,7 +1098,11 @@ const BlogsTab = ({ itemVariants }) => {
             </Col>
             <Col span={8}>
               <Card bodyStyle={{ padding: 24, height: "100%", display: "flex", alignItems: "center" }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-secondary)" }}>Unassigned to site</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: activeBlog.website && activeBlog.website !== '—' ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                  {activeBlog.website && activeBlog.website !== '—' ? 
+                    `Assigned to: ${websites.find(w => w._id === activeBlog.website)?.name || 'Unknown Website'}` 
+                    : "Unassigned to site"}
+                </div>
               </Card>
             </Col>
           </Row>
