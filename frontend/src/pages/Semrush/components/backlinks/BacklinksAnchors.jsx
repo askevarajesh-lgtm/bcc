@@ -13,7 +13,7 @@ const BacklinksAnchors = () => {
       title: 'Anchor Text',
       dataIndex: 'anchor',
       key: 'anchor',
-      render: (text) => <span style={{ color: '#2b2b2b', fontWeight: 500 }}>{text || 'Empty Anchor'}</span>
+      render: (text) => <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'Empty Anchor'}</span>
     },
     {
       title: 'Backlinks',
@@ -46,8 +46,8 @@ const BacklinksAnchors = () => {
   ];
 
   return (
-    <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 8 }}>
-       <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)' }}>
           <Text strong style={{ fontSize: 16 }}>Anchors 1 - {anchors.length}</Text>
        </div>
        <Table

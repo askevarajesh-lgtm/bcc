@@ -133,7 +133,7 @@ const BacklinksTab = () => {
   };
 
   const EmptyState = ({ message }) => (
-    <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 8, padding: 40, textAlign: 'center', color: '#bfbfbf' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8, padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>
       {message}
     </div>
   );
@@ -173,7 +173,7 @@ const BacklinksTab = () => {
         </div>
       ) : (
         <>
-          <div style={{ borderBottom: '1px solid #f0f0f0', marginBottom: 20 }}>
+          <div style={{ borderBottom: '1px solid var(--border-color)', marginBottom: 20 }}>
             <Tabs 
               activeKey={activeKey} 
               onChange={handleTabChange}

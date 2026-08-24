@@ -8,16 +8,16 @@
 .bl-top-stats {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
   padding: 20px;
 }
 
 .bl-stat-block {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--border-color);
   padding: 0 16px;
 }
 .bl-stat-block:first-child { padding-left: 0; }
@@ -25,7 +25,7 @@
 
 .bl-stat-title {
   font-size: 13px;
-  color: #595959;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -34,7 +34,7 @@
 .bl-stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #5b61f4;
+  color: var(--accent-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -43,7 +43,7 @@
   font-size: 13px;
   font-weight: 500;
 }
-.bl-stat-change.positive { color: #38cb89; }
+.bl-stat-change.positive { color: var(--accent-secondary); }
 .bl-stat-change.negative { color: #ff5252; }
 
 /* Grid Layouts */
@@ -61,9 +61,9 @@
 
 /* Card Styling */
 .bl-card {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -72,7 +72,7 @@
 .bl-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #2b2b2b;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -88,7 +88,7 @@
 }
 .bl-bar-label {
   flex: 0 0 120px;
-  color: #2b2b2b;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -96,14 +96,14 @@
 .bl-bar-container {
   flex: 1;
   height: 8px;
-  background: #f0f0f0;
+  background: var(--border-color);
   margin: 0 12px;
 }
 .bl-bar-fill {
   height: 100%;
 }
 .bl-bar-percent {
-  color: #8c8c8c;
+  color: var(--text-tertiary);
   width: 30px;
   text-align: right;
   margin-right: 8px;
@@ -125,7 +125,7 @@
   padding: 20px;
 }
 .bl-word-cloud span {
-  color: #5b61f4;
+  color: var(--accent-primary);
   text-align: center;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -137,13 +137,13 @@
 /* Tables */
 .bl-table-minimal .ant-table-thead > tr > th {
   background: transparent !important;
-  border-bottom: 1px solid #f0f0f0 !important;
-  color: #8c8c8c;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-tertiary);
   font-weight: 500;
   padding: 8px 24px !important;
 }
 .bl-table-minimal .ant-table-tbody > tr > td {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   padding: 12px 24px !important;
 }
 .bl-table-minimal .ant-table-tbody > tr:last-child > td {
@@ -161,13 +161,13 @@
 }
 .bl-funnel-label-title {
   font-size: 12px;
-  color: #595959;
+  color: var(--text-secondary);
   display: block;
 }
 .bl-funnel-label-value {
   font-size: 20px;
   font-weight: 600;
-  color: #5b61f4;
+  color: var(--accent-primary);
 }
 .bl-funnel-bar {
   flex: 1;

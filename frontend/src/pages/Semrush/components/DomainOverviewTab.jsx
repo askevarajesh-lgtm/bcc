@@ -98,9 +98,9 @@ const DomainOverviewTab = () => {
   const positionDistribution = data.positionDistribution || {};
 
   const serpPieData = [
-    { name: 'Organic', value: serpFeatures.organic ?? null, color: '#5b61f4' },
+    { name: 'Organic', value: serpFeatures.organic ?? null, color: 'var(--accent-primary)' },
     { name: 'AI Overviews', value: serpFeatures.aiOverviews ?? null, color: '#f772e3' },
-    { name: 'Other SERP Features', value: serpFeatures.otherFeatures ?? null, color: '#38cb89' }
+    { name: 'Other SERP Features', value: serpFeatures.otherFeatures ?? null, color: 'var(--accent-secondary)' }
   ].filter(d => d.value !== null);
 
   const posDistData = Object.entries(positionDistribution).map(([key, val]) => ({
@@ -113,7 +113,7 @@ const DomainOverviewTab = () => {
     x: c.organicKeywords,
     y: c.organicTraffic,
     z: c.seKeywords || 1,
-    color: ['#5b61f4', '#38cb89', '#b961f4', '#ffbc3b', '#ff6b6b'][i % 5]
+    color: ['var(--accent-primary)', 'var(--accent-secondary)', 'var(--accent-info)', 'var(--accent-warning)', 'var(--accent-danger)'][i % 5]
   }));
 
   return (
@@ -149,7 +149,7 @@ const DomainOverviewTab = () => {
           {/* 1. SEO Top Cards Section (AI Search Removed for Real Data) */}
           <div className="so-card">
             <div className="so-card-header" style={{ marginBottom: 12 }}>
-          <div className="so-badge" style={{ background: '#e6f7ff', color: 'var(--accent-primary)', fontWeight: 600 }}>SEO</div>
+          <div className="so-badge" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)', fontWeight: 600 }}>SEO</div>
         </div>
         <div className="so-seo-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
           <div className="so-metric-block">
@@ -179,37 +179,37 @@ const DomainOverviewTab = () => {
       <div className="so-card">
         <div className="so-card-header">
           <h3 className="so-card-title">Traffic</h3>
-          <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 500, color: '#595959' }}>
-              <span style={{ color: '#5b61f4' }}>1M</span>
+          <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--accent-primary)' }}>1M</span>
               <span>6M</span>
               <span>1Y</span>
-              <span style={{ borderBottom: '2px solid #5b61f4', color: '#2b2b2b' }}>2Y</span>
+              <span style={{ borderBottom: '2px solid var(--accent-primary)', color: 'var(--text-primary)' }}>2Y</span>
               <span>All time</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 20, marginBottom: 16, fontSize: 13, color: '#595959' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 14, height: 14, background: '#5b61f4', borderRadius: 4 }}></div> Organic Traffic</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 14, height: 14, background: '#38cb89', borderRadius: 4 }}></div> Paid Traffic</span>
+        <div style={{ display: 'flex', gap: 20, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 14, height: 14, background: 'var(--accent-primary)', borderRadius: 4 }}></div> Organic Traffic</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 14, height: 14, background: 'var(--accent-secondary)', borderRadius: 4 }}></div> Paid Traffic</span>
         </div>
         <div style={{ height: 260 }}>
           {data?.trend && data.trend.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.trend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8c8c8c' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8c8c8c' }} tickFormatter={formatNumber} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-tertiary)' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-tertiary)' }} tickFormatter={formatNumber} />
                 <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Area type="step" dataKey="traffic" stroke="#5b61f4" strokeWidth={2} fill="url(#colorTraffic)" fillOpacity={1} />
+                <Area type="step" dataKey="traffic" stroke="var(--accent-primary)" strokeWidth={2} fill="url(#colorTraffic)" fillOpacity={1} />
                 <defs>
                   <linearGradient id="colorTraffic" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5b61f4" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#5b61f4" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf' }}>No trend data available</div>
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>No trend data available</div>
           )}
         </div>
       </div>
@@ -229,7 +229,7 @@ const DomainOverviewTab = () => {
              <div style={{ flex: 1 }}>
                 {serpPieData.map(item => (
                   <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#595959' }}>
+                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }}></div> {item.name}
                      </span>
                      <span style={{ fontWeight: 500, color: item.color }}>{item.value}%</span>
@@ -243,8 +243,8 @@ const DomainOverviewTab = () => {
                 <AreaChart data={data.trend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <XAxis dataKey="month" hide />
                   <YAxis hide />
-                  <Area type="monotone" dataKey="traffic" stroke="#5b61f4" fill="none" strokeWidth={2} />
-                  <Area type="monotone" dataKey="traffic" stroke="#ffbc3b" fill="none" strokeWidth={2} style={{ transform: 'translateY(-10px)' }} />
+                  <Area type="monotone" dataKey="traffic" stroke="var(--accent-primary)" fill="none" strokeWidth={2} />
+                  <Area type="monotone" dataKey="traffic" stroke="var(--accent-warning)" fill="none" strokeWidth={2} style={{ transform: 'translateY(-10px)' }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -256,7 +256,7 @@ const DomainOverviewTab = () => {
       <Title level={4} style={{ marginTop: 16 }}>Organic Research</Title>
       <div className="so-organic-research-grid">
         <div className="so-card">
-          <h3 className="so-card-title" style={{ marginBottom: 20 }}>Top Organic Keywords <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{formatNumber(data?.['Organic Keywords'])}</span></h3>
+          <h3 className="so-card-title" style={{ marginBottom: 20 }}>Top Organic Keywords <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: 14 }}>{formatNumber(data?.['Organic Keywords'])}</span></h3>
           <Table 
             className="so-table-minimal"
             dataSource={data?.topKeywords?.slice(0, 5) || []}
@@ -265,7 +265,7 @@ const DomainOverviewTab = () => {
             columns={[
               { title: 'Keyword', dataIndex: 'keyword', render: (text) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{text}</span> },
               { title: 'Intent', dataIndex: 'intents', render: (intents) => (
-                <>{(intents || ['I']).map(i => <span key={i} className="so-intent-tag" style={{ background: i === 'I' ? 'var(--accent-primary)' : i === 'N' ? '#722ed1' : i === 'C' ? '#faad14' : '#52c41a' }}>{i}</span>)}</>
+                <>{(intents || ['I']).map(i => <span key={i} className="so-intent-tag" style={{ background: i === 'I' ? 'var(--accent-primary)' : i === 'N' ? 'var(--accent-info)' : i === 'C' ? 'var(--accent-warning)' : 'var(--accent-success)' }}>{i}</span>)}</>
               ) },
               { title: 'Pos.', dataIndex: 'position' },
               { title: 'Volume', dataIndex: 'searchVolume', render: formatNumber },
@@ -273,7 +273,7 @@ const DomainOverviewTab = () => {
               { title: 'Traffic %', dataIndex: 'trafficPercent' },
             ]}
           />
-          <div style={{ marginTop: 24 }}><Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/semrush/${project?._id}/organic-keywords`)}>View details</Tag></div>
+          <div style={{ marginTop: 24 }}><Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/semrush/${project?._id}/organic-keywords`)}>View details</Tag></div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -285,13 +285,13 @@ const DomainOverviewTab = () => {
                   <div key={item.intent} className="so-intent-segment" style={{ width: `${item.ratio}%`, background: item.color }}></div>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c', paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', paddingBottom: 8, borderBottom: '1px solid var(--border-color)' }}>
                 <span>Intent</span>
                 <div style={{ display: 'flex', gap: 32 }}><span>Ratio</span></div>
               </div>
               {intentDistribution.map(item => (
                 <div key={item.intent} className="so-intent-legend-item">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#595959', fontSize: 13 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13 }}>
                     <div className="so-intent-dot" style={{ background: item.color }}></div> {item.intent}
                   </span>
                   <div style={{ display: 'flex', gap: 32, fontSize: 13 }}>
@@ -307,11 +307,11 @@ const DomainOverviewTab = () => {
              <div style={{ height: 160 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={posDistData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8c8c8c' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8c8c8c' }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} />
                     <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="value" fill="#5b61f4" barSize={40} />
+                    <Bar dataKey="value" fill="var(--accent-primary)" barSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
              </div>
@@ -322,7 +322,7 @@ const DomainOverviewTab = () => {
       {/* 5. Competitors Section */}
       <div className="so-competitor-grid">
         <div className="so-card">
-           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: '#8c8c8c', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length ?? 'Unavailable'}</span></h3>
+           <h3 className="so-card-title" style={{ marginBottom: 20 }}>Main Organic Competitors <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: 14 }}>{data?.competitors?.length ?? 'Unavailable'}</span></h3>
            <Table 
             className="so-table-minimal"
             dataSource={(data?.competitors || []).slice(0, 5)}
@@ -330,19 +330,19 @@ const DomainOverviewTab = () => {
             rowKey="domain"
             columns={[
               { title: 'Competitor', dataIndex: 'domain', render: (text) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>{text} <ExternalLink size={12}/></span> },
-              { title: 'Com. Level', dataIndex: 'comLevel', render: (val) => <Progress percent={val} showInfo={false} strokeColor="#5b61f4" size="small" style={{ width: 60 }} /> },
+              { title: 'Com. Level', dataIndex: 'comLevel', render: (val) => <Progress percent={val} showInfo={false} strokeColor="var(--accent-primary)" size="small" style={{ width: 60 }} /> },
               { title: 'Com. Keywords', dataIndex: 'commonKeywords', align: 'right', render: formatNumber },
               { title: 'SE Keywords', dataIndex: 'seKeywords', align: 'right', render: formatNumber },
             ]}
           />
-          <div style={{ marginTop: 24 }}><Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/semrush/${project?._id}/organic-keywords`)}>View details</Tag></div>
+          <div style={{ marginTop: 24 }}><Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => navigate(`/intelligence/semrush/${project?._id}/organic-keywords`)}>View details</Tag></div>
         </div>
         
         <div className="so-card">
            <h3 className="so-card-title" style={{ marginBottom: 20 }}>Competitive Positioning Map</h3>
            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 24, fontSize: 12 }}>
              {competitorsScatterData.map(c => (
-               <span key={c.domain} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#595959' }}>
+               <span key={c.domain} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
                  <div className="so-intent-dot" style={{ background: c.color }}></div> {c.domain}
                </span>
              ))}
@@ -350,9 +350,9 @@ const DomainOverviewTab = () => {
            <div style={{ height: 260 }}>
              <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: -20 }}>
-                  <CartesianGrid stroke="#f0f0f0" />
-                  <XAxis type="number" dataKey="x" name="Organic Keywords" tick={{ fontSize: 11, fill: '#8c8c8c' }} axisLine={false} tickLine={false} label={{ value: 'Organic Keywords', position: 'bottom', fill: '#8c8c8c', fontSize: 12 }} />
-                  <YAxis type="number" dataKey="y" name="Organic Traffic" tick={{ fontSize: 11, fill: '#8c8c8c' }} axisLine={false} tickLine={false} tickFormatter={formatNumber} label={{ value: 'Organic Search Traffic', angle: -90, position: 'insideLeft', fill: '#8c8c8c', fontSize: 12 }} />
+                  <CartesianGrid stroke="var(--border-color)" />
+                  <XAxis type="number" dataKey="x" name="Organic Keywords" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} label={{ value: 'Organic Keywords', position: 'bottom', fill: 'var(--text-tertiary)', fontSize: 12 }} />
+                  <YAxis type="number" dataKey="y" name="Organic Traffic" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={formatNumber} label={{ value: 'Organic Search Traffic', angle: -90, position: 'insideLeft', fill: 'var(--text-tertiary)', fontSize: 12 }} />
                   <ZAxis type="number" dataKey="z" range={[100, 1500]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                   {competitorsScatterData.map((entry, index) => (

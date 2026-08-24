@@ -48,7 +48,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
   const tldData = (data.tlds || []).slice(0, 5).map(t => ({
     name: t.tld,
     value: t.domains,
-    color: ['#5b61f4', '#38cb89', '#ffbc3b', '#b961f4', '#bfbfbf'][Math.floor(Math.random() * 5)]
+    color: ['var(--accent-primary)', 'var(--accent-secondary)', 'var(--accent-warning)', 'var(--accent-info)', 'var(--text-tertiary)'][Math.floor(Math.random() * 5)]
   }));
   
   // Top Countries
@@ -110,10 +110,10 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
         <div className="bl-card">
            <h3 className="bl-card-title">Authority Score <InfoCircleOutlined /></h3>
            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-             <span style={{ fontSize: 32, fontWeight: 700, color: '#2b2b2b' }}>{score}</span>
-             <Tag color="#e6f7ff" style={{ color: 'var(--accent-primary)', fontWeight: 600, border: 'none', borderRadius: 12 }}>Low authority</Tag>
+             <span style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)' }}>{score}</span>
+             <Tag color="color-mix(in srgb, var(--accent-primary) 15%, transparent)" style={{ color: 'var(--accent-primary)', fontWeight: 600, border: 'none', borderRadius: 12 }}>Low authority</Tag>
            </div>
-           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf', fontSize: 13, textAlign: 'center', padding: 20 }}>
+           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13, textAlign: 'center', padding: 20 }}>
              Radar breakdown unavailable (Sub-scores not provided by standard Semrush API)
            </div>
         </div>
@@ -124,9 +124,9 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
            <div style={{ flex: 1, width: '100%', height: 120, marginTop: 10 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mockTrendData}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#bfbfbf'}} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: 'var(--text-tertiary)'}} />
                   <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                  <Line type="monotone" dataKey="score" stroke="#5b61f4" strokeWidth={3} dot={{r: 4, fill: '#5b61f4', strokeWidth: 0}} activeDot={{r: 6, fill: '#5b61f4'}} />
+                  <Line type="monotone" dataKey="score" stroke="var(--accent-primary)" strokeWidth={3} dot={{r: 4, fill: 'var(--accent-primary)', strokeWidth: 0}} activeDot={{r: 6, fill: 'var(--accent-primary)'}} />
                 </LineChart>
               </ResponsiveContainer>
            </div>
@@ -135,11 +135,11 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
         {/* 4. Network Graph Box */}
         <div className="bl-card">
            <h3 className="bl-card-title">Network Graph <InfoCircleOutlined /></h3>
-           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf', fontSize: 13, textAlign: 'center', padding: 20 }}>
+           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13, textAlign: 'center', padding: 20 }}>
              Network Graph visualization not supported by standard API endpoints.
            </div>
            <div style={{ marginTop: 'auto' }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('network-graph')}>View Network Graph</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('network-graph')}>View Network Graph</Tag>
            </div>
         </div>
       </div>
@@ -161,7 +161,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                ))}
             </div>
             <div style={{ marginTop: 24 }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
             </div>
          </div>
 
@@ -180,7 +180,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                    <div key={item.label} className="bl-bar-row">
                       <span className="bl-bar-label" style={{ flex: '0 0 80px' }}>{item.label}</span>
                       <div className="bl-bar-container">
-                         <div className="bl-bar-fill" style={{ width: `${pct}%`, background: '#5b61f4' }}></div>
+                         <div className="bl-bar-fill" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }}></div>
                       </div>
                       <span className="bl-bar-percent">{pct < 1 && pct > 0 ? '<1' : pct.toFixed(0)}%</span>
                       <span className="bl-bar-value">{formatNumber(item.val)}</span>
@@ -192,10 +192,10 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
             <h3 className="bl-card-title">Link Attributes</h3>
             <div>
                {[
-                 { label: 'Follow', val: follow, color: '#38cb89' },
-                 { label: 'Nofollow', val: nofollow, color: '#5b61f4' },
-                 { label: 'Sponsored', val: sponsored, color: '#ffbc3b' },
-                 { label: 'UGC', val: ugc, color: '#b961f4' }
+                 { label: 'Follow', val: follow, color: 'var(--accent-secondary)' },
+                 { label: 'Nofollow', val: nofollow, color: 'var(--accent-primary)' },
+                 { label: 'Sponsored', val: sponsored, color: 'var(--accent-warning)' },
+                 { label: 'UGC', val: ugc, color: 'var(--accent-info)' }
                ].map(item => {
                  const pct = attrTotal > 0 ? (item.val / attrTotal * 100) : 0;
                  return (
@@ -211,7 +211,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                })}
             </div>
             <div style={{ marginTop: 24 }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
             </div>
          </div>
       </div>
@@ -229,7 +229,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                   </PieChart>
                </ResponsiveContainer>
                <div style={{ flex: 1, paddingLeft: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8c8c8c', fontSize: 12, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: 12, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border-color)' }}>
                      <span>TLD</span>
                      <span>Referring Domains</span>
                   </div>
@@ -237,11 +237,11 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                      const pct = refDomains > 0 ? (t.value / refDomains * 100) : 0;
                      return (
                         <div key={t.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
-                           <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#595959', fontWeight: 500 }}>
+                           <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontWeight: 500 }}>
                               <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }}></div> {t.name}
                            </span>
                            <div style={{ display: 'flex', gap: 16 }}>
-                              <span style={{ color: '#8c8c8c' }}>{pct.toFixed(0)}%</span>
+                              <span style={{ color: 'var(--text-tertiary)' }}>{pct.toFixed(0)}%</span>
                               <span style={{ color: 'var(--accent-primary)', width: 30, textAlign: 'right' }}>{formatNumber(t.value)}</span>
                            </div>
                         </div>
@@ -254,7 +254,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
          {/* 8. Top Countries */}
          <div className="bl-card">
             <h3 className="bl-card-title">Top Countries <InfoCircleOutlined /></h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8c8c8c', fontSize: 12, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: 12, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-color)' }}>
                <span>Country</span>
                <span>Referring Domains</span>
             </div>
@@ -308,7 +308,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
 
             </div>
             <div style={{ marginTop: 24 }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('backlinks')}>View full report</Tag>
             </div>
          </div>
 
@@ -326,7 +326,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                })}
             </div>
             <div style={{ marginTop: 'auto' }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('anchors')}>View full report</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('anchors')}>View full report</Tag>
             </div>
          </div>
       </div>
@@ -335,12 +335,12 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
          {/* 11. Top Pages */}
          <div className="bl-card">
             <h3 className="bl-card-title">Top Pages <InfoCircleOutlined /></h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8c8c8c', fontSize: 12, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: 12, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-color)' }}>
                <span>URL</span>
                <span>Referring Domains</span>
             </div>
             {(data.indexedPages || []).slice(0, 5).map(p => (
-               <div key={p.url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
+               <div key={p.url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
                   <span style={{ color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                      <Tag color="#ffe8e6" style={{ color: '#ff7a45', border: 'none', marginRight: 8 }}>200</Tag>
                      <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -351,7 +351,7 @@ const BacklinksOverview = ({ setActiveTab, localData }) => {
                </div>
             ))}
             <div style={{ marginTop: 24 }}>
-               <Tag color="default" style={{ padding: '4px 12px', background: '#2b2b2b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('indexed-pages')}>View full report</Tag>
+               <Tag color="default" style={{ padding: '4px 12px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setActiveTab('indexed-pages')}>View full report</Tag>
             </div>
          </div>
       </div>

@@ -43,7 +43,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f0f0f0', paddingBottom: '24px', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--border-color)', paddingBottom: '24px', marginBottom: '32px' }}>
         <div>
           <Title level={1} style={{ margin: 0, color: '#111827', fontSize: '36px' }}>SEO Performance Report</Title>
           <Text type="secondary" style={{ fontSize: '16px' }}>Prepared for {project.domain}</Text>
@@ -58,7 +58,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
 
       {/* Executive Summary */}
       <Title level={3} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151' }}>
-        <StarOutlined style={{ color: '#f59e0b' }} /> Executive Summary
+        <StarOutlined style={{ color: 'var(--accent-warning)' }} /> Executive Summary
       </Title>
       <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
         <Col span={6}>
@@ -70,13 +70,13 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
         <Col span={6}>
           <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <Text type="secondary" style={{ display: 'block', marginBottom: '8px' }}>Organic Traffic</Text>
-            <Text style={{ fontSize: '28px', fontWeight: 700, color: '#10b981' }}>{formatNumber(data['Organic Traffic'])}</Text>
+            <Text style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent-secondary)' }}>{formatNumber(data['Organic Traffic'])}</Text>
           </div>
         </Col>
         <Col span={6}>
           <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <Text type="secondary" style={{ display: 'block', marginBottom: '8px' }}>Organic Keywords</Text>
-            <Text style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>{formatNumber(data['Organic Keywords'])}</Text>
+            <Text style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent-primary)' }}>{formatNumber(data['Organic Keywords'])}</Text>
           </div>
         </Col>
         <Col span={6}>
@@ -91,7 +91,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
       <Row gutter={[32, 0]} style={{ marginBottom: '40px' }}>
         <Col span={12}>
           <Title level={4} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-            <LinkOutlined style={{ color: '#3b82f6' }} /> Backlink Profile
+            <LinkOutlined style={{ color: 'var(--accent-primary)' }} /> Backlink Profile
           </Title>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <Text>Total Backlinks</Text>
@@ -103,7 +103,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <Text>Follow Links</Text>
-            <Text strong style={{ color: '#10b981' }}>{formatNumber(backlinks.backlinksDetails?.follow || 0)}</Text>
+            <Text strong style={{ color: 'var(--accent-secondary)' }}>{formatNumber(backlinks.backlinksDetails?.follow || 0)}</Text>
           </div>
         </Col>
         <Col span={12}>
@@ -112,14 +112,14 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
           </Title>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <Text>Overall Health Score</Text>
-            <Text strong style={{ color: health.overallScore >= 80 ? '#10b981' : (health.overallScore >= 60 ? '#f59e0b' : '#ef4444') }}>{health.overallScore ?? 'Unavailable'}{health.overallScore !== null && health.overallScore !== undefined ? '%' : ''}</Text>
+            <Text strong style={{ color: health.overallScore >= 80 ? 'var(--accent-secondary)' : (health.overallScore >= 60 ? 'var(--accent-warning)' : 'var(--accent-danger)') }}>{health.overallScore ?? 'Unavailable'}{health.overallScore !== null && health.overallScore !== undefined ? '%' : ''}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <Text><CheckCircleOutlined style={{ color: '#10b981', marginRight: '4px' }}/> Passed Checks (Healthy Pages)</Text>
+            <Text><CheckCircleOutlined style={{ color: 'var(--accent-secondary)', marginRight: '4px' }}/> Passed Checks (Healthy Pages)</Text>
             <Text strong>{formatNumber(health.siteHealthDetails?.healthy || 0)}</Text>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <Text><WarningOutlined style={{ color: '#ef4444', marginRight: '4px' }}/> Issues (Errors & Warnings)</Text>
+            <Text><WarningOutlined style={{ color: 'var(--accent-danger)', marginRight: '4px' }}/> Issues (Errors & Warnings)</Text>
             <Text strong>{formatNumber((health.siteHealthDetails?.errors?.length || 0) + (health.siteHealthDetails?.warnings?.length || 0))}</Text>
           </div>
         </Col>
@@ -143,7 +143,7 @@ const PDFReportTemplate = React.forwardRef(({ project, projectData }, ref) => {
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: '60px', paddingTop: '24px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+      <div style={{ marginTop: '60px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
         <Text type="secondary" style={{ fontSize: '12px' }}>
           This report was automatically generated. Data provided by Agency Growth OS via API integration.
         </Text>

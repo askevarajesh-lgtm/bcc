@@ -129,10 +129,10 @@ const ActivityTab = () => {
     let tagText = 'Unchanged';
     
     if (item?.status === 'improved') {
-      color = '#38cb89';
+      color = 'var(--accent-secondary)';
       prefix = <ArrowUpOutlined />;
       bgColor = 'linear-gradient(145deg, rgba(56, 203, 137, 0.1) 0%, var(--bg-primary) 100%)';
-      accentColor = '#38cb89';
+      accentColor = 'var(--accent-secondary)';
       tagColor = 'success';
       tagText = 'Improved';
     } else if (item?.status === 'regression') {
@@ -211,17 +211,17 @@ const ActivityTab = () => {
   };
 
   const renderSummaryCard = (title, value, type) => {
-    let color = '#8c8c8c';
+    let color = 'var(--text-tertiary)';
     let prefix = <MinusOutlined />;
     let bgColor = 'var(--bg-primary)';
     let accentColor = '#d9d9d9'; // Default gray
     let iconBg = 'rgba(140, 140, 140, 0.1)';
     
     if (type === 'improvements') {
-      color = '#38cb89';
+      color = 'var(--accent-secondary)';
       prefix = <ArrowUpOutlined />;
       bgColor = 'linear-gradient(135deg, rgba(56, 203, 137, 0.1) 0%, var(--bg-primary) 100%)';
-      accentColor = '#38cb89';
+      accentColor = 'var(--accent-secondary)';
       iconBg = 'rgba(56, 203, 137, 0.15)';
     } else if (type === 'regressions') {
       color = '#ff4d4f';
@@ -230,7 +230,7 @@ const ActivityTab = () => {
       accentColor = '#ff4d4f';
       iconBg = 'rgba(255, 77, 79, 0.15)';
     } else if (type === 'unchanged') {
-       color = '#8c8c8c';
+       color = 'var(--text-tertiary)';
        bgColor = 'linear-gradient(135deg, rgba(140, 140, 140, 0.05) 0%, var(--bg-primary) 100%)';
        accentColor = '#d9d9d9';
        iconBg = 'rgba(140, 140, 140, 0.15)';
@@ -466,7 +466,7 @@ const ActivityTab = () => {
                 )}
                 {comparison.siteHealth.resolved.length > 0 && (
                   <div>
-                    <Text strong style={{ color: '#38cb89' }}>Issues Resolved:</Text>
+                    <Text strong style={{ color: 'var(--accent-secondary)' }}>Issues Resolved:</Text>
                     <ul>
                       {comparison.siteHealth.resolved.map(issue => (
                         <li key={issue.id}>Issue #{issue.id} (was {issue.prevCount} pages, now 0)</li>

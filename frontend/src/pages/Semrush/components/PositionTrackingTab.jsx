@@ -232,7 +232,7 @@ const PositionTrackingTab = () => {
   };
 
   const renderWizard = () => (
-    <div style={{ maxWidth: 800, margin: '40px auto', background: '#fff', borderRadius: 12, padding: 32, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+    <div style={{ maxWidth: 800, margin: '40px auto', background: 'var(--bg-secondary)', borderRadius: 12, padding: 32, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <Title level={3}>New Position Tracking Campaign</Title>
         <Text type="secondary">Set up daily tracking for your most important keywords.</Text>
@@ -241,17 +241,17 @@ const PositionTrackingTab = () => {
       {step === 1 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <Title level={5} style={{ marginBottom: 16 }}>1. Targeting</Title>
-          <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, marginBottom: 24 }}>
-            <Globe size={16} style={{ marginRight: 8, color: '#722ed1' }}/> 
-            <strong>{domain}</strong> <span style={{ color: '#8c8c8c' }}>as Root domain</span>
+          <div style={{ background: 'var(--app-shell-bg)', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid var(--border-color)' }}>
+            <Globe size={16} style={{ marginRight: 8, color: 'var(--accent-info)' }}/> 
+            <strong style={{ color: 'var(--text-primary)' }}>{domain}</strong> <span style={{ color: 'var(--text-tertiary)' }}>as Root domain</span>
           </div>
 
           <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={12}>
               <Text strong>Search engine</Text>
               <div style={{ marginTop: 8 }}>
-                <Button type="primary" style={{ background: '#fff', color: '#1890ff', borderColor: '#1890ff', marginRight: 8 }}>Google</Button>
-                <Button disabled>Bing</Button>
+                <Button type="default" style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', marginRight: 8, background: 'transparent' }}>Google</Button>
+                <Button disabled style={{ background: 'transparent' }}>Bing</Button>
               </div>
             </Col>
             <Col span={12}>
@@ -267,7 +267,7 @@ const PositionTrackingTab = () => {
                 </Button>
                 <Button 
                   type={config.device === 'Mobile' ? 'primary' : 'default'}
-                  onClick={() => setConfig({...config, Mobile: 'Mobile'})}
+                  onClick={() => setConfig({...config, device: 'Mobile'})}
                   icon={<Smartphone size={14} />}
                 >
                   Mobile
@@ -314,7 +314,7 @@ const PositionTrackingTab = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button type="link" onClick={() => setStep(1)}>&larr; Back To Targeting</Button>
-            <Button type="primary" onClick={handleStartTracking} loading={saving} size="large" style={{ background: '#52c41a', borderColor: '#52c41a' }}>
+            <Button type="primary" onClick={handleStartTracking} loading={saving} size="large" style={{ background: 'var(--accent-success)', borderColor: 'var(--accent-success)' }}>
               Start Tracking
             </Button>
           </div>
@@ -341,10 +341,10 @@ const PositionTrackingTab = () => {
         if (!val) return '-';
         const intentCode = String(val).split(',')[0];
         const intentMap = {
-          '0': { label: 'C', color: '#faad14', bg: '#fffbe6', title: 'Commercial' },
-          '1': { label: 'I', color: 'var(--accent-primary)', bg: '#e6f7ff', title: 'Informational' },
-          '2': { label: 'N', color: '#722ed1', bg: '#f9f0ff', title: 'Navigational' },
-          '3': { label: 'T', color: '#52c41a', bg: '#f6ffed', title: 'Transactional' }
+          '0': { label: 'C', color: 'var(--accent-warning)', bg: '#fffbe6', title: 'Commercial' },
+          '1': { label: 'I', color: 'var(--accent-primary)', bg: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', title: 'Informational' },
+          '2': { label: 'N', color: 'var(--accent-info)', bg: '#f9f0ff', title: 'Navigational' },
+          '3': { label: 'T', color: 'var(--accent-success)', bg: '#f6ffed', title: 'Transactional' }
         };
         const intent = intentMap[intentCode];
         if (!intent) return '-';
@@ -416,9 +416,9 @@ const PositionTrackingTab = () => {
         let diff = 0;
         if (prevPos > 0 && prevPos !== pos && prevPos < 101 && pos < 101) diff = prevPos - pos;
 
-        if (diff > 0) return <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>;
+        if (diff > 0) return <span style={{ color: 'var(--accent-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>;
         if (diff < 0) return <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>;
-        return <span style={{ color: '#bfbfbf' }}>-</span>;
+        return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
       }
     },
     { title: 'Vis.', dataIndex: 'visibility', key: 'visibility', render: val => val === null ? <Text type="secondary">Unavailable</Text> : `${Number(val).toFixed(2)}%`, sorter: (a, b) => (a.visibility || 0) - (b.visibility || 0) },
@@ -516,7 +516,7 @@ const PositionTrackingTab = () => {
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <div>
-              <Title level={3} style={{ margin: 0 }}>Position Tracking for <span style={{ color: '#722ed1' }}>{domain}</span></Title>
+              <Title level={3} style={{ margin: 0 }}>Position Tracking for <span style={{ color: 'var(--accent-info)' }}>{domain}</span></Title>
               <Text type="secondary">
                 <Globe size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}/> {data?.config?.location?.toUpperCase()} | 
                 <Monitor size={14} style={{ display: 'inline', verticalAlign: 'middle', margin: '0 4px 0 8px' }}/> {data?.config?.device}
@@ -560,9 +560,9 @@ const PositionTrackingTab = () => {
             <>
               <Row gutter={24} style={{ marginBottom: 24 }}>
                 <Col span={8}>
-                  <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderTop: '4px solid #722ed1' }}>
+                  <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderTop: '4px solid var(--accent-info)' }}>
                     <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Visibility</Text>
-                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: 'var(--text-primary)' }}>
                       {data?.overview?.visibility ? Number(data.overview.visibility).toFixed(2) : '0.00'}%
                     </Title>
                   </Card>
@@ -570,7 +570,7 @@ const PositionTrackingTab = () => {
                 <Col span={8}>
                   <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                     <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Est. Traffic</Text>
-                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: 'var(--text-primary)' }}>
                       {data?.overview?.traffic ? Number(data.overview.traffic).toLocaleString() : '0'}
                     </Title>
                   </Card>
@@ -578,7 +578,7 @@ const PositionTrackingTab = () => {
                 <Col span={8}>
                   <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                     <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Avg. Position</Text>
-                    <Title level={2} style={{ margin: '8px 0 0 0', color: '#141414' }}>
+                    <Title level={2} style={{ margin: '8px 0 0 0', color: 'var(--text-primary)' }}>
                       {data?.overview?.avgPosition ? Number(data.overview.avgPosition).toFixed(2) : '0.00'}
                     </Title>
                   </Card>
@@ -586,19 +586,19 @@ const PositionTrackingTab = () => {
               </Row>
 
               {data?.trend && data.trend.length > 0 && (
-                <div className="semrush-chart-card" style={{ padding: 24, marginBottom: 24, background: '#fff', borderRadius: 12 }}>
+                <div className="semrush-chart-card" style={{ padding: 24, marginBottom: 24, background: 'var(--bg-secondary)', borderRadius: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-                     <div style={{ width: 12, height: 12, borderRadius: 2, background: '#722ed1', marginRight: 8 }} />
+                     <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--accent-info)', marginRight: 8 }} />
                      <Text strong>{domain}</Text>
                   </div>
                   <div style={{ height: 300, width: '100%' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={data.trend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                         <XAxis 
                           dataKey="date" 
-                          tick={{ fontSize: 12, fill: '#8c8c8c' }} 
-                          axisLine={{ stroke: '#f0f0f0' }} 
+                          tick={{ fontSize: 12, fill: 'var(--text-tertiary)' }} 
+                          axisLine={{ stroke: 'var(--border-color)' }} 
                           tickLine={false} 
                           tickFormatter={(val) => {
                             const d = new Date(val);
@@ -606,7 +606,7 @@ const PositionTrackingTab = () => {
                           }}
                         />
                         <YAxis 
-                          tick={{ fontSize: 12, fill: '#8c8c8c' }} 
+                          tick={{ fontSize: 12, fill: 'var(--text-tertiary)' }} 
                           axisLine={false} 
                           tickLine={false} 
                           tickFormatter={(val) => `${val}%`}
@@ -619,10 +619,10 @@ const PositionTrackingTab = () => {
                         <Line 
                           type="monotone" 
                           dataKey="visibility" 
-                          stroke="#722ed1" 
+                          stroke="var(--accent-info)" 
                           strokeWidth={3} 
-                          dot={{ r: 4, fill: '#722ed1', strokeWidth: 0 }} 
-                          activeDot={{ r: 6, fill: '#722ed1', stroke: '#fff', strokeWidth: 2 }} 
+                          dot={{ r: 4, fill: 'var(--accent-info)', strokeWidth: 0 }} 
+                          activeDot={{ r: 6, fill: 'var(--accent-info)', stroke: '#fff', strokeWidth: 2 }} 
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -640,11 +640,11 @@ const PositionTrackingTab = () => {
                   pagination={false}
                   size="small"
                   columns={[
-                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: 'var(--accent-primary)' }}>{text}</Text> },
                     { title: 'Pos.', dataIndex: 'position', key: 'position', render: (text, record) => (
                       <span>
                         {text}
-                        {record.diff1 > 0 && <span style={{ color: '#52c41a', marginLeft: 4, fontSize: 12 }}>↑ {record.diff1}</span>}
+                        {record.diff1 > 0 && <span style={{ color: 'var(--accent-success)', marginLeft: 4, fontSize: 12 }}>↑ {record.diff1}</span>}
                         {record.diff1 < 0 && <span style={{ color: '#ff4d4f', marginLeft: 4, fontSize: 12 }}>↓ {Math.abs(record.diff1)}</span>}
                       </span>
                     )},
@@ -662,8 +662,8 @@ const PositionTrackingTab = () => {
                   pagination={false}
                   size="small"
                   columns={[
-                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
-                    { title: 'Visibility gain', dataIndex: 'visibilityDiff', key: 'visibilityDiff', align: 'right', render: (val) => <Text style={{ color: '#52c41a' }}>+{Number(val).toFixed(2)}%</Text> }
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: 'var(--accent-primary)' }}>{text}</Text> },
+                    { title: 'Visibility gain', dataIndex: 'visibilityDiff', key: 'visibilityDiff', align: 'right', render: (val) => <Text style={{ color: 'var(--accent-success)' }}>+{Number(val).toFixed(2)}%</Text> }
                   ]}
                 />
               </Card>
@@ -677,7 +677,7 @@ const PositionTrackingTab = () => {
                   pagination={false}
                   size="small"
                   columns={[
-                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: '#1890ff' }}>{text}</Text> },
+                    { title: 'Keyword', dataIndex: 'keyword', key: 'keyword', render: (text) => <Text style={{ color: 'var(--accent-primary)' }}>{text}</Text> },
                     { title: 'Visibility loss', dataIndex: 'visibilityDiff', key: 'visibilityDiff', align: 'right', render: (val) => <Text style={{ color: '#ff4d4f' }}>{Number(val).toFixed(2)}%</Text> }
                   ]}
                 />

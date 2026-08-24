@@ -208,7 +208,7 @@ const DirectPackagesTab = () => {
 
           return (
           <div key={pkg._id} style={{
-            background: '#fff',
+            background: 'var(--bg-secondary)',
             borderRadius: '24px',
             display: 'flex',
             flexDirection: 'column',
@@ -288,12 +288,12 @@ const DirectPackagesTab = () => {
             <div style={{ padding: '32px 24px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', marginBottom: '32px' }}>
                 <div style={{
-                   background: '#fff',
-                   border: '1px solid #e5e7eb',
+                   background: 'var(--bg-primary)',
+                   border: '1px solid var(--border-color)',
                    padding: '6px 14px',
                    borderRadius: '20px',
                    fontSize: '13px',
-                   color: '#4b5563',
+                   color: 'var(--text-secondary)',
                    fontWeight: 500,
                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                 }}>
@@ -305,12 +305,12 @@ const DirectPackagesTab = () => {
                   if (!isIncluded) return null;
                   return (
                     <div key={feat.id} style={{
-                       background: '#fff',
-                       border: '1px solid #e5e7eb',
+                       background: 'var(--bg-primary)',
+                       border: '1px solid var(--border-color)',
                        padding: '6px 14px',
                        borderRadius: '20px',
                        fontSize: '13px',
-                       color: '#4b5563',
+                       color: 'var(--text-secondary)',
                        fontWeight: 500,
                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                     }}>

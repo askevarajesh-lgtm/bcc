@@ -80,7 +80,7 @@ const CompetitorAnalysisTab = () => {
       render: (text) => (
         <Space>
           <img src={`https://www.google.com/s2/favicons?domain=${text}`} alt="" width={16} />
-          <Text strong style={{ color: '#1890ff', cursor: 'pointer' }}>{text}</Text>
+          <Text strong style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>{text}</Text>
         </Space>
       )
     },

@@ -146,7 +146,7 @@ const SemrushDashboard = () => {
 
     let text = `${metricObject.value}${isPercent ? '%' : ''}`;
     if (metricObject.status === 'stale') {
-      return <Text strong style={{ color: 'var(--accent-primary)' }}>{text} <span style={{ fontSize: 10, color: '#8c8c8c' }}>(Stale)</span></Text>;
+      return <Text strong style={{ color: 'var(--accent-primary)' }}>{text} <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>(Stale)</span></Text>;
     }
     
     return <Text strong style={{ color: 'var(--accent-primary)' }}>{text}</Text>;
