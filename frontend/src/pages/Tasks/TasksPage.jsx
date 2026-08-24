@@ -223,15 +223,18 @@ const TasksPage = () => {
     return () => window.removeEventListener("resize", calculateWidth);
   }, []);
 
+  const isClientRole = ['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client");
+  const canManageClients = user?.permissions && (user.permissions['Clients-Accounts']?.Read || user.permissions['Clients-SLA & Success']?.Read);
+
   const handleTaskClick = (task) => {
     setSelectedTask(task);
     setDrawerVisible(true);
   };
 
   const handleAddTask = (statusId) => {
-    if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
-      navigate(`${getBaseRoute()}/tasks/new`, { state: { initialStatus: statusId } });
-    } else if (userRole === 'commander_admin') {
+    if (isClientRole) {
+      navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "client", initialStatus: statusId } });
+    } else if (userRole === 'commander_admin' || (!canManageClients && !isAdmin)) {
       navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand", initialStatus: statusId } });
     } else {
       setPendingInitialStatus(statusId);
@@ -240,9 +243,9 @@ const TasksPage = () => {
   };
 
   const handleOpenCreateTask = () => {
-    if (['client', 'agency_client'].includes(userRole) || location.pathname.startsWith("/client")) {
-      navigate(`${getBaseRoute()}/tasks/new`);
-    } else if (userRole === 'commander_admin') {
+    if (isClientRole) {
+      navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "client" } });
+    } else if (userRole === 'commander_admin' || (!canManageClients && !isAdmin)) {
       navigate(`${getBaseRoute()}/tasks/new`, { state: { taskTarget: "own_brand" } });
     } else {
       setPendingInitialStatus(null);

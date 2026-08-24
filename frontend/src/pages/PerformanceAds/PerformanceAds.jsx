@@ -58,69 +58,23 @@ const PerformanceAds = () => {
     fetchAdminClients();
   }, [user]);
 
-  const clients = ['commander_admin', 'supreme_super_admin'].includes(user?.role) ? adminClients : (clientsData?.data || []);
+  const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user?.role);
+  const clients = isSuperAdmin ? adminClients : (clientsData?.data || []);
 
   useEffect(() => {
-    if (selectedClient) {
-      fetchDashboardData();
+    if (isSuperAdmin) {
+      if (selectedClient) fetchDashboardData();
+    } else {
+      // Standard users do not need a selectedClient, just fetch
+      if (user) fetchDashboardData();
     }
-  }, [selectedClient]);
+  }, [selectedClient, isSuperAdmin, user]);
 
   useEffect(() => {
-    if (isAdAccountModalOpen && availableAdAccounts.length === 0) {
-      const fetchAccounts = async () => {
-        setIsFetchingAccounts(true);
-        try {
-          const res = await api.get(`/integrations/meta/ad-accounts?clientId=${selectedClient}`);
-          if (res.data.success) {
-            setAvailableAdAccounts(res.data.data);
-            setSelectedAdAccountIds(adAccounts.map(a => a.id));
-          } else {
-            message.error('Failed to fetch ad accounts');
-          }
-        } catch (error) {
-          console.error('Error fetching ad accounts:', error);
-          message.error(error.response?.data?.message || 'Error fetching ad accounts');
-        } finally {
-          setIsFetchingAccounts(false);
-        }
-      };
-      fetchAccounts();
-    }
-  }, [isAdAccountModalOpen]);
-
-  const handleSaveAdAccounts = async () => {
-    if (selectedAdAccountIds.length === 0) {
-      return message.warning('Please select at least one ad account');
-    }
-    const selectedAccounts = availableAdAccounts.filter(a => selectedAdAccountIds.includes(a.id)).map(a => ({ 
-      id: a.id, 
-      name: a.name, 
-      balance: a.balance, 
-      currency: a.currency, 
-      account_status: a.account_status 
-    }));
-    setIsSavingAccounts(true);
-    try {
-      const res = await api.post(`/integrations/meta/ad-accounts?clientId=${selectedClient}`, { selectedAdAccounts: selectedAccounts });
-      if (res.data.success) {
-        message.success('Ad accounts saved successfully!');
-        setAdAccounts(selectedAccounts);
-        setIsAdAccountModalOpen(false);
-        handleSync();
-      }
-    } catch (error) {
-      message.error('Failed to save ad accounts');
-    } finally {
-      setIsSavingAccounts(false);
-    }
-  };
-
-  useEffect(() => {
-    if (clients.length > 0 && !selectedClient) {
+    if (isSuperAdmin && clients.length > 0 && !selectedClient) {
       setSelectedClient(clients[0]._id);
     }
-  }, [clients, selectedClient]);
+  }, [clients, selectedClient, isSuperAdmin]);
 
   const fetchDashboardData = async () => {
     try {
@@ -154,6 +108,58 @@ const PerformanceAds = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAdAccountModalOpen && availableAdAccounts.length === 0) {
+      const fetchAccounts = async () => {
+        setIsFetchingAccounts(true);
+        try {
+          const res = await api.get(`/integrations/meta/ad-accounts?clientId=${selectedClient}`);
+          if (res.data.success) {
+            setAvailableAdAccounts(res.data.data);
+            setSelectedAdAccountIds(adAccounts.map(a => a.id));
+          } else {
+            message.error('Failed to fetch ad accounts');
+          }
+        } catch (error) {
+          console.error('Error fetching ad accounts:', error);
+          message.error(error.response?.data?.message || 'Error fetching ad accounts');
+        } finally {
+          setIsFetchingAccounts(false);
+        }
+      };
+      fetchAccounts();
+    }
+  }, [isAdAccountModalOpen, availableAdAccounts.length, selectedClient, adAccounts]);
+
+  const handleSaveAdAccounts = async () => {
+    if (selectedAdAccountIds.length === 0) {
+      return message.warning('Please select at least one ad account');
+    }
+    const selectedAccounts = availableAdAccounts.filter(a => selectedAdAccountIds.includes(a.id)).map(a => ({ 
+      id: a.id, 
+      name: a.name, 
+      balance: a.balance, 
+      currency: a.currency, 
+      account_status: a.account_status 
+    }));
+    setIsSavingAccounts(true);
+    try {
+      const res = await api.post(`/integrations/meta/ad-accounts?clientId=${selectedClient}`, { selectedAdAccounts: selectedAccounts });
+      if (res.data.success) {
+        message.success('Ad accounts saved successfully!');
+        setAdAccounts(selectedAccounts);
+        setIsAdAccountModalOpen(false);
+        handleSync();
+      }
+    } catch (error) {
+      message.error('Failed to save ad accounts');
+    } finally {
+      setIsSavingAccounts(false);
+    }
+  };
+
+
 
   const handleConnectMeta = async () => {
     try {

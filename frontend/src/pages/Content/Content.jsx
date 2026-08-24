@@ -164,6 +164,24 @@ const Content = () => {
     );
   }
 
+  const handleDisconnectApiKey = async () => {
+    try {
+      setIsSavingKey(true);
+      const payload = { anthropicApiKey: '' }; // empty string to clear the key
+      const response = await contentApi.saveSettings(payload);
+      if (response.success) {
+        message.success('API Key disconnected successfully!');
+        setIsApiKeyConfigured(false);
+        setTempApiKey('');
+      }
+    } catch (error) {
+      console.error('Failed to disconnect API key', error);
+      message.error('Failed to disconnect API Key');
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
@@ -172,6 +190,9 @@ const Content = () => {
           <Text type="secondary">End-to-end AI workflow from intake and planning to QA and delivery.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          {canView && (
+            <Button onClick={handleDisconnectApiKey} danger style={{ borderRadius: 8, height: 40, fontWeight: 600 }}>Disconnect API Key</Button>
+          )}
           {canView && (
             <Button type="primary" onClick={handleExport} icon={<Download size={16} />} style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 600 }}>Export Pipeline</Button>
           )}

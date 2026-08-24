@@ -73,7 +73,6 @@ const UserManagementTab = () => {
     if (['supreme_super_admin', 'superadmin', 'commander_admin'].includes(currentRole)) {
       return {
         'General': [],
-        'Clients': ['Accounts', 'Direct Brand'],
         'Workspace': [
           // 'Strategy', 
           'SEO / AEO / GEO', 'Content', 'AI Studio',

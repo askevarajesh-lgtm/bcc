@@ -54,16 +54,34 @@ class AiClientWrapper {
             console.log("=================================");
 
             let msg;
-            try {
-              msg = await this.anthropic.messages.create(anthropicParams, { timeout: params.timeout || 120000 });
-            } catch (err) {
-              console.error("=== ANTHROPIC API ERROR ===");
-              console.error("message:", err.message);
-              console.error("status:", err.status);
-              console.error("type:", err.type);
-              console.error("error:", err.error);
-              console.error("===========================");
-              throw err;
+            const fallbackModels = [
+              anthropicParams.model,
+              'claude-3-5-sonnet-latest',
+              'claude-3-5-sonnet-20241022',
+              'claude-3-5-sonnet-20240620',
+              'claude-3-sonnet-20240229',
+              'claude-3-haiku-20240307'
+            ];
+            const uniqueModels = [...new Set(fallbackModels)];
+
+            for (let i = 0; i < uniqueModels.length; i++) {
+              try {
+                anthropicParams.model = uniqueModels[i];
+                msg = await this.anthropic.messages.create(anthropicParams, { timeout: params.timeout || 120000 });
+                break; // Success!
+              } catch (err) {
+                if (err.status === 404 && i < uniqueModels.length - 1) {
+                  console.warn(`Model ${uniqueModels[i]} not found (404), falling back to ${uniqueModels[i+1]}...`);
+                  continue;
+                }
+                console.error("=== ANTHROPIC API ERROR ===");
+                console.error("message:", err.message);
+                console.error("status:", err.status);
+                console.error("type:", err.type);
+                console.error("error:", err.error);
+                console.error("===========================");
+                throw err;
+              }
             }
 
             console.log("=== ANTHROPIC WEBSITE DEBUG ===");

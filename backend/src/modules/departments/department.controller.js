@@ -8,7 +8,11 @@ exports.getDepartments = async (req, res, next) => {
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       queryFilter.brandId = req.user.brandId || req.user._id;
     } else {
-      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId && !req.user.agencyId) {
+        queryFilter.adminId = req.user.adminId;
+      } else {
+        queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      }
     }
     const departments = await Department.find(queryFilter).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: departments });
@@ -25,7 +29,11 @@ exports.getDepartmentsDynamic = async (req, res, next) => {
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
       queryFilter.brandId = req.user.brandId || req.user._id;
     } else {
-      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      if (req.user.adminId && !req.user.agencyId) {
+        queryFilter.adminId = req.user.adminId;
+      } else {
+        queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+      }
     }
     const departments = await Department.find(queryFilter).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: { departments } });

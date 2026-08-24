@@ -395,6 +395,7 @@ const AppRoutes = () => {
           <Route path="automation" element={<Automation />} />
           <Route path="website/*" element={<WebsiteBuilder />} />
           <Route path="website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+          <Route path="website/:websiteId/blogs/:blogId/posts/:postId/edit" element={<BlogPostBuilderRouteWrapper />} />
           <Route path="chatgpt" element={<ClientChatGPTPage />} />
           <Route path="canva" element={<ClientCanvaPage />} />
           <Route path="benchmarks" element={<Benchmarks />} />
@@ -587,6 +588,8 @@ const AppRoutes = () => {
           <Route path="workspace/projects/:id" element={<ProjectDetail />} />
           <Route path="workspace/projects/:id/edit" element={<ProjectForm />} />
           <Route path="workspace/website/*" element={<WebsiteBuilder />} />
+          <Route path="workspace/website/:websiteId/pages/:pageId/edit" element={<BuilderRouteWrapper />} />
+          <Route path="workspace/website/:websiteId/blogs/:blogId/posts/:postId/edit" element={<BlogPostBuilderRouteWrapper />} />
           <Route path="workspace/meetings" element={<MeetingsPage />} />
           <Route path="workspace/calendar" element={<CalendarPage />} />
           <Route path="workspace/deliverables" element={<DeliverablesPage />} />

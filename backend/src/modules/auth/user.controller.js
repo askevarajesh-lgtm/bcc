@@ -44,8 +44,14 @@ exports.getUsers = async (req, res, next) => {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       }
     } else {
-      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
-      queryFilter.brandId = null;
+      if (req.user.adminId && !req.user.agencyId) {
+        queryFilter.adminId = req.user.adminId;
+        queryFilter.agencyId = null;
+        queryFilter.brandId = null;
+      } else {
+        queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+        queryFilter.brandId = null;
+      }
       queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
     }
 
@@ -76,8 +82,14 @@ exports.getUsersDropdown = async (req, res, next) => {
         queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin', 'agency_super_admin'] };
       }
     } else {
-      queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
-      queryFilter.brandId = null;
+      if (req.user.adminId && !req.user.agencyId) {
+        queryFilter.adminId = req.user.adminId;
+        queryFilter.agencyId = null;
+        queryFilter.brandId = null;
+      } else {
+        queryFilter.agencyId = req.companyId || req.user.agencyId || req.user._id;
+        queryFilter.brandId = null;
+      }
       queryFilter.role = { $nin: ['supreme_super_admin', 'commander_admin'] };
     }
 
