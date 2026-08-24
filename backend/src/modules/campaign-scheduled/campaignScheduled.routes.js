@@ -557,21 +557,58 @@ router.get("/auth/facebook/callback", async (req, res) => {
       console.warn("[FB Callback] Failed to auto-discover pages:", fetchErr.message);
     }
 
-    // Save the User Access Token to the Discovery DB so the frontend API can retrieve it later
-    // We use Discovery instead of session because cross-origin API calls don't send cookies reliably
-    await Discovery.findOneAndUpdate(
-      { id: `fb_temp_${companyId}` },
-      {
-        id: `fb_temp_${companyId}`,
-        data: { longToken, expiresAt, discoveredPages },
-        createdAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+    // Auto-connect discovered pages
+    if (discoveredPages.length > 0) {
+      for (const fbPageData of discoveredPages) {
+        if (fbPageData && fbPageData.id) {
+          const facebookAccountId = buildScopedAccountId("fb", companyId, fbPageData.id);
+          await upsertAccount(
+            {
+              id: facebookAccountId,
+              platform: "facebook",
+              page_id: fbPageData.id,
+              page_name: fbPageData.name,
+              username: fbPageData.name,
+              access_token: fbPageData.access_token,
+              token_type: "page",
+              expires_at: expiresAt,
+              connected_at: new Date().toISOString(),
+            },
+            companyId,
+            clientCompanyId,
+          );
+
+          // If there's an associated Instagram account, connect it too
+          if (fbPageData.instagram_business_account && fbPageData.instagram_business_account.id) {
+            const igData = fbPageData.instagram_business_account;
+            const igAccountId = buildScopedAccountId("ig", companyId, igData.id);
+            await upsertAccount(
+              {
+                id: igAccountId,
+                platform: "instagram",
+                page_id: fbPageData.id,
+                page_name: fbPageData.name,
+                ig_user_id: igData.id,
+                username: igData.username || igData.name,
+                access_token: fbPageData.access_token, // IG uses the page's token
+                token_type: "instagram",
+                expires_at: expiresAt,
+                connected_at: new Date().toISOString(),
+              },
+              companyId,
+              clientCompanyId,
+            );
+          }
+        }
+      }
+
+      const accounts = await getAllAccounts(companyId, clientCompanyId);
+      broadcastSSE("accounts_sync", accounts, { companyId, clientCompanyId });
+    }
 
     const platform = decodedContext.platform || "facebook";
     res.redirect(
-      `${FRONTEND_URL}/campaigns-scheduled?oauth=facebook_manual_setup&platform=${platform}`,
+      `${FRONTEND_URL}/campaigns-scheduled?oauth=success&platform=${platform}`,
     );
   } catch (err) {
     const msg =

@@ -88,11 +88,31 @@ exports.handleCallback = async (req, res, next) => {
     const expiresIn = longLivedRes.data.expires_in || 5184000;
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-    // 3. Get User ID
+    // 3. Get User ID and Pages
     const meRes = await axios.get(`https://graph.facebook.com/v18.0/me`, {
       params: { access_token: accessToken }
     });
     const userId = meRes.data.id;
+
+    let discoveredPages = [];
+    try {
+      const accountsRes = await axios.get(`https://graph.facebook.com/v18.0/me/accounts`, {
+        params: {
+          access_token: accessToken,
+          fields: 'id,name,access_token',
+          limit: 100
+        }
+      });
+      if (accountsRes.data && accountsRes.data.data) {
+        discoveredPages = accountsRes.data.data.map(page => ({
+          pageId: page.id,
+          pageName: page.name,
+          accessToken: page.access_token
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching /me/accounts during callback:', err.message);
+    }
 
     // 4. Save to Database
     await Integration.findOneAndUpdate(
@@ -103,7 +123,7 @@ exports.handleCallback = async (req, res, next) => {
         config: {
           accessToken,
           userId,
-          pages: [],
+          pages: discoveredPages,
           expiresAt
         }
       },
@@ -123,7 +143,17 @@ exports.getIntegrations = async (req, res, next) => {
   try {
     const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
     const ownerId = (req.user && req.user.role === 'user') ? req.user._id : null;
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', ownerId, isActive: true });
+    
+    // Admins should see the company's active integration regardless of who authorized it.
+    // Regular users should see their own, or we can just show the company's integration.
+    // For Facebook Leads, it's typically a company-wide setting, so we'll fetch the latest active one for the company.
+    const query = { companyId, type: 'facebook_leads', isActive: true };
+    if (ownerId) {
+      query.ownerId = ownerId;
+    }
+    
+    // Sort by updatedAt descending to get the most recently authorized integration
+    const integration = await Integration.findOne(query).sort({ updatedAt: -1 });
     
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(200).json({ success: true, data: { isConnected: false, integrations: [] } });

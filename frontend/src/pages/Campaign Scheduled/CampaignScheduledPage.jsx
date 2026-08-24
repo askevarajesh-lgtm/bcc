@@ -17,7 +17,6 @@ import AccountsView from "./AccountsView";
 import CalendarView from "./CalendarView";
 import CampaignLogsView from "./CampaignLogsView";
 import InstagramConnectModal from "./InstagramConnectModal";
-import FacebookPageIDModal from "./FacebookPageIDModal";
 import LinkedInPageSelectModal from "./LinkedInPageSelectModal";
 import YouTubeChannelSelectModal from "./YouTubeChannelSelectModal";
 import GoogleBusinessLocationSelectModal from "./GoogleBusinessLocationSelectModal";
@@ -50,9 +49,6 @@ export default function CampaignScheduledPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [connectOpen, setConnectOpen] = useState(false);
-  const [facebookModalOpen, setFacebookModalOpen] = useState(false);
-  const [facebookModalPlatform, setFacebookModalPlatform] = useState("facebook");
-  const [fbDiscoveredPages, setFbDiscoveredPages] = useState([]);
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const [loadingPlatform, setLoadingPlatform] = useState(null);
   const [disconnectingAccountId, setDisconnectingAccountId] = useState(null);
@@ -317,24 +313,9 @@ export default function CampaignScheduledPage() {
           setGbDiscoveryOpen(true);
           fetchGoogleBusinessDiscovery(params.get("discoveryId"));
         }
-      } else if (oauth === "facebook_manual_setup") {
-        const platform = params.get("platform") || "facebook";
-        message.success(`${platform === "instagram" ? "Instagram" : "Facebook"} Login Successful! Please select your ID to complete connection.`);
-        setFacebookModalPlatform(platform);
-        setFacebookModalOpen(true);
-        // Fetch discovered pages
-        campaignScheduledApi.getFacebookDiscovery(activeClientId)
-          .then(data => {
-            if (data && data.discoveredPages) {
-              setFbDiscoveredPages(data.discoveredPages);
-            }
-          })
-          .catch(err => {
-            console.warn("Failed to fetch FB discovery:", err);
-          });
       }
       window.history.replaceState({}, "", window.location.pathname);
-      if (oauth !== "discovery" && oauth !== "facebook_manual_setup") {
+      if (oauth !== "discovery") {
         loadInitial();
       }
     }
@@ -707,25 +688,6 @@ export default function CampaignScheduledPage() {
           campaignScheduledApi.startInstagramOAuth(activeClientId);
         }}
       />
-      
-      <FacebookPageIDModal
-        open={facebookModalOpen}
-        platform={facebookModalPlatform}
-        discoveredPages={fbDiscoveredPages}
-        onCancel={() => setFacebookModalOpen(false)}
-        onConnect={async (pageIds, instaIds) => {
-          try {
-            await campaignScheduledApi.connectFacebookManualPage(pageIds, instaIds, activeClientId);
-            message.success("Accounts successfully connected!");
-            setFacebookModalOpen(false);
-            loadInitial();
-          } catch (err) {
-            const errorMsg = err.message || "Failed to connect Accounts";
-            message.error(errorMsg);
-          }
-        }}
-      />
-
       <LinkedInPageSelectModal
         open={liDiscoveryOpen}
         data={liDiscoveryData}

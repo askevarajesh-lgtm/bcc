@@ -52,7 +52,8 @@ const FB_SCOPES = [
   "pages_show_list",
   "pages_manage_metadata",
   "instagram_basic",
-  "instagram_content_publish"
+  "instagram_content_publish",
+  "business_management"
 ].join(",");
 const LINKEDIN_SCOPES = [
   "openid",

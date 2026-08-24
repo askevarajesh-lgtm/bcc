@@ -1,13 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
-// import removed
 import { useParams } from "react-router-dom";
-import FacebookPageIDModal from "../Campaign Scheduled/FacebookPageIDModal";
 import {
   Card,
   Button,
   Table,
   Tag,
-  Switch,
   Modal,
   List,
   Popconfirm,
@@ -16,7 +13,6 @@ import {
   Typography,
   Divider,
   Alert,
-  Tooltip,
   Skeleton
 } from "antd";
 import {
@@ -34,7 +30,6 @@ import {
   useDisconnectFacebookPageMutation,
   useLazyGetFacebookSyncLogsQuery,
   useSyncFacebookLeadsMutation,
-  useConnectFacebookManualPageMutation,
   useLazyGetFacebookFormsQuery
 } from "../../api/integrationApi";
 
@@ -47,7 +42,7 @@ const getBackendUrl = () => {
 
 const FacebookLeadsTab = () => {
   const token = localStorage.getItem('token');
-  const selectedClientId = null; // Removed redux dependency
+  const selectedClientId = null;
   const { id: integrationId } = useParams();
   
   const {
@@ -63,26 +58,21 @@ const FacebookLeadsTab = () => {
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
   const [isSyncingPageId, setIsSyncingPageId] = useState(null);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   
   const [fetchForms, { data: formsRes, isFetching: isFetchingForms }] = useLazyGetFacebookFormsQuery();
   const [isFormsModalOpen, setIsFormsModalOpen] = useState(false);
   const [selectedFormIds, setSelectedFormIds] = useState([]);
   const [pageForForms, setPageForForms] = useState(null);
 
-  const [connectManualPage, { isLoading: isConnectingManual }] = useConnectFacebookManualPageMutation();
   const processedMessageRef = useRef(false);
 
-  // Parse callback outcomes from OAuth redirect parameters or popup messages
   useEffect(() => {
-    // 1. Handle if it happened in the same window (fallback)
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get("facebook_oauth");
     const reason = params.get("reason");
 
-    if (oauthStatus === "facebook_manual_setup" || oauthStatus === "success") {
-      message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
-      setIsManualModalOpen(true);
+    if (oauthStatus === "success") {
+      message.success("Facebook connected successfully!");
       window.history.replaceState({}, document.title, window.location.pathname);
       refetch();
     } else if (oauthStatus === "error") {
@@ -90,16 +80,14 @@ const FacebookLeadsTab = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // 2. Handle if it happened in a popup window
     const handleMessage = (event) => {
       if (event.data?.type === 'FACEBOOK_OAUTH_SUCCESS') {
         if (processedMessageRef.current) return;
         processedMessageRef.current = true;
 
         const { oauthStatus: popupStatus, reason: popupReason } = event.data;
-        if (popupStatus === "facebook_manual_setup" || popupStatus === "success") {
-          message.success("Facebook Login Successful! Please provide your Page ID to complete connection.");
-          setIsManualModalOpen(true);
+        if (popupStatus === "success") {
+          message.success("Facebook connected successfully!");
           refetch();
         } else if (popupStatus === "error") {
           message.error(`Facebook connection failed: ${popupReason || "Unknown error"}`);
@@ -195,7 +183,6 @@ const FacebookLeadsTab = () => {
   };
 
   const integrations = integrationsData?.data?.integrations || [];
-  const isConnected = integrationsData?.data?.isConnected || false;
 
   const columns = [
     {
@@ -361,11 +348,6 @@ const FacebookLeadsTab = () => {
             }
             extra={
               <Space>
-                <Button
-                  onClick={() => setIsManualModalOpen(true)}
-                >
-                  Connect via Page ID
-                </Button>
                 <Button
                   type="dashed"
                   icon={<SyncOutlined />}
@@ -541,22 +523,6 @@ const FacebookLeadsTab = () => {
           />
         )}
       </Modal>
-
-      <FacebookPageIDModal
-        open={isManualModalOpen}
-        hideInstagram={true}
-        onCancel={() => setIsManualModalOpen(false)}
-        onConnect={async (pageId, instaId) => {
-          try {
-            await connectManualPage({ pageId, instaId, ...(selectedClientId ? { clientId: selectedClientId } : {}) }).unwrap();
-            message.success("Page connected successfully!");
-            setIsManualModalOpen(false);
-            refetch();
-          } catch (err) {
-            message.error(err?.data?.message || "Failed to connect page");
-          }
-        }}
-      />
     </div>
   );
 };
