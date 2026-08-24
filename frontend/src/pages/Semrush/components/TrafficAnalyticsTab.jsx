@@ -76,7 +76,7 @@ const TrafficAnalyticsTab = () => {
         <Row gutter={[24, 24]}>
           <Col span={24}>
             <Card style={{ background: '#fffbe6', borderColor: '#ffe58f' }}>
-              <Text strong style={{ color: '#faad14' }}>Notice:</Text> Traffic Analytics add-on is not available on this SEO API account. 
+              <Text strong style={{ color: 'var(--accent-warning)' }}>Notice:</Text> Traffic Analytics add-on is not available on this SEO API account. 
               Showing search traffic estimates based on standard Domain Analytics.
             </Card>
           </Col>

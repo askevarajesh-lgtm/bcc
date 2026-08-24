@@ -14,7 +14,7 @@ const BacklinksNetworkGraph = () => {
         id: 'root',
         position: { x: 400, y: 300 },
         data: { label: domain },
-        style: { background: '#5b61f4', color: 'white', fontWeight: 'bold', padding: '10px 20px', borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(91,97,244,0.3)' },
+        style: { background: 'var(--accent-primary)', color: 'white', fontWeight: 'bold', padding: '10px 20px', borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(91,97,244,0.3)' },
         draggable: true
       }
     ];
@@ -61,7 +61,7 @@ const BacklinksNetworkGraph = () => {
   }, [domain, data]);
 
   return (
-    <div style={{ height: 600, background: 'white', border: '1px solid #f0f0f0', borderRadius: 8 }}>
+    <div style={{ height: 600, background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
       <ReactFlow nodes={nodes} edges={edges} fitView attributionPosition="bottom-left">
         <Background color="#e0e0e0" gap={16} />
         <Controls />

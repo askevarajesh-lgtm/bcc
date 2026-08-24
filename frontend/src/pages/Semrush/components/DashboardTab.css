@@ -67,7 +67,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--icon-bg, rgba(59, 130, 246, 0.1));
+  background: var(--icon-bg, color-mix(in srgb, var(--accent-primary) 10%, transparent));
   color: var(--card-accent, var(--accent-primary));
 }
 
@@ -90,7 +90,7 @@
 }
 
 .trend-up {
-  background: rgba(16, 185, 129, 0.1);
+  background: color-mix(in srgb, var(--accent-secondary) 10%, transparent);
   color: var(--accent-success);
 }
 
@@ -211,7 +211,7 @@
 .semrush-domain-icon-box {
   width: 64px;
   height: 64px;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 16px;
   display: flex;
   align-items: center;

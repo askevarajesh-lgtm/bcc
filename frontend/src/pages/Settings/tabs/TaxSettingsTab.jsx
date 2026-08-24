@@ -186,9 +186,9 @@ const TaxSettingsTab = () => {
           </div>
         )}
 
-        <div style={{ background: '#f5f7fa', padding: '16px 20px', borderRadius: 8 }}>
-          <Text strong style={{ display: 'block', marginBottom: 8 }}>How it works</Text>
-          <ul style={{ paddingLeft: 20, margin: 0, color: 'rgba(0, 0, 0, 0.65)', fontSize: 13, lineHeight: '22px' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '16px 20px', borderRadius: 8 }}>
+          <Text strong style={{ display: 'block', marginBottom: 8, color: 'var(--text-primary)' }}>How it works</Text>
+          <ul style={{ paddingLeft: 20, margin: 0, color: 'var(--text-secondary)', fontSize: 13, lineHeight: '22px' }}>
             <li>Only <strong>GST</strong> is supported (CGST+SGST or IGST as per client state).</li>
             <li>When <strong>OFF</strong>: No tax is applied to invoices.</li>
             <li>When <strong>ON</strong>: Tax is calculated as (Subtotal × GST%).</li>

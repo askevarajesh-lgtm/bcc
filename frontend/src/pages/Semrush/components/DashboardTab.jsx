@@ -40,8 +40,8 @@ const DashboardTab = () => {
   };
 
   const getHealthColor = (score) => {
-    if (score >= 80) return '#52c41a';
-    if (score >= 60) return '#faad14';
+    if (score >= 80) return 'var(--accent-success)';
+    if (score >= 60) return 'var(--accent-warning)';
     return '#f5222d';
   };
 
@@ -229,7 +229,7 @@ const DashboardTab = () => {
                   </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Organic Traffic</Text>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#52c41a' }}>{formatNumber(data['Organic Traffic'])}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-success)' }}>{formatNumber(data['Organic Traffic'])}</div>
                   </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>Paid Keywords</Text>
@@ -265,7 +265,7 @@ const DashboardTab = () => {
                     </div>
                     <div>
                       <Text type="secondary" style={{ fontSize: 12 }}>Warnings</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#faad14' }}>{health.rawData?.warnings ? health.rawData.warnings.reduce((acc, curr) => acc + curr.count, 0) : 'Unavailable'}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-warning)' }}>{health.rawData?.warnings ? health.rawData.warnings.reduce((acc, curr) => acc + curr.count, 0) : 'Unavailable'}</div>
                     </div>
                   </div>
                 </div>
@@ -285,12 +285,12 @@ const DashboardTab = () => {
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                      <span style={{ color: '#52c41a', fontWeight: 600 }}>Follow</span>
-                      <span style={{ color: '#faad14', fontWeight: 600 }}>Nofollow</span>
+                      <span style={{ color: 'var(--accent-success)', fontWeight: 600 }}>Follow</span>
+                      <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>Nofollow</span>
                     </div>
                     <div style={{ height: 8, display: 'flex', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${(backlinks.follow / Math.max(1, backlinks.total)) * 100}%`, background: '#52c41a' }} />
-                      <div style={{ flex: 1, background: '#faad14' }} />
+                      <div style={{ width: `${(backlinks.follow / Math.max(1, backlinks.total)) * 100}%`, background: 'var(--accent-success)' }} />
+                      <div style={{ flex: 1, background: 'var(--accent-warning)' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)' }}>
                       <span>{formatNumber(backlinks.follow)}</span>
@@ -308,7 +308,7 @@ const DashboardTab = () => {
             animate={{ opacity: 1 }}
             className="semrush-empty-state"
           >
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
+            <Title level={4} style={{ color: 'var(--text-tertiary)', margin: 0 }}>No Data Available</Title>
             <Text type="secondary">Click the 'Refresh AI Analysis' button above to fetch the latest insights.</Text>
           </motion.div>
         )}

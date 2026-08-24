@@ -122,12 +122,12 @@ const OrganicKeywordsTab = () => {
         const featureMap = {
           0: { label: 'Instant Answer', icon: '⚡', color: '#fadb14' },
           1: { label: 'Knowledge Panel', icon: '🧠', color: '#13c2c2' },
-          2: { label: 'Carousel', icon: '🎠', color: '#722ed1' },
+          2: { label: 'Carousel', icon: '🎠', color: 'var(--accent-info)' },
           3: { label: 'Local Pack', icon: '📍', color: '#eb2f96' },
           4: { label: 'Top Stories', icon: '📰', color: 'var(--accent-primary)' },
-          5: { label: 'Images', icon: '🖼️', color: '#52c41a' },
+          5: { label: 'Images', icon: '🖼️', color: 'var(--accent-success)' },
           6: { label: 'Sitelinks', icon: '🔗', color: '#fa8c16' },
-          7: { label: 'Reviews', icon: '⭐', color: '#faad14' },
+          7: { label: 'Reviews', icon: '⭐', color: 'var(--accent-warning)' },
           9: { label: 'Video', icon: '🎥', color: '#f5222d' },
           10: { label: 'Featured Snippet', icon: '👑', color: '#a0d911' },
           13: { label: 'Shopping', icon: '🛍️', color: 'var(--accent-primary)' }
@@ -145,7 +145,7 @@ const OrganicKeywordsTab = () => {
             ))}
             {features.length > 3 && (
               <Tooltip title={`${features.length - 3} more`}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: '#f0f0f0', border: '1px solid #d9d9d9', fontSize: 10, color: '#595959' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'var(--border-color)', border: '1px solid #d9d9d9', fontSize: 10, color: 'var(--text-secondary)' }}>
                   +{features.length - 3}
                 </div>
               </Tooltip>
@@ -170,10 +170,10 @@ const OrganicKeywordsTab = () => {
               {pos}
             </Tag>
             <div style={{ minWidth: 40 }}>
-              {diff > 0 && <span style={{ color: '#52c41a', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>}
+              {diff > 0 && <span style={{ color: 'var(--accent-success)', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowUp size={14} style={{ marginRight: 2 }} /> {diff}</span>}
               {diff < 0 && <span style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 500 }}><ArrowDown size={14} style={{ marginRight: 2 }} /> {Math.abs(diff)}</span>}
-              {diff === 0 && prevPos > 0 && <span style={{ color: '#bfbfbf', display: 'flex', alignItems: 'center', fontSize: 12 }}><Minus size={14} style={{ marginRight: 2 }} /></span>}
-              {prevPos === 0 && <span style={{ color: '#52c41a', fontSize: 10, fontWeight: 600, background: '#f6ffed', padding: '2px 4px', borderRadius: 4 }}>NEW</span>}
+              {diff === 0 && prevPos > 0 && <span style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', fontSize: 12 }}><Minus size={14} style={{ marginRight: 2 }} /></span>}
+              {prevPos === 0 && <span style={{ color: 'var(--accent-success)', fontSize: 10, fontWeight: 600, background: '#f6ffed', padding: '2px 4px', borderRadius: 4 }}>NEW</span>}
             </div>
           </div>
         );
@@ -188,10 +188,10 @@ const OrganicKeywordsTab = () => {
         if (val === undefined || val === null || val === '') return '-';
         const intents = String(val).split(',').map(Number);
         const intentMap = {
-          0: { label: 'C', color: '#faad14', bg: '#fffbe6', title: 'Commercial' },
-          1: { label: 'I', color: 'var(--accent-primary)', bg: '#e6f7ff', title: 'Informational' },
-          2: { label: 'N', color: '#722ed1', bg: '#f9f0ff', title: 'Navigational' },
-          3: { label: 'T', color: '#52c41a', bg: '#f6ffed', title: 'Transactional' }
+          0: { label: 'C', color: 'var(--accent-warning)', bg: '#fffbe6', title: 'Commercial' },
+          1: { label: 'I', color: 'var(--accent-primary)', bg: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', title: 'Informational' },
+          2: { label: 'N', color: 'var(--accent-info)', bg: '#f9f0ff', title: 'Navigational' },
+          3: { label: 'T', color: 'var(--accent-success)', bg: '#f6ffed', title: 'Transactional' }
         };
         return (
           <div style={{ display: 'flex', gap: 4 }}>
@@ -226,7 +226,7 @@ const OrganicKeywordsTab = () => {
       render: val => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 60 }}>
           <span style={{ fontSize: 13, fontWeight: 500 }}>{Number(val).toFixed(2)}%</span>
-          <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="var(--accent-primary)" trailColor="#f0f0f0" style={{ margin: 0, width: '100%' }} />
+          <Progress percent={Number(val)} showInfo={false} size="small" strokeColor="var(--accent-primary)" trailColor="var(--border-color)" style={{ margin: 0, width: '100%' }} />
         </div>
       ),
       sorter: (a, b) => Number(a.trafficPercent) - Number(b.trafficPercent)
@@ -271,7 +271,7 @@ const OrganicKeywordsTab = () => {
       align: 'center',
       render: val => (
         <Tooltip title={val}>
-          <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: '#e6f7ff', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#bae0ff'} onMouseOut={e => e.currentTarget.style.background = '#e6f7ff'}>
+          <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#bae0ff'} onMouseOut={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary) 15%, transparent)'}>
             <ExternalLink size={14} />
           </a>
         </Tooltip>
@@ -283,7 +283,7 @@ const OrganicKeywordsTab = () => {
     <div className="semrush-dashboard-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Organic Keywords for <span style={{ color: '#722ed1' }}>{domain}</span></Title>
+          <Title level={3} style={{ margin: 0 }}>Organic Keywords for <span style={{ color: 'var(--accent-info)' }}>{domain}</span></Title>
           <Text type="secondary">Displaying the top keywords driving traffic to this domain.</Text>
         </div>
         
@@ -346,7 +346,7 @@ const OrganicKeywordsTab = () => {
             className="semrush-empty-state"
           >
             <BarChart2 style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16, width: 48, height: 48 }} />
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Organic Keywords Data Available</Title>
+            <Title level={4} style={{ color: 'var(--text-tertiary)', margin: 0 }}>No Organic Keywords Data Available</Title>
             <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>Click the 'Refresh Data' button below to fetch the latest insights.</Text>
             <Button 
               type="primary" 

@@ -150,7 +150,7 @@ const SiteHealthTab = () => {
   if (!auditData) {
     return (
       <div className="site-audit-container" style={{ padding: 40, textAlign: 'center' }}>
-        <Title level={4} style={{ color: '#8c8c8c' }}>No Site Audit Data</Title>
+        <Title level={4} style={{ color: 'var(--text-tertiary)' }}>No Site Audit Data</Title>
         <Text style={{ display: 'block', marginBottom: 16 }}>Please use the 'Refresh Data' button at the top right of the dashboard to fetch the latest insights from the SEO module.</Text>
       </div>
     );
@@ -183,7 +183,7 @@ const SiteHealthTab = () => {
     { key: 'statistics', label: 'Statistics' }
   ];
 
-  const scoreColor = overallScore >= 80 ? '#38cb89' : (overallScore >= 50 ? '#faad14' : '#ff4d4f');
+  const scoreColor = overallScore >= 80 ? 'var(--accent-secondary)' : (overallScore >= 50 ? 'var(--accent-warning)' : '#ff4d4f');
 
   return (
     <div className="site-audit-container">
@@ -238,7 +238,7 @@ const SiteHealthTab = () => {
                 <Progress 
                   type="circle" 
                   percent={overallScore} 
-                  strokeColor={overallScore > 75 ? '#52c41a' : overallScore > 50 ? '#faad14' : '#f5222d'} 
+                  strokeColor={overallScore > 75 ? 'var(--accent-success)' : overallScore > 50 ? 'var(--accent-warning)' : '#f5222d'} 
                   width={140}
                   strokeWidth={8}
                 />
@@ -253,18 +253,18 @@ const SiteHealthTab = () => {
               <Title level={5}>Crawled Pages</Title>
               <Title level={2} style={{ margin: '8px 0', color: 'var(--accent-primary)' }}>{pages_crawled}</Title>
               
-              <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 24, background: '#f0f0f0' }}>
-                {healthy > 0 && <div style={{ width: `${(healthy/pages_crawled)*100}%`, background: '#52c41a' }} />}
+              <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 24, background: 'var(--border-color)' }}>
+                {healthy > 0 && <div style={{ width: `${(healthy/pages_crawled)*100}%`, background: 'var(--accent-success)' }} />}
                 {broken > 0 && <div style={{ width: `${(broken/pages_crawled)*100}%`, background: '#f5222d' }} />}
-                {haveIssues > 0 && <div style={{ width: `${(haveIssues/pages_crawled)*100}%`, background: '#faad14' }} />}
+                {haveIssues > 0 && <div style={{ width: `${(haveIssues/pages_crawled)*100}%`, background: 'var(--accent-warning)' }} />}
                 {redirected > 0 && <div style={{ width: `${(redirected/pages_crawled)*100}%`, background: 'var(--accent-primary)' }} />}
               </div>
 
-              <div className="sa-stats-row"><span style={{color: '#52c41a'}}>●</span> Healthy <Text strong>{healthy}</Text></div>
+              <div className="sa-stats-row"><span style={{color: 'var(--accent-success)'}}>●</span> Healthy <Text strong>{healthy}</Text></div>
               <div className="sa-stats-row"><span style={{color: '#f5222d'}}>●</span> Broken <Text strong>{broken}</Text></div>
-              <div className="sa-stats-row"><span style={{color: '#faad14'}}>●</span> Have issues <Text strong>{haveIssues}</Text></div>
+              <div className="sa-stats-row"><span style={{color: 'var(--accent-warning)'}}>●</span> Have issues <Text strong>{haveIssues}</Text></div>
               <div className="sa-stats-row"><span style={{color: 'var(--accent-primary)'}}>●</span> Redirects <Text strong>{redirected}</Text></div>
-              <div className="sa-stats-row"><span style={{color: '#8c8c8c'}}>●</span> Blocked <Text strong>{blocked}</Text></div>
+              <div className="sa-stats-row"><span style={{color: 'var(--text-tertiary)'}}>●</span> Blocked <Text strong>{blocked}</Text></div>
             </div>
 
             {/* Bottom Row */}
@@ -276,7 +276,7 @@ const SiteHealthTab = () => {
               <Divider style={{ margin: '16px 0' }} />
               <div style={{ padding: '0 24px' }}>
                 <Title level={5} style={{ margin: 0 }}>Warnings</Title>
-                <Title level={2} style={{ color: '#faad14', margin: 0 }}>{warnings}</Title>
+                <Title level={2} style={{ color: 'var(--accent-warning)', margin: 0 }}>{warnings}</Title>
               </div>
               <Divider style={{ margin: '16px 0' }} />
               <div style={{ padding: '0 24px 24px 24px' }}>
@@ -288,9 +288,9 @@ const SiteHealthTab = () => {
             <div className="sa-col-8 sa-card">
               <Title level={5} style={{ marginBottom: 16 }}>Top Issues</Title>
               {defectList.slice(0, 5).map((d, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? '1px solid #f0f0f0' : 'none' }}>
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? '1px solid var(--border-color)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <AlertCircle size={16} color={errorIssues.find(e=>e.id===d.id) ? '#f5222d' : warningIssues.find(w=>w.id===d.id) ? '#faad14' : 'var(--accent-primary)'} />
+                    <AlertCircle size={16} color={errorIssues.find(e=>e.id===d.id) ? '#f5222d' : warningIssues.find(w=>w.id===d.id) ? 'var(--accent-warning)' : 'var(--accent-primary)'} />
                     <Text>{d.name}</Text>
                   </div>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -321,7 +321,7 @@ const SiteHealthTab = () => {
 
             <Title level={5} style={{ color: '#f5222d', borderBottom: '2px solid #f5222d', paddingBottom: 8 }}>Errors</Title>
             {errorIssues.map((d, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
                 <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
@@ -330,9 +330,9 @@ const SiteHealthTab = () => {
             ))}
             {errorIssues.length === 0 && <Text type="secondary" style={{ display: 'block', padding: 16 }}>No errors found.</Text>}
 
-            <Title level={5} style={{ color: '#faad14', borderBottom: '2px solid #faad14', paddingBottom: 8, marginTop: 32 }}>Warnings</Title>
+            <Title level={5} style={{ color: 'var(--accent-warning)', borderBottom: '2px solid var(--accent-warning)', paddingBottom: 8, marginTop: 32 }}>Warnings</Title>
             {warningIssues.map((d, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
                 <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
@@ -343,7 +343,7 @@ const SiteHealthTab = () => {
 
             <Title level={5} style={{ color: 'var(--accent-primary)', borderBottom: '2px solid var(--accent-primary)', paddingBottom: 8, marginTop: 32 }}>Notices</Title>
             {noticeIssues.map((d, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
                 <Text><span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{d.count} issues</span> with {d.name}</Text>
                 <Popover content={<IssuePopover id={d.id} />} trigger="click" placement="bottomRight" overlayInnerStyle={{ padding: 0 }}>
                   <a style={{ fontSize: 13, cursor: 'pointer' }}>How to fix</a>
@@ -411,8 +411,8 @@ const SiteHealthTab = () => {
               {Object.keys(auditData.statusCodeGroups || {}).length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={[
-                    { name: '2xx', count: auditData.statusCodeGroups['2'] || 0, fill: '#52c41a' },
-                    { name: '3xx', count: auditData.statusCodeGroups['3'] || 0, fill: '#faad14' },
+                    { name: '2xx', count: auditData.statusCodeGroups['2'] || 0, fill: 'var(--accent-success)' },
+                    { name: '3xx', count: auditData.statusCodeGroups['3'] || 0, fill: 'var(--accent-warning)' },
                     { name: '4xx', count: auditData.statusCodeGroups['4'] || 0, fill: '#f5222d' },
                     { name: '5xx', count: auditData.statusCodeGroups['5'] || 0, fill: '#cf1322' }
                   ].filter(d => d.count > 0)}>
@@ -424,7 +424,7 @@ const SiteHealthTab = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Not provided by SEO API</div>
               )}
             </div>
 
@@ -435,7 +435,7 @@ const SiteHealthTab = () => {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: 'In Sitemap & Crawled', value: auditData.sitemapStats.crawledPages || 0, fill: '#52c41a' },
+                        { name: 'In Sitemap & Crawled', value: auditData.sitemapStats.crawledPages || 0, fill: 'var(--accent-success)' },
                         { name: 'Not in Sitemap', value: Math.max(0, pages_crawled - (auditData.sitemapStats.crawledPages || 0)), fill: '#d9d9d9' }
                       ].filter(d => d.value > 0)}
                       innerRadius={60}
@@ -443,7 +443,7 @@ const SiteHealthTab = () => {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {[{ fill: '#52c41a' }, { fill: '#d9d9d9' }].map((entry, index) => (
+                      {[{ fill: 'var(--accent-success)' }, { fill: '#d9d9d9' }].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
@@ -451,7 +451,7 @@ const SiteHealthTab = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Not provided by SEO API</div>
               )}
             </div>
 
@@ -464,11 +464,11 @@ const SiteHealthTab = () => {
                     <XAxis dataKey="depth" axisLine={false} tickLine={false} />
                     <YAxis axisLine={false} tickLine={false} />
                     <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 8 }} />
-                    <Bar dataKey="count" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: 40, textAlign: 'center', color: '#8c8c8c' }}>Not provided by SEO API</div>
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Not provided by SEO API</div>
               )}
             </div>
           </motion.div>

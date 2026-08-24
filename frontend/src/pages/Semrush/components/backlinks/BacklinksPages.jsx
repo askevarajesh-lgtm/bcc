@@ -17,7 +17,7 @@ const BacklinksPages = () => {
       width: 400,
       render: (text) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
-          <span style={{ color: '#2b2b2b', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>Not Acceptable!</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>Not Acceptable!</span>
           <a href={text} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {text} <ExternalLink size={12} style={{ marginLeft: 4 }} />
           </a>
@@ -73,8 +73,8 @@ const BacklinksPages = () => {
   ];
 
   return (
-    <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 8 }}>
-       <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)' }}>
           <Text strong style={{ fontSize: 16 }}>Indexed Pages 1 - {pages.length}</Text>
        </div>
        <Table

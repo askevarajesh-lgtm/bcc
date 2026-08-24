@@ -75,7 +75,7 @@ const BacklinkAnalyticsTab = () => {
                 title="Referring IPs" 
                 value={formatNumber(data.ips_num)} 
                 icon={<Globe size={24} />} 
-                color="#722ed1"
+                color="var(--accent-info)"
                 delay={0.3}
               />
             </div>
@@ -148,7 +148,7 @@ const BacklinkAnalyticsTab = () => {
             animate={{ opacity: 1 }}
             className="semrush-empty-state"
           >
-            <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>No Data Available</Title>
+            <Title level={4} style={{ color: 'var(--text-tertiary)', margin: 0 }}>No Data Available</Title>
             <Text type="secondary">Click the 'Refresh Data' button to fetch the latest insights from the SEO module.</Text>
           </motion.div>
         )}

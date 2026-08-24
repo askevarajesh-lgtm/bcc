@@ -25,7 +25,7 @@ const BacklinksList = () => {
       width: 350,
       render: (text, record) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
-          <span style={{ color: '#2b2b2b', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{text || record.source_url}</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{text || record.source_url}</span>
           <a href={record.source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {record.source_url} <ExternalLink size={12} style={{ marginLeft: 4 }} />
           </a>
@@ -53,12 +53,12 @@ const BacklinksList = () => {
       width: 300,
       render: (text, record) => (
         <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 20 }}>
-          <span style={{ color: '#2b2b2b', fontWeight: 500 }}>{text || 'Empty Anchor'}</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'Empty Anchor'}</span>
           <a href={record.target_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontSize: 13, wordBreak: 'break-all', marginTop: 4, textDecoration: 'none' }}>
             {record.target_url} <ExternalLink size={12} style={{ marginLeft: 4 }} />
           </a>
           <div style={{ marginTop: 8 }}>
-             <Tag color="default" style={{ fontSize: 11, background: '#f0f0f0', border: 'none', color: '#595959' }}>Text</Tag>
+             <Tag color="default" style={{ fontSize: 11, background: 'var(--border-color)', border: 'none', color: 'var(--text-secondary)' }}>Text</Tag>
           </div>
         </div>
       )
@@ -88,8 +88,8 @@ const BacklinksList = () => {
   ];
 
   return (
-    <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 8 }}>
-       <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)' }}>
           <Text strong style={{ fontSize: 16 }}>Backlinks 1 - {rawBacklinks.length}</Text>
        </div>
        <Table
