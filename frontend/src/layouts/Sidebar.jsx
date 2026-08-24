@@ -96,7 +96,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
     const fetchAccountsCount = async () => {
       try {
-        const res = await api.get('/brands', { params: { limit: 1 } });
+        const res = await api.get('/brands');
         if (res && res.data) {
           const count = res.data.count ?? res.data.pagination?.total ?? res.data.data?.length ?? 0;
           setAccountsCount(count);
@@ -108,7 +108,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
     const fetchAgenciesCount = async () => {
       try {
-        const res = await api.get('/agencies', { params: { limit: 1 } });
+        const res = await api.get('/agencies');
         if (res && res.data) {
           const count = res.data.count ?? res.data.pagination?.total ?? res.data.data?.length ?? 0;
           setAgenciesCount(count);
