@@ -1,143 +1,236 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Drawer, Badge, List, Typography, Divider, message, Space } from 'antd';
-import { ShoppingCart, X, CreditCard, ArrowRight } from 'lucide-react';
-import { getStorageData, setStorageData } from '../utils/storage';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Drawer, Badge, List, Typography, Divider, message, Space, Input, Form, Select } from 'antd';
+import { ShoppingCart, X, CreditCard, ArrowRight, ArrowLeft } from 'lucide-react';
+import { getStorageData, processCheckout } from '../utils/storage';
 import { formatCurrency } from '../utils/currency';
+import { resolveAssetUrls } from '../utils/zipExtractor';
+
+import { useParams } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
-const EcommerceStorePreview = ({ templateId }) => {
+const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
+  const { templateId: paramTemplateId } = useParams();
   const [template, setTemplate] = useState(null);
+  const [currentPageId, setCurrentPageId] = useState('');
+  const [renderedHtml, setRenderedHtml] = useState('');
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCheckoutDrawerOpen, setIsCheckoutDrawerOpen] = useState(false);
   const [customerDetails, setCustomerDetails] = useState({ name: 'Demo User', email: 'demo@example.com', address: '123 Test St' });
+  const [paymentMethod, setPaymentMethod] = useState('Card');
   
+  const containerRef = useRef(null);
   const workspaceId = 'default';
   const websiteId = 'default';
 
   useEffect(() => {
-    // Load template
     const templates = getStorageData(workspaceId, websiteId, 'templates', {});
-    const activeTemplate = templates[templateId] || { html: '<div>No template found. Please build one first.</div>', css: '', mapping: {} };
-    setTemplate(activeTemplate);
+    const targetTemplateId = paramTemplateId || propTemplateId || Object.keys(templates)[0];
+    const activeTemplate = templates[targetTemplateId];
+    
+    if (activeTemplate && activeTemplate.pages) {
+      setTemplate(activeTemplate);
+      // Try to find index/home
+      let startPage = Object.keys(activeTemplate.pages).find(k => k.toLowerCase().includes('index')) 
+                   || Object.keys(activeTemplate.pages)[0];
+      setCurrentPageId(startPage || '');
+    }
 
-    // Load products
     const storeProducts = getStorageData(workspaceId, websiteId, 'products', []);
     setProducts(storeProducts.filter(p => p.status === 'Active'));
-  }, [templateId]);
+  }, [paramTemplateId, propTemplateId]);
 
-  const addToCart = (product) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+  useEffect(() => {
+    if (!template || !currentPageId || !template.pages[currentPageId]) return;
+    
+    const page = template.pages[currentPageId];
+    let html = resolveAssetUrls(page.html, template.assets || {});
+
+    // Parse and dynamically map products if they exist
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    if (page.mapping) {
+      // Very basic dynamic injection based on mapping
+      const { productGrid, productCard, productImage, productName, productPrice, addBtn } = page.mapping;
+      
+      if (productGrid && productCard) {
+        const gridEl = doc.querySelector(productGrid);
+        if (gridEl) {
+          const cardTemplate = gridEl.querySelector(productCard);
+          if (cardTemplate) {
+            // Remove existing static cards
+            gridEl.innerHTML = '';
+            
+            // Generate dynamic cards
+            products.forEach(product => {
+              const cardClone = cardTemplate.cloneNode(true);
+              
+              if (productImage) {
+                const imgEl = cardClone.querySelector(productImage);
+                if (imgEl) imgEl.src = product.image || '';
+              }
+              if (productName) {
+                const nameEl = cardClone.querySelector(productName);
+                if (nameEl) nameEl.textContent = product.name;
+              }
+              if (productPrice) {
+                const priceEl = cardClone.querySelector(productPrice);
+                if (priceEl) priceEl.textContent = formatCurrency(product.price, workspaceId, websiteId);
+              }
+              if (addBtn) {
+                const btnEl = cardClone.querySelector(addBtn);
+                if (btnEl) {
+                  btnEl.setAttribute('data-add-product', product.id);
+                  btnEl.style.cursor = 'pointer';
+                }
+              }
+              
+              gridEl.appendChild(cardClone);
+            });
+          }
+        }
       }
-      return [...prev, { ...product, quantity: 1 }];
-    });
-    message.success(`${product.name} added to cart`);
-  };
+    }
+
+    setRenderedHtml(doc.documentElement.outerHTML);
+  }, [currentPageId, template, products]);
+
+  useEffect(() => {
+    // Attach event listeners to the rendered template
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e) => {
+      // Handle Add to Cart
+      const addBtn = e.target.closest('[data-add-product]');
+      if (addBtn) {
+        e.preventDefault();
+        const productId = addBtn.getAttribute('data-add-product');
+        const product = products.find(p => p.id === productId);
+        if (product) {
+          setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+              if (existing.quantity >= product.stock) {
+                message.warning('Not enough stock!');
+                return prev;
+              }
+              return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+            }
+            if (product.stock < 1) {
+              message.warning('Out of stock!');
+              return prev;
+            }
+            return [...prev, { ...product, quantity: 1 }];
+          });
+          message.success(`${product.name} added to cart`);
+        }
+        return;
+      }
+
+      // Handle Internal Navigation
+      const link = e.target.closest('a');
+      if (link) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+          e.preventDefault();
+          // Normalize relative paths like ./cart.html to cart.html
+          let targetPath = href.replace(/^\.\//, '').split('#')[0];
+          
+          if (template && template.pages[targetPath]) {
+            setCurrentPageId(targetPath);
+          } else {
+            console.log("Navigating to unmatched route:", href);
+          }
+        }
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+    return () => container.removeEventListener('click', handleClick);
+  }, [renderedHtml, template, products]);
 
   const updateQuantity = (id, delta) => {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
+        const product = products.find(p => p.id === id);
         const newQ = item.quantity + delta;
+        if (product && newQ > product.stock) {
+          message.warning('Not enough stock!');
+          return item;
+        }
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
     }));
   };
 
-  const removeFromCart = (id) => {
-    setCart(prev => prev.filter(item => item.id !== id));
-  };
+  const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shippingFee = 50; // Demo static fee
+  const shippingFee = 50;
   const finalTotal = cartTotal > 0 ? cartTotal + shippingFee : 0;
 
-  const handleCheckout = () => {
+  const doCheckout = () => {
     if (cart.length === 0) return message.warning('Cart is empty');
-
-    // Create Order
-    const newOrder = {
-      id: `ORD-${Date.now()}`,
-      customerName: customerDetails.name,
-      customerEmail: customerDetails.email,
-      shippingAddress: customerDetails.address,
-      items: cart,
-      subtotal: cartTotal,
-      shippingFee,
-      total: finalTotal,
-      status: 'Pending',
-      date: new Date().toISOString()
-    };
-
-    const existingOrders = getStorageData(workspaceId, websiteId, 'orders', []);
-    setStorageData(workspaceId, websiteId, 'orders', [newOrder, ...existingOrders]);
-
-    // Reduce Stock
-    const allProducts = getStorageData(workspaceId, websiteId, 'products', []);
-    const updatedProducts = allProducts.map(p => {
-      const cartItem = cart.find(c => c.id === p.id);
-      if (cartItem) {
-        return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
-      }
-      return p;
-    });
-    setStorageData(workspaceId, websiteId, 'products', updatedProducts);
-
-    message.success(`Order ${newOrder.id} placed successfully!`);
-    setCart([]);
-    setIsCheckoutOpen(false);
-    setIsCartOpen(false);
+    
+    const result = processCheckout(workspaceId, websiteId, customerDetails, cart, paymentMethod);
+    
+    if (result.success) {
+      message.success(`Order ${result.orderId} placed successfully!`);
+      setCart([]);
+      setIsCheckoutDrawerOpen(false);
+      
+      // Reload products to get updated stock
+      const storeProducts = getStorageData(workspaceId, websiteId, 'products', []);
+      setProducts(storeProducts.filter(p => p.status === 'Active'));
+    } else {
+      message.error(result.message);
+    }
   };
 
-  // Runtime Renderer
-  // In a real implementation, this would parse template.html and replace node contents based on template.mapping
-  // For the MVP showcase, we render a simulated layout.
-  
+  const page = template?.pages?.[currentPageId];
+  const isCartRole = page?.role === 'Cart';
+  const isCheckoutRole = page?.role === 'Checkout';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', position: 'relative' }}>
-      {/* Fake Store Header */}
-      <header style={{ background: 'white', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-        <Title level={4} style={{ margin: 0 }}>My Awesome Store</Title>
-        <Badge count={cart.length} showZero>
-          <Button icon={<ShoppingCart size={20} />} onClick={() => setIsCartOpen(true)}>Cart</Button>
-        </Badge>
-      </header>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+      {/* Store Preview Toolbar */}
+      <div style={{ background: '#1e293b', color: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Space>
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Store Preview</Text>
+          <Text style={{ color: '#94a3b8' }}>{page?.name} ({currentPageId})</Text>
+        </Space>
+        <Space>
+          <Badge count={cart.length} showZero>
+            <Button size="small" type="primary" onClick={() => setIsCheckoutDrawerOpen(true)}>
+              Cart Checkout Demo
+            </Button>
+          </Badge>
+        </Space>
+      </div>
 
-      {/* Dynamic Product Grid */}
-      <main style={{ padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <Title level={2} style={{ marginBottom: 32 }}>Featured Products</Title>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
-          {products.map(product => (
-            <div key={product.id} style={{ background: 'white', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-              <div style={{ height: 200, background: '#eee', backgroundImage: `url(${product.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-              <div style={{ padding: 20 }}>
-                <Title level={5} style={{ margin: '0 0 8px' }}>{product.name}</Title>
-                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>{product.category}</Text>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 18, fontWeight: 'bold' }}>{formatCurrency(product.price, workspaceId, websiteId)}</span>
-                  <Button type="primary" onClick={() => addToCart(product)}>Add to Cart</Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </main>
+      {/* Dynamic Content */}
+      <div style={{ flex: 1, position: 'relative', overflowY: 'auto' }}>
+        {!template ? (
+          <div style={{ padding: 40, textAlign: 'center' }}>No template active.</div>
+        ) : (
+          <div ref={containerRef} dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+        )}
+      </div>
 
-      {/* Cart Drawer */}
+      {/* For MVP Checkout Drawer is a reliable fallback for actual cart/checkout data simulation */}
       <Drawer
-        title="Your Cart"
+        title="Checkout System (Application Overlay)"
         placement="right"
-        onClose={() => setIsCartOpen(false)}
-        open={isCartOpen}
-        width={400}
+        onClose={() => setIsCheckoutDrawerOpen(false)}
+        open={isCheckoutDrawerOpen}
+        width={450}
       >
         {cart.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40 }}><Text type="secondary">Your cart is empty.</Text></div>
+          <div style={{ textAlign: 'center', padding: 40 }}>Your cart is empty.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -145,9 +238,7 @@ const EcommerceStorePreview = ({ templateId }) => {
                 itemLayout="horizontal"
                 dataSource={cart}
                 renderItem={item => (
-                  <List.Item
-                    actions={[<Button type="text" danger icon={<X size={16} />} onClick={() => removeFromCart(item.id)} />]}
-                  >
+                  <List.Item actions={[<Button type="text" danger icon={<X size={16} />} onClick={() => removeFromCart(item.id)} />]}>
                     <List.Item.Meta
                       avatar={<img src={item.image} alt={item.name} style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />}
                       title={item.name}
@@ -167,58 +258,25 @@ const EcommerceStorePreview = ({ templateId }) => {
               />
             </div>
             <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16, marginTop: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>Subtotal</Text>
-                <Text strong>{formatCurrency(cartTotal, workspaceId, websiteId)}</Text>
+              <Form layout="vertical">
+                <Form.Item label="Name"><Input value={customerDetails.name} onChange={e => setCustomerDetails({...customerDetails, name: e.target.value})} /></Form.Item>
+                <Form.Item label="Email"><Input value={customerDetails.email} onChange={e => setCustomerDetails({...customerDetails, email: e.target.value})} /></Form.Item>
+                <Form.Item label="Payment Method">
+                  <Select value={paymentMethod} onChange={setPaymentMethod}>
+                    <Select.Option value="Card">Card</Select.Option>
+                    <Select.Option value="UPI">UPI</Select.Option>
+                    <Select.Option value="COD">Cash on Delivery</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Form>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+                <Title level={4} style={{ margin: 0 }}>Total</Title>
+                <Title level={4} style={{ margin: 0 }}>{formatCurrency(finalTotal, workspaceId, websiteId)}</Title>
               </div>
-              <Button type="primary" block size="large" onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}>
-                Proceed to Checkout
-              </Button>
+              <Button type="primary" block size="large" onClick={doCheckout}>Place Order</Button>
             </div>
           </div>
         )}
-      </Drawer>
-
-      {/* Checkout Drawer */}
-      <Drawer
-        title="Checkout"
-        placement="right"
-        onClose={() => setIsCheckoutOpen(false)}
-        open={isCheckoutOpen}
-        width={400}
-      >
-        <Title level={5}>Order Summary</Title>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text>Subtotal ({cart.length} items)</Text>
-          <Text>{formatCurrency(cartTotal, workspaceId, websiteId)}</Text>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Text>Shipping</Text>
-          <Text>{formatCurrency(shippingFee, workspaceId, websiteId)}</Text>
-        </div>
-        <Divider />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-          <Title level={4} style={{ margin: 0 }}>Total</Title>
-          <Title level={4} style={{ margin: 0 }}>{formatCurrency(finalTotal, workspaceId, websiteId)}</Title>
-        </div>
-
-        <Title level={5} style={{ marginTop: 32 }}>Shipping Details (Demo)</Title>
-        <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginBottom: 24 }}>
-          <Text strong style={{ display: 'block' }}>{customerDetails.name}</Text>
-          <Text style={{ display: 'block' }}>{customerDetails.email}</Text>
-          <Text style={{ display: 'block' }}>{customerDetails.address}</Text>
-        </div>
-
-        <Title level={5}>Payment Method (Demo)</Title>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-          <Button icon={<CreditCard size={16} />} style={{ flex: 1 }}>Card</Button>
-          <Button style={{ flex: 1 }}>UPI</Button>
-          <Button style={{ flex: 1 }}>COD</Button>
-        </div>
-
-        <Button type="primary" block size="large" onClick={handleCheckout} style={{ height: 50, fontSize: 16 }}>
-          Place Order <ArrowRight size={18} style={{ marginLeft: 8 }} />
-        </Button>
       </Drawer>
     </div>
   );

@@ -34,6 +34,107 @@ export const clearStorageData = (workspaceId, websiteId, entity) => {
   }
 };
 
+export const processCheckout = (workspaceId, websiteId, customerDetails, cart, paymentMethod) => {
+  const products = getStorageData(workspaceId, websiteId, 'products', []);
+  const orders = getStorageData(workspaceId, websiteId, 'orders', []);
+  const customers = getStorageData(workspaceId, websiteId, 'customers', []);
+  const payments = getStorageData(workspaceId, websiteId, 'payments', []);
+  const shipping = getStorageData(workspaceId, websiteId, 'shipping', []);
+  
+  // Validate stock
+  for (const item of cart) {
+    const product = products.find(p => p.id === item.id);
+    if (!product || product.stock < item.quantity) {
+      return { success: false, message: `Insufficient stock for ${item.name}` };
+    }
+  }
+
+  const orderId = `ORD-${Date.now()}`;
+  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const shippingFee = 50;
+  const finalTotal = cartTotal + shippingFee;
+
+  // Deduplicate/Create Customer
+  let customer = customers.find(c => c.email.toLowerCase() === customerDetails.email.toLowerCase());
+  if (customer) {
+    customer.ordersCount = (customer.ordersCount || 0) + 1;
+    customer.totalSpent = (customer.totalSpent || 0) + finalTotal;
+    customer.name = customerDetails.name;
+    customer.address = customerDetails.address;
+  } else {
+    customer = {
+      id: `CUS-${Date.now()}`,
+      ...customerDetails,
+      ordersCount: 1,
+      totalSpent: finalTotal,
+      createdAt: new Date().toISOString()
+    };
+    customers.push(customer);
+  }
+
+  // Create Order
+  const newOrder = {
+    id: orderId,
+    customerId: customer.id,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    shippingAddress: customer.address,
+    items: cart,
+    subtotal: cartTotal,
+    shippingFee,
+    total: finalTotal,
+    status: 'Pending',
+    date: new Date().toISOString()
+  };
+  orders.unshift(newOrder);
+
+  // Create Payment
+  const newPayment = {
+    id: `PAY-${Date.now()}`,
+    orderId,
+    customerId: customer.id,
+    amount: finalTotal,
+    method: paymentMethod,
+    status: 'Completed',
+    date: new Date().toISOString()
+  };
+  payments.unshift(newPayment);
+
+  // Create Shipment
+  const newShipment = {
+    id: `SHP-${Date.now()}`,
+    orderId,
+    customerId: customer.id,
+    trackingId: `TRK${Date.now()}`,
+    status: 'Pending',
+    date: new Date().toISOString()
+  };
+  shipping.unshift(newShipment);
+
+  // Reduce Stock
+  const updatedProducts = products.map(p => {
+    const cartItem = cart.find(c => c.id === p.id);
+    if (cartItem) {
+      const newStock = Math.max(0, p.stock - cartItem.quantity);
+      return { 
+        ...p, 
+        stock: newStock,
+        status: newStock === 0 ? 'Out of Stock' : p.status 
+      };
+    }
+    return p;
+  });
+
+  // Save everything atomically
+  setStorageData(workspaceId, websiteId, 'customers', customers);
+  setStorageData(workspaceId, websiteId, 'orders', orders);
+  setStorageData(workspaceId, websiteId, 'payments', payments);
+  setStorageData(workspaceId, websiteId, 'shipping', shipping);
+  setStorageData(workspaceId, websiteId, 'products', updatedProducts);
+
+  return { success: true, orderId };
+};
+
 export const seedDemoDataIfNeeded = (workspaceId, websiteId) => {
   const products = getStorageData(workspaceId, websiteId, 'products', null);
   if (!products) {

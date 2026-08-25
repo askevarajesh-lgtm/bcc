@@ -6,7 +6,7 @@ import { Button, message, Space } from 'antd';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getStorageData, setStorageData } from '../utils/storage';
 
-const EcommerceGrapesJS = ({ templateId, initialHtml, initialCss, onBack, onSave }) => {
+const EcommerceGrapesJS = ({ templateId, pageId, initialHtml, initialCss, assets = {}, onBack, onSave }) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
   const workspaceId = 'default';
@@ -27,7 +27,10 @@ const EcommerceGrapesJS = ({ templateId, initialHtml, initialCss, onBack, onSave
       },
       canvas: {
         styles: [
-          'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'
+          'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
+          ...Object.keys(assets)
+            .filter(path => assets[path].ext === 'css' && assets[path].type === 'text')
+            .map(path => `data:text/css;charset=utf-8,${encodeURIComponent(assets[path].content)}`)
         ],
       },
     });
@@ -53,15 +56,18 @@ const EcommerceGrapesJS = ({ templateId, initialHtml, initialCss, onBack, onSave
     const html = editor.getHtml();
     const css = editor.getCss();
     
-    // Save to local storage under templates
-    const templates = getStorageData(workspaceId, websiteId, 'templates', {});
-    templates[templateId] = {
-      ...templates[templateId],
-      html,
-      css,
-      updatedAt: new Date().toISOString()
-    };
-    setStorageData(workspaceId, websiteId, 'templates', templates);
+    // The actual state update for the multi-page structure is handled by onSave in the parent.
+    // We only save to the old flat structure if pageId is not provided (legacy fallback).
+    if (!pageId) {
+      const templates = getStorageData(workspaceId, websiteId, 'templates', {});
+      templates[templateId] = {
+        ...templates[templateId],
+        html,
+        css,
+        updatedAt: new Date().toISOString()
+      };
+      setStorageData(workspaceId, websiteId, 'templates', templates);
+    }
     
     message.success('Template saved successfully!');
     if (onSave) onSave(html, css);
@@ -74,7 +80,7 @@ const EcommerceGrapesJS = ({ templateId, initialHtml, initialCss, onBack, onSave
           <Button type="text" icon={<ArrowLeft size={16} />} style={{ color: 'white' }} onClick={onBack}>
             Back
           </Button>
-          <span style={{ fontWeight: 600 }}>Store Builder ({templateId})</span>
+          <span style={{ fontWeight: 600 }}>Editing: {pageId || templateId}</span>
         </Space>
         <Button type="primary" icon={<Save size={16} />} onClick={handleSave}>
           Save Template

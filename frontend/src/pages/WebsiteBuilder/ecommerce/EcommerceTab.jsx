@@ -21,6 +21,7 @@ import EcommerceOrders from './components/EcommerceOrders';
 import EcommerceSettings from './components/EcommerceSettings';
 import EcommerceStoreBuilder from './components/EcommerceStoreBuilder';
 import EcommerceStorePreview from './components/EcommerceStorePreview';
+import EcommerceTemplates from './components/EcommerceTemplates';
 
 const { Title, Text } = Typography;
 const { Sider, Content } = Layout;
@@ -101,8 +102,8 @@ const EcommerceTab = ({ itemVariants }) => {
               <Routes>
                 <Route path="dashboard" element={<EcommerceDashboard />} />
                 <Route path="builder" element={<EcommerceStoreBuilder />} />
-                <Route path="templates" element={<div>Templates (Coming Soon)</div>} />
-                <Route path="preview" element={<EcommerceStorePreview templateId="tpl_default" />} />
+                <Route path="templates" element={<EcommerceTemplates />} />
+                <Route path="preview/:templateId?" element={<EcommerceStorePreview />} />
                 <Route path="products" element={<EcommerceProducts />} />
                 <Route path="orders" element={<EcommerceOrders />} />
                 <Route path="customers" element={<div>Customers (Derived from Orders)</div>} />
