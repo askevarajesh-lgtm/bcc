@@ -66,6 +66,7 @@ const UserSettingsTab = () => {
           const updatedUser = { ...user, ...updateRes.data.data };
           setUser(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
         }
 
         onSuccess(res.data);

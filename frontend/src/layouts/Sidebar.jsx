@@ -290,6 +290,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       onNavigate={navigate}
       partner={{
         initials: getInitials(user?.name),
+        avatar: user?.avatar,
         label: user?.roleName || 'Role Not Assigned',
         name: user?.name || 'Unknown User',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Workspace',

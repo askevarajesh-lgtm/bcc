@@ -174,6 +174,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
       onNavigate={navigate}
       partner={{
         initials: user?.name ? user.name.substring(0, 2).toUpperCase() : 'U',
+        avatar: user?.avatar,
         label: user?.roleName || 'Employee',
         name: user?.name || 'User',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Workspace',

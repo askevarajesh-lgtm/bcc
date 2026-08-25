@@ -273,6 +273,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       onNavigate={navigate}
       partner={{
         initials: getInitials(user?.name) || 'AP',
+        avatar: user?.avatar,
         label: user?.roleName || 'Agency Success',
         name: user?.name || 'Alpha Partners',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Partner Support Desk',

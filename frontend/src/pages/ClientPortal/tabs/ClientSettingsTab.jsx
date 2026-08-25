@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Row, Col, Avatar, Tag, Divider, Tabs, Modal, Checkbox, Button, message } from 'antd';
+import { Typography, Card, Row, Col, Avatar, Tag, Divider, Tabs, Modal, Checkbox, Button, message, Upload } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, Shield, Star, Briefcase, Link, CreditCard, Users } from 'lucide-react';
+import { Building2, User, Shield, Star, Briefcase, Link, CreditCard, Users, Camera } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 import IntegrationsTab from '../../Settings/tabs/IntegrationsTab';
@@ -22,7 +22,54 @@ const availableFeatures = [
 
 const { Title, Text } = Typography;
 
-const ProfileContent = ({ user }) => {
+const ProfileContent = ({ user, setUser }) => {
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
+
+  useEffect(() => {
+    if (user?.avatar) {
+      setAvatarPreview(user.avatar);
+    }
+  }, [user]);
+
+  const customUploadAvatar = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'user-avatars');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setAvatarPreview(url);
+        
+        const updateRes = await api.put(`/users/${user._id || user.id}`, { avatar: url });
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+
+        onSuccess(res.data);
+        message.success('Profile picture updated successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload profile picture');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
@@ -37,9 +84,27 @@ const ProfileContent = ({ user }) => {
           </Title>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
-            <Avatar size={80} style={{ backgroundColor: 'var(--accent-primary)', fontSize: 32, fontWeight: 800 }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </Avatar>
+            <div style={{ position: 'relative' }}>
+              <Avatar src={avatarPreview} size={80} style={{ backgroundColor: 'var(--accent-primary)', fontSize: 32, fontWeight: 800 }}>
+                {!avatarPreview && (user?.name ? user.name.charAt(0).toUpperCase() : 'U')}
+              </Avatar>
+              <Upload customRequest={customUploadAvatar} showUploadList={false} accept="image/*">
+                <Button 
+                  shape="circle" 
+                  icon={<Camera size={14} />} 
+                  loading={uploadingAvatar}
+                  style={{ 
+                    position: 'absolute', 
+                    bottom: 0, 
+                    right: -4, 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                />
+              </Upload>
+            </div>
             <div>
               <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>{user?.name || 'Client User'}</Title>
               <Text type="secondary" style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>{user?.email}</Text>
@@ -111,7 +176,7 @@ const ProfileContent = ({ user }) => {
 };
 
 const ClientSettingsTab = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedModules, setSelectedModules] = useState([]);
@@ -235,7 +300,7 @@ const ClientSettingsTab = () => {
       {
         key: '1',
         label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}><User size={16} /> Profile</span>,
-        children: <ProfileContent user={user} />,
+        children: <ProfileContent user={user} setUser={setUser} />,
       },
       {
         key: '3',

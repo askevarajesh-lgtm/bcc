@@ -116,7 +116,13 @@ const PortalSidebar = ({
         {partner && !collapsed && (
           <div className="sidebar-partner-card">
             <div className="sidebar-partner-card__body">
-              <div className="sidebar-partner-card__avatar">{partner.initials}</div>
+              <div className="sidebar-partner-card__avatar">
+                {partner.avatar ? (
+                  <img src={partner.avatar} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  partner.initials
+                )}
+              </div>
               <div>
                 <span>{partner.label}</span>
                 <strong>{partner.name}</strong>

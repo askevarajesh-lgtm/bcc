@@ -227,6 +227,7 @@ exports.signin = async (req, res, next) => {
         email: user.email,
         role: user.role,
         roleName: user.roleName,
+        avatar: user.avatar,
         companyName: user.companyName,
         agencyId: user.agencyId ? user.agencyId._id : null,
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
@@ -342,6 +343,7 @@ exports.me = async (req, res, next) => {
         email: user.email,
         role: user.role,
         roleName: user.roleName,
+        avatar: user.avatar,
         companyName: user.companyName,
         agencyId: user.agencyId ? user.agencyId._id : null,
         agencyName: user.agencyId ? (user.agencyId.companyName || user.agencyId.name) : null,
@@ -620,7 +622,22 @@ exports.impersonate = async (req, res, next) => {
     
     // Security check: Only allow specific roles to impersonate
     const allowedRoles = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'agency_client', 'brand_super_admin', 'brand_manager'];
-    if (!allowedRoles.includes(req.user.role)) {
+    
+    let hasPermission = allowedRoles.includes(req.user.role);
+    let isCustomAgencyRoleWithPerm = false;
+
+    if (!hasPermission && req.user._id) {
+       const requestor = await User.findById(req.user._id).populate('customRoleId');
+       if (requestor && requestor.customRoleId && requestor.customRoleId.permissions) {
+          const perms = requestor.customRoleId.permissions['Clients-Accounts'];
+          if (perms && perms.All) {
+             hasPermission = true;
+             isCustomAgencyRoleWithPerm = true;
+          }
+       }
+    }
+
+    if (!hasPermission) {
       return res.status(403).json({ success: false, error: 'Unauthorized to perform impersonation' });
     }
 
@@ -634,7 +651,7 @@ exports.impersonate = async (req, res, next) => {
       if (targetUser.role === 'supreme_super_admin' || targetUser.role === 'commander_admin') {
         return res.status(403).json({ success: false, error: 'Cannot impersonate this role' });
       }
-    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role)) {
+    } else if (['agency_super_admin', 'agency_manager'].includes(req.user.role) || isCustomAgencyRoleWithPerm) {
       // Must belong to the same agency
       const userAgencyId = req.companyId || req.user.agencyId || req.user._id;
       if (targetUser.agencyId?._id?.toString() !== userAgencyId.toString() && targetUser._id.toString() !== userAgencyId.toString()) {

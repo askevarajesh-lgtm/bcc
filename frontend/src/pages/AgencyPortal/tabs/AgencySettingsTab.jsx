@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Tabs, Form, Input, Button, Card, Row, Col, Divider, Tag, Avatar, message, Modal, Select, Checkbox, ColorPicker, Upload } from 'antd';
 import { motion } from 'framer-motion';
-import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase, Upload as UploadIcon } from 'lucide-react';
+import { Building2, User, CreditCard, Save, Shield, Star, Users, Briefcase, Upload as UploadIcon, Camera } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -43,6 +43,8 @@ const AgencySettingsTab = () => {
   const [logoDarkPreview, setLogoDarkPreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   const [agencyCountryCode, setAgencyCountryCode] = useState('91');
   const [agencyCountryIso, setAgencyCountryIso] = useState('IN');
@@ -63,6 +65,7 @@ const AgencySettingsTab = () => {
       setAgencyCountryIso(user.countryIso || '');
       if (user.logo) setLogoPreview(user.logo);
       if (user.logoDark) setLogoDarkPreview(user.logoDark);
+      if (user.avatar) setAvatarPreview(user.avatar);
       formAccount.setFieldsValue({
         firstName: (user.name || '').split(' ')[0] || '',
         lastName: (user.name || '').split(' ').slice(1).join(' ') || '',
@@ -178,6 +181,45 @@ const AgencySettingsTab = () => {
       setUploadingLogoDark(false);
     }
   };
+
+  const customUploadAvatar = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'user-avatars');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setAvatarPreview(url);
+        
+        const updateRes = await api.put(`/users/${user._id || user.id}`, { avatar: url });
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+
+        onSuccess(res.data);
+        message.success('Profile picture updated successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload profile picture');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
 
   const handleUpgradeSubmit = async () => {
     if (selectedModules.length === 0) {
@@ -474,10 +516,47 @@ const AgencySettingsTab = () => {
       <Card bordered={false} className="glassmorphism" style={{ borderRadius: 16, border: '1px solid var(--border-color)' }}>
         <Title level={4} style={{ marginBottom: 24, fontWeight: 700 }}>My Account Details</Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
-          <Avatar size={80} style={{ backgroundColor: 'var(--accent-secondary)', fontSize: 32, fontWeight: 800 }}>AA</Avatar>
+          <div style={{ position: 'relative' }}>
+            <Avatar src={avatarPreview} size={80} style={{ backgroundColor: 'var(--accent-secondary)', fontSize: 32, fontWeight: 800 }}>
+              {!avatarPreview && (user?.name ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : 'AA')}
+            </Avatar>
+            <Upload customRequest={customUploadAvatar} showUploadList={false} accept="image/*">
+              <Button 
+                shape="circle" 
+                icon={<Camera size={14} />} 
+                loading={uploadingAvatar}
+                style={{ 
+                  position: 'absolute', 
+                  bottom: 0, 
+                  right: -4, 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              />
+            </Upload>
+          </div>
           <div>
-            <Button style={{ borderRadius: 8, marginRight: 12 }}>Upload New Photo</Button>
-            <Button type="text" danger>Remove</Button>
+            <Title level={4} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>{user?.name || 'User'}</Title>
+            <Text type="secondary" style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>{user?.email}</Text>
+            {avatarPreview && (
+              <Button type="text" danger size="small" style={{ padding: 0 }} onClick={async () => {
+                try {
+                  const updateRes = await api.put(`/users/${user._id || user.id}`, { avatar: '' });
+                  if (updateRes.data && updateRes.data.data) {
+                    const updatedUser = { ...user, ...updateRes.data.data };
+                    setUser(updatedUser);
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    window.dispatchEvent(new Event('user-updated'));
+                    setAvatarPreview(null);
+                    message.success('Profile picture removed');
+                  }
+                } catch (error) {
+                  message.error('Failed to remove profile picture');
+                }
+              }}>Remove Photo</Button>
+            )}
           </div>
         </div>
         <Form 

@@ -354,6 +354,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       onNavigate={navigate}
       partner={{
         initials: getInitials(user?.name) || 'AR',
+        avatar: user?.avatar,
         label: user?.roleName || 'Your Growth Partner',
         name: user?.name || 'Arjun Raj',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Senior Brand Strategist',

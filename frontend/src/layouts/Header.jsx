@@ -327,7 +327,7 @@ const Header = ({ collapsed, setCollapsed }) => {
           placement="bottomRight"
         >
           <button type="button" className="app-header__user">
-            <Avatar className="app-header__avatar">{userDetails.initial}</Avatar>
+            <Avatar src={user?.avatar} className="app-header__avatar">{!user?.avatar && userDetails.initial}</Avatar>
             {screens.sm && (
               <span className="app-header__user-copy">
                 <strong>{userDetails.name}</strong>

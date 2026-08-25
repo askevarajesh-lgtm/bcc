@@ -657,16 +657,7 @@ const ClientsTab = () => {
                 </Tag>
               )
             },
-            {
-              title: 'Health',
-              dataIndex: 'status',
-              key: 'health',
-              render: (status, record) => (
-                <Tag style={{ borderRadius: 12, background: `${getStatusColor(status)}15`, color: getStatusColor(status), border: `1px solid ${getStatusColor(status)}40`, fontWeight: 600 }}>
-                  {record.mos} · {status}
-                </Tag>
-              )
-            },
+
             {
               title: 'Created By',
               key: 'createdBy',
