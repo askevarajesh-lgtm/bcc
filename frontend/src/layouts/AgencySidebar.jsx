@@ -229,7 +229,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const settingsChildren = [];
   if (feats.includes('master-items') || hasAgencyFullAccess) settingsChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
   if (role === 'agency_super_admin') {
-    settingsChildren.push({ key: '/agency/users', icon: getIcon(Shield), label: 'User Management' });
+    settingsChildren.push({ key: '/agency/users', icon: getIcon(Shield), label: 'Manager' });
     settingsChildren.push({ key: '/agency/billing', icon: getIcon(CreditCard), label: 'Billing' });
   }
   if (['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {

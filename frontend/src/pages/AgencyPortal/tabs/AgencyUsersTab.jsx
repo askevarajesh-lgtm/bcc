@@ -186,12 +186,12 @@ const AgencyUsersTab = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>User Management</Title>
+          <Title level={2} style={{ margin: '4px 0 0 0', fontWeight: 800 }}>Manager</Title>
           <Text type="secondary">Create and manage your agency's sub-users and managers.</Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <Button type="primary" onClick={() => setIsModalOpen(true)} icon={<Plus size={16} />} style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600 }}>
-            Create User
+            Create Manager
           </Button>
         </div>
       </div>
@@ -208,7 +208,7 @@ const AgencyUsersTab = () => {
       </Card>
 
       <Modal
-        title={<span style={{ fontWeight: 700, fontSize: 18 }}><UserIcon size={18} style={{ marginRight: 8, verticalAlign: '-3px' }}/> Create New User</span>}
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}><UserIcon size={18} style={{ marginRight: 8, verticalAlign: '-3px' }}/> Create New Manager</span>}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}

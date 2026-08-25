@@ -397,6 +397,13 @@ const ClientsTab = () => {
     });
   }, [dbClients, searchQuery]);
 
+  const hasAccountsPerm = (action) => {
+    if (['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(user?.role)) return true;
+    return user?.permissions?.['Clients-Accounts']?.[action] === true;
+  };
+
+  const isAgencyAdmin = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(user?.role);
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" >
 
@@ -408,14 +415,16 @@ const ClientsTab = () => {
           </Text>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setIsCreateModalOpen(true)}
-            style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none' }}
-          >
-            Create Client
-          </Button>
+          {hasAccountsPerm('Create') && (
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setIsCreateModalOpen(true)}
+              style={{ borderRadius: 8, background: 'var(--accent-primary)', fontWeight: 600, border: 'none' }}
+            >
+              Create Client
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -710,7 +719,7 @@ const ClientsTab = () => {
                         label: 'View Client',
                         onClick: () => setSelectedClient(record)
                       },
-                      {
+                      isAgencyAdmin ? {
                         key: 'assign',
                         label: 'Assign Users',
                         onClick: () => {
@@ -721,8 +730,8 @@ const ClientsTab = () => {
                           });
                           setIsAssignModalOpen(true);
                         }
-                      },
-                      {
+                      } : null,
+                      hasAccountsPerm('Edit') ? {
                         key: 'edit',
                         label: 'Edit Client',
                         onClick: () => {
@@ -738,16 +747,16 @@ const ClientsTab = () => {
                           });
                           setIsEditModalOpen(true);
                         }
-                      },
-                      {
+                      } : null,
+                      isAgencyAdmin ? {
                         key: 'suspend',
                         label: record.accountStatus === 'suspended' ? 'Activate Client' : 'Suspend Client',
                         onClick: () => handleSuspendClient(record._id, record.accountStatus)
-                      },
-                      {
+                      } : null,
+                      hasAccountsPerm('Delete') ? {
                         type: 'divider'
-                      },
-                      {
+                      } : null,
+                      hasAccountsPerm('Delete') ? {
                         key: 'delete',
                         danger: true,
                         label: (
@@ -764,8 +773,8 @@ const ClientsTab = () => {
                             </Popconfirm>
                           </div>
                         )
-                      }
-                    ]
+                      } : null
+                    ].filter(Boolean)
                   }}
                   trigger={['click']}
                 >
