@@ -259,13 +259,15 @@ const ClientDetailContent = ({
                       { label: 'Email', value: selectedClient.adminEmail || selectedClient.email },
                       { label: 'Phone', value: selectedClient.phone },
                       { label: 'Package', value: selectedClient.packageName || 'Custom' },
-                      { label: 'Account Manager', value: selectedClient.am || 'Unassigned' },
-                      { label: 'Address', value: selectedClient.address },
+                      { label: 'Account Manager', value: typeof selectedClient.am === 'object' && selectedClient.am !== null ? selectedClient.am.name || 'Assigned' : (selectedClient.am || 'Unassigned') },
+                      { label: 'Address', value: typeof selectedClient.address === 'object' && selectedClient.address !== null ? Object.values(selectedClient.address).filter(Boolean).join(', ') : selectedClient.address },
                       { label: 'Industry', value: selectedClient.industry },
                     ].map(item => item.value ? (
                       <div key={item.label}>
                         <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', display: 'block' }}>{item.label}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.value}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {typeof item.value === 'object' ? JSON.stringify(item.value) : item.value}
+                        </Text>
                       </div>
                     ) : null)}
                   </div>
