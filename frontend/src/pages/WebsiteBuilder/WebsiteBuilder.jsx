@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 // Import Tab Components
 
 import WebsitesTab from './tabs/WebsitesTab';
+import EcommerceTab from './ecommerce/EcommerceTab';
 
 import FormsTab from './tabs/FormsTab';
 import BlogsTab from './tabs/BlogsTab';
@@ -81,7 +82,7 @@ const WebsiteBuilder = () => {
     { id: 'overview', label: 'Overview', icon: <LayoutGrid size={16} /> },
 
     { id: 'websites', label: 'Websites', icon: <Globe size={16} /> },
-
+    { id: 'ecommerce', label: 'E-commerce', icon: <Store size={16} /> },
     { id: 'forms', label: 'Forms', icon: <FileText size={16} /> },
     { id: 'blogs', label: 'Blogs', icon: <LayoutTemplate size={16} /> },
     { id: 'qr-links', label: 'QR Links', icon: <QrCode size={16} /> },
@@ -93,7 +94,8 @@ const WebsiteBuilder = () => {
   const lastPart = pathParts[pathParts.length - 1];
   const { role } = useAuth();
 
-  const activeTab = tabs.map(t => t.id).includes(lastPart) ? lastPart : 'overview';
+  const matchedTab = [...pathParts].reverse().find(part => tabs.map(t => t.id).includes(part));
+  const activeTab = matchedTab || 'overview';
 
   const handleTabClick = (tabId) => {
     const match = location.pathname.match(/^(.*?\/website)(?=\/|$)/);
@@ -297,6 +299,7 @@ const WebsiteBuilder = () => {
           <Route path="websites/wordpress/:id/products" element={<WordPressProducts />} />
           <Route path="websites/wordpress/:id/orders" element={<WordPressOrders />} />
           <Route path="websites/*" element={<WebsitesTab itemVariants={itemVariants} initialAction={websiteInitialAction} onActionComplete={() => setWebsiteInitialAction(null)} />} />
+          <Route path="ecommerce/*" element={<EcommerceTab itemVariants={itemVariants} />} />
 
           <Route path="forms" element={<FormsTab itemVariants={itemVariants} />} />
           <Route path="blogs" element={<BlogsTab itemVariants={itemVariants} />} />
