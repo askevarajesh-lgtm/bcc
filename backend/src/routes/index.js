@@ -166,4 +166,7 @@ router.use('/marketplace', require('../modules/marketplace/marketplace.routes'))
 // WordPress Integration Mount
 router.use('/wordpress', require('../modules/wordpress/wordpress.routes'));
 
+// Notepad Mount
+router.use('/notepad', require('../modules/notepad/notepad.routes'));
+
 module.exports = router;

@@ -91,7 +91,11 @@ const UserSchema = new mongoose.Schema({
 
   // Password Reset OTP
   resetPasswordOtp: { type: String, default: null },
-  resetPasswordOtpExpiry: { type: Date, default: null }
+  resetPasswordOtpExpiry: { type: Date, default: null },
+
+  // Visibility and Assignment
+  assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  viewAllClients: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Hash password before saving

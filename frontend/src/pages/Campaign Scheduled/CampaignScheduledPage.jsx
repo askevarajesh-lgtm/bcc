@@ -70,7 +70,8 @@ export default function CampaignScheduledPage() {
   const headerSelectedClientId = null; // Replaced Redux client scope
 
   const getInitialActiveClientId = () => {
-    if (user?.role === "client" && user?.clientId) return user.clientId;
+    const isClientRole = ["client", "agency_client", "brand_super_admin", "brand_manager", "brand_team_user"].includes(user?.role) || (user?.role === "user" && user?.brandId);
+    if (isClientRole && (user?.clientId || user?.brandId || user?._id)) return user.clientId || user.brandId || user._id;
     return null;
   };
 
@@ -81,7 +82,7 @@ export default function CampaignScheduledPage() {
   const lastLoadErrorMessageRef = useRef("");
   const isAdminView = user?.role?.includes("admin") || user?.role?.includes("agency");
 
-  const isPrivilegedUser = ["supreme_super_admin", "commander_admin", "agency_super_admin", "agency_manager", "brand_super_admin", "brand_manager"].includes(user?.role);
+  const isPrivilegedUser = ["supreme_super_admin", "commander_admin", "agency_super_admin", "agency_manager", "brand_super_admin", "brand_manager", "client", "agency_client", "client_user"].includes(user?.role) || (user?.role === "user" && user?.brandId);
   const canCreate = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Create === true;
   const canEdit = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Edit === true;
   const canDelete = isPrivilegedUser || user?.permissions?.["Workspace-Social Media"]?.Delete === true;

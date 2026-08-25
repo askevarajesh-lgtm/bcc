@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm, Tooltip } from 'antd';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useGetIntegrationsQuery } from '../../../api/integrationApi';
 import { Search, AlertTriangle, CheckCircle, ExternalLink, MoreHorizontal, Circle, ArrowUpRight, Shield, Zap, Globe, Users, Plus } from 'lucide-react';
@@ -28,6 +29,7 @@ const availableFeatures = [
 ];
 
 const ClientsTab = () => {
+  const navigate = useNavigate();
   const [selectedClient, setSelectedClient] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,13 @@ const ClientsTab = () => {
   const [packages, setPackages] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  
+  // Assign Users State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assigningClient, setAssigningClient] = useState(null);
+  const [agencyUsersList, setAgencyUsersList] = useState([]);
+  const [assignForm] = Form.useForm();
+
   const [clientProposals, setClientProposals] = useState([]);
   const [clientProjects, setClientProjects] = useState([]);
   const [clientInvoices, setClientInvoices] = useState([]);
@@ -50,7 +59,7 @@ const ClientsTab = () => {
   const [clientEditCountryCode, setClientEditCountryCode] = useState('91');
   const [clientEditCountryIso, setClientEditCountryIso] = useState('IN');
 
-  const { user, features: agencyFeatures } = useAuth();
+  const { user, features: agencyFeatures, login } = useAuth();
   const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
 
   const { data: integrationsData } = useGetIntegrationsQuery();
@@ -66,6 +75,59 @@ const ClientsTab = () => {
       }
     } catch (error) {
       console.error('Failed to fetch packages', error);
+    }
+  };
+
+  const fetchAgencyUsers = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+      const res = await fetch('/api/users', { headers });
+      const data = await res.json();
+      if (data.success) {
+        // Filter out agency super admins or anyone who inherently has access to all clients
+        // Or just let them be assignable too. For now, we list all agency users.
+        const allUsers = data.data || [];
+        const excludedRoles = [
+          'supreme_super_admin', 'superadmin', 'super_admin', 'commander_admin', 'admin',
+          'agency_super_admin'
+        ];
+        setAgencyUsersList(allUsers.filter(u => !excludedRoles.includes(u.role)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch agency users', error);
+    }
+  };
+
+  const handleImpersonate = async (clientId) => {
+    try {
+      const currentToken = localStorage.getItem('token');
+      const currentUserStr = localStorage.getItem('user');
+
+      const headers = { 'Authorization': `Bearer ${currentToken}` };
+      const res = await fetch(`/api/auth/impersonate/${clientId}`, {
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        if (currentToken && currentUserStr) {
+          localStorage.setItem('original_token', currentToken);
+          localStorage.setItem('original_user', currentUserStr);
+        }
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        message.success(`Logged in as ${data.user.name}`);
+        login(data.user);
+        
+        // Redirect to the client's dashboard path based on their role
+        navigate('/client');
+      } else {
+        message.error(data.message || data.error || 'Failed to login as client');
+      }
+    } catch (err) {
+      console.error('Impersonation error:', err);
+      message.error('Failed to login as client');
     }
   };
 
@@ -195,6 +257,35 @@ const ClientsTab = () => {
       }
     } catch (error) {
       message.error('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAssignUsersSubmit = async (values) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/brands/${assigningClient._id}/assign-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ assignedUsers: values.assignedUsers })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        message.success('Users assigned successfully');
+        setIsAssignModalOpen(false);
+        setAssigningClient(null);
+        assignForm.resetFields();
+        fetchClients();
+      } else {
+        message.error(data.message || 'Failed to assign users');
+      }
+    } catch (error) {
+      message.error('An error occurred while assigning users');
     } finally {
       setLoading(false);
     }
@@ -463,6 +554,54 @@ const ClientsTab = () => {
         </Form>
       </Modal>
 
+      {/* Assign Users Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
+              <Users size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>Assign Users</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>{assigningClient?.name}</div>
+            </div>
+          </div>
+        }
+        open={isAssignModalOpen}
+        onCancel={() => {
+          setIsAssignModalOpen(false);
+          setAssigningClient(null);
+          assignForm.resetFields();
+        }}
+        onOk={() => assignForm.submit()}
+        confirmLoading={loading}
+        okText="Assign"
+        cancelText="Cancel"
+        width={480}
+      >
+        <Form form={assignForm} layout="vertical" onFinish={handleAssignUsersSubmit} style={{ marginTop: 24 }}>
+          <Form.Item
+            name="assignedUsers"
+            label={<span style={{ fontWeight: 600 }}>Select Users to Manage this Client</span>}
+            rules={[{ required: true, message: 'Please select at least one user' }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Select users"
+              size="large"
+              style={{ borderRadius: 8 }}
+              optionFilterProp="children"
+            >
+              {agencyUsersList.map(u => (
+                <Select.Option key={u._id} value={u._id}>
+                  {u.name} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden' }}>
         <Table
           className="custom-table"
@@ -536,6 +675,29 @@ const ClientsTab = () => {
               }
             },
             {
+              title: 'Assigned Users',
+              key: 'assignedUsers',
+              render: (_, record) => {
+                const users = record.assignedUsers || [];
+                if (users.length === 0) return <span style={{ color: 'var(--text-tertiary)' }}>No one assigned</span>;
+                return (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {users.map(u => {
+                      // If it's not populated, just show the ID (shouldn't happen)
+                      const isObj = typeof u === 'object';
+                      const name = isObj ? u.name : u;
+                      const email = isObj ? u.email : '';
+                      return (
+                        <Tooltip title={email} key={isObj ? u._id : u}>
+                          <Tag style={{ margin: 0, borderRadius: 12, padding: '2px 8px', fontWeight: 600 }}>{name}</Tag>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                );
+              }
+            },
+            {
               title: 'Actions',
               key: 'actions',
               align: 'right',
@@ -547,6 +709,18 @@ const ClientsTab = () => {
                         key: 'view',
                         label: 'View Client',
                         onClick: () => setSelectedClient(record)
+                      },
+                      {
+                        key: 'assign',
+                        label: 'Assign Users',
+                        onClick: () => {
+                          setAssigningClient(record);
+                          fetchAgencyUsers();
+                          assignForm.setFieldsValue({
+                            assignedUsers: (record.assignedUsers || []).map(u => typeof u === 'object' ? u._id : u)
+                          });
+                          setIsAssignModalOpen(true);
+                        }
                       },
                       {
                         key: 'edit',
@@ -627,7 +801,13 @@ const ClientsTab = () => {
                 {selectedClient.packageName && <Tag style={{ margin: 0, borderRadius: 8, fontWeight: 600, fontSize: 11 }}>{selectedClient.packageName}</Tag>}
               </div>
             </div>
-            <Button type="primary" size="small" icon={<ArrowUpRight size={14} />} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700 }}>
+            <Button 
+              type="primary" 
+              size="small" 
+              icon={<ArrowUpRight size={14} />} 
+              style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 700 }}
+              onClick={() => handleImpersonate(selectedClient._id)}
+            >
               Full Dashboard
             </Button>
           </div>

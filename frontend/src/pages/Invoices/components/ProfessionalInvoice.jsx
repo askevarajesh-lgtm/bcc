@@ -171,12 +171,12 @@ const ProfessionalInvoice = ({ invoice }) => {
         <Col style={{ textAlign: "right" }}>
           {/* Placeholder for Logo */}
           <Title level={3} style={{ margin: 0, color: bodyTextColor }}>
-            {invoice.agencyId?.name || invoice.adminId?.name || "BCC SEO"}
+            {invoice.agencyId?.name || invoice.adminId?.name || "Invoice"}
           </Title>
           <Text style={{ color: textSecondaryColor }}>
-            Agency & Consultancy Services
+            {invoice.agencyId?.industry || invoice.adminId?.industry || "Agency & Consultancy Services"}
             <br />
-            contact@bccseo.com
+            {invoice.agencyId?.email || invoice.adminId?.email || ""}
           </Text>
         </Col>
       </Row>

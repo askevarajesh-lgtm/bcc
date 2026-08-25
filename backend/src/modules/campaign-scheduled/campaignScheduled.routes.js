@@ -119,14 +119,23 @@ async function resolveClientCompanyId(rawClientId, companyId) {
   }
 
   const scopedClient = await ClientCompany.findOne({
-    companyId,
     $or: orQuery,
   })
-    .select("_id")
+    .select("_id agencyId adminId brandId workspaceId companyId")
     .lean()
     .catch(() => null);
 
-  return scopedClient?._id ? String(scopedClient._id) : null;
+  if (!scopedClient) return null;
+
+  const isMatch = 
+    String(scopedClient.agencyId) === String(companyId) ||
+    String(scopedClient.adminId) === String(companyId) ||
+    String(scopedClient.brandId) === String(companyId) ||
+    String(scopedClient.workspaceId) === String(companyId) ||
+    String(scopedClient._id) === String(companyId) ||
+    (scopedClient.companyId && String(scopedClient.companyId) === String(companyId));
+
+  return isMatch ? String(scopedClient._id) : null;
 }
 
 async function resolveCompanyIdFromQueryToken(req) {
@@ -142,9 +151,12 @@ async function resolveCompanyIdFromQueryToken(req) {
     req.query?.clientCompanyId || "",
   ).trim();
   let clientCompanyId = null;
-  if (user.role === "client" && user.clientId) {
+  const isClientRole = ["client", "agency_client", "brand_super_admin", "brand_manager", "brand_team_user"].includes(user.role) || (user.role === "user" && user.brandId);
+  const userClientId = user.clientId || user.brandId || user._id;
+
+  if (isClientRole && userClientId) {
     clientCompanyId = await resolveClientCompanyId(
-      user.clientId,
+      userClientId,
       companyId,
     );
   } else if (requestedClientCompanyId) {
@@ -1600,9 +1612,10 @@ router.get("/auth/pinterest/callback", async (req, res) => {
 router.use(authMiddleware);
 router.use(async (req, _res, next) => {
   try {
-    if (req.user?.role === "client") {
+    const isClientRole = ["client", "agency_client", "brand_super_admin", "brand_manager", "brand_team_user"].includes(req.user?.role) || (req.user?.role === "user" && req.user?.brandId);
+    if (isClientRole) {
       req.clientCompanyId = await resolveClientCompanyId(
-        req.user?.clientId || null,
+        req.user?.clientId || req.user?.brandId || req.user?._id || null,
         req.companyId,
       );
       return next();

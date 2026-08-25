@@ -14,26 +14,23 @@ const buildLeadAccessFilter = (companyId, currentUser) => {
   if (!currentUser) return baseFilter;
 
   const userRole = String(currentUser.role || "").toLowerCase();
-  if (userRole === "admin" || userRole === "super_admin") {
-    // Default: Admin sees leads NOT created by clients (prospecting leads)
-    return { ...baseFilter, isClientLead: { $ne: true } };
-  }
-
-  if (userRole === "client") {
-    // Client sees only leads belonging to their client company
-    return {
-      ...baseFilter,
-      isClientLead: true,
-      clientId: currentUser.clientId,
-    };
-  }
-  
   if (userRole === "user" && currentUser.brandId) {
     // Sub-users of Agency Client only see leads specifically assigned to them or owned by them
     const userName = String(currentUser.name || "").trim();
     return {
       ...baseFilter,
+      isClientLead: true,
+      clientId: currentUser.clientUserId,
       $or: [{ assignedTo: userName }, { ownerId: currentUser._id }],
+    };
+  }
+
+  if (currentUser.isClientRole) {
+    // Client sees only leads belonging to their client company
+    return {
+      ...baseFilter,
+      isClientLead: true,
+      clientId: currentUser.clientUserId,
     };
   }
 
@@ -47,7 +44,11 @@ const buildLeadAccessFilter = (companyId, currentUser) => {
     };
   }
 
-  return baseFilter;
+  // Default for all other agency-level roles (agency_manager, agency_super_admin, commander_admin)
+  // They see only agency-created leads (prospecting leads) by default.
+  // If they want to view a specific client's leads, the controller passes query.companyId,
+  // which overrides this default behavior below.
+  return { ...baseFilter, isClientLead: { $ne: true } };
 };
 
 const getLeads = async (companyId, currentUser, query = {}) => {
@@ -92,7 +93,7 @@ const createLead = async (leadData, companyId, userId, currentUser) => {
   const assignedToValue = String(assignedTo || "").trim() || defaultAssignee;
 
   const userRole = String(currentUser?.role || "").toLowerCase();
-  const isClientLead = leadData.isClientLead || userRole === "client";
+  const isClientLead = leadData.isClientLead || currentUser?.isClientRole;
 
   const lead = await Lead.create({
     companyId,

@@ -16,11 +16,10 @@ exports.getDashboard = async (req, res, next) => {
     
     // If clientId is not provided or it's not a super admin requesting a specific client, use the user's default agency
     let targetAgencyId = agencyId;
-    if (clientId && isSuperAdmin) {
+    if (req.isClientRole) {
+      targetAgencyId = req.clientUserId;
+    } else if (clientId && isSuperAdmin) {
       targetAgencyId = clientId;
-    } else if (clientId && ['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role)) {
-       // A brand can only query their own data
-       targetAgencyId = req.user._id;
     }
 
     const dashboard = await performanceAdsService.getPerformanceAdsDashboard(targetAgencyId);
@@ -46,10 +45,10 @@ exports.syncData = async (req, res, next) => {
     const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
     let targetAgencyId = agencyId;
     
-    if (clientId && isSuperAdmin) {
+    if (req.isClientRole) {
+      targetAgencyId = req.clientUserId;
+    } else if (clientId && isSuperAdmin) {
       targetAgencyId = clientId;
-    } else if (clientId && ['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role)) {
-       targetAgencyId = req.user._id;
     }
 
     const dashboard = await performanceAdsService.syncPerformanceAds(targetAgencyId);
@@ -72,8 +71,13 @@ exports.addCampaign = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Agency ID missing from user token' });
     }
     
-    if (!mongoose.Types.ObjectId.isValid(agencyId)) {
-      agencyId = '60d0fe4f5311236168a10000';
+    let targetAgencyId = agencyId;
+    if (req.isClientRole) {
+      targetAgencyId = req.clientUserId;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(targetAgencyId)) {
+      targetAgencyId = '60d0fe4f5311236168a10000';
     }
 
     const { campaign, platform, status, budget } = req.body;
@@ -81,7 +85,7 @@ exports.addCampaign = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Missing required campaign fields' });
     }
 
-    const dashboard = await performanceAdsService.addCampaign(agencyId, req.body);
+    const dashboard = await performanceAdsService.addCampaign(targetAgencyId, req.body);
     
     res.status(201).json({
       success: true,

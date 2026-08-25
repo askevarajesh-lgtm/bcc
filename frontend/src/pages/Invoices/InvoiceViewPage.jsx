@@ -30,6 +30,16 @@ const InvoiceViewPage = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (invoice) {
+      const agencyName = invoice.agencyId?.name || invoice.adminId?.name || 'Invoice';
+      document.title = `${agencyName} - ${invoice.invoiceNumber}`;
+    }
+    return () => {
+      document.title = 'M1 Labs'; // Revert back
+    };
+  }, [invoice]);
+
   const handleBack = () => {
     if (isClientPanel) {
       navigate('/client/billing');
@@ -175,11 +185,21 @@ const InvoiceViewPage = () => {
 
         <style>{`
           @media print {
-            body * { visibility: hidden; }
-            #printable-invoice, #printable-invoice * { visibility: visible; }
-            #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; }
+            /* Hide the sidebar and header if they exist */
+            .ant-layout-sider, .ant-layout-header, aside, header { display: none !important; }
+            /* Hide the action buttons and spaces */
             .ant-space, .ant-btn, .ant-tag { display: none !important; }
-            .page-container { padding: 0 !important; margin: 0 !important; }
+            
+            /* Remove padding and margins for full width print */
+            body, .ant-layout, .ant-layout-content, .page-container {
+              background: white !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              width: 100% !important;
+            }
+            
+            /* Ensure the invoice card doesn't have borders or shadow when printing */
+            .ant-card { box-shadow: none !important; border: none !important; }
           }
         `}</style>
       </div>
@@ -237,11 +257,27 @@ const InvoiceViewPage = () => {
 
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #printable-invoice, #printable-invoice * { visibility: visible; }
-          #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; }
+          /* Hide layout wrappers */
+          .ant-layout-sider, .ant-layout-header, aside, header { display: none !important; }
+          /* Hide tabs nav, buttons, and spaces */
           .ant-tabs-nav, .ant-space, .ant-btn { display: none !important; }
-          .page-container { padding: 0 !important; margin: 0 !important; }
+          
+          /* Remove all padding, margin, and backgrounds */
+          body, .ant-layout, .ant-layout-content, .page-container {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          
+          /* Remove overflow constraints from tabs */
+          .ant-tabs, .ant-tabs-content-holder, .ant-tabs-content, .ant-tabs-tabpane {
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          .ant-card { box-shadow: none !important; border: none !important; }
         }
       `}</style>
     </div>

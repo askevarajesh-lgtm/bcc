@@ -21,6 +21,31 @@ exports.getBrands = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'No agency associated with this user' });
       }
       filter.agencyId = agencyId;
+      if (isEmployee) {
+        let hasViewAllFromRole = false;
+        try {
+          const dbUser = await User.findById(req.user._id);
+          // Check if they have the individual toggle on
+          if (dbUser && dbUser.viewAllClients) {
+            hasViewAllFromRole = true;
+          } 
+          // Otherwise, check their role permissions
+          else if (dbUser && dbUser.customRoleId) {
+            const mongoose = require('mongoose');
+            const RoleModel = mongoose.models.Role || require('../roles/role.model');
+            const roleDoc = await RoleModel.findById(dbUser.customRoleId);
+            if (roleDoc && roleDoc.permissions && roleDoc.permissions['Clients-Accounts']) {
+              hasViewAllFromRole = roleDoc.permissions['Clients-Accounts'].All || false;
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching role for permissions:', e);
+        }
+        
+        if (!hasViewAllFromRole) {
+          filter.assignedUsers = req.user._id;
+        }
+      }
     } else {
       filter.isDirect = true;
       if (req.user && req.user.role === 'commander_admin') {
@@ -37,7 +62,9 @@ exports.getBrands = async (req, res, next) => {
       ];
     }
 
-    const brands = await User.find(filter).sort({ createdAt: -1 }).populate('createdBy', 'name role roleName');
+    const brands = await User.find(filter).sort({ createdAt: -1 })
+      .populate('createdBy', 'name role roleName')
+      .populate('assignedUsers', 'name email role roleName');
 
     const data = await Promise.all(brands.map(async (brand) => {
       const usersCount = await User.countDocuments({
@@ -491,6 +518,39 @@ exports.updateBrandProfile = async (req, res, next) => {
     }
 
     res.status(200).json({ success: true, data: brand });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Assign users to a brand/client
+exports.assignUsersToBrand = async (req, res, next) => {
+  try {
+    const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(req.user.role);
+    const isAgencyAdmin = ['agency_super_admin', 'agency_manager'].includes(req.user.role);
+    const isEmployee = !isAdmin && !isAgencyAdmin && !['brand_super_admin', 'brand_manager', 'agency_client'].includes(req.user.role);
+    
+    // Check if user is head or admin
+    if (!isAdmin && !isAgencyAdmin && !(isEmployee && req.user.viewAllClients)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to assign users' });
+    }
+
+    const brandId = req.params.id;
+    const { assignedUsers } = req.body;
+
+    if (!Array.isArray(assignedUsers)) {
+      return res.status(400).json({ success: false, message: 'assignedUsers must be an array of user IDs' });
+    }
+
+    const brand = await User.findById(brandId);
+    if (!brand) {
+        return res.status(404).json({ success: false, message: 'Brand not found' });
+    }
+
+    brand.assignedUsers = assignedUsers;
+    await brand.save();
+
+    res.status(200).json({ success: true, message: 'Users assigned successfully', data: brand });
   } catch (error) {
     next(error);
   }

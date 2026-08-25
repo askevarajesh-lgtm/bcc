@@ -199,12 +199,19 @@ function buildWebsiteAuthQuery(req, baseQuery = {}) {
   const query = { ...baseQuery, isDeleted: false };
   const workspaceId = req.workspaceId;
 
-  if (req.user && req.user.role !== 'commander_admin') {
+  if (req.isClientRole) {
+    query.$or = [
+      { brandId: req.clientUserId },
+      { createdBy: req.user._id }
+    ];
+  } else if (req.user && req.user.role !== 'commander_admin') {
     if (req.user.agencyId) {
-      // Strictly enforce agencyId. If older websites need to be visible, they must be assigned an agencyId.
-      // Alternatively, we can allow websites where createdBy matches the current user.
+      // Strictly enforce agencyId. 
+      // Agency managers should only see agency-level websites (brandId is null)
+      // or websites they explicitly created themselves.
+      // Client-level websites will have a non-null brandId and are isolated to the client.
       query.$or = [
-        { agencyId: req.user.agencyId },
+        { agencyId: req.user.agencyId, brandId: { $in: [null, undefined] } },
         { createdBy: req.user._id }
       ];
     } else if (req.user.brandId) {
@@ -257,7 +264,7 @@ exports.createWebsite = async (req, res, next) => {
       createdBy: req.user?._id,
       updatedBy: req.user?._id,
       agencyId: req.user?.agencyId || null,
-      brandId: req.user?.brandId || null
+      brandId: req.isClientRole ? req.clientUserId : (req.user?.brandId || null)
     });
 
     if (aiGeneratedData && aiGeneratedData.site) {

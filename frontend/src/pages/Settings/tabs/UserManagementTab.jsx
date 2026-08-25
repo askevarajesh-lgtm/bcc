@@ -294,7 +294,8 @@ const UserManagementTab = () => {
             userForm.setFieldsValue({
               ...record,
               role: formRole,
-              status: record.isActive ? 'active' : 'inactive'
+              status: record.isActive ? 'active' : 'inactive',
+              viewAllClients: record.viewAllClients || false
             });
           }} style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>Edit</Button>
           <Popconfirm title="Delete this user?" onConfirm={() => handleDeleteUser(record._id)}>
@@ -662,6 +663,11 @@ const UserManagementTab = () => {
               <Input.Password size="large" style={{ borderRadius: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
             </Form.Item>
           )}
+          <Form.Item name="viewAllClients" valuePropName="checked">
+            <Checkbox>
+              <strong style={{ color: 'var(--text-secondary)' }}>Can View All Clients</strong>
+            </Checkbox>
+          </Form.Item>
           <Form.Item name="departmentId" label={<strong style={{ color: 'var(--text-secondary)' }}>Department</strong>} rules={[{ required: true }]}>
             <Select size="large" placeholder="Select Department">
               {departments.map(d => <Option key={d._id} value={d._id}>{d.name}</Option>)}
@@ -779,11 +785,12 @@ const UserManagementTab = () => {
                   rowClassName={() => 'hover-bg'}
                   columns={[
                     { title: <strong style={{ color: 'var(--text-secondary)' }}>Module</strong>, dataIndex: 'module', key: 'module', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
-                    ...['Read', 'View', 'Create', 'Edit', 'Delete'].map(field => ({
+                    ...['Read', 'View', 'All', 'Create', 'Edit', 'Delete'].map(field => ({
                       title: <strong style={{ color: 'var(--text-secondary)' }}>{field}</strong>,
                       key: field,
                       align: 'center',
                       render: (_, record) => {
+                        if (field === 'All' && record.module !== 'Accounts') return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         if (['Google Analytics', 'ChatGPT', 'Canva', 'Performance', 'Calendar'].includes(record.module) && field !== 'Read') return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         if (record.module === 'Performance Ads' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         if (record.module === 'Task Analytics' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
@@ -877,6 +884,12 @@ const UserManagementTab = () => {
                 <Tag color={viewUserModal.record.isActive ? 'success' : 'error'} style={{ borderRadius: 6, fontWeight: 700, padding: '2px 8px' }}>
                   {viewUserModal.record.isActive ? 'ACTIVE' : 'INACTIVE'}
                 </Tag>
+              </div>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>Client Visibility</Text>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                {viewUserModal.record.viewAllClients ? 'Can View All Clients' : 'Assigned Clients Only'}
               </div>
             </div>
           </div>

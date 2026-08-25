@@ -24,9 +24,19 @@ exports.getAnalytics = async (req, res, next) => {
       }
     }
 
+    let targetProjectId = projectId;
+    if (req.isClientRole) {
+      if (!projectId) {
+        // Find a project belonging to this client to prevent fetching agency-wide data
+        const clientProject = await AnalyticsProject.findOne({ clientId: req.clientUserId, isDeleted: false }).lean();
+        if (clientProject) targetProjectId = clientProject._id.toString();
+        else targetProjectId = 'none'; // No project for this client yet
+      }
+    }
+
     const dashboard = await analyticsCache.getOrCompute(
-      { agencyId, projectId, start: range.ga4Start, end: range.ga4End },
-      () => buildAnalyticsDashboard({ agencyId, projectId, rawDateRange: dateRange })
+      { agencyId, projectId: targetProjectId, start: range.ga4Start, end: range.ga4End },
+      () => buildAnalyticsDashboard({ agencyId, projectId: targetProjectId, rawDateRange: dateRange })
     );
 
     res.status(200).json({
@@ -42,7 +52,7 @@ exports.getAnalytics = async (req, res, next) => {
 exports.getProjects = async (req, res, next) => {
   try {
     const agencyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
-    const clientId = req.user.role === 'CLIENT' ? req.user._id : null;
+    const clientId = req.isClientRole ? req.clientUserId : null;
 
     if (!agencyId) {
       return res.status(400).json({ success: false, message: 'Agency ID missing' });
@@ -69,8 +79,8 @@ exports.createProject = async (req, res, next) => {
     const { domain, name, ga4PropertyId } = req.body;
     
     // In many SaaS models, the agency creates projects for clients, or for themselves.
-    // For simplicity, default clientId to agencyId unless provided differently by frontend in future
-    const clientId = agencyId; 
+    // Default clientId to agencyId unless provided differently by frontend in future, or if the user is a client themselves.
+    const clientId = req.isClientRole ? req.clientUserId : agencyId;
 
     const existing = await AnalyticsProject.findOne({ domain, companyId: agencyId, isDeleted: false });
     if (existing) {

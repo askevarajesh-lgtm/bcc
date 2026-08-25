@@ -408,7 +408,7 @@ const UserDashboard = () => {
 
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cf1322', paddingBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
             <FileText size={18} />
             <span style={{ fontWeight: 600 }}>Daily Notepad</span>
           </div>
@@ -437,7 +437,7 @@ const UserDashboard = () => {
         <Tabs defaultActiveKey="note" tabBarStyle={{ marginBottom: 16 }}>
           <TabPane 
             tab={
-              <span style={{ color: '#cf1322', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{  fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <FileText size={16} /> Today's Note
               </span>
             } 

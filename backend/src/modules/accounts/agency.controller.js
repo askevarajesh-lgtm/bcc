@@ -1,13 +1,15 @@
 const User = require('../auth/user.model');
 const { validatePhoneNumber } = require('../../utils/phoneValidation');
 
+const { isSupportedProductIntegration } = require('../../utils/supportedIntegrations');
+
 const normalizeIntegrations = (value) => {
   if (!Array.isArray(value)) return [];
   return [...new Set(
     value
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
-      .filter(Boolean)
+      .filter((v) => Boolean(v) && isSupportedProductIntegration(v))
   )];
 };
 
@@ -16,10 +18,26 @@ const validateIntegrationsArray = async (integrations, req) => {
   const normalized = normalizeIntegrations(integrations);
   if (normalized.length === 0) return [];
 
-  const integrationService = require('../integrations/integration.service');
-  const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
-  const allowedIntegrations = await integrationService.getAllIntegrations(companyId, req.user.role, req.user);
-  const allowedTypes = new Set(allowedIntegrations.map(i => i.type));
+  const role = req.user?.role;
+  if (["super_admin", "supreme_super_admin", "commander_admin"].includes(role)) {
+    return normalized; // Platform admins can assign any validly formatted integration type
+  }
+
+  const { getEffectivePackageIntegrations, resolveCompanyUser } = require('../packages/packageAccess.service');
+  const allowedIntegrations = await getEffectivePackageIntegrations(req.user);
+  const companyUser = await resolveCompanyUser(req.user);
+  
+  let finalAllowed = [...allowedIntegrations];
+  
+  if (companyUser && ['agency_super_admin', 'commander_admin', 'supreme_super_admin'].includes(companyUser.role)) {
+    const disabled = companyUser.disabledPackageIntegrations || [];
+    finalAllowed = finalAllowed.filter(i => !disabled.includes(i));
+    
+    const additional = companyUser.additionalIntegrations || [];
+    finalAllowed = [...new Set([...finalAllowed, ...additional])];
+  }
+
+  const allowedTypes = new Set(finalAllowed);
 
   for (const type of normalized) {
     if (!allowedTypes.has(type)) {

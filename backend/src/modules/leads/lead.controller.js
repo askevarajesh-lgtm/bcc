@@ -52,8 +52,8 @@ const createLead = async (req, res) => {
     }
 
     const leadData = { ...req.body };
-    if (req.user.role === "client") {
-      leadData.clientId = req.user.clientId;
+    if (req.isClientRole) {
+      leadData.clientId = req.clientUserId;
     }
 
     // Validate Phone Number
@@ -102,8 +102,8 @@ const updateLead = async (req, res) => {
     }
 
     const leadData = { ...req.body };
-    if (req.user.role === "client") {
-      leadData.clientId = req.user.clientId;
+    if (req.isClientRole) {
+      leadData.clientId = req.clientUserId;
     }
 
     // Validate Phone Number

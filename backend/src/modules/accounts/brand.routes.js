@@ -20,4 +20,7 @@ router.route('/:id')
 router.route('/:id/status')
   .put(brandController.updateBrandStatus);
 
+router.route('/:id/assign-users')
+  .post(brandController.assignUsersToBrand);
+
 module.exports = router;

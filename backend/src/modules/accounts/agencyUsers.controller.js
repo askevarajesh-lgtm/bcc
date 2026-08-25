@@ -36,7 +36,7 @@ exports.createAgencyUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No agency associated' });
     }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, viewAllClients } = req.body;
     const role = 'agency_manager';
 
     // Fetch the agency user's plan to get limits
@@ -70,7 +70,8 @@ exports.createAgencyUser = async (req, res, next) => {
       email,
       password,
       role,
-      agencyId
+      agencyId,
+      viewAllClients: viewAllClients === true
     });
 
     res.status(201).json({ success: true, data: {
@@ -118,10 +119,11 @@ exports.updateAgencyUser = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const { name, phone } = req.body;
+    const { name, phone, viewAllClients } = req.body;
     let updateFields = {};
     if (name) updateFields.name = name;
     if (phone !== undefined) updateFields.phone = phone;
+    if (viewAllClients !== undefined) updateFields.viewAllClients = viewAllClients === true;
     
     // We only allow name and phone update for sub-users for now. 
     // If they provided a new password, hash it and add it
