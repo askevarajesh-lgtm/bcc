@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 // Roles that always get full Create/Edit/Delete/View access without needing permissions configured
 const ALWAYS_FULL_ACCESS_ROLES = [
   'supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin',
-  'agency_manager', 'admin', 'brand_admin', 'brand_manager', 'agency_client'
+  'agency_manager', 'admin', 'brand_admin', 'brand_manager', 'brand_team_user', 'brand_super_admin', 'agency_client', 'client'
 ];
 
 // Roles that are Employee-type (permission-controlled via their role's permission matrix)
@@ -49,8 +49,8 @@ export function useActionPermissions(path) {
   if (path === '/performance') moduleName = 'HRMS-Performance';
 
   const hasPermission = useCallback((action) => {
-    // Agency Managers, Admins, and Super Admins always have FULL access
-    if (ALWAYS_FULL_ACCESS_ROLES.includes(role)) return true;
+    // Agency Managers, Admins, Super Admins, and ALL Client users always have FULL access
+    if (ALWAYS_FULL_ACCESS_ROLES.includes(role) || user?.brandId) return true;
 
     if (!action) return false;
     let actionKey = action.charAt(0).toUpperCase() + action.slice(1);

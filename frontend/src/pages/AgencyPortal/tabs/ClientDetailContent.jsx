@@ -345,6 +345,12 @@ const ClientDetailContent = ({
             label: 'Features',
             children: (() => {
               const handleFeatureToggle = async (featId, checked) => {
+                const isAgencyAdmin = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(authUser?.role);
+                if (!isAgencyAdmin) {
+                  message.error('You do not have access to modify features. Please contact your administrator.');
+                  return;
+                }
+                
                 try {
                   setTogglingFeatureId(featId);
                   const currentFeatures = selectedClient.features || [];
@@ -401,6 +407,12 @@ const ClientDetailContent = ({
               };
 
               const handleIntegrationToggle = async (intId, checked) => {
+                const isAgencyAdmin = ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(authUser?.role);
+                if (!isAgencyAdmin) {
+                  message.error('You do not have access to modify integrations. Please contact your administrator.');
+                  return;
+                }
+
                 try {
                   setTogglingIntId(intId);
                   const currentIntegrations = selectedClient.integrations || [];
