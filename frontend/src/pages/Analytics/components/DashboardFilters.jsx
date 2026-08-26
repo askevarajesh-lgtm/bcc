@@ -87,10 +87,6 @@ const DashboardFilters = React.memo(function DashboardFilters({
   };
 
   const handleProjectChange = (val) => {
-    if (val === 'ADD_NEW_DOMAIN') {
-      setIsAddDomainModalOpen(true);
-      return;
-    }
     onProjectChange(val);
   };
 
@@ -108,12 +104,19 @@ const DashboardFilters = React.memo(function DashboardFilters({
           aria-label="Select domain"
         >
           {projects.map(p => <Option key={p._id} value={p._id}>{p.domain} ({p.name})</Option>)}
-          <Option value="ADD_NEW_DOMAIN" style={{ color: 'var(--accent-primary)', fontWeight: 600, borderTop: '1px solid var(--border-color)', marginTop: 8, paddingTop: 8 }}>
-            <Plus size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Add New Domain
-          </Option>
         </Select>
 
-        {selectedProject !== 'ADD_NEW_DOMAIN' && selectedProject && (
+        <Button 
+          type="primary" 
+          icon={<Plus size={16} />} 
+          onClick={() => setIsAddDomainModalOpen(true)}
+          size="large"
+          style={{ borderRadius: 8, height: 40, background: 'var(--accent-primary)', color: '#fff', border: 'none', boxShadow: 'var(--shadow-sm)', fontWeight: 600 }}
+        >
+          Add Domain
+        </Button>
+
+        {selectedProject && (
           <Tooltip title="Configure Google Analytics 4">
             <Button
               icon={<Settings size={16} />}

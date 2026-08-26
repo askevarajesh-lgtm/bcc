@@ -1,6 +1,7 @@
 const Integration = require("./integration.model");
 const logger = console;
 const whatsappService = require("../../utils/whatsapp.service");
+const twilioService = require("../../utils/twilio.service");
 const sendpulseService = require("../../utils/sendpulse.service");
 const axios = require("axios");
 const User = require("../auth/user.model");
@@ -531,6 +532,76 @@ const fetchWhatsAppTemplates = async (integrationId, companyId, role, user) => {
 
     throw error;
   }
+};
+
+const testTwilioConnection = async (payload) => {
+  const { accountSid, authToken } = payload;
+  if (!accountSid || !authToken) {
+    throw new Error("Account SID and Auth Token are required");
+  }
+  
+  const numbers = await twilioService.testConnection(accountSid, authToken);
+  return { success: true, numbers };
+};
+
+const saveTwilioIntegration = async (companyId, role, user, payload) => {
+  const { accountSid, authToken, phoneNumber } = payload;
+  if (!accountSid || !authToken || !phoneNumber) {
+    throw new Error("Account SID, Auth Token, and Phone Number are required");
+  }
+
+  // Layer 2 -- block save if not entitled to SMS
+  await assertPackageEntitlement(user, role, "sms");
+
+  const scopedCompanyId = ["super_admin", "supreme_super_admin", "commander_admin"].includes(role)
+    ? null
+    : companyId;
+
+  const query = { type: "sms", companyId: scopedCompanyId };
+  let integration = await Integration.findOne(query);
+
+  const config = {
+    accountSid,
+    authToken, // Might want to encrypt in future, but for now store as is (similar to other configs)
+    phoneNumber
+  };
+
+  if (integration) {
+    integration.config = config;
+    integration.isActive = true;
+    integration.markModified("config");
+    await integration.save();
+  } else {
+    integration = await Integration.create({
+      name: "Twilio SMS Integration",
+      type: "sms",
+      companyId: scopedCompanyId,
+      isActive: true,
+      config
+    });
+  }
+
+  return integration;
+};
+
+const getTwilioIntegration = async (companyId, role, user) => {
+  const scopedCompanyId = ["super_admin", "supreme_super_admin", "commander_admin"].includes(role)
+    ? null
+    : companyId;
+
+  const integration = await Integration.findOne({ type: "sms", companyId: scopedCompanyId });
+
+  if (!integration || !integration.config || !integration.config.accountSid) {
+    return { success: false, isConnected: false };
+  }
+
+  return {
+    success: true,
+    isConnected: true,
+    accountSid: integration.config.accountSid,
+    authToken: integration.config.authToken, // Return masked token if needed, or real one to populate form
+    phoneNumber: integration.config.phoneNumber
+  };
 };
 
 /**
@@ -1540,8 +1611,11 @@ module.exports = {
   syncEktaAttendance,
   submitWebsiteLead,
   fetchWhatsAppLeads,
-  getPaymentIntegration,
   syncAllWhatsAppLeads,
+  getPaymentIntegration,
+  testTwilioConnection,
+  saveTwilioIntegration,
+  getTwilioIntegration,
 };
 
 async function syncAllWhatsAppLeads(requestingCompanyId = null) {

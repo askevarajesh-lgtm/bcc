@@ -61,6 +61,24 @@ router.post(
   rbacMiddleware("super_admin", "admin", "supreme_super_admin", "commander_admin", "salesperson", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
   integrationController.sendMessage,
 );
+
+// Twilio SMS Integration Routes
+router.post(
+  "/twilio/test",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.testTwilioConnection,
+);
+router.post(
+  "/twilio/save",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.saveTwilioIntegration,
+);
+router.get(
+  "/twilio",
+  rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),
+  integrationController.getTwilioIntegration,
+);
+
 router.get(
   "/:id/whatsapp/templates",
   rbacMiddleware("super_admin", "supreme_super_admin", "commander_admin", "admin", "agency_manager", "agency_super_admin", "brand_manager", "brand_super_admin"),

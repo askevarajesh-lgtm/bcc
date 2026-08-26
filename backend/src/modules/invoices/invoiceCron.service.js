@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const Invoice = require('./invoice.model');
+const Proposal = require('../proposals/proposal.model');
 const { getNextGenerationDate } = require('./invoiceDateHelper');
 
 const startInvoiceCron = () => {
@@ -14,14 +15,42 @@ const startInvoiceCron = () => {
         invoiceType: 'Retainer',
         invoiceStatus: { $ne: 'Cancelled' },
         nextGenerationDate: { $lte: now }
-      });
+      }).populate('proposalId');
       
       for (const invoice of dueInvoices) {
+        let newProposalId = invoice.proposalId?._id || invoice.proposalId;
+
+        // If the invoice is linked to a proposal, clone it for the new month
+        if (invoice.proposalId && typeof invoice.proposalId === 'object') {
+          const monthName = now.toLocaleString('default', { month: 'long' });
+          // Remove any existing month brackets at the end and append the new month
+          const baseName = invoice.proposalId.name.replace(/\s*\([^)]*\)$/, '').trim();
+          const newProposalName = `${baseName} (${monthName})`;
+          
+          const newProposalData = {
+            name: newProposalName,
+            clientId: invoice.proposalId.clientId,
+            masterItems: invoice.proposalId.masterItems,
+            subtotal: invoice.proposalId.subtotal,
+            tax: invoice.proposalId.tax,
+            discount: invoice.proposalId.discount,
+            grandTotal: invoice.proposalId.grandTotal,
+            status: 'Draft',
+            createdBy: invoice.createdBy,
+            adminId: invoice.proposalId.adminId,
+            agencyId: invoice.proposalId.agencyId,
+            brandId: invoice.proposalId.brandId
+          };
+          
+          const createdProposal = await Proposal.create(newProposalData);
+          newProposalId = createdProposal._id;
+        }
+
         // Clone invoice details
         const count = await Invoice.countDocuments();
         const newInvoiceData = {
           invoiceNumber: `INV-${Date.now()}-${count + 1}`,
-          proposalId: invoice.proposalId,
+          proposalId: newProposalId,
           clientId: invoice.clientId,
           amount: invoice.amount,
           tax: invoice.tax,

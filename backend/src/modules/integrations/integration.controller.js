@@ -222,6 +222,42 @@ const upsertEventConfig = async (req, res) => {
   }
 };
 
+const testTwilioConnection = async (req, res) => {
+  try {
+    const result = await integrationService.testTwilioConnection(req.body);
+    return sendSuccess(res, "Twilio connection successful", result);
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const saveTwilioIntegration = async (req, res) => {
+  try {
+    const integration = await integrationService.saveTwilioIntegration(
+      req.companyId,
+      req.user.role,
+      req.user,
+      req.body
+    );
+    return sendSuccess(res, "Twilio integration saved successfully", { integration });
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
+const getTwilioIntegration = async (req, res) => {
+  try {
+    const result = await integrationService.getTwilioIntegration(
+      req.companyId,
+      req.user.role,
+      req.user
+    );
+    return sendSuccess(res, "Twilio integration retrieved", result);
+  } catch (error) {
+    return sendError(res, 400, error.message);
+  }
+};
+
 module.exports = {
   getAllIntegrations,
   createIntegration,
@@ -237,4 +273,7 @@ module.exports = {
   getPaymentIntegration,
   getEventConfigs,
   upsertEventConfig,
+  testTwilioConnection,
+  saveTwilioIntegration,
+  getTwilioIntegration,
 };

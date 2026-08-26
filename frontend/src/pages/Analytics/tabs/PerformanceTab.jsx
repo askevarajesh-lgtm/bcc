@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Card, Typography, Row, Col, Tabs, Table } from 'antd';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
+import GscNotConnected from '../components/GscNotConnected';
+
 const { Title, Text } = Typography;
 
 const StatCard = ({ title, value, color, isActive }) => (
@@ -66,8 +68,18 @@ const PerformanceTable = ({ data, dimensionLabel }) => {
 };
 
 const PerformanceTab = ({ data }) => {
-  const { metrics, searchTraffic, gscPerformance } = data;
+  const { metrics, searchTraffic, gscPerformance, meta } = data;
   const [activeTab, setActiveTab] = useState('queries');
+
+  const isGscConnected = meta?.connections?.gsc?.connectedClients > 0;
+
+  if (!isGscConnected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
+        <GscNotConnected />
+      </div>
+    );
+  }
 
   if (!gscPerformance) return null;
 

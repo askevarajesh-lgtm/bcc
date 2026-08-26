@@ -20,42 +20,50 @@ const notificationSettingsSchema = new mongoose.Schema(
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskStatusChanged: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskPriorityChanged: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskDueDateReminder: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
       daysBefore: { type: Number, default: 1 }, // Remind 1 day before
     },
     taskCommentAdded: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskMentioned: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: true },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskAttachmentAdded: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
     taskCompleted: {
       inApp: { type: Boolean, default: true },
       email: { type: Boolean, default: false },
       whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
     },
   },
   {

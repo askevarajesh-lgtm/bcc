@@ -161,6 +161,7 @@ const InvoiceForm = () => {
         discount: 0,
         grandTotal: finalGrandTotal,
         notes: values.notes,
+        invoiceType: values.invoiceType,
         paymentStatus: 'Pending',
         invoiceStatus: status // 'Sent' or 'Draft'
       };

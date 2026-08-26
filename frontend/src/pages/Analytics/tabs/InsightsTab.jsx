@@ -3,6 +3,8 @@ import { Card, Typography, Tabs, Table, Progress, Row, Col } from 'antd';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Minus, ExternalLink } from 'lucide-react';
 
+import GscNotConnected from '../components/GscNotConnected';
+
 const { Title, Text } = Typography;
 
 const TrendIndicator = ({ diff, percent }) => {
@@ -66,9 +68,19 @@ const TrendTable = ({ data, type }) => {
 };
 
 const InsightsTab = ({ data }) => {
-  const { metrics, gscInsights, searchTraffic } = data;
+  const { metrics, gscInsights, searchTraffic, meta } = data;
   const [contentTab, setContentTab] = useState('top');
   const [queryTab, setQueryTab] = useState('top');
+
+  const isGscConnected = meta?.connections?.gsc?.connectedClients > 0;
+
+  if (!isGscConnected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
+        <GscNotConnected />
+      </div>
+    );
+  }
 
   if (!gscInsights) return null;
 

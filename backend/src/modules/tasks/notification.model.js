@@ -86,7 +86,11 @@ const notificationSchema = new mongoose.Schema(
         type: Boolean,
         default: false,
       },
-      // Future: sms, push, etc.
+      sms: {
+        type: Boolean,
+        default: false,
+      },
+      // Future: push, etc.
     },
     metadata: {
       type: mongoose.Schema.Types.Mixed,

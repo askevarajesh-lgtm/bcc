@@ -127,6 +127,8 @@ const deleteNotifications = async (notificationIds, userId) => {
 
 const CompanyNotificationSettings = require("./companyNotificationSettings.model");
 const User = require("../auth/user.model");
+const Integration = require("../integrations/integration.model");
+const twilioService = require("../../utils/twilio.service");
 
 /**
  * Dispatch system notification
@@ -140,7 +142,7 @@ const dispatchSystemNotification = async (companyId, triggerKey, type, title, me
     }
 
     const triggerSettings = settings.systemTriggers[triggerKey];
-    if (!triggerSettings.inApp && !triggerSettings.email) {
+    if (!triggerSettings.inApp && !triggerSettings.email && !triggerSettings.sms) {
       return; // No channels enabled
     }
 
@@ -164,10 +166,32 @@ const dispatchSystemNotification = async (companyId, triggerKey, type, title, me
         title,
         message,
         metadata,
-        channels: { inApp: true, email: triggerSettings.email, whatsapp: triggerSettings.whatsapp }
+        channels: { inApp: true, email: triggerSettings.email, whatsapp: triggerSettings.whatsapp, sms: triggerSettings.sms }
       }));
       
       await Notification.insertMany(notifications);
+    }
+
+    // Send SMS via Twilio
+    if (triggerSettings.sms) {
+      const smsIntegration = await Integration.findOne({
+        companyId,
+        type: "sms",
+        isActive: true,
+      });
+
+      if (smsIntegration && smsIntegration.config && smsIntegration.config.accountSid) {
+        const { accountSid, authToken, phoneNumber: fromNumber } = smsIntegration.config;
+        
+        // Use a background loop to send SMS to each admin that has a phone number
+        for (const admin of admins) {
+          const adminPhone = admin.phone || admin.phoneNumber || admin.contactNumber;
+          if (adminPhone) {
+            twilioService.sendSms(accountSid, authToken, fromNumber, adminPhone, `${title}: ${message}`)
+              .catch(err => console.error("Failed to send system SMS notification:", err));
+          }
+        }
+      }
     }
   } catch (err) {
     console.error("Error dispatching system notification:", err);
