@@ -1,60 +1,74 @@
 import React, { useState } from 'react';
-import { Card, Button, Typography, Steps, Form, Input, Upload, message, Table, List, Tag } from 'antd';
+import { Card, Button, Typography, Steps, Form, Input, Upload, message, List, Tag } from 'antd';
 import { UploadCloud, CheckCircle, Code, FileCode } from 'lucide-react';
+import { getTemplates, saveTemplate } from '../utils/storage';
+import { processZipFile } from '../utils/zipExtractor';
+import { analyzePageElements } from '../utils/analyzer';
 import EcommerceGrapesJS from './EcommerceGrapesJS';
-import { analyzeTemplate } from '../utils/analyzer';
-import { extractTemplateZip } from '../utils/zipExtractor';
-import { getStorageData, setStorageData } from '../utils/storage';
+import { useEcommerce } from '../contexts/EcommerceContext';
 
 const { Title, Text } = Typography;
 
 const EcommerceStoreBuilder = () => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [templateId, setTemplateId] = useState(`tpl_${Date.now()}`);
+  const [templateId, setTemplateId] = useState('');
   const [pages, setPages] = useState({});
-  const [assets, setAssets] = useState({});
   const [selectedPageId, setSelectedPageId] = useState(null);
-  
-  const workspaceId = 'default';
-  const websiteId = 'default';
+  const [assets, setAssets] = useState({});
+
+  const { workspaceId, websiteId } = useEcommerce();
 
   const handleFileUpload = async (file) => {
     try {
-      const { pages: extractedPages, assets: extractedAssets } = await extractTemplateZip(file);
-      setPages(extractedPages);
+      const { pages: extractedPages, assets: extractedAssets } = await processZipFile(file);
       setAssets(extractedAssets);
-      
-      // Save template structure
-      const templates = getStorageData(workspaceId, websiteId, 'templates', {});
-      templates[templateId] = {
-        id: templateId,
-        pages: extractedPages,
+
+      const analyzedPages = {};
+      Object.keys(extractedPages).forEach(pageId => {
+        analyzedPages[pageId] = {
+          ...extractedPages[pageId],
+          html: extractedPages[pageId].html,
+          css: extractedPages[pageId].css,
+          mapping: analyzePageElements(extractedPages[pageId].html)
+        };
+      });
+
+      setPages(analyzedPages);
+
+      const newTemplateId = `tpl_${Date.now()}`;
+      setTemplateId(newTemplateId);
+
+      await saveTemplate(workspaceId, websiteId, newTemplateId, {
+        id: newTemplateId,
+        name: file.name,
+        websiteId,
+        pages: analyzedPages,
         assets: extractedAssets,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      };
-      setStorageData(workspaceId, websiteId, 'templates', templates);
-      
-      message.success('Template ZIP loaded successfully!');
+      });
+
+      message.success('ZIP imported successfully!');
       setCurrentStep(1);
     } catch (err) {
       console.error(err);
       message.error('Failed to parse ZIP file.');
     }
-    return false; // Prevent default upload
+    return false;
   };
 
   const selectPage = (pageId) => {
     setSelectedPageId(pageId);
-    
+
     // Auto analyze the selected page's HTML
     const pageHtml = pages[pageId].html;
-    const detectedMappings = analyzeTemplate(pageHtml);
-    
+    const detectedMappings = analyzePageElements(pageHtml);
+
     // Merge detected mappings with any existing mappings
     const updatedPages = { ...pages };
     updatedPages[pageId].mapping = { ...detectedMappings, ...updatedPages[pageId].mapping };
     setPages(updatedPages);
-    
+
     setCurrentStep(2);
   };
 
@@ -62,7 +76,7 @@ const EcommerceStoreBuilder = () => {
     const updatedPages = { ...pages };
     updatedPages[selectedPageId].mapping = values;
     setPages(updatedPages);
-    
+
     message.success('Mappings confirmed for this page!');
     setCurrentStep(3);
   };
@@ -128,9 +142,9 @@ const EcommerceStoreBuilder = () => {
         <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
           We detected the following elements in <b>{page.id}</b>. Adjust the CSS selectors if incorrect.
         </Text>
-        <Form 
-          layout="horizontal" 
-          labelCol={{ span: 8 }} 
+        <Form
+          layout="horizontal"
+          labelCol={{ span: 8 }}
           wrapperCol={{ span: 16 }}
           initialValues={page.mapping}
           onFinish={handleMappingConfirm}
@@ -151,23 +165,25 @@ const EcommerceStoreBuilder = () => {
   if (currentStep === 3) {
     const page = pages[selectedPageId];
     return (
-      <EcommerceGrapesJS 
+      <EcommerceGrapesJS
         templateId={templateId}
         pageId={selectedPageId}
         initialHtml={page.html}
         initialCss={page.css}
         assets={assets}
+        initialName={pages[selectedPageId]?.name || ''}
         onBack={() => setCurrentStep(1)}
-        onSave={(html, css) => {
+        onSave={async (html, css, templateName) => {
           const updatedPages = { ...pages };
           updatedPages[selectedPageId].html = html;
           updatedPages[selectedPageId].css = css;
           setPages(updatedPages);
-          
-          const templates = getStorageData(workspaceId, websiteId, 'templates', {});
+
+          const templates = await getTemplates(workspaceId, websiteId);
           if (templates[templateId]) {
             templates[templateId].pages = updatedPages;
-            setStorageData(workspaceId, websiteId, 'templates', templates);
+            if (templateName) templates[templateId].name = templateName;
+            await saveTemplate(workspaceId, websiteId, templateId, templates[templateId]);
           }
         }}
       />
@@ -186,7 +202,7 @@ const EcommerceStoreBuilder = () => {
         ]}
         style={{ maxWidth: 800, margin: '0 auto', marginBottom: 40 }}
       />
-      
+
       {currentStep === 0 && renderUpload()}
       {currentStep === 1 && renderPageList()}
       {currentStep === 2 && renderMapping()}

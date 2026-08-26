@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import webpagePlugin from 'grapesjs-preset-webpage';
-import { Button, message, Space } from 'antd';
+import { Button, message, Space, Modal, Input } from 'antd';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getStorageData, setStorageData } from '../utils/storage';
 
-const EcommerceGrapesJS = ({ templateId, pageId, initialHtml, initialCss, assets = {}, onBack, onSave }) => {
+const EcommerceGrapesJS = ({ templateId, pageId, initialHtml, initialCss, assets = {}, initialName = '', onBack, onSave }) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
+  const [isNameModalVisible, setIsNameModalVisible] = useState(false);
+  const [templateName, setTemplateName] = useState(initialName);
   const workspaceId = 'default';
   const websiteId = 'default';
 
@@ -51,26 +53,40 @@ const EcommerceGrapesJS = ({ templateId, pageId, initialHtml, initialCss, assets
     };
   }, []);
 
-  const handleSave = () => {
+  const handleSaveClick = () => {
+    setIsNameModalVisible(true);
+  };
+
+  const handleConfirmSave = () => {
+    if (!templateName || !templateName.trim()) {
+      message.error('Template name is required');
+      return;
+    }
+    if (templateName.trim().length > 100) {
+      message.error('Template name is too long');
+      return;
+    }
+
+    setIsNameModalVisible(false);
+
     if (!editor) return;
     const html = editor.getHtml();
     const css = editor.getCss();
     
-    // The actual state update for the multi-page structure is handled by onSave in the parent.
-    // We only save to the old flat structure if pageId is not provided (legacy fallback).
     if (!pageId) {
       const templates = getStorageData(workspaceId, websiteId, 'templates', {});
       templates[templateId] = {
         ...templates[templateId],
         html,
         css,
+        name: templateName.trim(),
         updatedAt: new Date().toISOString()
       };
       setStorageData(workspaceId, websiteId, 'templates', templates);
     }
     
     message.success('Template saved successfully!');
-    if (onSave) onSave(html, css);
+    if (onSave) onSave(html, css, templateName.trim());
   };
 
   return (
@@ -82,13 +98,30 @@ const EcommerceGrapesJS = ({ templateId, pageId, initialHtml, initialCss, assets
           </Button>
           <span style={{ fontWeight: 600 }}>Editing: {pageId || templateId}</span>
         </Space>
-        <Button type="primary" icon={<Save size={16} />} onClick={handleSave}>
+        <Button type="primary" icon={<Save size={16} />} onClick={handleSaveClick}>
           Save Template
         </Button>
       </div>
       <div style={{ flex: 1, position: 'relative' }}>
         <div ref={editorRef} style={{ height: '100%', width: '100%' }} />
       </div>
+      <Modal
+        title="Save Template"
+        open={isNameModalVisible}
+        onOk={handleConfirmSave}
+        onCancel={() => setIsNameModalVisible(false)}
+        okText="Save Template"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Template Name</label>
+          <Input 
+            value={templateName} 
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="e.g. Modern Fashion Store"
+            maxLength={100}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

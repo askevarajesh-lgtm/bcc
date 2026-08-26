@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Drawer, Badge, List, Typography, Divider, message, Space, Input, Form, Select } from 'antd';
 import { ShoppingCart, X, CreditCard, ArrowRight, ArrowLeft } from 'lucide-react';
-import { getStorageData, processCheckout } from '../utils/storage';
+import { getTemplates, getProducts, processCheckout } from '../utils/storage';
 import { formatCurrency } from '../utils/currency';
 import { resolveAssetUrls } from '../utils/zipExtractor';
+import { useEcommerce } from '../contexts/EcommerceContext';
 
 import { useParams } from 'react-router-dom';
 
@@ -16,30 +17,37 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
   const [renderedHtml, setRenderedHtml] = useState('');
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [isCheckoutDrawerOpen, setIsCheckoutDrawerOpen] = useState(false);
-  const [customerDetails, setCustomerDetails] = useState({ name: 'Demo User', email: 'demo@example.com', address: '123 Test St' });
-  const [paymentMethod, setPaymentMethod] = useState('Card');
   
   const containerRef = useRef(null);
-  const workspaceId = 'default';
-  const websiteId = 'default';
+  const { workspaceId, websiteId } = useEcommerce();
 
   useEffect(() => {
-    const templates = getStorageData(workspaceId, websiteId, 'templates', {});
-    const targetTemplateId = paramTemplateId || propTemplateId || Object.keys(templates)[0];
-    const activeTemplate = templates[targetTemplateId];
+    if (!workspaceId || !websiteId) return;
     
-    if (activeTemplate && activeTemplate.pages) {
-      setTemplate(activeTemplate);
-      // Try to find index/home
-      let startPage = Object.keys(activeTemplate.pages).find(k => k.toLowerCase().includes('index')) 
-                   || Object.keys(activeTemplate.pages)[0];
-      setCurrentPageId(startPage || '');
-    }
+    const loadStore = async () => {
+      const templates = await getTemplates(workspaceId, websiteId);
+      const targetTemplateId = paramTemplateId || propTemplateId || Object.keys(templates)[0];
+      const activeTemplate = templates[targetTemplateId];
+      
+      if (activeTemplate && activeTemplate.pages) {
+        setTemplate(activeTemplate);
+        // Try to find index/home
+        let startPage = Object.keys(activeTemplate.pages).find(k => k.toLowerCase().includes('index')) 
+                     || Object.keys(activeTemplate.pages)[0];
+        setCurrentPageId(startPage || '');
+      }
 
-    const storeProducts = getStorageData(workspaceId, websiteId, 'products', []);
-    setProducts(storeProducts.filter(p => p.status === 'Active'));
-  }, [paramTemplateId, propTemplateId]);
+      const storeProducts = await getProducts(workspaceId, websiteId);
+      setProducts(storeProducts.filter(p => p.status === 'Active'));
+      
+      const savedCart = await import('../utils/storage').then(m => m.getCart(workspaceId, websiteId));
+      setCart(savedCart || []);
+    };
+    
+    loadStore();
+  }, [paramTemplateId, propTemplateId, workspaceId, websiteId]);
 
   useEffect(() => {
     if (!template || !currentPageId || !template.pages[currentPageId]) return;
@@ -52,18 +60,18 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
     const doc = parser.parseFromString(html, 'text/html');
 
     if (page.mapping) {
-      // Very basic dynamic injection based on mapping
-      const { productGrid, productCard, productImage, productName, productPrice, addBtn } = page.mapping;
+      const { 
+        productGrid, productCard, productImage, productName, productPrice, addBtn, 
+        cartContainer, cartItem, cartTotal, checkoutForm
+      } = page.mapping;
       
+      // 1. PRODUCT GRID INJECTION
       if (productGrid && productCard) {
         const gridEl = doc.querySelector(productGrid);
         if (gridEl) {
           const cardTemplate = gridEl.querySelector(productCard);
           if (cardTemplate) {
-            // Remove existing static cards
             gridEl.innerHTML = '';
-            
-            // Generate dynamic cards
             products.forEach(product => {
               const cardClone = cardTemplate.cloneNode(true);
               
@@ -87,15 +95,129 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
                 }
               }
               
+              // Attach product ID to the card itself for routing to detail page
+              cardClone.setAttribute('data-product-id', product.id);
+              cardClone.style.cursor = 'pointer';
+
               gridEl.appendChild(cardClone);
             });
+          }
+        }
+      }
+
+      // 1.5 PRODUCT DETAIL INJECTION
+      if (page.role === 'Product Detail' && selectedProductId) {
+        const product = products.find(p => p.id === selectedProductId);
+        if (product) {
+          if (productImage) {
+            const imgEls = doc.querySelectorAll(productImage);
+            imgEls.forEach(img => img.src = product.image || '');
+          }
+          if (productName) {
+            const nameEls = doc.querySelectorAll(productName);
+            nameEls.forEach(el => el.textContent = product.name);
+          }
+          if (productPrice) {
+            const priceEls = doc.querySelectorAll(productPrice);
+            priceEls.forEach(el => el.textContent = formatCurrency(product.price, workspaceId, websiteId));
+          }
+          // Also try to find description
+          const descEl = doc.querySelector('.product-description, #description, [class*="desc"]');
+          if (descEl && product.description) {
+            descEl.textContent = product.description;
+          }
+          if (addBtn) {
+            const btnEls = doc.querySelectorAll(addBtn);
+            btnEls.forEach(btn => {
+              btn.setAttribute('data-add-product', product.id);
+              btn.style.cursor = 'pointer';
+            });
+          }
+          
+          // Quantity input
+          const qtyInput = doc.querySelector('input[type="number"], .qty, [name="quantity"]');
+          if (qtyInput) {
+            qtyInput.setAttribute('data-detail-qty', 'true');
+            qtyInput.value = 1;
+            qtyInput.min = 1;
+            qtyInput.max = product.stock;
+          }
+        }
+      }
+
+      // 2. CART INJECTION
+      if (page.role === 'Cart' && cartContainer && cartItem) {
+        const cartEl = doc.querySelector(cartContainer);
+        if (cartEl) {
+          const itemTemplate = cartEl.querySelector(cartItem);
+          if (itemTemplate) {
+            // Find parent to append to (often tbody)
+            const parentEl = itemTemplate.parentElement;
+            parentEl.innerHTML = '';
+            
+            let total = 0;
+            if (cart.length === 0) {
+              parentEl.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center;">Your cart is empty.</td></tr>';
+            } else {
+              cart.forEach(item => {
+                total += item.price * item.quantity;
+                const clone = itemTemplate.cloneNode(true);
+                
+                // Try to map item details (very basic heuristic mapping for the cart template)
+                const img = clone.querySelector('img');
+                if (img) img.src = item.image;
+                
+                // Name
+                const textNodes = Array.from(clone.querySelectorAll('*')).filter(el => el.children.length === 0 && el.textContent.trim().length > 0);
+                if (textNodes.length > 0) textNodes[0].textContent = item.name;
+                
+                // Price
+                const priceEls = Array.from(clone.querySelectorAll('*')).filter(el => el.textContent.includes('$') || el.textContent.includes('£') || el.textContent.includes('€') || el.textContent.includes('₹') || el.classList.contains('price'));
+                if (priceEls.length > 0) priceEls[0].textContent = formatCurrency(item.price, workspaceId, websiteId);
+                
+                // Quantity input
+                const qtyInput = clone.querySelector('input[type="number"], .qty');
+                if (qtyInput) {
+                  qtyInput.value = item.quantity;
+                  qtyInput.setAttribute('data-cart-qty-id', item.id);
+                }
+
+                // Remove btn
+                const rmBtn = clone.querySelector('.remove, .delete, a[href*="remove"]');
+                if (rmBtn) {
+                  rmBtn.setAttribute('data-remove-cart', item.id);
+                  rmBtn.removeAttribute('href');
+                  rmBtn.style.cursor = 'pointer';
+                }
+                
+                parentEl.appendChild(clone);
+              });
+            }
+            
+            if (cartTotal) {
+              const totalEl = doc.querySelector(cartTotal);
+              if (totalEl) totalEl.textContent = formatCurrency(total, workspaceId, websiteId);
+            }
+          }
+        }
+      }
+
+      // 3. CHECKOUT FORM INJECTION
+      if (page.role === 'Checkout' && checkoutForm) {
+        const formEl = doc.querySelector(checkoutForm);
+        if (formEl) {
+          formEl.setAttribute('data-checkout-form', 'true');
+          // Add a submit handler interceptor
+          const submitBtn = formEl.querySelector('button[type="submit"], input[type="submit"], .place-order, #place_order');
+          if (submitBtn) {
+            submitBtn.setAttribute('data-checkout-submit', 'true');
           }
         }
       }
     }
 
     setRenderedHtml(doc.documentElement.outerHTML);
-  }, [currentPageId, template, products]);
+  }, [currentPageId, template, products, cart, workspaceId, websiteId]);
 
   useEffect(() => {
     // Attach event listeners to the rendered template
@@ -110,24 +232,67 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
         const productId = addBtn.getAttribute('data-add-product');
         const product = products.find(p => p.id === productId);
         if (product) {
+          // Check for quantity override from detail page
+          const detailQtyEl = document.querySelector('[data-detail-qty="true"]');
+          let qtyToAdd = 1;
+          if (detailQtyEl) {
+             qtyToAdd = parseInt(detailQtyEl.value, 10) || 1;
+          }
+
           setCart(prev => {
+            let newCart;
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
-              if (existing.quantity >= product.stock) {
+              if (existing.quantity + qtyToAdd > product.stock) {
                 message.warning('Not enough stock!');
                 return prev;
               }
-              return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+              newCart = prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + qtyToAdd } : item);
+            } else {
+              if (product.stock < qtyToAdd) {
+                message.warning('Out of stock!');
+                return prev;
+              }
+              newCart = [...prev, { ...product, quantity: qtyToAdd }];
             }
-            if (product.stock < 1) {
-              message.warning('Out of stock!');
-              return prev;
-            }
-            return [...prev, { ...product, quantity: 1 }];
+            import('../utils/storage').then(m => m.saveCart(workspaceId, websiteId, newCart));
+            return newCart;
           });
           message.success(`${product.name} added to cart`);
         }
         return;
+      }
+
+      // Handle Remove from cart
+      const rmBtn = e.target.closest('[data-remove-cart]');
+      if (rmBtn) {
+        e.preventDefault();
+        const id = rmBtn.getAttribute('data-remove-cart');
+        setCart(prev => {
+          const newCart = prev.filter(item => item.id !== id);
+          import('../utils/storage').then(m => m.saveCart(workspaceId, websiteId, newCart));
+          return newCart;
+        });
+        return;
+      }
+
+      // Handle Product Detail Navigation
+      const productCard = e.target.closest('[data-product-id]');
+      if (productCard && !e.target.closest('[data-add-product]')) {
+        const link = e.target.closest('a');
+        if (link) e.preventDefault();
+        
+        const productId = productCard.getAttribute('data-product-id');
+        setSelectedProductId(productId);
+        
+        // Find product detail page
+        if (template && template.pages) {
+          const detailPage = Object.values(template.pages).find(p => p.role === 'Product Detail');
+          if (detailPage) {
+            setCurrentPageId(detailPage.id);
+            return;
+          }
+        }
       }
 
       // Handle Internal Navigation
@@ -136,7 +301,6 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
         const href = link.getAttribute('href');
         if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
           e.preventDefault();
-          // Normalize relative paths like ./cart.html to cart.html
           let targetPath = href.replace(/^\.\//, '').split('#')[0];
           
           if (template && template.pages[targetPath]) {
@@ -148,56 +312,80 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
       }
     };
 
-    container.addEventListener('click', handleClick);
-    return () => container.removeEventListener('click', handleClick);
-  }, [renderedHtml, template, products]);
-
-  const updateQuantity = (id, delta) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) {
-        const product = products.find(p => p.id === id);
-        const newQ = item.quantity + delta;
-        if (product && newQ > product.stock) {
-          message.warning('Not enough stock!');
-          return item;
+    const handleChange = (e) => {
+      if (e.target.matches('[data-cart-qty-id]')) {
+        const id = e.target.getAttribute('data-cart-qty-id');
+        const val = parseInt(e.target.value, 10);
+        if (val > 0) {
+          const product = products.find(p => p.id === id);
+          if (product && val > product.stock) {
+            message.warning('Not enough stock!');
+            e.target.value = product.stock;
+            return;
+          }
+          setCart(prev => {
+            const newCart = prev.map(item => item.id === id ? { ...item, quantity: val } : item);
+            import('../utils/storage').then(m => m.saveCart(workspaceId, websiteId, newCart));
+            return newCart;
+          });
         }
-        return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
-      return item;
-    }));
-  };
+    };
 
-  const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
+    const handleSubmit = async (e) => {
+      if (e.target.matches('[data-checkout-form]')) {
+        e.preventDefault();
+        if (cart.length === 0) {
+          message.warning('Cart is empty');
+          return;
+        }
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shippingFee = 50;
-  const finalTotal = cartTotal > 0 ? cartTotal + shippingFee : 0;
+        // Extremely basic extraction of form data for MVP
+        const formData = new FormData(e.target);
+        const customerDetails = {
+          name: formData.get('name') || formData.get('first_name') || 'Demo User',
+          email: formData.get('email') || formData.get('billing_email') || 'demo@example.com',
+          address: formData.get('address') || formData.get('billing_address_1') || '123 Test St'
+        };
+        const paymentMethod = formData.get('payment_method') || 'Card';
 
-  const doCheckout = () => {
-    if (cart.length === 0) return message.warning('Cart is empty');
-    
-    const result = processCheckout(workspaceId, websiteId, customerDetails, cart, paymentMethod);
-    
-    if (result.success) {
-      message.success(`Order ${result.orderId} placed successfully!`);
-      setCart([]);
-      setIsCheckoutDrawerOpen(false);
-      
-      // Reload products to get updated stock
-      const storeProducts = getStorageData(workspaceId, websiteId, 'products', []);
-      setProducts(storeProducts.filter(p => p.status === 'Active'));
-    } else {
-      message.error(result.message);
-    }
-  };
+        const result = await processCheckout(workspaceId, websiteId, customerDetails, cart, paymentMethod);
+        
+        if (result.success) {
+          message.success(`Order ${result.orderId} placed successfully!`);
+          setCart([]);
+          
+          // Try navigating to a success page or home
+          const successPage = Object.values(template.pages).find(p => p.role === 'Success' || p.fileName.includes('success'));
+          if (successPage) {
+            setCurrentPageId(successPage.id);
+          } else {
+            setCurrentPageId(Object.keys(template.pages)[0]); // Go home
+          }
+          
+          // Reload products
+          const storeProducts = await getProducts(workspaceId, websiteId);
+          setProducts(storeProducts.filter(p => p.status === 'Active'));
+        } else {
+          message.error(result.message);
+        }
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+    container.addEventListener('change', handleChange);
+    container.addEventListener('submit', handleSubmit);
+    return () => {
+      container.removeEventListener('click', handleClick);
+      container.removeEventListener('change', handleChange);
+      container.removeEventListener('submit', handleSubmit);
+    };
+  }, [renderedHtml, template, products, cart, workspaceId, websiteId]);
 
   const page = template?.pages?.[currentPageId];
-  const isCartRole = page?.role === 'Cart';
-  const isCheckoutRole = page?.role === 'Checkout';
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
-      {/* Store Preview Toolbar */}
       <div style={{ background: '#1e293b', color: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <Text style={{ color: 'white', fontWeight: 'bold' }}>Store Preview</Text>
@@ -206,13 +394,12 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
         <Space>
           <Badge count={cart.length} showZero>
             <Button size="small" type="primary" onClick={() => setIsCheckoutDrawerOpen(true)}>
-              Cart Checkout Demo
+              Quick Cart Drawer
             </Button>
           </Badge>
         </Space>
       </div>
 
-      {/* Dynamic Content */}
       <div style={{ flex: 1, position: 'relative', overflowY: 'auto' }}>
         {!template ? (
           <div style={{ padding: 40, textAlign: 'center' }}>No template active.</div>
@@ -221,61 +408,30 @@ const EcommerceStorePreview = ({ templateId: propTemplateId }) => {
         )}
       </div>
 
-      {/* For MVP Checkout Drawer is a reliable fallback for actual cart/checkout data simulation */}
+      {/* Fallback Quick Cart Drawer */}
       <Drawer
-        title="Checkout System (Application Overlay)"
+        title="Quick Cart"
         placement="right"
         onClose={() => setIsCheckoutDrawerOpen(false)}
         open={isCheckoutDrawerOpen}
-        width={450}
+        width={350}
       >
         {cart.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40 }}>Your cart is empty.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              <List
-                itemLayout="horizontal"
-                dataSource={cart}
-                renderItem={item => (
-                  <List.Item actions={[<Button type="text" danger icon={<X size={16} />} onClick={() => removeFromCart(item.id)} />]}>
-                    <List.Item.Meta
-                      avatar={<img src={item.image} alt={item.name} style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />}
-                      title={item.name}
-                      description={
-                        <Space>
-                          <span>{formatCurrency(item.price, workspaceId, websiteId)}</span>
-                          <Space style={{ marginLeft: 16 }}>
-                            <Button size="small" onClick={() => updateQuantity(item.id, -1)}>-</Button>
-                            <span>{item.quantity}</span>
-                            <Button size="small" onClick={() => updateQuantity(item.id, 1)}>+</Button>
-                          </Space>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            </div>
-            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16, marginTop: 16 }}>
-              <Form layout="vertical">
-                <Form.Item label="Name"><Input value={customerDetails.name} onChange={e => setCustomerDetails({...customerDetails, name: e.target.value})} /></Form.Item>
-                <Form.Item label="Email"><Input value={customerDetails.email} onChange={e => setCustomerDetails({...customerDetails, email: e.target.value})} /></Form.Item>
-                <Form.Item label="Payment Method">
-                  <Select value={paymentMethod} onChange={setPaymentMethod}>
-                    <Select.Option value="Card">Card</Select.Option>
-                    <Select.Option value="UPI">UPI</Select.Option>
-                    <Select.Option value="COD">Cash on Delivery</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Form>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-                <Title level={4} style={{ margin: 0 }}>Total</Title>
-                <Title level={4} style={{ margin: 0 }}>{formatCurrency(finalTotal, workspaceId, websiteId)}</Title>
-              </div>
-              <Button type="primary" block size="large" onClick={doCheckout}>Place Order</Button>
-            </div>
-          </div>
+          <List
+            itemLayout="horizontal"
+            dataSource={cart}
+            renderItem={item => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<img src={item.image} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover' }} />}
+                  title={item.name}
+                  description={`${formatCurrency(item.price, workspaceId, websiteId)} x ${item.quantity}`}
+                />
+              </List.Item>
+            )}
+          />
         )}
       </Drawer>
     </div>

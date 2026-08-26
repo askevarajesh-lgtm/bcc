@@ -1,7 +1,10 @@
-// storage.js - Simple local storage utility for E-commerce MVP
+// storage.js - Centralized E-commerce Data Layer
+import api from '../../../../services/api';
 
-// Helper to get scoped keys
 const getScopedKey = (workspaceId, websiteId, entity) => {
+  if (!workspaceId || !websiteId) {
+    console.warn("storage.js: Missing workspaceId or websiteId! Falling back to 'default'.");
+  }
   return `ecommerce_${workspaceId || 'default'}_${websiteId || 'default'}_${entity}`;
 };
 
@@ -11,161 +14,255 @@ export const getStorageData = (workspaceId, websiteId, entity, defaultValue = []
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : defaultValue;
   } catch (error) {
-    console.error('Error reading from localStorage', error);
+    console.error(`Error reading ${entity} from localStorage`, error);
     return defaultValue;
   }
+};
+
+const initDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('EcommerceStoreDB', 1);
+    request.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore('templates');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 };
 
 export const setStorageData = (workspaceId, websiteId, entity, data) => {
   try {
     const key = getScopedKey(workspaceId, websiteId, entity);
     localStorage.setItem(key, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('ecommerce_data_updated', {
+      detail: { workspaceId, websiteId, entity }
+    }));
   } catch (error) {
-    console.error('Error writing to localStorage', error);
+    console.error(`Error writing ${entity} to localStorage`, error);
   }
 };
 
-export const clearStorageData = (workspaceId, websiteId, entity) => {
+// --- Products (Backend) ---
+export const getProducts = async (workspaceId, websiteId) => {
   try {
-    const key = getScopedKey(workspaceId, websiteId, entity);
-    localStorage.removeItem(key);
-  } catch (error) {
-    console.error('Error removing from localStorage', error);
+    const res = await api.get(`/ecommerce/${websiteId}/products`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get products', e);
+    return [];
   }
 };
 
-export const processCheckout = (workspaceId, websiteId, customerDetails, cart, paymentMethod) => {
-  const products = getStorageData(workspaceId, websiteId, 'products', []);
-  const orders = getStorageData(workspaceId, websiteId, 'orders', []);
-  const customers = getStorageData(workspaceId, websiteId, 'customers', []);
-  const payments = getStorageData(workspaceId, websiteId, 'payments', []);
-  const shipping = getStorageData(workspaceId, websiteId, 'shipping', []);
-  
-  // Validate stock
-  for (const item of cart) {
-    const product = products.find(p => p.id === item.id);
-    if (!product || product.stock < item.quantity) {
-      return { success: false, message: `Insufficient stock for ${item.name}` };
-    }
+export const createProduct = async (workspaceId, websiteId, productData) => {
+  try {
+    const res = await api.post(`/ecommerce/${websiteId}/products`, productData);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to create product', e);
+    throw e;
   }
-
-  const orderId = `ORD-${Date.now()}`;
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shippingFee = 50;
-  const finalTotal = cartTotal + shippingFee;
-
-  // Deduplicate/Create Customer
-  let customer = customers.find(c => c.email.toLowerCase() === customerDetails.email.toLowerCase());
-  if (customer) {
-    customer.ordersCount = (customer.ordersCount || 0) + 1;
-    customer.totalSpent = (customer.totalSpent || 0) + finalTotal;
-    customer.name = customerDetails.name;
-    customer.address = customerDetails.address;
-  } else {
-    customer = {
-      id: `CUS-${Date.now()}`,
-      ...customerDetails,
-      ordersCount: 1,
-      totalSpent: finalTotal,
-      createdAt: new Date().toISOString()
-    };
-    customers.push(customer);
-  }
-
-  // Create Order
-  const newOrder = {
-    id: orderId,
-    customerId: customer.id,
-    customerName: customer.name,
-    customerEmail: customer.email,
-    shippingAddress: customer.address,
-    items: cart,
-    subtotal: cartTotal,
-    shippingFee,
-    total: finalTotal,
-    status: 'Pending',
-    date: new Date().toISOString()
-  };
-  orders.unshift(newOrder);
-
-  // Create Payment
-  const newPayment = {
-    id: `PAY-${Date.now()}`,
-    orderId,
-    customerId: customer.id,
-    amount: finalTotal,
-    method: paymentMethod,
-    status: 'Completed',
-    date: new Date().toISOString()
-  };
-  payments.unshift(newPayment);
-
-  // Create Shipment
-  const newShipment = {
-    id: `SHP-${Date.now()}`,
-    orderId,
-    customerId: customer.id,
-    trackingId: `TRK${Date.now()}`,
-    status: 'Pending',
-    date: new Date().toISOString()
-  };
-  shipping.unshift(newShipment);
-
-  // Reduce Stock
-  const updatedProducts = products.map(p => {
-    const cartItem = cart.find(c => c.id === p.id);
-    if (cartItem) {
-      const newStock = Math.max(0, p.stock - cartItem.quantity);
-      return { 
-        ...p, 
-        stock: newStock,
-        status: newStock === 0 ? 'Out of Stock' : p.status 
-      };
-    }
-    return p;
-  });
-
-  // Save everything atomically
-  setStorageData(workspaceId, websiteId, 'customers', customers);
-  setStorageData(workspaceId, websiteId, 'orders', orders);
-  setStorageData(workspaceId, websiteId, 'payments', payments);
-  setStorageData(workspaceId, websiteId, 'shipping', shipping);
-  setStorageData(workspaceId, websiteId, 'products', updatedProducts);
-
-  return { success: true, orderId };
 };
 
-export const seedDemoDataIfNeeded = (workspaceId, websiteId) => {
-  const products = getStorageData(workspaceId, websiteId, 'products', null);
-  if (!products) {
-    const demoProducts = [
-      { id: '1', name: 'Premium Wireless Headphones', sku: 'AUDIO-01', price: 12999, stock: 45, category: 'Electronics', status: 'Active', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80' },
-      { id: '2', name: 'Minimalist Smartwatch', sku: 'WEAR-02', price: 8499, stock: 12, category: 'Electronics', status: 'Active', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80' },
-      { id: '3', name: 'Ergonomic Office Chair', sku: 'FURN-03', price: 15500, stock: 8, category: 'Furniture', status: 'Active', image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500&q=80' },
-      { id: '4', name: 'Mechanical Keyboard', sku: 'COMP-04', price: 4200, stock: 150, category: 'Electronics', status: 'Active', image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80' },
-      { id: '5', name: 'Ceramic Coffee Mug', sku: 'HOME-05', price: 899, stock: 300, category: 'Home', status: 'Active', image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=500&q=80' }
-    ];
-    setStorageData(workspaceId, websiteId, 'products', demoProducts);
+export const updateProduct = async (workspaceId, websiteId, productId, updateData) => {
+  try {
+    const res = await api.put(`/ecommerce/${websiteId}/products/${productId}`, updateData);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to update product', e);
+    throw e;
   }
+};
 
-  const orders = getStorageData(workspaceId, websiteId, 'orders', null);
-  if (!orders) {
-    const demoOrders = [
-      { id: 'ORD-1001', customerName: 'John Doe', total: 12999, status: 'Delivered', date: new Date(Date.now() - 86400000 * 5).toISOString() },
-      { id: 'ORD-1002', customerName: 'Jane Smith', total: 8499, status: 'Shipped', date: new Date(Date.now() - 86400000 * 2).toISOString() },
-      { id: 'ORD-1003', customerName: 'Alice Johnson', total: 15500, status: 'Processing', date: new Date(Date.now() - 86400000).toISOString() },
-      { id: 'ORD-1004', customerName: 'Bob Brown', total: 4200, status: 'Pending', date: new Date().toISOString() },
-    ];
-    setStorageData(workspaceId, websiteId, 'orders', demoOrders);
+export const deleteProduct = async (workspaceId, websiteId, productId) => {
+  try {
+    await api.delete(`/ecommerce/${websiteId}/products/${productId}`);
+  } catch (e) {
+    console.error('Failed to delete product', e);
+    throw e;
   }
+};
 
-  const settings = getStorageData(workspaceId, websiteId, 'settings', null);
-  if (!settings) {
-    setStorageData(workspaceId, websiteId, 'settings', {
+// --- Orders (Backend) ---
+export const getOrders = async (workspaceId, websiteId) => {
+  try {
+    const res = await api.get(`/ecommerce/${websiteId}/orders`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get orders', e);
+    return [];
+  }
+};
+
+export const updateOrderStatus = async (workspaceId, websiteId, orderId, status) => {
+  // Not implemented in backend yet, doing a mock success for admin UI
+  console.warn('updateOrderStatus backend endpoint missing. Status update not saved to DB.');
+  return { id: orderId, status };
+};
+
+// --- Customers (Backend) ---
+export const getCustomers = async (workspaceId, websiteId) => {
+  try {
+    const res = await api.get(`/ecommerce/${websiteId}/customers`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get customers', e);
+    return [];
+  }
+};
+
+// --- Payments (Backend) ---
+export const getPayments = async (workspaceId, websiteId) => {
+  try {
+    const res = await api.get(`/ecommerce/${websiteId}/payments`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get payments', e);
+    return [];
+  }
+};
+
+// --- Shipping (Backend) ---
+export const getShipping = async (workspaceId, websiteId) => {
+  try {
+    const res = await api.get(`/ecommerce/${websiteId}/shipping`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get shipping', e);
+    return [];
+  }
+};
+
+// --- Templates (Async IndexedDB) ---
+export const getTemplates = async (workspaceId, websiteId) => {
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['templates'], 'readonly');
+      const store = transaction.objectStore('templates');
+      const key = getScopedKey(workspaceId, websiteId, 'templates');
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result || {});
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.warn("Falling back to localStorage for templates", e);
+    return getStorageData(workspaceId, websiteId, 'templates', {});
+  }
+};
+
+export const saveTemplate = async (workspaceId, websiteId, templateId, templateData) => {
+  const templates = await getTemplates(workspaceId, websiteId);
+  templates[templateId] = templateData;
+  try {
+    const db = await initDB();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(['templates'], 'readwrite');
+      const store = transaction.objectStore('templates');
+      const key = getScopedKey(workspaceId, websiteId, 'templates');
+      const request = store.put(templates, key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.warn("Falling back to localStorage for templates", e);
+    setStorageData(workspaceId, websiteId, 'templates', templates);
+  }
+};
+
+export const updateTemplate = async (workspaceId, websiteId, templateId, updateData) => {
+  const templates = await getTemplates(workspaceId, websiteId);
+  if (templates[templateId]) {
+    templates[templateId] = { ...templates[templateId], ...updateData, updatedAt: new Date().toISOString() };
+    try {
+      const db = await initDB();
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction(['templates'], 'readwrite');
+        const store = transaction.objectStore('templates');
+        const request = store.put(templates, getScopedKey(workspaceId, websiteId, 'templates'));
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      setStorageData(workspaceId, websiteId, 'templates', templates);
+    }
+  }
+};
+
+export const deleteTemplate = async (workspaceId, websiteId, templateId) => {
+  const templates = await getTemplates(workspaceId, websiteId);
+  delete templates[templateId];
+  try {
+    const db = await initDB();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(['templates'], 'readwrite');
+      const store = transaction.objectStore('templates');
+      const request = store.put(templates, getScopedKey(workspaceId, websiteId, 'templates'));
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    setStorageData(workspaceId, websiteId, 'templates', templates);
+  }
+};
+
+// --- Cart (Local Storage) ---
+export const getCart = (workspaceId, websiteId) => getStorageData(workspaceId, websiteId, 'cart', []);
+export const saveCart = (workspaceId, websiteId, cartData) => setStorageData(workspaceId, websiteId, 'cart', cartData);
+export const clearCart = (workspaceId, websiteId) => setStorageData(workspaceId, websiteId, 'cart', []);
+
+// --- Settings (Backend) ---
+export const getSettings = async (workspaceId, websiteId) => {
+  try {
+    const res = await api.get(`/ecommerce/${websiteId}/settings`);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to get settings', e);
+    return {
+      storeName: 'My Awesome Store',
+      storeDescription: '',
       currency: 'INR',
       currencySymbol: '₹',
-      storeName: 'My Awesome Store',
-      storeDescription: 'The best place to buy things.',
-    });
+      shippingEnabled: true,
+      shippingFee: 50,
+      primaryColor: '#3b82f6',
+      secondaryColor: '#10b981',
+      paymentMethods: [
+        { id: 'COD', name: 'Cash on Delivery', enabled: true }
+      ],
+      shippingMethods: [
+        { id: 'standard', name: 'Standard Delivery', price: 50, enabled: true }
+      ]
+    };
+  }
+};
+
+export const saveSettings = async (workspaceId, websiteId, settings) => {
+  try {
+    const res = await api.put(`/ecommerce/${websiteId}/settings`, settings);
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to save settings', e);
+    throw e;
+  }
+};
+
+
+// --- Checkout Process (Backend) ---
+export const processCheckout = async (workspaceId, websiteId, customerDetails, cart, paymentMethod, shippingMethodId = null) => {
+  try {
+    const payload = {
+      customerDetails,
+      cart,
+      paymentMethod,
+      shippingMethodId
+    };
+    const res = await api.post(`/ecommerce/${websiteId}/checkout`, payload);
+    return { success: true, orderId: res.data.orderId, order: res.data.orderId };
+  } catch (e) {
+    console.error('Checkout failed', e);
+    if (e.response && e.response.data && e.response.data.message) {
+      return { success: false, message: e.response.data.message };
+    }
+    return { success: false, message: 'Checkout failed due to a server error.' };
   }
 };

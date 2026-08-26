@@ -169,4 +169,7 @@ router.use('/wordpress', require('../modules/wordpress/wordpress.routes'));
 // Notepad Mount
 router.use('/notepad', require('../modules/notepad/notepad.routes'));
 
+// Ecommerce Mount
+router.use('/ecommerce', require('../modules/ecommerce/ecommerce.routes'));
+
 module.exports = router;

@@ -1,40 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Card, Button, Table, Space, Tag, Popconfirm, message } from 'antd';
 import { LayoutTemplate, Edit, Trash2, Eye } from 'lucide-react';
-import { getStorageData, setStorageData } from '../utils/storage';
+import { getTemplates, deleteTemplate } from '../utils/storage';
 import { useNavigate } from 'react-router-dom';
+import { useEcommerce } from '../contexts/EcommerceContext';
 
 const { Title, Text } = Typography;
 
 const EcommerceTemplates = () => {
   const [templates, setTemplates] = useState({});
   const navigate = useNavigate();
-  const workspaceId = 'default';
-  const websiteId = 'default';
+  const { workspaceId, websiteId } = useEcommerce();
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [workspaceId, websiteId]);
 
-  const loadTemplates = () => {
-    const data = getStorageData(workspaceId, websiteId, 'templates', {});
+  const loadTemplates = async () => {
+    if (!workspaceId || !websiteId) return;
+    const data = await getTemplates(workspaceId, websiteId);
     setTemplates(data);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    await deleteTemplate(workspaceId, websiteId, id);
     const updated = { ...templates };
     delete updated[id];
-    setStorageData(workspaceId, websiteId, 'templates', updated);
     setTemplates(updated);
     message.success('Template deleted');
   };
 
   const columns = [
     {
-      title: 'Template ID',
-      dataIndex: 'id',
-      key: 'id',
-      render: text => <Text strong>{text}</Text>,
+      title: 'Template Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text || record.id}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>ID: {record.id}</Text>
+        </Space>
+      ),
     },
     {
       title: 'Pages Detected',
@@ -58,18 +64,18 @@ const EcommerceTemplates = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button 
-            size="small" 
-            icon={<Edit size={14} />} 
+          <Button
+            size="small"
+            icon={<Edit size={14} />}
             onClick={() => navigate(`../builder`)} // In a real app, this would load the specific template ID into the builder
           >
             Edit
           </Button>
-          <Button 
-            size="small" 
+          <Button
+            size="small"
             type="primary"
-            icon={<Eye size={14} />} 
-            onClick={() => navigate(`../preview/${record.id}`)} 
+            icon={<Eye size={14} />}
+            onClick={() => navigate(`../preview/${record.id}`)}
           >
             Preview
           </Button>
@@ -96,8 +102,8 @@ const EcommerceTemplates = () => {
       </div>
 
       <Card>
-        <Table 
-          columns={columns} 
+        <Table
+          columns={columns}
           dataSource={dataSource}
           pagination={false}
           locale={{ emptyText: 'No templates uploaded yet. Go to Store Builder to upload a ZIP.' }}

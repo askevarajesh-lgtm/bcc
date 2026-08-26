@@ -1,13 +1,14 @@
-import { getStorageData } from './storage';
+import { getSettings } from './storage';
 
-export const formatCurrency = (amount, workspaceId, websiteId) => {
-  const settings = getStorageData(workspaceId, websiteId, 'settings', { currency: 'INR', currencySymbol: '₹' });
-  const formatter = new Intl.NumberFormat('en-IN', {
+export const formatCurrency = (amount, workspaceId = 'default', websiteId = 'default') => {
+  const settings = getSettings(workspaceId, websiteId);
+  const symbol = settings?.currencySymbol || '₹';
+  const currencyCode = settings?.currency || 'INR';
+
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: settings.currency || 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-  
-  return formatter.format(amount);
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount).replace(currencyCode, symbol).trim();
 };

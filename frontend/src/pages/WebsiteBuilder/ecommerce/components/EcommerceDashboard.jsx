@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Typography, Statistic, Table, Tag } from 'antd';
 import { ShoppingBag, Package, TrendingUp, AlertCircle } from 'lucide-react';
-import { getStorageData, seedDemoDataIfNeeded } from '../utils/storage';
+import { getProducts, getOrders } from '../utils/storage';
 import { formatCurrency } from '../utils/currency';
+import { useEcommerce } from '../contexts/EcommerceContext';
 
 const { Title } = Typography;
 
 const EcommerceDashboard = () => {
+  const { workspaceId, websiteId } = useEcommerce();
   const [stats, setStats] = useState({
     totalProducts: 0,
     activeProducts: 0,
@@ -17,14 +19,11 @@ const EcommerceDashboard = () => {
   });
   
   const [recentOrders, setRecentOrders] = useState([]);
-  const workspaceId = 'default';
-  const websiteId = 'default';
-
-  useEffect(() => {
-    seedDemoDataIfNeeded(workspaceId, websiteId);
+  const loadData = async () => {
+    if (!workspaceId || !websiteId) return;
     
-    const products = getStorageData(workspaceId, websiteId, 'products', []);
-    const orders = getStorageData(workspaceId, websiteId, 'orders', []);
+    const products = await getProducts(workspaceId, websiteId);
+    const orders = await getOrders(workspaceId, websiteId);
     
     const totalProducts = products.length;
     const activeProducts = products.filter(p => p.status === 'Active').length;
@@ -32,7 +31,7 @@ const EcommerceDashboard = () => {
     
     const totalOrders = orders.length;
     const pendingOrders = orders.filter(o => o.status === 'Pending').length;
-    const revenue = orders.filter(o => o.status === 'Delivered' || o.status === 'Shipped').reduce((acc, o) => acc + o.total, 0);
+    const revenue = orders.filter(o => o.status === 'Delivered' || o.status === 'Shipped' || o.status === 'Completed' || o.status === 'Pending').reduce((acc, o) => acc + o.total, 0); // Include pending for MVP test
     
     setStats({
       totalProducts,
@@ -44,7 +43,14 @@ const EcommerceDashboard = () => {
     });
     
     setRecentOrders(orders.slice(0, 5));
-  }, []);
+  };
+
+  useEffect(() => {
+    loadData();
+    const handleSync = () => loadData();
+    window.addEventListener('ecommerce_data_updated', handleSync);
+    return () => window.removeEventListener('ecommerce_data_updated', handleSync);
+  }, [workspaceId, websiteId]);
 
   const columns = [
     {
@@ -138,7 +144,7 @@ const EcommerceDashboard = () => {
         <Table 
           columns={columns} 
           dataSource={recentOrders} 
-          rowKey="id" 
+          rowKey={(record) => record._id || record.id} 
           pagination={false} 
         />
       </Card>
