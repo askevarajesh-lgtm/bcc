@@ -6,10 +6,13 @@ import { processZipFile } from '../utils/zipExtractor';
 import { analyzePageElements } from '../utils/analyzer';
 import EcommerceGrapesJS from './EcommerceGrapesJS';
 import { useEcommerce } from '../contexts/EcommerceContext';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
 const EcommerceStoreBuilder = () => {
+  const { templateId: routeTemplateId, pageId: routePageId } = useParams();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [templateId, setTemplateId] = useState('');
   const [pages, setPages] = useState({});
@@ -17,6 +20,25 @@ const EcommerceStoreBuilder = () => {
   const [assets, setAssets] = useState({});
 
   const { workspaceId, websiteId } = useEcommerce();
+
+  React.useEffect(() => {
+    if (routeTemplateId && workspaceId && websiteId) {
+      getTemplates(workspaceId, websiteId).then(templates => {
+        if (templates[routeTemplateId]) {
+          setTemplateId(routeTemplateId);
+          setPages(templates[routeTemplateId].pages || {});
+          setAssets(templates[routeTemplateId].assets || {});
+          
+          if (routePageId && templates[routeTemplateId].pages?.[routePageId]) {
+            setSelectedPageId(routePageId);
+            setCurrentStep(3);
+          } else {
+            setCurrentStep(1);
+          }
+        }
+      });
+    }
+  }, [routeTemplateId, routePageId, workspaceId, websiteId]);
 
   const handleFileUpload = async (file) => {
     try {
@@ -172,7 +194,13 @@ const EcommerceStoreBuilder = () => {
         initialCss={page.css}
         assets={assets}
         initialName={pages[selectedPageId]?.name || ''}
-        onBack={() => setCurrentStep(1)}
+        onBack={() => {
+          if (routePageId) {
+            navigate(`../../store/${templateId}`);
+          } else {
+            setCurrentStep(1);
+          }
+        }}
         onSave={async (html, css, templateName) => {
           const updatedPages = { ...pages };
           updatedPages[selectedPageId].html = html;

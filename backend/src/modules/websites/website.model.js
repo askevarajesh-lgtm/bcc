@@ -23,7 +23,8 @@ const WebsiteSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId },
   updatedBy: { type: mongoose.Schema.Types.ObjectId },
   agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
-  brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' }
+  brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
+  isEcommerce: { type: Boolean, default: false }
 }, { timestamps: true });
 
 WebsiteSchema.index({ workspaceId: 1, name: 1 });

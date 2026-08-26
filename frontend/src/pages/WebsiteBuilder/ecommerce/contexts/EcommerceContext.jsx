@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getTemplates } from '../utils/storage';
 
 export const EcommerceContext = createContext();
 
@@ -6,6 +7,8 @@ export const EcommerceProvider = ({ children }) => {
   const [websiteId, setWebsiteId] = useState(localStorage.getItem('ecommerce_websiteId') || '');
   const [websites, setWebsites] = useState([]);
   const [workspaceId, setWorkspaceId] = useState(localStorage.getItem('ecommerce_workspaceId') || 'default');
+  const [allTemplates, setAllTemplates] = useState([]);
+  const [activeTemplateId, setActiveTemplateId] = useState(localStorage.getItem('ecommerce_activeTemplateId') || '');
 
   useEffect(() => {
     const fetchWebsites = async () => {
@@ -18,16 +21,17 @@ export const EcommerceProvider = ({ children }) => {
         });
         const data = await res.json();
         if (data.success && data.data) {
-          setWebsites(data.data);
+          const ecommWebsites = data.data.filter(w => w.isEcommerce === true);
+          setWebsites(ecommWebsites);
 
           const currentId = localStorage.getItem('ecommerce_websiteId');
-          const isValidWebsiteId = currentId && data.data.some(w => w._id === currentId);
+          const isValidWebsiteId = currentId && ecommWebsites.some(w => w._id === currentId);
 
-          if ((!currentId || !isValidWebsiteId) && data.data.length > 0) {
-            const firstId = data.data[0]._id;
+          if ((!currentId || !isValidWebsiteId) && ecommWebsites.length > 0) {
+            const firstId = ecommWebsites[0]._id;
             setWebsiteId(firstId);
             localStorage.setItem('ecommerce_websiteId', firstId);
-          } else if (!isValidWebsiteId && data.data.length === 0) {
+          } else if (!isValidWebsiteId && ecommWebsites.length === 0) {
             setWebsiteId('');
             localStorage.removeItem('ecommerce_websiteId');
           }
@@ -39,6 +43,32 @@ export const EcommerceProvider = ({ children }) => {
     fetchWebsites();
   }, []);
 
+  useEffect(() => {
+    if (workspaceId && websiteId) {
+      getTemplates(workspaceId, websiteId).then(templatesDict => {
+        const templatesArr = Object.values(templatesDict);
+        setAllTemplates(templatesArr);
+        
+        const currentId = localStorage.getItem('ecommerce_activeTemplateId');
+        if (currentId && templatesArr.some(t => t.id === currentId)) {
+          setActiveTemplateId(currentId);
+        } else if (templatesArr.length > 0) {
+          setActiveTemplateId(templatesArr[0].id);
+          localStorage.setItem('ecommerce_activeTemplateId', templatesArr[0].id);
+        } else {
+          setActiveTemplateId('');
+          localStorage.removeItem('ecommerce_activeTemplateId');
+        }
+      });
+    }
+  }, [workspaceId, websiteId]);
+
+  const changeTemplate = (id) => {
+    setActiveTemplateId(id);
+    localStorage.setItem('ecommerce_activeTemplateId', id);
+    window.dispatchEvent(new CustomEvent('ecommerce_template_changed', { detail: { templateId: id } }));
+  };
+
   const changeWebsite = (id) => {
     setWebsiteId(id);
     localStorage.setItem('ecommerce_websiteId', id);
@@ -46,7 +76,15 @@ export const EcommerceProvider = ({ children }) => {
   };
 
   return (
-    <EcommerceContext.Provider value={{ workspaceId, websiteId, websites, changeWebsite }}>
+    <EcommerceContext.Provider value={{ 
+      workspaceId, 
+      websiteId, 
+      websites, 
+      changeWebsite,
+      allTemplates,
+      activeTemplateId,
+      changeTemplate
+    }}>
       {children}
     </EcommerceContext.Provider>
   );

@@ -22,6 +22,7 @@ import EcommerceSettings from './components/EcommerceSettings';
 import EcommerceStoreBuilder from './components/EcommerceStoreBuilder';
 import StorefrontRenderer from './storefront/StorefrontRenderer';
 import EcommerceTemplates from './components/EcommerceTemplates';
+import EcommerceStoreManager from './components/EcommerceStoreManager';
 import EcommerceCustomers from './components/EcommerceCustomers';
 import EcommercePayments from './components/EcommercePayments';
 import EcommerceShipping from './components/EcommerceShipping';
@@ -36,7 +37,7 @@ const EcommerceTabContent = ({ itemVariants }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useAuth();
-  const { websiteId, websites, allTemplates, activeTemplateId, changeTemplate, changeWebsite } = useEcommerce();
+  const { websiteId, websites, changeWebsite, allTemplates, activeTemplateId, changeTemplate } = useEcommerce();
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   const lastPart = pathParts[pathParts.length - 1];
@@ -56,7 +57,7 @@ const EcommerceTabContent = ({ itemVariants }) => {
   const menuItems = [
     { key: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
     { key: 'builder', icon: <Paintbrush size={18} />, label: 'Store Builder' },
-    { key: 'templates', icon: <LayoutTemplate size={18} />, label: 'Templates' },
+    { key: 'templates', icon: <LayoutTemplate size={18} />, label: 'Store Library' },
     { key: 'preview', icon: <ShoppingBag size={18} />, label: 'Store Preview' },
     { key: 'products', icon: <Package size={18} />, label: 'Products' },
     { key: 'orders', icon: <ShoppingBag size={18} />, label: 'Orders' },
@@ -99,7 +100,7 @@ const EcommerceTabContent = ({ itemVariants }) => {
         <Layout style={{ background: 'transparent', padding: '0 0 0 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
             <Space>
-              <Text type="secondary" style={{ fontWeight: 600 }}>Active Store Template:</Text>
+              <Text type="secondary" style={{ fontWeight: 600 }}>Active Store:</Text>
               <Select
                 value={activeTemplateId || undefined}
                 onChange={changeTemplate}
@@ -125,7 +126,9 @@ const EcommerceTabContent = ({ itemVariants }) => {
               >
                 <Routes>
                   <Route path="dashboard" element={<EcommerceDashboard />} />
+                  <Route path="builder/:templateId/:pageId?" element={<EcommerceStoreBuilder />} />
                   <Route path="builder" element={<EcommerceStoreBuilder />} />
+                  <Route path="store/:templateId" element={<EcommerceStoreManager />} />
                   <Route path="templates" element={<EcommerceTemplates />} />
                   <Route path="preview/:templateId?" element={<StorefrontRenderer />} />
                   <Route path="products" element={<EcommerceProducts />} />

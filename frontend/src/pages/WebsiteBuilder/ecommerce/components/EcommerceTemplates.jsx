@@ -27,12 +27,12 @@ const EcommerceTemplates = () => {
     const updated = { ...templates };
     delete updated[id];
     setTemplates(updated);
-    message.success('Template deleted');
+    message.success('Store deleted');
   };
 
   const columns = [
     {
-      title: 'Template Name',
+      title: 'Store Name',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
@@ -67,7 +67,7 @@ const EcommerceTemplates = () => {
           <Button
             size="small"
             icon={<Edit size={14} />}
-            onClick={() => navigate(`../builder`)} // In a real app, this would load the specific template ID into the builder
+            onClick={() => navigate(`../store/${record.id}`)}
           >
             Edit
           </Button>
@@ -79,7 +79,7 @@ const EcommerceTemplates = () => {
           >
             Preview
           </Button>
-          <Popconfirm title="Delete template?" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm title="Delete store?" onConfirm={() => handleDelete(record.id)}>
             <Button size="small" danger icon={<Trash2 size={14} />} />
           </Popconfirm>
         </Space>
@@ -94,9 +94,9 @@ const EcommerceTemplates = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <LayoutTemplate size={24} color="var(--accent-primary)" /> Saved Templates
+            <LayoutTemplate size={24} color="var(--accent-primary)" /> Saved Stores
           </Title>
-          <Text type="secondary">Manage your uploaded e-commerce template ZIPs</Text>
+          <Text type="secondary">Manage your saved e-commerce stores</Text>
         </div>
         <Button type="primary" onClick={() => navigate('../builder')}>Upload New ZIP</Button>
       </div>
@@ -106,7 +106,7 @@ const EcommerceTemplates = () => {
           columns={columns}
           dataSource={dataSource}
           pagination={false}
-          locale={{ emptyText: 'No templates uploaded yet. Go to Store Builder to upload a ZIP.' }}
+          locale={{ emptyText: 'No stores saved yet. Go to Store Builder to upload a ZIP.' }}
         />
       </Card>
     </div>
