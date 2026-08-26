@@ -16,11 +16,24 @@ class GeoAeoIntelligenceService {
       // (This will hit the cache if already fetched during the refresh job)
       let aiOverviewPercent = null;
       let faqFeaturePercent = null;
+      let semrushContext = '';
 
       try {
         const overviewData = await semrushService.getDomainOverview(domain, 'global', 'us', options.force);
-        if (overviewData && overviewData.length > 0 && overviewData[0].serpFeatures) {
-          aiOverviewPercent = Number(overviewData[0].serpFeatures.aiOverviews);
+        if (overviewData && overviewData.length > 0) {
+          const data = overviewData[0];
+          if (data.serpFeatures) {
+            aiOverviewPercent = Number(data.serpFeatures.aiOverviews);
+          }
+          semrushContext = `
+            Actual metrics for this domain from Semrush:
+            - Organic Traffic: ${data.Ot || data['Organic Traffic'] || 'N/A'}
+            - Organic Keywords: ${data.Or || data['Organic Keywords'] || 'N/A'}
+            - Authority Score / Rank: ${data.Rk || data['Rank'] || 'N/A'}
+            - Top Keywords Intent Distribution: ${JSON.stringify(data.intentDistribution || [])}
+            - Position Distribution: ${JSON.stringify(data.positionDistribution || {})}
+            - SERP Features Breakdown: ${JSON.stringify(data.serpFeatures || {})}
+          `;
         }
       } catch (err) {
         console.error('[INTELLIGENCE_GEOAEO] Failed to fetch Semrush data for AI/SERP features:', err.message);
@@ -43,8 +56,10 @@ class GeoAeoIntelligenceService {
             You are an expert SEO, GEO (Generative Engine Optimization), and AEO (Answer Engine Optimization) analyst.
             Evaluate the domain: ${domain}
             
+            ${semrushContext ? `Use the following real metrics to ground your evaluation:\n${semrushContext}` : `Since you cannot crawl the site live, provide a realistic industry-standard estimate based on the domain's known authority and niche.`}
+            
             Return a JSON object containing estimated scores (0-100) and actionable recommendations.
-            Since you cannot crawl the site live, provide a realistic industry-standard estimate based on the domain's known authority and niche.
+            IMPORTANT: Do not return flat or generic scores. Ensure the scores accurately reflect the domain's actual performance metrics provided above. A domain with high authority, high traffic, and strong SERP features should score high (80-95). A domain with poor metrics should score low (20-40). Generate realistic, varied scores (e.g., 42, 67, 89) instead of generic rounded numbers.
 
             Expected JSON format:
             {
@@ -77,7 +92,7 @@ class GeoAeoIntelligenceService {
           const response = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0.2,
+            temperature: 0,
             response_format: { type: 'json_object' }
           });
 

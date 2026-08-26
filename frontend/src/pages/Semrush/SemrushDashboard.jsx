@@ -169,6 +169,12 @@ const SemrushDashboard = () => {
       )
     },
     {
+      title: 'Overall Optimization',
+      dataIndex: ['optimizationScore', 'overallScore'],
+      key: 'overallScore',
+      render: (val) => renderMetric(val)
+    },
+    {
       title: 'SEO Score',
       dataIndex: ['optimizationScore', 'seoScore'],
       key: 'seoScore',

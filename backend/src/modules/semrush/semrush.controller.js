@@ -28,6 +28,7 @@ exports.getProjects = async (req, res) => {
       return {
         ...project,
         optimizationScore: snap.scores ? {
+          overallScore: snap.scores.overall,
           seoScore: snap.scores.seo,
           geoScore: snap.scores.geo,
           aeoScore: snap.scores.aeo
