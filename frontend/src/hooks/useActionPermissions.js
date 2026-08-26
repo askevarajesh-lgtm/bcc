@@ -33,7 +33,7 @@ export function useActionPermissions(path) {
   if (path === '/calendar') moduleName = 'Workspace-Calendar';
   if (path === '/deliverables') moduleName = 'Workspace-Deliverables';
   
-  if (path === '/salespipeline' || path === '/ops/salespipeline' || path === '/agency/salespipeline') moduleName = 'Agency Ops-Sales Pipeline';
+  if (path === '/salespipeline' || path === '/ops/salespipeline' || path === '/agency/salespipeline' || path === '/workspace/salespipeline') moduleName = 'Agency Ops-Sales Pipeline';
 
   if (path === '/analytics') moduleName = 'Intelligence-Google Analytics';
   if (path === '/mos') moduleName = 'Intelligence-MOS Score';
@@ -44,7 +44,7 @@ export function useActionPermissions(path) {
   if (path === '/reporting') moduleName = 'Intelligence-Reports';
   if (path === '/seointelligence') moduleName = 'Intelligence-SEO Intelligence';
 
-  if (path === '/seo-panel') moduleName = 'HRMS-SEO Panel';
+  if (path === '/seo-panel') moduleName = 'Workspace-SEO Panel';
   if (path === '/daily-reports') moduleName = 'HRMS-Daily Reports';
   if (path === '/performance') moduleName = 'HRMS-Performance';
 
@@ -82,7 +82,7 @@ export function useActionPermissions(path) {
         'Workspace-Meetings', 'Workspace-Calendar', 'Workspace-Deliverables',
         'Intelligence-Google Analytics', 'Intelligence-MOS Score', 'Intelligence-ChatGPT', 'Intelligence-Canva',
         'Intelligence-AI Agent', 'Intelligence-Benchmarks', 'Intelligence-Reports', 'Intelligence-SEO Intelligence',
-        'HRMS-SEO Panel', 'HRMS-Daily Reports', 'HRMS-Performance'
+        'HRMS-Daily Reports', 'HRMS-Performance', 'Workspace-SEO Panel'
       ];
       if (knownModules.includes(moduleName)) return false;
       return true;

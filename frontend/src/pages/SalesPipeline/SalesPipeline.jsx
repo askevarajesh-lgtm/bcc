@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Typography, Row, Col, Card, Button, Table, Tag, Avatar, Progress, Drawer, Modal, Form, Input, Select, InputNumber, Divider, Timeline, Space, message, Badge, DatePicker } from 'antd';
 import { motion } from 'framer-motion';
 import { Download, Plus, Target, FileText, TrendingUp, Mail, ExternalLink, Clock, Trash2, CheckCircle2, XCircle, Briefcase, Calendar, User, MessageSquare, AlertCircle, Award } from 'lucide-react';
@@ -19,8 +20,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import useActionPermissions from '../../hooks/useActionPermissions';
 
 const SalesPipeline = () => {
+  const navigate = useNavigate();
   const { isDark } = useTheme();
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const { canAdd, canEdit, canDelete } = useActionPermissions(role === 'agency_manager' || role === 'agency' ? '/agency/salespipeline' : '/ops/salespipeline');
 
   // States
@@ -80,7 +82,7 @@ const SalesPipeline = () => {
 
   const handleConvert = async (values) => {
     try {
-      await convertDeal({ id: selectedDealId, email: values.email, password: values.password }).unwrap();
+      await convertDeal({ id: selectedDealId, email: values.email, password: values.password, phone: values.phone }).unwrap();
       message.success("Deal successfully converted!");
       setIsConvertModalOpen(false);
       convertForm.resetFields();
@@ -495,7 +497,21 @@ const SalesPipeline = () => {
                   <div style={{ marginTop: 16 }}>
                     <Button 
                       type="primary" 
-                      onClick={() => setIsConvertModalOpen(true)}
+                      onClick={() => {
+                        const isAdminOrManager = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'agency', 'admin', 'brand_super_admin', 'brand_admin', 'brand_manager'].includes(role);
+                        const hasAccountAccessAll = user?.permissions?.['Clients-Accounts']?.All;
+                        if (isAdminOrManager || hasAccountAccessAll) {
+                          navigate('/agency/clients', { 
+                            state: { 
+                              openCreateClientModal: true, 
+                              dealId: selectedDeal._id, 
+                              dealName: selectedDeal.name 
+                            } 
+                          });
+                        } else {
+                          message.warning("You do not have permission to convert this deal to a client. Only users with full 'Account Access' can perform this action.");
+                        }
+                      }}
                       style={{ background: 'var(--accent-primary)', borderRadius: 8, width: '100%', fontWeight: 'bold' }}
                       size="large"
                     >
@@ -651,42 +667,7 @@ const SalesPipeline = () => {
         </Form>
       </Modal>
 
-      {/* Convert to Client Modal */}
-      <Modal
-        title={role === 'agency_manager' || role === 'agency_super_admin' ? "Convert to Client" : "Convert to Direct Brand"}
-        open={isConvertModalOpen}
-        onCancel={() => setIsConvertModalOpen(false)}
-        okText="Convert"
-        onOk={() => convertForm.submit()}
-        confirmLoading={isConverting}
-        okButtonProps={{ style: { background: 'var(--accent-primary)', borderRadius: 8 } }}
-        cancelButtonProps={{ style: { borderRadius: 8 } }}
-      >
-        <Form
-          form={convertForm}
-          layout="vertical"
-          onFinish={handleConvert}
-          style={{ marginTop: 16 }}
-        >
-          <Paragraph type="secondary">
-            Provide the login credentials to be used by the new client/brand user.
-          </Paragraph>
-          <Form.Item
-            label="Email Address"
-            name="email"
-            rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
-          >
-            <Input placeholder="client@example.com" />
-          </Form.Item>
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: 'Please enter a password' }]}
-          >
-            <Input.Password placeholder="Set a temporary password" />
-          </Form.Item>
-        </Form>
-      </Modal>
+
     </motion.div>
   );
 };

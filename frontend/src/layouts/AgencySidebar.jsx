@@ -133,11 +133,16 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       ]
     });
     if (feats.includes('website')) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
-    workspaceChildren.push({
-      key: '/agency/marketplace',
-      icon: getIcon(Store),
-      label: 'Marketplace',
-    });
+    if (['agency_manager', 'agency'].includes(role)) {
+      workspaceChildren.push({
+        key: '/agency/marketplace',
+        icon: getIcon(Store),
+        label: 'Marketplace',
+      });
+    }
+    if (feats.includes('seo-panel') || ['agency_super_admin', 'agency_manager'].includes(role)) {
+      workspaceChildren.push({ key: '/agency/workspace/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
+    }
   }
 
   if (workspaceChildren.length > 0) {
@@ -154,7 +159,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     if (feats.includes('analytics')) intelligenceChildren.push({ key: '/agency/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics' });
     if (feats.includes('chatgpt')) intelligenceChildren.push({ key: '/agency/chatgpt', icon: getIcon(HelpCircle), label: 'ChatGPT' });
     if (feats.includes('canva')) intelligenceChildren.push({ key: '/agency/canva', icon: getIcon(PenTool), label: 'Canva' });
-    if (feats.includes('benchmark')) intelligenceChildren.push({ key: '/agency/benchmarks', icon: getIcon(Activity), label: 'Benchmark' });
+    // if (feats.includes('benchmark')) intelligenceChildren.push({ key: '/agency/benchmarks', icon: getIcon(Activity), label: 'Benchmark' });
   }
 
   if (role === 'agency_super_admin') {
@@ -172,6 +177,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
 
   const opsChildren = [];
   opsChildren.push({ key: '/agency/time', icon: getIcon(Calendar), label: 'Time Tracking' });
+  opsChildren.push({ key: '/agency/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
   opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
   opsChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
@@ -211,10 +217,6 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
     hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
     hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
-  }
-  
-  if (feats.includes('seo-panel') || ['agency_super_admin', 'agency_manager'].includes(role)) {
-    hrmsChildren.push({ key: '/agency/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
   }
 
   if (hrmsChildren.length > 0) {
@@ -277,6 +279,8 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
         label: user?.roleName || 'Agency Success',
         name: user?.name || 'Alpha Partners',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Partner Support Desk',
+        phone: user?.phone,
+        email: user?.email,
       }}
     />
   );

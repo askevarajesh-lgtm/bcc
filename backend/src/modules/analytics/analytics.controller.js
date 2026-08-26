@@ -25,18 +25,45 @@ exports.getAnalytics = async (req, res, next) => {
     }
 
     let targetProjectId = projectId;
-    if (req.isClientRole) {
-      if (!projectId) {
-        // Find a project belonging to this client to prevent fetching agency-wide data
-        const clientProject = await AnalyticsProject.findOne({ clientId: req.clientUserId, isDeleted: false }).lean();
-        if (clientProject) targetProjectId = clientProject._id.toString();
-        else targetProjectId = 'none'; // No project for this client yet
+    
+    // Ignore "All Domains" and invalid inputs
+    if (!targetProjectId || targetProjectId === 'All Domains' || targetProjectId === 'All Clients' || targetProjectId === 'undefined') {
+      targetProjectId = null;
+    }
+
+    if (!targetProjectId) {
+      // Find the first project available to this user
+      let projectQuery = { isDeleted: false };
+      if (req.isClientRole) {
+        projectQuery.clientId = req.clientUserId;
+      } else {
+        projectQuery.companyId = agencyId;
+      }
+      
+      const firstProject = await AnalyticsProject.findOne(projectQuery).lean();
+      if (firstProject) {
+        targetProjectId = firstProject._id.toString();
+      } else {
+        targetProjectId = 'none'; // No project available
+      }
+    } else {
+      // Ensure that if a client requests a specific project, it belongs to them
+      if (req.isClientRole && targetProjectId !== 'none') {
+        const clientProject = await AnalyticsProject.findOne({ _id: targetProjectId, clientId: req.clientUserId, isDeleted: false }).lean();
+        if (!clientProject) {
+          targetProjectId = 'none'; // Not authorized to view this project
+        }
       }
     }
 
     const dashboard = await analyticsCache.getOrCompute(
       { agencyId, projectId: targetProjectId, start: range.ga4Start, end: range.ga4End },
-      () => buildAnalyticsDashboard({ agencyId, projectId: targetProjectId, rawDateRange: dateRange })
+      () => buildAnalyticsDashboard({ 
+        agencyId, 
+        projectId: targetProjectId, 
+        rawDateRange: dateRange,
+        clientUserId: req.isClientRole ? req.clientUserId : null 
+      })
     );
 
     res.status(200).json({

@@ -161,7 +161,7 @@ const getPipelineAnalytics = async (companyId) => {
   };
 };
 
-const convertDealToClient = async (dealId, email, password, companyId, userRole, agencyId, userId) => {
+const convertDealToClient = async (dealId, email, password, phone, companyId, userRole, agencyId, userId) => {
   const deal = await Deal.findOne({ _id: dealId, companyId });
   if (!deal) throw new Error("Deal not found");
   if (deal.stage !== 'won') throw new Error("Deal must be in 'won' stage to convert");
@@ -170,8 +170,8 @@ const convertDealToClient = async (dealId, email, password, companyId, userRole,
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error("User with this email already exists");
 
-  const isAdmin = ['supreme_super_admin', 'commander_admin'].includes(userRole);
-  const isAgency = ['agency_super_admin', 'agency_manager'].includes(userRole);
+  const isAdmin = ['supreme_super_admin', 'commander_admin', 'superadmin', 'admin'].includes(userRole);
+  const isAgency = ['agency_super_admin', 'agency_manager', 'agency', 'user'].includes(userRole);
 
   if (!isAdmin && !isAgency) {
     throw new Error('Not authorized to convert deals to clients');
@@ -192,6 +192,7 @@ const convertDealToClient = async (dealId, email, password, companyId, userRole,
     name: deal.name,
     email,
     password: password || undefined,
+    phone: phone || undefined,
     role,
     agencyId: finalAgencyId,
     companyName: deal.name,

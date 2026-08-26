@@ -167,13 +167,23 @@ function calculateTrends(currentRowsArrays, previousRowsArrays) {
 }
 
 
-async function buildAnalyticsDashboard({ agencyId, projectId, rawDateRange, attributionModel }) {
+async function buildAnalyticsDashboard({ agencyId, projectId, rawDateRange, attributionModel, clientUserId }) {
   const range = resolveDateRange(rawDateRange);
   const { scope, projects } = await resolveScope({ agencyId, projectId });
   
   // Collect all unique client IDs from the resolved projects for CRM metrics
   const crmClientIds = [...new Set(projects.map(p => String(p.clientId)).filter(Boolean))];
-  const crmScopedClientId = crmClientIds.length === 1 ? crmClientIds[0] : (scope === 'single' ? projects[0]?.clientId : null);
+  
+  let crmScopedClientId = null;
+  if (clientUserId) {
+    crmScopedClientId = clientUserId;
+  } else if (projects.length > 0) {
+    crmScopedClientId = projects[0]?.clientId;
+  } else {
+    // Prevent fetching all agency leads if there are no projects.
+    const mongoose = require('mongoose');
+    crmScopedClientId = new mongoose.Types.ObjectId().toString();
+  }
 
   const ga4Clients = projects.filter(p => p.credentials?.ga4PropertyId).map(p => ({ ga4PropertyId: p.credentials.ga4PropertyId, ...p.toObject() }));
   

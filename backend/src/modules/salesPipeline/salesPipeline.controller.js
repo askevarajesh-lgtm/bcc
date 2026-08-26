@@ -80,13 +80,14 @@ const getPipelineAnalytics = async (req, res) => {
 
 const convertDealToClient = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, phone } = req.body;
     if (!email) return sendError(res, 400, "Email is required to create a client");
     
     const client = await salesPipelineService.convertDealToClient(
       req.params.id,
       email,
       password,
+      phone,
       req.companyId,
       req.user.role,
       req.user.agencyId,

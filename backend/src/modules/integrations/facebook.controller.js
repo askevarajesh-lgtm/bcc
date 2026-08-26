@@ -22,7 +22,12 @@ exports.generateAuthUrl = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
-    const companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId;
+    let companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId;
+    const isClientRole = ['client', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(decoded.role) || (decoded.role === 'user' && decoded.brandId);
+    if (isClientRole) {
+      companyId = decoded.clientId || decoded.brandId || decoded._id;
+    }
+
     if (!companyId) {
       return res.status(400).json({ success: false, message: 'Company ID missing from user token' });
     }
@@ -141,7 +146,7 @@ exports.handleCallback = async (req, res, next) => {
 
 exports.getIntegrations = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const ownerId = (req.user && req.user.role === 'user') ? req.user._id : null;
     
     // Admins should see the company's active integration regardless of who authorized it.
@@ -208,7 +213,7 @@ exports.getIntegrations = async (req, res, next) => {
 
 exports.subscribePage = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
@@ -268,7 +273,7 @@ exports.subscribePage = async (req, res, next) => {
 
 exports.unsubscribePage = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
@@ -313,7 +318,7 @@ exports.unsubscribePage = async (req, res, next) => {
 
 exports.disconnectPage = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.params;
 
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
@@ -338,7 +343,7 @@ exports.disconnectPage = async (req, res, next) => {
 
 exports.getLogs = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.params;
 
     if (!pageId) {
@@ -370,7 +375,7 @@ exports.getLogs = async (req, res, next) => {
 
 exports.syncLeads = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId, formIds } = req.body;
     
     if (!pageId) {
@@ -574,7 +579,7 @@ exports.syncLeads = async (req, res, next) => {
 // Asset Discovery Endpoints
 exports.getAdAccounts = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
@@ -589,7 +594,7 @@ exports.getAdAccounts = async (req, res, next) => {
 
 exports.getCampaigns = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { adAccountId } = req.query;
     if (!adAccountId) return res.status(400).json({ success: false, message: 'adAccountId is required' });
     
@@ -607,7 +612,7 @@ exports.getCampaigns = async (req, res, next) => {
 
 exports.getAdSets = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { campaignId } = req.query;
     if (!campaignId) return res.status(400).json({ success: false, message: 'campaignId is required' });
     
@@ -625,7 +630,7 @@ exports.getAdSets = async (req, res, next) => {
 
 exports.getAds = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { adSetId } = req.query;
     if (!adSetId) return res.status(400).json({ success: false, message: 'adSetId is required' });
     
@@ -643,7 +648,7 @@ exports.getAds = async (req, res, next) => {
 
 exports.getForms = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.query;
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
     
@@ -818,7 +823,7 @@ exports.handleWebhook = async (req, res) => {
 
 exports.connectManualPage = async (req, res, next) => {
   try {
-    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });

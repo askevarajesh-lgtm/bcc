@@ -61,6 +61,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Workspace-Proposals')) workspaceChildren.push({ key: '/user/workspace/proposals', icon: getIcon(FileText), label: 'Proposals' });
   if (hasPerm('Workspace-Invoices')) workspaceChildren.push({ key: '/user/workspace/invoices', icon: getIcon(FileText), label: 'Invoices' });
   if (hasPerm('Workspace-Projects')) workspaceChildren.push({ key: '/user/workspace/projects', icon: getIcon(Target), label: 'Projects' });
+  if (hasPerm('Workspace-SEO Panel')) workspaceChildren.push({ key: '/user/workspace/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
 
   if (hasPerm('Workspace-Task Management') || taskManagementChildren.length > 0) {
     workspaceChildren.push({
@@ -86,7 +87,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   if (hasPerm('Intelligence-ChatGPT')) intelligenceChildren.push({ key: '/user/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' });
   if (hasPerm('Intelligence-Canva')) intelligenceChildren.push({ key: '/user/intelligence/canva', icon: getIcon(Palette), label: 'Canva' });
   if (hasPerm('Intelligence-AI Agent')) intelligenceChildren.push({ key: '/user/intelligence/agents', icon: getIcon(Target), label: 'AI Agent' });
-  if (hasPerm('Intelligence-Benchmarks')) intelligenceChildren.push({ key: '/user/intelligence/benchmarks', icon: getIcon(TrendingUp), label: 'Benchmarks' });
+  // if (hasPerm('Intelligence-Benchmarks')) intelligenceChildren.push({ key: '/user/intelligence/benchmarks', icon: getIcon(TrendingUp), label: 'Benchmarks' });
   if (hasPerm('Intelligence-Reports')) intelligenceChildren.push({ key: '/user/intelligence/reports', icon: getIcon(FileText), label: 'Reports' });
   if (hasPerm('Intelligence-SEO / AEO / GEO(semrush)') || hasPerm('Workspace-SEO / AEO / GEO')) intelligenceChildren.push({ key: '/user/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO' });
 
@@ -118,9 +119,6 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
   hrmsChildren.push({ key: '/user/hrms/performance', icon: getIcon(Target), label: 'Performance' });
   if (hasPerm('HRMS-Daily Reports')) {
     hrmsChildren.push({ key: '/user/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
-  }
-  if (hasPerm('HRMS-SEO Panel')) {
-    hrmsChildren.push({ key: '/user/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
   }
 
   if (hrmsChildren.length > 0) {
@@ -178,6 +176,8 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
         label: user?.roleName || 'Employee',
         name: user?.name || 'User',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Workspace',
+        phone: user?.phone,
+        email: user?.email,
       }}
     />
   );

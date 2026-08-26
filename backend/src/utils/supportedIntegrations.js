@@ -4,7 +4,8 @@ const SUPPORTED_INTEGRATIONS = [
   'email',
   'website',
   'payment',
-  'ekta'
+  'ekta',
+  'facebook_leads'
 ];
 
 const INTERNAL_PROVIDERS = [

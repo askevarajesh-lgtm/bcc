@@ -335,10 +335,10 @@ const WebsiteIcon = () => (
   </svg>
 );
 
-const isWebsiteIntegrationConfigured = (integration) => {
-  const c = integration?.config;
-  if (!c || typeof c !== "object") return false;
-  return String(c.apiKey || "").trim().length > 0;
+const isWebsiteIntegrationConfigured = (websiteIntegration, facebookIntegration) => {
+  const isWebConfigured = Boolean(websiteIntegration?.config?.apiKey?.trim() || websiteIntegration?.config?.whatsappLeads?.token?.trim());
+  const isFbConfigured = Boolean(facebookIntegration?.config && Object.keys(facebookIntegration.config).length > 0);
+  return isWebConfigured || isFbConfigured;
 };
 
 const isIvrIntegrationConfigured = (integration) => {
@@ -386,34 +386,56 @@ const IntegrationsPage = () => {
   const ektaIntegration = integrations.find((i) => i.type === "ekta");
   const ivrIntegration = integrations.find((i) => i.type === "ivr");
   const websiteIntegration = integrations.find((i) => i.type === "website");
+  const facebookIntegration = integrations.find((i) => i.type === "facebook_leads");
 
-  const handleToggle = async (integration, enabled) => {
+  const handleToggle = async (integrationType, checked) => {
     try {
+      let toggled = false;
+      const integration = integrations.find(i => i.type === integrationType);
+      
       if (integration) {
         await updateIntegration({
           id: integration._id,
-          isActive: enabled,
+          isActive: checked,
         }).unwrap();
-      } else {
-        message.info("Please configure the integration first");
+        toggled = true;
       }
-      message.success("Integration updated");
+      
+      if (integrationType === 'website') {
+        const fbIntegration = integrations.find(i => i.type === 'facebook_leads');
+        if (fbIntegration) {
+          await updateIntegration({
+            id: fbIntegration._id,
+            isActive: checked,
+          }).unwrap();
+          toggled = true;
+        }
+      }
+
+      if (!toggled) {
+        message.warning("Please configure the integration first before enabling it.");
+      } else {
+        message.success(`Integration ${checked ? 'enabled' : 'disabled'} successfully`);
+      }
       refetch();
     } catch (error) {
       message.error(error?.data?.message || "Failed to update integration");
     }
   };
 
-  const IntegrationCard = ({ type, integration, icon, title, description }) => {
-    const isActive = integration?.isActive || false;
-    const isConfigured =
+  const IntegrationCard = ({ type, integration, icon, title, description, isActiveOverride, isConfiguredOverride }) => {
+    let isActive = isActiveOverride !== undefined ? isActiveOverride : (integration?.isActive || false);
+    
+    let isConfigured = isConfiguredOverride !== undefined ? isConfiguredOverride : (
       type === "ivr"
         ? isIvrIntegrationConfigured(integration)
-        : type === "website"
-          ? isWebsiteIntegrationConfigured(integration)
-          : Boolean(
-              integration?.config && Object.keys(integration.config).length > 0,
-            );
+        : Boolean(integration?.config && Object.keys(integration.config).length > 0)
+    );
+
+    // As per user request: "If any integration is configured inside the Integrations section, its corresponding card should show Active."
+    if (isConfigured) {
+      isActive = true;
+    }
 
     const handleCardClick = () => {
       if (type === "whatsapp") {
@@ -464,8 +486,7 @@ const IntegrationsPage = () => {
           <div className="int-toggle-wrap" onClick={(e) => e.stopPropagation()}>
             <Switch
               checked={isActive}
-              onChange={(checked) => handleToggle(integration, checked)}
-              disabled={!integration}
+              onChange={(checked) => handleToggle(type, checked)}
               size="small"
             />
           </div>
@@ -586,6 +607,12 @@ const IntegrationsPage = () => {
             <IntegrationCard
               type="website"
               integration={websiteIntegration}
+              isActiveOverride={
+                (websiteIntegration?.isActive) || (facebookIntegration?.isActive) || false
+              }
+              isConfiguredOverride={
+                isWebsiteIntegrationConfigured(websiteIntegration, facebookIntegration)
+              }
               icon={<WebsiteIcon />}
               title="Lead Management Integration"
               description="Configure and manage lead integrations from Website forms and WhatsApp"

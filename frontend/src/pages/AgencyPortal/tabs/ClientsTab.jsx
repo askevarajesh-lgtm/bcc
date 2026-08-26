@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Typography, Input, Button, Tag, Row, Col, Drawer, Tabs, Progress, Switch, Select, message, Modal, Form, Checkbox, Table, Dropdown, Menu, Popconfirm, Tooltip } from 'antd';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useGetIntegrationsQuery } from '../../../api/integrationApi';
@@ -25,11 +25,12 @@ const availableFeatures = [
   { id: 'analytics', label: 'Google Analytics' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
-  { id: 'benchmark', label: 'Benchmark' },
+  // { id: 'benchmark', label: 'Benchmark' },
 ];
 
 const ClientsTab = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedClient, setSelectedClient] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ const ClientsTab = () => {
   const [packages, setPackages] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [createDealId, setCreateDealId] = useState(null);
   
   // Assign Users State
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -181,6 +183,20 @@ const ClientsTab = () => {
     fetchPackages();
   }, []);
 
+  useEffect(() => {
+    if (location.state?.openCreateClientModal) {
+      setIsCreateModalOpen(true);
+      if (location.state.dealName) {
+        form.setFieldsValue({ name: location.state.dealName });
+      }
+      if (location.state.dealId) {
+        setCreateDealId(location.state.dealId);
+      }
+      // Clean up state so refresh doesn't reopen modal
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, form]);
+
   const handleCreateClient = async (values) => {
     try {
       setLoading(true);
@@ -194,7 +210,8 @@ const ClientsTab = () => {
         ...values,
         countryCode: clientCountryCode,
         features: selectedPackage ? selectedPackage.features : [],
-        mrr: selectedPackage ? selectedPackage.price : 0
+        mrr: selectedPackage ? selectedPackage.price : 0,
+        dealId: createDealId || location.state?.dealId || undefined
       };
 
       const res = await fetch('/api/brands', {
@@ -213,6 +230,7 @@ const ClientsTab = () => {
         form.resetFields();
         setClientCountryCode('91');
         setClientCountryIso('IN');
+        setCreateDealId(null);
         fetchClients();
       } else {
         message.error(data.message || 'Failed to create client');

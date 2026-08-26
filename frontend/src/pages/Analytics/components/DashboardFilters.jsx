@@ -39,7 +39,7 @@ const DashboardFilters = React.memo(function DashboardFilters({
   const [addDomainForm] = Form.useForm();
 
   const handleOpenConfig = () => {
-    if (selectedProject === 'All Domains') return;
+    if (!selectedProject) return;
     const project = projects.find(p => p._id === selectedProject);
     configForm.setFieldsValue({
       ga4PropertyId: project?.credentials?.ga4PropertyId || ''
@@ -107,14 +107,13 @@ const DashboardFilters = React.memo(function DashboardFilters({
           size="large"
           aria-label="Select domain"
         >
-          <Option value="All Domains">All Domains</Option>
           {projects.map(p => <Option key={p._id} value={p._id}>{p.domain} ({p.name})</Option>)}
           <Option value="ADD_NEW_DOMAIN" style={{ color: 'var(--accent-primary)', fontWeight: 600, borderTop: '1px solid var(--border-color)', marginTop: 8, paddingTop: 8 }}>
             <Plus size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Add New Domain
           </Option>
         </Select>
 
-        {selectedProject !== 'All Domains' && selectedProject !== 'ADD_NEW_DOMAIN' && (
+        {selectedProject !== 'ADD_NEW_DOMAIN' && selectedProject && (
           <Tooltip title="Configure Google Analytics 4">
             <Button
               icon={<Settings size={16} />}
@@ -172,7 +171,17 @@ const DashboardFilters = React.memo(function DashboardFilters({
             name="ga4PropertyId"
             label="GA4 Property ID"
             rules={[{ required: true, message: 'Please enter the GA4 Property ID' }]}
-            help="You can find your Property ID in Google Analytics > Admin > Property Settings."
+            help={
+              <div style={{ marginTop: 8 }}>
+                <p style={{ margin: '0 0 8px 0' }}>1. Find your Property ID in Google Analytics &gt; Admin &gt; Property Settings.</p>
+                <p style={{ margin: 0 }}>
+                  2. <strong>Important:</strong> You must add our service account email as a <strong>Viewer</strong> in your Google Analytics Property Access Management:
+                </p>
+                <code style={{ display: 'block', padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 4, marginTop: 8, wordBreak: 'break-all' }}>
+                  content-marketing-research@deep-geography-489307-e4.iam.gserviceaccount.com
+                </code>
+              </div>
+            }
           >
             <Input placeholder="e.g. 544687897" size="large" />
           </Form.Item>

@@ -189,6 +189,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           ]
         },
         { key: '/workspace/website', icon: getIcon(Globe), label: 'Websites' },
+        { key: '/workspace/seo-panel', icon: getIcon(Search), label: 'SEO Panel' },
       ],
     },
     {
@@ -203,8 +204,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         // { key: '/intelligence/copilot', icon: getIcon(MessageCircle), label: 'AI Co-Pilot' },
         { key: '/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'ChatGPT' },
         { key: '/intelligence/canva', icon: getIcon(Palette), label: 'Canva' },
-        // { key: '/intelligence/agents', icon: getIcon(Bot), label: getLabel('AI Agent', 'New', 'success') },
-        { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
+        // { key: '/intelligence/benchmarks', icon: getIcon(Award), label: 'Benchmarks' },
         { key: '/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' },
         // { key: '/intelligence/seo', icon: getIcon(Search), label: 'SEO Intelligence' },
         { key: '/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO' },
@@ -241,7 +241,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           ] : []),
           { key: '/hrms/performance', icon: getIcon(Activity), label: 'Performance' },
           { key: '/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' },
-          { key: '/hrms/seo-panel', icon: getIcon(Search), label: 'SEO Panel' },
         ],
       }
     ] : []),
@@ -294,6 +293,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         label: user?.roleName || 'Role Not Assigned',
         name: user?.name || 'Unknown User',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Workspace',
+        phone: user?.phone,
+        email: user?.email,
       }}
     />
   );

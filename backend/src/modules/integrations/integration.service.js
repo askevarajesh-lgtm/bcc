@@ -271,9 +271,12 @@ const getAllIntegrations = async (companyId, role, user) => {
     return [];
   }
   const allowed = await resolveCompanyIntegrations(company);
-  const companyFiltered = productIntegrations.filter((integration) =>
-    Boolean(allowed[integration.type]),
-  );
+  const companyFiltered = productIntegrations.filter((integration) => {
+    if (integration.type === 'facebook_leads') {
+      return Boolean(allowed['website']);
+    }
+    return Boolean(allowed[integration.type]);
+  });
 
   // Layer 2 -- Package-level entitlement: intersect with whatever the
   // requesting user's effective Package (`Package.integrations`, snapshotted
@@ -281,9 +284,13 @@ const getAllIntegrations = async (companyId, role, user) => {
   // this layer and the company-level gate above must pass for an integration
   // to be returned. See packageAccess.service.js / integrationAccess.js.
   const packageIntegrations = await getEffectivePackageIntegrations(user);
-  return companyFiltered.filter((integration) =>
-    packageIntegrations.includes(integration.type),
-  );
+  return companyFiltered.filter((integration) => {
+    // If the integration is facebook_leads, it's governed by the 'website' package entitlement
+    if (integration.type === 'facebook_leads') {
+      return packageIntegrations.includes('website');
+    }
+    return packageIntegrations.includes(integration.type);
+  });
 };
 
 const getPaymentIntegration = async (companyId) => {

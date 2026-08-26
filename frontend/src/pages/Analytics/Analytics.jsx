@@ -36,7 +36,7 @@ const itemVariants = {
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState('analytics');
-  const [selectedProject, setSelectedProject] = useState('All Domains');
+  const [selectedProject, setSelectedProject] = useState('');
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm, 250);
@@ -46,7 +46,11 @@ const Analytics = () => {
   const fetchProjects = useCallback(() => {
     import('../../api/analyticsApi').then(({ analyticsApi }) => {
       analyticsApi.getProjects().then(res => {
-        if (res.success) setProjects(res.data || []);
+        if (res.success) {
+          const fetchedProjects = res.data || [];
+          setProjects(fetchedProjects);
+          setSelectedProject(prev => prev || (fetchedProjects.length > 0 ? fetchedProjects[0]._id : ''));
+        }
       });
     });
   }, []);

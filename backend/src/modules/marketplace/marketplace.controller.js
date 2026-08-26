@@ -23,7 +23,10 @@ const initiatePurchase = async (req, res) => {
     return res.status(200).json({ success: true, message: 'Purchase initiated successfully', data: orderData });
   } catch (error) {
     console.error("Marketplace Initiate Purchase Error:", error);
-    const errorMsg = error.error?.description || error.message || 'An unexpected error occurred during purchase initiation';
+    let errorMsg = error.error?.description || error.message || 'An unexpected error occurred during purchase initiation';
+    if (errorMsg === 'Authentication failed') {
+      errorMsg = 'Razorpay Integration Error: Authentication failed. Please check your payment integration API keys in settings.';
+    }
     return res.status(400).json({ success: false, message: errorMsg, details: error });
   }
 };

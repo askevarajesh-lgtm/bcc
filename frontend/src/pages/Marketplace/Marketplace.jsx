@@ -159,6 +159,9 @@ const Marketplace = () => {
   const [mockPurchased, setMockPurchased] = useState([]);
 
   const purchasedPlans = React.useMemo(() => {
+    if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
+      return { seo: true, content: true, design: true };
+    }
     const plans = { seo: false, content: false, design: false };
     if (purchasesData?.modules) {
       purchasesData.modules.forEach(m => {
@@ -167,7 +170,7 @@ const Marketplace = () => {
     }
     mockPurchased.forEach(m => plans[m] = true);
     return plans;
-  }, [purchasesData, mockPurchased]);
+  }, [purchasesData, mockPurchased, role]);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -236,6 +239,11 @@ const Marketplace = () => {
         theme: {
           color: "var(--accent-primary)",
         },
+        modal: {
+          ondismiss: function() {
+            setPurchasingPlan(null);
+          }
+        }
       };
 
       const paymentObject = new window.Razorpay(options);

@@ -89,7 +89,7 @@ exports.getBrands = async (req, res, next) => {
 // Create a new brand/company and its agency manager user
 exports.createBrand = async (req, res, next) => {
   try {
-    const { name, email, password, packageName, features, mrr, phone, countryCode, address } = req.body;
+    const { name, email, password, packageName, features, mrr, phone, countryCode, address, dealId } = req.body;
 
     // Validate Phone Number
     if (phone) {
@@ -239,6 +239,20 @@ exports.createBrand = async (req, res, next) => {
         `Brand ${brand.companyName} (${brand.email}) has been created.`,
         { brandId: brand._id }
       );
+    }
+
+    if (dealId) {
+      const Deal = require('../salesPipeline/deal.model');
+      const deal = await Deal.findById(dealId);
+      if (deal) {
+        deal.clientId = brand._id;
+        deal.activityLogs.push({
+          action: "Converted to Client",
+          performedBy: req.user.name || "System",
+          details: `Converted deal to Client user`
+        });
+        await deal.save();
+      }
     }
 
     res.status(201).json({ success: true, data: brand });

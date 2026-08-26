@@ -315,7 +315,7 @@ const AppRoutes = () => {
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
           <Route path="intelligence/agents" element={<AIAgents />} />
-          <Route path="intelligence/benchmarks" element={<Benchmarks />} />
+          {/* <Route path="intelligence/benchmarks" element={<Benchmarks />} /> */}
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
           <Route path="intelligence/seo-aeo-geo" element={<SemrushDashboard />} />
@@ -360,7 +360,7 @@ const AppRoutes = () => {
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="hrms/daily-reports" element={<DailyReports />} />
-          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
+          <Route path="workspace/seo-panel/*" element={<SEOPanel />} />
         </Route>
       </Route>
 
@@ -380,9 +380,11 @@ const AppRoutes = () => {
           <Route path="support" element={<AgencySupportTab />} />
           
           {/* Agency Manager Dynamic Modules */}
-          <Route path="marketplace" element={<Marketplace />} />
-          <Route path="marketplace/seo/*" element={<Marketplace />} />
-          <Route path="marketplace/*" element={<Marketplace />} />
+          <Route element={<ProtectedRoute allowedRoles={['agency_manager', 'agency']} />}>
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/seo/*" element={<Marketplace />} />
+            <Route path="marketplace/*" element={<Marketplace />} />
+          </Route>
           <Route path="sla" element={<SLA />} />
           <Route path="strategy" element={<Strategy />} />
           <Route path="seo" element={<Navigate to="/agency/marketplace/seo/dashboard" replace />} />
@@ -398,7 +400,7 @@ const AppRoutes = () => {
           <Route path="website/:websiteId/blogs/:blogId/posts/:postId/edit" element={<BlogPostBuilderRouteWrapper />} />
           <Route path="chatgpt" element={<ClientChatGPTPage />} />
           <Route path="canva" element={<ClientCanvaPage />} />
-          <Route path="benchmarks" element={<Benchmarks />} />
+          {/* <Route path="benchmarks" element={<Benchmarks />} /> */}
           <Route path="analytics" element={<Analytics />} />
           <Route path="master-items" element={<MasterItemsList />} />
           <Route path="master-items/new" element={<MasterItemForm />} />
@@ -439,7 +441,7 @@ const AppRoutes = () => {
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="hrms/daily-reports" element={<DailyReports />} />
-          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
+          <Route path="workspace/seo-panel/*" element={<SEOPanel />} />
         </Route>
       </Route>
 
@@ -497,7 +499,7 @@ const AppRoutes = () => {
           <Route path="intelligence/chatgpt" element={<ClientChatGPTPage />} />
           <Route path="intelligence/canva" element={<ClientCanvaPage />} />
           <Route path="intelligence/agents" element={<AIAgents />} />
-          <Route path="intelligence/benchmarks" element={<Benchmarks />} />
+          {/* <Route path="intelligence/benchmarks" element={<Benchmarks />} /> */}
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
 
@@ -513,9 +515,13 @@ const AppRoutes = () => {
             role === 'agency_client' ? <ClientSettingsTab /> : 
             <SettingsPage />
           } />
-          <Route path="marketplace" element={<Marketplace />} />
-          <Route path="marketplace/seo/*" element={<Marketplace />} />
-          <Route path="marketplace/*" element={<Marketplace />} />
+          
+          <Route element={<ProtectedRoute allowedRoles={['agency_client']} />}>
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/seo/*" element={<Marketplace />} />
+            <Route path="marketplace/*" element={<Marketplace />} />
+          </Route>
+          
           <Route path="settings/users" element={<PlaceholderPage title="User Settings" description="Manage user preferences." icon={Users} />} />
           <Route path="settings/roles" element={<PlaceholderPage title="Roles & Permissions" description="Define role-based access control." icon={Shield} />} />
           <Route path="settings/integrations" element={<PlaceholderPage title="Integrations" description="Connect third-party apps and APIs." icon={Zap} />} />
@@ -600,7 +606,7 @@ const AppRoutes = () => {
           <Route path="hrms/performance/history/:userId?" element={<PerformancePage />} />
           <Route path="hrms/performance/self-assessment" element={<SelfAssessmentForm />} />
           <Route path="hrms/daily-reports" element={<DailyReports />} />
-          <Route path="hrms/seo-panel/*" element={<SEOPanel />} />
+          <Route path="workspace/seo-panel/*" element={<SEOPanel />} />
           
           {/* Keep legacy route temporarily for fallback if needed */}
           <Route path="performance" element={<PerformancePage />} />

@@ -307,10 +307,10 @@ const GearIcon = () => (
   </svg>
 );
 
-const isWebsiteIntegrationConfigured = (integration) => {
-  const c = integration?.config;
-  if (!c || typeof c !== "object") return false;
-  return String(c.apiKey || "").trim().length > 0;
+const isWebsiteIntegrationConfigured = (websiteIntegration, facebookIntegration) => {
+  const isWebConfigured = Boolean(websiteIntegration?.config?.apiKey?.trim() || websiteIntegration?.config?.whatsappLeads?.token?.trim());
+  const isFbConfigured = Boolean(facebookIntegration?.config && Object.keys(facebookIntegration.config).length > 0);
+  return isWebConfigured || isFbConfigured;
 };
 
 // Roles that configure integrations/packages at the platform level. These
@@ -331,6 +331,7 @@ const IntegrationsTab = () => {
   const integrations = data?.data?.integrations || [];
 
   const websiteIntegration = integrations.find((i) => i.type === "website");
+  const facebookIntegration = integrations.find((i) => i.type === "facebook_leads");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -377,28 +378,52 @@ const IntegrationsTab = () => {
     return false;
   };
 
-  const handleToggle = async (integration, enabled) => {
+  const handleToggle = async (integrationType, checked) => {
     try {
+      let toggled = false;
+      const integration = integrations.find(i => i.type === integrationType);
+      
       if (integration) {
         await updateIntegration({
           id: integration._id,
-          isActive: enabled,
+          isActive: checked,
         }).unwrap();
-      } else {
-        message.info("Please configure the integration first");
+        toggled = true;
       }
-      message.success("Integration updated");
+      
+      if (integrationType === 'website') {
+        const fbIntegration = integrations.find(i => i.type === 'facebook_leads');
+        if (fbIntegration) {
+          await updateIntegration({
+            id: fbIntegration._id,
+            isActive: checked,
+          }).unwrap();
+          toggled = true;
+        }
+      }
+
+      if (!toggled) {
+        console.warn("Integration not found to toggle");
+        message.warning("Please configure the integration first before enabling it.");
+      } else {
+        message.success(`Integration ${checked ? 'enabled' : 'disabled'} successfully`);
+      }
       refetch();
     } catch (error) {
-      message.error(error?.data?.message || "Failed to update integration");
+      console.error("Failed to toggle integration", error);
+      message.error("Failed to toggle integration status");
     }
   };
 
   const IntegrationCard = ({ type, integration, icon, title, description, isActiveOverride, isConfiguredOverride }) => {
-    const isActive = isActiveOverride !== undefined ? isActiveOverride : (integration?.isActive || false);
-    const isConfigured = isConfiguredOverride !== undefined ? isConfiguredOverride : (type === "website"
-      ? isWebsiteIntegrationConfigured(integration)
-      : Boolean(integration?.config && Object.keys(integration.config).length > 0));
+    let isActive = isActiveOverride !== undefined ? isActiveOverride : (integration?.isActive || false);
+    let isConfigured = isConfiguredOverride !== undefined ? isConfiguredOverride : (integration?.config && Object.keys(integration.config).length > 0);
+    
+    // As per user request: "If any integration is configured inside the Integrations section, its corresponding card should show Active."
+    // Force the UI to show Active if it's configured, ensuring consistent logic across all integrations.
+    if (isConfigured) {
+      isActive = true;
+    }
 
     const handleCardClick = () => {
       setSelectedConfig({
@@ -417,8 +442,7 @@ const IntegrationsTab = () => {
           <div className="int-toggle-wrap" onClick={(e) => e.stopPropagation()}>
             <Switch
               checked={isActive}
-              onChange={(checked) => handleToggle(integration, checked)}
-              disabled={!integration}
+              onChange={(checked) => handleToggle(type, checked)}
               size="small"
             />
           </div>
@@ -515,10 +539,10 @@ const IntegrationsTab = () => {
               type="website"
               integration={websiteIntegration}
               isActiveOverride={
-                websiteIntegration?.isActive || false
+                (websiteIntegration?.isActive) || (facebookIntegration?.isActive) || false
               }
               isConfiguredOverride={
-                isWebsiteIntegrationConfigured(websiteIntegration)
+                isWebsiteIntegrationConfigured(websiteIntegration, facebookIntegration)
               }
               icon={<WebsiteIcon />}
               title="Lead Management Integration"

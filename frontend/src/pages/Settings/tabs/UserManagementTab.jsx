@@ -88,7 +88,7 @@ const UserManagementTab = () => {
           'Sales Pipeline',
           'Global Meetings', 'Global Calendar', 'Global Deliverables'
         ],
-        'HRMS': ['Performance', 'Daily Reports', 'SEO Panel']
+        'HRMS': ['Performance', 'Daily Reports']
       };
     } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
       const groups = {
@@ -106,7 +106,7 @@ const UserManagementTab = () => {
       if (hasF('crm')) groups.Workspace.push('CRM & Leads');
 
       // Default Workspace Modules
-      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Task Analytics', 'Coordinator Tasks');
+      groups.Workspace.push('Proposals', 'Invoices', 'Projects', 'Task Management', 'Task Analytics', 'Coordinator Tasks', 'SEO Panel');
 
       if (hasF('website')) groups.Workspace.push('Websites');
       if (hasF('marketplace')) groups.Workspace.push('Marketplace');
@@ -121,13 +121,12 @@ const UserManagementTab = () => {
       }
 
       // Agency Ops
-      if (hasF('salespipeline')) groups['Agency Ops'].push('Sales Pipeline');
-      groups['Agency Ops'].push('Meetings', 'Calendar', 'Deliverables');
+      groups['Agency Ops'].push('Sales Pipeline', 'Meetings', 'Calendar', 'Deliverables');
 
       // Settings extras (can go in General or Agency Ops)
       groups.General.push('Master Item');
 
-      groups['HRMS'] = ['Performance', 'Daily Reports', 'SEO Panel'];
+      groups['HRMS'] = ['Performance', 'Daily Reports'];
 
       return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
@@ -146,7 +145,7 @@ const UserManagementTab = () => {
       if (hasF('website')) groups.Workspace.push('Websites');
 
       // Workspace default modules
-      groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables', 'Task Analytics', 'Coordinator Tasks');
+      groups.Workspace.push('Task Management', 'Meetings', 'Calendar', 'Deliverables', 'Task Analytics', 'Coordinator Tasks', 'SEO Panel');
 
       // Intelligence conditional modules
       if (hasF('analytics')) groups.Intelligence.push('Google Analytics');
@@ -160,7 +159,7 @@ const UserManagementTab = () => {
       // Agency Ops default modules
       groups['Agency Ops'].push('Time Tracking', 'Sales Pipeline');
 
-      groups['HRMS'] = ['Performance', 'Daily Reports', 'SEO Panel'];
+      groups['HRMS'] = ['Performance', 'Daily Reports'];
 
       return groups;
     }

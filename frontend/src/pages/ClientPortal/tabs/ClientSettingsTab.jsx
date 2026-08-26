@@ -17,7 +17,7 @@ const availableFeatures = [
   { id: 'analytics', label: 'Google Analytics' },
   { id: 'chatgpt', label: 'Chatgpt' },
   { id: 'canva', label: 'Canva' },
-  { id: 'benchmark', label: 'Benchmark' },
+  // { id: 'benchmark', label: 'Benchmark' },
 ];
 
 const { Title, Text } = Typography;

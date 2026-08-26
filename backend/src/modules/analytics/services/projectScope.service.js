@@ -19,13 +19,8 @@ async function resolveScope({ agencyId, projectId }) {
     return { scope: 'single', projects: project ? [project] : [] };
   }
 
-  // Get all active projects for this agency/company
-  const projects = await AnalyticsProject.find({ 
-    $or: [{ companyId: agencyId }, { createdBy: agencyId }, { clientId: agencyId }],
-    isDeleted: false 
-  });
-
-  return { scope: 'all-projects', projects };
+  // If we reach here, it means no valid projectId was provided, and we don't support "All Domains".
+  return { scope: 'single', projects: [] };
 }
 
 module.exports = { resolveScope };

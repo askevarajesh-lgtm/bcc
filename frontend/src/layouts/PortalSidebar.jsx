@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, Grid, Layout, Menu } from 'antd';
-import { Mail, MessageCircle, Phone } from 'lucide-react';
+import { WhatsAppOutlined } from '@ant-design/icons';
+import { Mail, Phone } from 'lucide-react';
 import { useLayoutContext } from '../contexts/LayoutContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -130,15 +131,33 @@ const PortalSidebar = ({
               </div>
             </div>
             <div className="sidebar-partner-card__actions" aria-label="Growth partner contact actions">
-              <button type="button" aria-label="Call growth partner">
-                <Phone size={16} />
-              </button>
-              <button type="button" aria-label="Message growth partner">
-                <MessageCircle size={16} />
-              </button>
-              <button type="button" aria-label="Email growth partner">
-                <Mail size={16} />
-              </button>
+              {partner.phone ? (
+                <a href={`tel:${partner.phone}`} aria-label="Call growth partner" style={{ textDecoration: 'none' }}>
+                  <Phone size={16} />
+                </a>
+              ) : (
+                <button type="button" aria-label="Call growth partner" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  <Phone size={16} />
+                </button>
+              )}
+              {partner.phone ? (
+                <a href={`https://wa.me/${partner.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer" aria-label="Message growth partner" style={{ textDecoration: 'none' }}>
+                  <WhatsAppOutlined style={{ fontSize: 16 }} />
+                </a>
+              ) : (
+                <button type="button" aria-label="Message growth partner" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  <WhatsAppOutlined style={{ fontSize: 16 }} />
+                </button>
+              )}
+              {partner.email ? (
+                <a href={`mailto:${partner.email}`} aria-label="Email growth partner" style={{ textDecoration: 'none' }}>
+                  <Mail size={16} />
+                </a>
+              ) : (
+                <button type="button" aria-label="Email growth partner" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  <Mail size={16} />
+                </button>
+              )}
             </div>
           </div>
         )}

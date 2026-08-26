@@ -14,72 +14,293 @@ import { useGetIntegrationsQuery, useUpdateIntegrationMutation } from '../../../
 
 const { Title, Text } = Typography;
 
+const cardStyles = `
+  /* ── Card shell ── */
+  .int-card {
+    position: relative;
+    border-radius: 20px;
+    border: 1.5px solid #ebebeb;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(.22,.68,0,1.2),
+                box-shadow 0.28s ease,
+                border-color 0.28s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .int-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* ── Coloured top banner ── */
+  .int-banner {
+    position: relative;
+    height: 88px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--primary-color) 0%, rgba(37, 99, 235, 0.8) 55%, var(--primary-color) 100%);
+  }
+
+  /* decorative circle blobs on banner */
+  .int-blob1 {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.10);
+    top: -40px;
+    right: -20px;
+    pointer-events: none;
+  }
+  .int-blob2 {
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    bottom: -28px;
+    right: 55px;
+    pointer-events: none;
+  }
+  .int-blob3 {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    top: 10px;
+    left: 80px;
+    pointer-events: none;
+  }
+
+  /* ── Icon circle on banner ── */
+  .int-icon-wrap {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.20);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255,255,255,0.38);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+  }
+
+  /* ── Toggle pinned to top-right of banner ── */
+  .int-toggle-wrap {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 2;
+    background: rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 4px 8px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.30);
+  }
+
+  .int-toggle-wrap .ant-switch-checked { background: var(--primary-color) !important; }
+
+  .int-toggle-wrap .ant-switch {
+    background: rgba(0,0,0,0.20) !important;
+  }
+
+  /* ── Card body ── */
+  .int-body {
+    padding: 18px 22px 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .int-title {
+    font-size: 16px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+  }
+
+  /* ── Status badges ── */
+  .int-badges {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .int-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .int-dot-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .int-dot-inactive { background: #f5f5f5; color: #999; border: 1px solid #e8e8e8; }
+  .int-dot-inactive .int-dot-pulse { background: #ccc; }
+
+  .int-dot-active {
+    color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+  }
+  .int-dot-active .int-dot-pulse { 
+    background: var(--primary-color); 
+    animation: int-pulse 1.8s infinite; 
+  }
+
+  @keyframes int-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .int-dot-configured { color: var(--accent-primary); border: 1px solid #bfdbfe; }
+
+  /* ── Description ── */
+  .int-desc {
+    font-size: 13px;
+    color: #8a8a8a;
+    line-height: 1.65;
+    margin-bottom: 18px;
+    flex: 1;
+  }
+
+  /* ── Footer ── */
+  .int-footer {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  /* CTA button */
+  .int-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), rgba(37, 99, 235, 0.85));
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.30);
+  }
+
+  .int-cta-btn:hover  { filter: brightness(1.08); transform: translateY(-1px); }
+  .int-cta-btn:active { transform: scale(0.97); }
+
+  /* Arrow */
+  .int-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    font-size: 13px;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
+  }
+
+  .int-card:hover .int-arrow { transform: translateX(3px); color: var(--primary-color); }
+
+  /* hover border glow */
+  .int-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    pointer-events: none;
+    transition: border-color 0.28s ease;
+  }
+
+  .int-card:hover::after { border-color: rgba(37, 99, 235, 0.27); }
+`;
+
+const GearIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
 const IntegrationCard = ({ title, description, icon: Icon, active, configured, buttonText, onConfigure, onToggle }) => {
   return (
-    <div style={{
-      border: '1px solid var(--border-color)',
-      borderRadius: 16,
-      overflow: 'hidden',
-      background: 'var(--bg-secondary)',
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      boxShadow: 'var(--shadow-sm)'
-    }}>
-      <div style={{
-        background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary))',
-        padding: '24px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Decorative circles */}
-        <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-        <div style={{ position: 'absolute', bottom: -30, left: 20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
-          <div style={{
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 12,
-            width: 48,
-            height: 48,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent'
-          }}>
+    <>
+      <style>{cardStyles}</style>
+      <div className="int-card" onClick={onConfigure} style={{ '--primary-color': 'var(--accent-primary)' }}>
+        <div className="int-banner">
+          <div className="int-blob1" />
+          <div className="int-blob2" />
+          <div className="int-blob3" />
+          <div className="int-icon-wrap">
             <Icon size={24} color="#fff" />
           </div>
-          <Switch checked={active} onChange={onToggle} style={{ background: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }} />
+          <div className="int-toggle-wrap" onClick={(e) => e.stopPropagation()}>
+            <Switch
+              checked={active}
+              onChange={onToggle}
+              size="small"
+            />
+          </div>
+        </div>
+
+        <div className="int-body">
+          <span className="int-title">{title}</span>
+
+          <div className="int-badges">
+            <span className={`int-dot ${active ? "int-dot-active" : "int-dot-inactive"}`}>
+              <span className="int-dot-pulse" />
+              {active ? "Active" : "Inactive"}
+            </span>
+            {configured && (
+              <span className="int-dot int-dot-configured">✦ Configured</span>
+            )}
+          </div>
+
+          <p className="int-desc">{description}</p>
+
+          <div className="int-footer">
+            <button className="int-cta-btn" onClick={(e) => { e.stopPropagation(); onConfigure(); }}>
+              <GearIcon />
+              Setup Integration
+            </button>
+            <span className="int-arrow">
+              <ArrowRight size={18} />
+            </span>
+          </div>
         </div>
       </div>
-
-      <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Title level={5} style={{ margin: '0 0 16px 0', fontWeight: 800, color: 'var(--text-primary)' }}>{title}</Title>
-
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          <Tag style={{ borderRadius: 12, border: 'none', background: active ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', color: active ? 'var(--accent-primary)' : 'var(--text-tertiary)', fontWeight: 700, padding: '2px 10px', margin: 0, display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'var(--accent-primary)' : 'var(--text-tertiary)', marginRight: 6 }}></div>
-            {active ? 'Active' : 'Inactive'}
-          </Tag>
-          {configured && (
-            <Tag style={{ borderRadius: 12, border: 'none', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', fontWeight: 700, padding: '2px 10px', margin: 0 }}>
-              + Configured
-            </Tag>
-          )}
-        </div>
-
-        <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, marginBottom: 24, flex: 1, lineHeight: 1.6 }}>
-          {description}
-        </Text>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-          <Button onClick={onConfigure} type="primary" icon={<Settings size={14} />} style={{ background: 'var(--accent-primary)', borderRadius: 8, fontWeight: 600, padding: '0 20px', border: 'none', height: 36 }}>
-            {buttonText}
-          </Button>
-          <ArrowRight size={18} color="var(--text-tertiary)" />
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -137,20 +358,38 @@ const ClientIntegrationsTab = ({ user }) => {
 
   const handleToggle = async (integrationType, checked) => {
     try {
+      let toggled = false;
       const integration = integrations.find(i => i.type === integrationType);
+      
       if (integration) {
         await updateIntegration({
           id: integration._id,
           isActive: checked,
         }).unwrap();
-      } else {
-        // Not created yet, backend create logic typically runs on config save
-        // We'll just show an error if they try to enable unconfigured
+        toggled = true;
+      }
+      
+      if (integrationType === 'website') {
+        const fbIntegration = integrations.find(i => i.type === 'facebook_leads');
+        if (fbIntegration) {
+          await updateIntegration({
+            id: fbIntegration._id,
+            isActive: checked,
+          }).unwrap();
+          toggled = true;
+        }
+      }
+
+      if (!toggled) {
         console.warn("Integration not found to toggle");
+        message.warning("Please configure the integration first before enabling it.");
+      } else {
+        message.success(`Integration ${checked ? 'enabled' : 'disabled'} successfully`);
       }
       refetch();
     } catch (error) {
       console.error("Failed to toggle integration", error);
+      message.error("Failed to toggle integration status");
     }
   };
 
@@ -189,13 +428,20 @@ const ClientIntegrationsTab = ({ user }) => {
             if (!meta) return null;
             
             const integrationRecord = integrations.find(i => i.type === type);
-            const isActive = integrationRecord?.isActive || false;
+            let isActive = integrationRecord?.isActive || false;
             
             let isConfigured = false;
             if (type === 'website') {
-              isConfigured = Boolean(integrationRecord?.config?.apiKey);
+              const fbIntegration = integrations.find(i => i.type === 'facebook_leads');
+              isConfigured = Boolean(integrationRecord?.config?.apiKey?.trim() || integrationRecord?.config?.whatsappLeads?.token?.trim()) || Boolean(fbIntegration?.config && Object.keys(fbIntegration.config).length > 0);
+              isActive = (integrationRecord?.isActive) || (fbIntegration?.isActive) || false;
             } else {
               isConfigured = Boolean(integrationRecord?.config && Object.keys(integrationRecord.config).length > 0);
+            }
+
+            // As per user request: "If any integration is configured inside the Integrations section, its corresponding card should show Active."
+            if (isConfigured) {
+              isActive = true;
             }
 
             return (

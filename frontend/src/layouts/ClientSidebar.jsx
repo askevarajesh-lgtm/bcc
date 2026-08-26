@@ -182,7 +182,6 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
       ]
     });
     workspaceChildren.push({ key: '/client/workspace/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push(buildMarketplaceMenuItem());
   } else if (role === 'agency_client') {
     workspaceChildren.push({ key: '/client/workspace/strategy', icon: getIcon(GitMerge), label: 'Strategy', featureId: 'strategy' });
     workspaceChildren.push({ key: '/client/workspace/aistudio', icon: getIcon(Bot), label: 'Ai Studio', featureId: 'aistudio' });
@@ -194,7 +193,6 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
   } else {
     workspaceChildren.push({ key: '/client/leads', icon: getIcon(Users), label: 'CRM & Leads', featureId: 'crm' });
     workspaceChildren.push({ key: '/client/website', icon: getIcon(Globe), label: 'Websites', featureId: 'website' });
-    workspaceChildren.push(buildMarketplaceMenuItem());
   }
 
   if (workspaceChildren.length > 0) {
@@ -211,14 +209,14 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     intelligenceChildren.push({ key: '/client/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics', featureId: 'analytics' });
     intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
     intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
-    intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
+    // intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
     // intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   } else if (role === 'agency_client') {
     intelligenceChildren.push({ key: '/client/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics', featureId: 'analytics' });
     intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
     intelligenceChildren.push({ key: '/client/intelligence/canva', icon: getIcon(Palette), label: 'Canva', featureId: 'canva' });
-    intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
+    // intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
     // intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
   } else {
@@ -358,6 +356,8 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
         label: user?.roleName || 'Your Growth Partner',
         name: user?.name || 'Arjun Raj',
         title: user?.brandName || user?.agencyName || user?.companyName || 'Senior Brand Strategist',
+        phone: user?.phone,
+        email: user?.email,
       }}
     />
   );
