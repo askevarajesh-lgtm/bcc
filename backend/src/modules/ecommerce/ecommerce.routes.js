@@ -7,22 +7,37 @@ const Website = require('../websites/website.model');
 
 router.use(authMiddleware);
 
-// Middleware to verify website ownership
+// Middleware to verify website ownership — prevents cross-workspace data access
 const verifyWebsiteOwnership = async (req, res, next) => {
   try {
-    // Some routes might not have websiteId if they are global (none currently, but just in case)
     if (!req.params.websiteId) return next();
-    
-    if (!req.workspaceId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized: Missing workspaceId' });
+
+    if (!req.user && !req.workspaceId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: Missing authentication context' });
     }
 
-    const website = await Website.findOne({ _id: req.params.websiteId, workspaceId: req.workspaceId });
-    
+    const website = await Website.findOne({ _id: req.params.websiteId, isDeleted: false });
+
     if (!website) {
-      return res.status(403).json({ success: false, message: 'Forbidden: Website not found or does not belong to your workspace' });
+      return res.status(403).json({ success: false, message: 'Forbidden: Website not found' });
     }
-    
+
+    const isAdmin = req.user && ['commander_admin', 'super_admin'].includes(req.user.role);
+    const ownsWebsite = (
+      (req.workspaceId && website.workspaceId && req.workspaceId.toString() === website.workspaceId.toString()) ||
+      (req.companyId && website.workspaceId && req.companyId.toString() === website.workspaceId.toString()) ||
+      (req.companyId && website.agencyId && req.companyId.toString() === website.agencyId.toString())
+    );
+
+    if (!isAdmin && !ownsWebsite) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Website does not belong to your workspace' });
+    }
+
+    // Override the req.workspaceId with the actual website's workspaceId
+    // This ensures downstream controllers (which use getIsolatedQuery) correctly scope data
+    // even if the JWT had a missing or mismatched workspaceId (e.g. for commander_admins).
+    req.workspaceId = website.workspaceId;
+
     next();
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error verifying website ownership' });
@@ -30,20 +45,21 @@ const verifyWebsiteOwnership = async (req, res, next) => {
 };
 
 router.use('/:websiteId', verifyWebsiteOwnership);
-// All routes require websiteId to enforce isolation
-router.get('/:websiteId/products', ecommerceController.getProducts);
-router.post('/:websiteId/products', ecommerceController.createProduct);
-router.put('/:websiteId/products/:productId', ecommerceController.updateProduct);
-router.delete('/:websiteId/products/:productId', ecommerceController.deleteProduct);
 
-router.get('/:websiteId/settings', ecommerceController.getSettings);
-router.put('/:websiteId/settings', ecommerceController.updateSettings);
+// All routes are scoped: /ecommerce/:websiteId/:storeId/...
+router.get('/:websiteId/:storeId/products', ecommerceController.getProducts);
+router.post('/:websiteId/:storeId/products', ecommerceController.createProduct);
+router.put('/:websiteId/:storeId/products/:productId', ecommerceController.updateProduct);
+router.delete('/:websiteId/:storeId/products/:productId', ecommerceController.deleteProduct);
 
-router.get('/:websiteId/orders', ecommerceController.getOrders);
-router.get('/:websiteId/customers', ecommerceController.getCustomers);
-router.get('/:websiteId/payments', ecommerceController.getPayments);
-router.get('/:websiteId/shipping', ecommerceController.getShipping);
+router.get('/:websiteId/:storeId/settings', ecommerceController.getSettings);
+router.put('/:websiteId/:storeId/settings', ecommerceController.updateSettings);
 
-router.post('/:websiteId/checkout', ecommerceController.checkout);
+router.get('/:websiteId/:storeId/orders', ecommerceController.getOrders);
+router.get('/:websiteId/:storeId/customers', ecommerceController.getCustomers);
+router.get('/:websiteId/:storeId/payments', ecommerceController.getPayments);
+router.get('/:websiteId/:storeId/shipping', ecommerceController.getShipping);
+
+router.post('/:websiteId/:storeId/checkout', ecommerceController.checkout);
 
 module.exports = router;

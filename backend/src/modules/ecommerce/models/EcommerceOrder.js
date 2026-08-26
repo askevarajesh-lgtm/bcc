@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const EcommerceOrderSchema = new mongoose.Schema({
   workspaceId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   websiteId: { type: String, required: true, index: true },
+  storeId: { type: String, required: true, index: true },
   orderNumber: { type: String, required: true },
   idempotencyKey: { type: String },
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'EcommerceCustomer', required: true },
@@ -22,10 +23,10 @@ const EcommerceOrderSchema = new mongoose.Schema({
   shippingMethodId: { type: String }
 }, { timestamps: true });
 
-EcommerceOrderSchema.index({ workspaceId: 1, websiteId: 1 });
-EcommerceOrderSchema.index({ websiteId: 1, idempotencyKey: 1 }, { 
-  unique: true, 
-  partialFilterExpression: { idempotencyKey: { $exists: true, $type: "string" } }
+EcommerceOrderSchema.index({ workspaceId: 1, websiteId: 1, storeId: 1 });
+EcommerceOrderSchema.index({ storeId: 1, idempotencyKey: 1 }, {
+  unique: true,
+  partialFilterExpression: { idempotencyKey: { $exists: true, $type: 'string' } }
 });
 
 module.exports = mongoose.model('EcommerceOrder', EcommerceOrderSchema);

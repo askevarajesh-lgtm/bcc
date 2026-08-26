@@ -5,11 +5,16 @@ const EcommercePayment = require('./models/EcommercePayment');
 const EcommerceShipping = require('./models/EcommerceShipping');
 const EcommerceSettings = require('./models/EcommerceSettings');
 
-// Helper to construct isolated query
+// Helper to construct isolated query — scope by workspace + website + store
 const getIsolatedQuery = (req) => {
   if (!req.workspaceId) throw new Error('Unauthorized: Missing workspaceId');
   if (!req.params.websiteId) throw new Error('Bad Request: Missing websiteId');
-  return { workspaceId: req.workspaceId, websiteId: req.params.websiteId };
+  if (!req.params.storeId) throw new Error('Bad Request: Missing storeId');
+  return {
+    workspaceId: req.workspaceId,
+    websiteId: req.params.websiteId,
+    storeId: req.params.storeId
+  };
 };
 
 // --- PRODUCTS ---
@@ -79,7 +84,7 @@ exports.updateSettings = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// --- READONLY ADMIN ENTITIES ---
+// --- READ-ONLY ADMIN ENTITIES ---
 exports.getOrders = async (req, res, next) => {
   try {
     const orders = await EcommerceOrder.find(getIsolatedQuery(req)).sort({ createdAt: -1 });
@@ -117,22 +122,23 @@ exports.checkout = async (req, res, next) => {
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty or invalid' });
     }
-    
+
     if (!customerDetails || !customerDetails.name || !customerDetails.email) {
       return res.status(400).json({ success: false, message: 'Valid customer name and email are required' });
     }
 
+    // Idempotency check — prevent duplicate orders for same checkout attempt
     if (idempotencyKey) {
-      const existingOrder = await EcommerceOrder.findOne({ ...query, idempotencyKey });
+      const existingOrder = await EcommerceOrder.findOne({ storeId: query.storeId, idempotencyKey });
       if (existingOrder) {
-        return res.json({ success: true, orderId: existingOrder._id, duplicate: true });
+        return res.json({ success: true, orderId: existingOrder._id, orderNumber: existingOrder.orderNumber, duplicate: true });
       }
     }
 
     // Server-side Settings Validation
     const settings = await EcommerceSettings.findOne(query);
     if (!settings) {
-      return res.status(400).json({ success: false, message: 'Settings not configured' });
+      return res.status(400).json({ success: false, message: 'Store settings not configured. Please visit Settings first.' });
     }
 
     // Validate shipping method & calculate fee
@@ -141,7 +147,7 @@ exports.checkout = async (req, res, next) => {
     if (settings.shippingEnabled) {
       let method = null;
       if (settings.shippingMethods && settings.shippingMethods.length > 0) {
-        method = settings.shippingMethods.find(m => m.id === shippingMethodId && m.enabled) 
+        method = settings.shippingMethods.find(m => m.id === shippingMethodId && m.enabled)
               || settings.shippingMethods.find(m => m.enabled);
       }
       if (method) {
@@ -153,7 +159,7 @@ exports.checkout = async (req, res, next) => {
     }
 
     // Validate payment method
-    let selectedPayment = settings.paymentMethods?.find(m => m.id === paymentMethod && m.enabled);
+    const selectedPayment = settings.paymentMethods?.find(m => m.id === paymentMethod && m.enabled);
     if (!selectedPayment) {
       return res.status(400).json({ success: false, message: 'Invalid or disabled payment method' });
     }
@@ -162,10 +168,10 @@ exports.checkout = async (req, res, next) => {
     const validatedItems = [];
     const stockUpdates = [];
 
-    // 1. Fetch all products and validate stock/price
+    // 1. Fetch all products and validate stock/price server-side
     for (const item of cart) {
       if (!item.quantity || !Number.isInteger(item.quantity) || item.quantity <= 0) {
-         return res.status(400).json({ success: false, message: `Invalid quantity for product ${item.name}` });
+        return res.status(400).json({ success: false, message: `Invalid quantity for product ${item.name}` });
       }
 
       const product = await EcommerceProduct.findOne({ ...query, _id: item.id, status: 'Active' });
@@ -173,7 +179,7 @@ exports.checkout = async (req, res, next) => {
         return res.status(400).json({ success: false, message: `Product not found or inactive: ${item.name}` });
       }
       if (product.stock < item.quantity) {
-        return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
+        return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}. Available: ${product.stock}` });
       }
 
       const priceToUse = product.salePrice ? product.salePrice : product.price;
@@ -197,26 +203,32 @@ exports.checkout = async (req, res, next) => {
 
     const finalTotal = subtotal + shippingFee;
 
-    // 2. Perform atomic stock deduction
+    // 2. Perform atomic stock deduction with database-side stock check
     const bulkWriteResult = await EcommerceProduct.bulkWrite(stockUpdates);
     if (bulkWriteResult.modifiedCount !== stockUpdates.length) {
-       return res.status(400).json({ success: false, message: 'Checkout failed due to insufficient stock.' });
+      return res.status(400).json({ success: false, message: 'Checkout failed: one or more items ran out of stock during checkout.' });
     }
 
-    // 3. Customer deduplication using safe atomic upsert
+    // 3. Customer deduplication — upsert by storeId + email
     const normalizedEmail = customerDetails.email.toLowerCase().trim();
     const customer = await EcommerceCustomer.findOneAndUpdate(
-      { ...query, email: normalizedEmail },
-      { 
+      { storeId: query.storeId, email: normalizedEmail },
+      {
         $inc: { ordersCount: 1, totalSpent: finalTotal },
-        $set: { name: customerDetails.name, address: customerDetails.address }
+        $set: {
+          name: customerDetails.name,
+          address: customerDetails.address,
+          workspaceId: query.workspaceId,
+          websiteId: query.websiteId,
+          storeId: query.storeId
+        }
       },
       { new: true, upsert: true }
     );
 
     // 4. Create Order
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    
+
     const order = new EcommerceOrder({
       ...query,
       orderNumber,
@@ -233,7 +245,7 @@ exports.checkout = async (req, res, next) => {
     });
     await order.save();
 
-    // 5. Create Payment & Shipping (Only if order saves successfully)
+    // 5. Create Payment & Shipping (non-fatal if fails — order already committed)
     try {
       const payment = new EcommercePayment({
         ...query,
@@ -250,7 +262,7 @@ exports.checkout = async (req, res, next) => {
           ...query,
           orderId: order._id,
           customerName: customer.name,
-          address: customerDetails.address,
+          address: customerDetails.address || 'N/A',
           methodName: shippingMethodName,
           status: 'Pending',
           trackingId: `TRK${Date.now()}`
@@ -258,9 +270,7 @@ exports.checkout = async (req, res, next) => {
         await shipping.save();
       }
     } catch (postOrderErr) {
-      console.error('Error creating payment/shipping records:', postOrderErr);
-      // We do not fail the checkout if payment/shipping record creation fails because the order is already placed
-      // In a real transactional system, we would rollback.
+      console.error('Error creating payment/shipping records (order already saved):', postOrderErr);
     }
 
     res.json({ success: true, orderId: order._id, orderNumber });

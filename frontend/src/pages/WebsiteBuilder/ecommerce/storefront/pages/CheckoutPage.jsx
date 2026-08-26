@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StorefrontPage from './StorefrontPage';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
 import ShippingMethodSelector from '../components/ShippingMethodSelector';
@@ -8,13 +8,20 @@ import { formatCurrency } from '../../utils/currency';
 import { message } from 'antd';
 
 const CheckoutPage = () => {
-  const { template, currentPageId, cart, settings, workspaceId, websiteId, navigateTo, clearCart } = useStorefront();
+  const { template, currentPageId, cart, settings, workspaceId, websiteId, storeId, navigateTo, clearCart } = useStorefront();
   const page = template?.pages?.[currentPageId];
   
   const [paymentMethod, setPaymentMethod] = useState('');
   const [shippingMethodId, setShippingMethodId] = useState('');
   const [shippingFee, setShippingFee] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Store the latest state in refs so the submit handler always has the freshest data
+  // without needing to be re-attached on every render.
+  const stateRef = useRef({ cart, paymentMethod, shippingMethodId, isSubmitting, workspaceId, websiteId, storeId, template });
+  useEffect(() => {
+    stateRef.current = { cart, paymentMethod, shippingMethodId, isSubmitting, workspaceId, websiteId, storeId, template };
+  }, [cart, paymentMethod, shippingMethodId, isSubmitting, workspaceId, websiteId, storeId, template]);
 
   useEffect(() => {
     if (settings) {
@@ -41,6 +48,60 @@ const CheckoutPage = () => {
     }
   }, [settings, paymentMethod, shippingMethodId]);
 
+  useEffect(() => {
+    const handleNativeSubmit = async (e) => {
+      e.preventDefault();
+      const { cart: currentCart, paymentMethod: currentPayment, shippingMethodId: currentShipping, isSubmitting: currentSubmitting, workspaceId: wsId, websiteId: webId, storeId: stId, template: tpl } = stateRef.current;
+      
+      if (currentCart.length === 0) {
+        message.warning('Cart is empty');
+        return;
+      }
+      if (currentSubmitting) return;
+
+      setIsSubmitting(true);
+
+      const formData = new FormData(e.target);
+      const customerDetails = {
+        name: formData.get('name') || formData.get('first_name') || 'Demo User',
+        email: formData.get('email') || formData.get('billing_email') || 'demo@example.com',
+        address: formData.get('address') || formData.get('billing_address_1') || '123 Test St'
+      };
+
+      const result = await processCheckout(wsId, webId, stId, customerDetails, currentCart, currentPayment, currentShipping);
+      
+      if (result.success) {
+        if (result.duplicate) {
+          message.info(`Order ${result.orderNumber} is already being processed.`);
+        } else {
+          message.success(`Order ${result.orderNumber} placed successfully!`);
+        }
+        clearCart();
+        setIsSubmitting(false);
+        
+        const successPage = Object.values(tpl.pages).find(p => p.role === 'Success' || p.fileName.includes('success'));
+        if (successPage) {
+          navigateTo(successPage.id);
+        } else {
+          navigateTo(Object.keys(tpl.pages)[0]); 
+        }
+      } else {
+        message.error(result.message);
+        setIsSubmitting(false);
+      }
+    };
+
+    const form = document.getElementById('storefront-checkout-form');
+    if (form) {
+      // Remove any existing listeners first to be absolutely safe
+      form.removeEventListener('submit', handleNativeSubmit);
+      form.addEventListener('submit', handleNativeSubmit);
+    }
+    return () => {
+      if (form) form.removeEventListener('submit', handleNativeSubmit);
+    };
+  }, []); // Run only once on mount, relies on refs for state
+
   if (!page) return null;
 
   const modifiedPage = { ...page };
@@ -50,13 +111,12 @@ const CheckoutPage = () => {
   if (page.mapping && page.mapping.checkoutForm) {
     const formEl = doc.querySelector(page.mapping.checkoutForm);
     if (formEl) {
-      // Find where we can mount our React components
-      // We will create a div inside the form for React to portal into
-      const reactMount = doc.createElement('div');
-      reactMount.id = 'storefront-react-checkout';
-      formEl.appendChild(reactMount);
-      
-      // Prevent default form submission and hook up to our process
+      let reactMount = formEl.querySelector('#storefront-react-checkout');
+      if (!reactMount) {
+        reactMount = doc.createElement('div');
+        reactMount.id = 'storefront-react-checkout';
+        formEl.appendChild(reactMount);
+      }
       formEl.id = 'storefront-checkout-form';
       formEl.removeAttribute('action');
       formEl.removeAttribute('method');
@@ -67,52 +127,6 @@ const CheckoutPage = () => {
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const finalTotal = cartTotal + Number(shippingFee);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (cart.length === 0) {
-      message.warning('Cart is empty');
-      return;
-    }
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-
-    const formData = new FormData(e.target);
-    const customerDetails = {
-      name: formData.get('name') || formData.get('first_name') || 'Demo User',
-      email: formData.get('email') || formData.get('billing_email') || 'demo@example.com',
-      address: formData.get('address') || formData.get('billing_address_1') || '123 Test St'
-    };
-
-    const result = await processCheckout(workspaceId, websiteId, customerDetails, cart, paymentMethod, shippingMethodId);
-    
-    if (result.success) {
-      message.success(`Order ${result.orderId} placed successfully!`);
-      clearCart();
-      setIsSubmitting(false);
-      
-      const successPage = Object.values(template.pages).find(p => p.role === 'Success' || p.fileName.includes('success'));
-      if (successPage) {
-        navigateTo(successPage.id);
-      } else {
-        navigateTo(Object.keys(template.pages)[0]); 
-      }
-    } else {
-      message.error(result.message);
-      setIsSubmitting(false);
-    }
-  };
-
-  useEffect(() => {
-    const form = document.getElementById('storefront-checkout-form');
-    if (form) {
-      form.addEventListener('submit', handleSubmit);
-    }
-    return () => {
-      if (form) form.removeEventListener('submit', handleSubmit);
-    };
-  }, [cart, paymentMethod, shippingMethodId, workspaceId, websiteId, isSubmitting]);
 
   return (
     <StorefrontPage page={modifiedPage} assets={template.assets}>
@@ -127,6 +141,7 @@ const CheckoutPage = () => {
         finalTotal={finalTotal}
         workspaceId={workspaceId}
         websiteId={websiteId}
+        storeId={storeId}
       />
     </StorefrontPage>
   );
@@ -159,15 +174,15 @@ const CheckoutPortal = (props) => {
       <div style={{ marginTop: 24, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <span>Subtotal</span>
-          <span>{formatCurrency(props.cartTotal, props.workspaceId, props.websiteId)}</span>
+          <span>{formatCurrency(props.cartTotal, props.workspaceId, props.websiteId, props.storeId)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #e5e7eb' }}>
           <span>Shipping</span>
-          <span>{formatCurrency(props.shippingFee, props.workspaceId, props.websiteId)}</span>
+          <span>{formatCurrency(props.shippingFee, props.workspaceId, props.websiteId, props.storeId)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem' }}>
           <span>Total</span>
-          <span>{formatCurrency(props.finalTotal, props.workspaceId, props.websiteId)}</span>
+          <span>{formatCurrency(props.finalTotal, props.workspaceId, props.websiteId, props.storeId)}</span>
         </div>
       </div>
     </div>,

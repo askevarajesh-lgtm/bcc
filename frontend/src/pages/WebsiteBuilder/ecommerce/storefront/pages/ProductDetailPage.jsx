@@ -1,26 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import StorefrontPage from './StorefrontPage';
 import { useStorefront } from '../StorefrontContext';
 import { formatCurrency } from '../../utils/currency';
 
 const ProductDetailPage = () => {
-  const { template, currentPageId, selectedProductId, products, addToCart, workspaceId, websiteId } = useStorefront();
+  const { template, currentPageId, selectedProductId, products, addToCart, workspaceId, websiteId, storeId } = useStorefront();
   const page = template?.pages?.[currentPageId];
   const [qty, setQty] = useState(1);
   
   if (!page || !selectedProductId) return null;
   
   const product = products.find(p => p.id === selectedProductId);
-  if (!product) return null;
+  if (!product) return (
+    <div style={{ padding: 40, textAlign: 'center' }}>Product not found.</div>
+  );
 
-  // For product detail, instead of Portaling the whole thing, we'll intercept the HTML
-  // and manually inject the data, then render it. This is closer to the original approach
-  // but done in a controlled React way without dangerouslySetInnerHTML for the active parts.
-  
-  // Wait, StorefrontPage takes children for portal, but here we can just do a custom HTML replacement 
-  // before rendering the StorefrontPage, or use a portal for the "Add to cart" button.
-  // Given the complexity of different templates, we can create a wrapper that listens for clicks.
-  
   const modifiedPage = { ...page };
   
   // Create a copy of the HTML with the product data injected
@@ -31,7 +25,14 @@ const ProductDetailPage = () => {
     const { productImage, productName, productPrice, addBtn } = page.mapping;
     if (productImage) {
       const imgEls = doc.querySelectorAll(productImage);
-      imgEls.forEach(img => img.src = product.image || '');
+      imgEls.forEach(img => {
+        if (img.tagName === 'IMG') {
+          img.src = product.image || '';
+          img.alt = product.name;
+        } else {
+          img.style.backgroundImage = `url(${product.image || ''})`;
+        }
+      });
     }
     if (productName) {
       const nameEls = doc.querySelectorAll(productName);
@@ -39,7 +40,8 @@ const ProductDetailPage = () => {
     }
     if (productPrice) {
       const priceEls = doc.querySelectorAll(productPrice);
-      priceEls.forEach(el => el.textContent = formatCurrency(product.price, workspaceId, websiteId));
+      const displayPrice = product.salePrice ? product.salePrice : product.price;
+      priceEls.forEach(el => el.textContent = formatCurrency(displayPrice, workspaceId, websiteId, storeId));
     }
     const descEl = doc.querySelector('.product-description, #description, [class*="desc"]');
     if (descEl && product.description) {
@@ -68,7 +70,9 @@ const ProductDetailPage = () => {
           background: product.stock === 0 ? '#ccc' : 'inherit',
           color: 'inherit',
           font: 'inherit',
-          cursor: product.stock === 0 ? 'not-allowed' : 'pointer'
+          cursor: product.stock === 0 ? 'not-allowed' : 'pointer',
+          padding: '10px 20px',
+          fontWeight: 'bold'
         }}
       >
         {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}

@@ -5,7 +5,7 @@ import { useStorefront } from '../StorefrontContext';
 import { formatCurrency } from '../../utils/currency';
 
 const CartPage = () => {
-  const { template, currentPageId, cart, workspaceId, websiteId } = useStorefront();
+  const { template, currentPageId, cart, workspaceId, websiteId, storeId } = useStorefront();
   const page = template?.pages?.[currentPageId];
   
   if (!page) return null;
@@ -51,7 +51,7 @@ const CartPage = () => {
           but here we'll use a hack to render the total if we need it. 
           Actually, since StorefrontPage renders children, we can use React Portals directly inside the children. */}
       <CartListPortal cart={cart} itemTemplateHtml={itemTemplateHtml} />
-      <CartTotalPortal total={total} workspaceId={workspaceId} websiteId={websiteId} />
+      <CartTotalPortal total={total} workspaceId={workspaceId} websiteId={websiteId} storeId={storeId} />
     </StorefrontPage>
   );
 };
@@ -76,7 +76,7 @@ const CartListPortal = ({ cart, itemTemplateHtml }) => {
   );
 };
 
-const CartTotalPortal = ({ total, workspaceId, websiteId }) => {
+const CartTotalPortal = ({ total, workspaceId, websiteId, storeId }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   
@@ -85,7 +85,7 @@ const CartTotalPortal = ({ total, workspaceId, websiteId }) => {
   if (!target) return null;
 
   return require('react-dom').createPortal(
-    <>{formatCurrency(total, workspaceId, websiteId)}</>,
+    <>{formatCurrency(total, workspaceId, websiteId, storeId)}</>,
     target
   );
 };

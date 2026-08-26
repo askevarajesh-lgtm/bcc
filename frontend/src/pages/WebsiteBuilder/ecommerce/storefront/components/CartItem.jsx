@@ -1,46 +1,116 @@
-import React from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { useStorefront } from '../StorefrontContext';
 import { formatCurrency } from '../../utils/currency';
 
 const CartItem = ({ item, templateHtml }) => {
-  const { updateQty, removeFromCart, workspaceId, websiteId } = useStorefront();
+  const { updateQty, removeFromCart, workspaceId, websiteId, storeId } = useStorefront();
+  const containerRef = useRef(null);
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(templateHtml, 'text/html');
-  const trEl = doc.body.firstElementChild;
-  if (!trEl) return null;
+  // Parse template and inject cart item data into the original DOM structure
+  const processedHtml = useMemo(() => {
+    if (!templateHtml) return '';
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(templateHtml, 'text/html');
+    const itemEl = doc.body.firstElementChild;
+    if (!itemEl) return '';
 
-  // We'll replace the contents but keep the tag structure (like <tr>)
-  const Tag = trEl.tagName.toLowerCase();
-  const className = trEl.className;
+    // The cart item template likely has elements we can guess by content or class.
+    // For a generic approach without explicit mappings, we look for common classes or tags.
+    // E-commerce templates often use .product-thumbnail, .product-name, .product-price, .product-quantity, .product-remove
+    
+    const imgEls = itemEl.querySelectorAll('img, [class*="thumb"], [class*="img"]');
+    imgEls.forEach(img => {
+      if (img.tagName === 'IMG') {
+        img.src = item.image || '';
+        img.alt = item.name;
+      }
+    });
+
+    // Name
+    const nameEls = itemEl.querySelectorAll('[class*="name"], [class*="title"], h1, h2, h3, h4, h5, a');
+    if (nameEls.length > 0) {
+      nameEls[0].textContent = item.name;
+    } else {
+      // fallback: just find the first text node that isn't a price/qty
+      const tds = itemEl.querySelectorAll('td');
+      if (tds.length >= 2) tds[1].textContent = item.name;
+    }
+
+    // Price
+    const priceEls = itemEl.querySelectorAll('[class*="price"]');
+    if (priceEls.length > 0) {
+      priceEls[0].textContent = formatCurrency(item.price, workspaceId, websiteId, storeId);
+      if (priceEls.length > 1) { // Maybe subtotal is the second one
+        priceEls[1].textContent = formatCurrency(item.price * item.quantity, workspaceId, websiteId, storeId);
+      }
+    }
+
+    // Quantity Input
+    const inputEls = itemEl.querySelectorAll('input[type="number"], input[name="quantity"], [class*="qty"] input');
+    inputEls.forEach(input => {
+      if (input.tagName === 'INPUT') {
+        input.value = item.quantity;
+        input.max = item.stock;
+        input.min = 1;
+        input.setAttribute('data-cart-action', 'update-qty');
+      }
+    });
+
+    // Remove Button
+    const removeEls = itemEl.querySelectorAll('[class*="remove"], [class*="delete"], .btn-remove');
+    removeEls.forEach(btn => {
+      btn.setAttribute('data-cart-action', 'remove');
+    });
+
+    return itemEl.outerHTML;
+  }, [templateHtml, item, workspaceId, websiteId, storeId]);
+
+  // Bind native event listeners to the injected HTML
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e) => {
+      const removeBtn = e.target.closest('[data-cart-action="remove"]');
+      if (removeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        removeFromCart(item.id);
+      }
+    };
+
+    const handleChange = (e) => {
+      const input = e.target.closest('[data-cart-action="update-qty"]');
+      if (input) {
+        const val = parseInt(input.value, 10);
+        if (val > 0) {
+          updateQty(item.id, val);
+        }
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+    container.addEventListener('change', handleChange); // input event better for number inputs
+    container.addEventListener('input', handleChange);
+
+    return () => {
+      container.removeEventListener('click', handleClick);
+      container.removeEventListener('change', handleChange);
+      container.removeEventListener('input', handleChange);
+    };
+  }, [item, removeFromCart, updateQty]);
+
+  if (!processedHtml) return null;
 
   return (
-    <Tag className={className} style={{ borderBottom: '1px solid #eee' }}>
-      <td style={{ padding: 12 }}>
-        <img src={item.image} alt={item.name} style={{ width: 50, height: 50, objectFit: 'cover' }} />
-      </td>
-      <td style={{ padding: 12 }}>{item.name}</td>
-      <td style={{ padding: 12 }}>{formatCurrency(item.price, workspaceId, websiteId)}</td>
-      <td style={{ padding: 12 }}>
-        <input 
-          type="number" 
-          value={item.quantity} 
-          min="1" 
-          max={item.stock}
-          onChange={(e) => updateQty(item.id, parseInt(e.target.value, 10))}
-          style={{ width: 60, padding: 4 }}
-        />
-      </td>
-      <td style={{ padding: 12 }}>{formatCurrency(item.price * item.quantity, workspaceId, websiteId)}</td>
-      <td style={{ padding: 12 }}>
-        <button 
-          onClick={() => removeFromCart(item.id)}
-          style={{ background: '#ff4d4f', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer' }}
-        >
-          X
-        </button>
-      </td>
-    </Tag>
+    <React.Fragment>
+      <div 
+        ref={containerRef}
+        style={{ display: 'contents' }} 
+        dangerouslySetInnerHTML={{ __html: processedHtml }} 
+      />
+    </React.Fragment>
   );
 };
 

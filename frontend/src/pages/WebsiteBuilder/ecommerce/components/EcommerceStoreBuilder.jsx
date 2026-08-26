@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Card, Button, Typography, Steps, Form, Input, Upload, message, List, Tag } from 'antd';
-import { UploadCloud, CheckCircle, Code, FileCode } from 'lucide-react';
+import {
+  Card, Button, Typography, Steps, Form, Input,
+  Upload, message, List, Tag, Modal
+} from 'antd';
+import { UploadCloud, CheckCircle, Code, FileCode, Store } from 'lucide-react';
 import { getTemplates, saveTemplate } from '../utils/storage';
 import { processZipFile } from '../utils/zipExtractor';
 import { analyzePageElements } from '../utils/analyzer';
@@ -19,7 +22,12 @@ const EcommerceStoreBuilder = () => {
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [assets, setAssets] = useState({});
 
-  const { workspaceId, websiteId } = useEcommerce();
+  // Save Store modal state
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { workspaceId, websiteId, reloadTemplates, changeTemplate } = useEcommerce();
 
   React.useEffect(() => {
     if (routeTemplateId && workspaceId && websiteId) {
@@ -28,7 +36,7 @@ const EcommerceStoreBuilder = () => {
           setTemplateId(routeTemplateId);
           setPages(templates[routeTemplateId].pages || {});
           setAssets(templates[routeTemplateId].assets || {});
-          
+
           if (routePageId && templates[routeTemplateId].pages?.[routePageId]) {
             setSelectedPageId(routePageId);
             setCurrentStep(3);
@@ -42,6 +50,7 @@ const EcommerceStoreBuilder = () => {
 
   const handleFileUpload = async (file) => {
     try {
+      message.loading({ content: 'Extracting ZIP...', key: 'zip' });
       const { pages: extractedPages, assets: extractedAssets } = await processZipFile(file);
       setAssets(extractedAssets);
 
@@ -49,32 +58,20 @@ const EcommerceStoreBuilder = () => {
       Object.keys(extractedPages).forEach(pageId => {
         analyzedPages[pageId] = {
           ...extractedPages[pageId],
-          html: extractedPages[pageId].html,
-          css: extractedPages[pageId].css,
           mapping: analyzePageElements(extractedPages[pageId].html)
         };
       });
 
       setPages(analyzedPages);
-
+      // Generate a stable templateId immediately on upload (but do NOT save yet)
       const newTemplateId = `tpl_${Date.now()}`;
       setTemplateId(newTemplateId);
 
-      await saveTemplate(workspaceId, websiteId, newTemplateId, {
-        id: newTemplateId,
-        name: file.name,
-        websiteId,
-        pages: analyzedPages,
-        assets: extractedAssets,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-
-      message.success('ZIP imported successfully!');
+      message.success({ content: `Extracted ${Object.keys(analyzedPages).length} pages. Review them and click "Save Store" when ready.`, key: 'zip', duration: 4 });
       setCurrentStep(1);
     } catch (err) {
       console.error(err);
-      message.error('Failed to parse ZIP file.');
+      message.error({ content: 'Failed to parse ZIP file. Make sure it contains HTML files.', key: 'zip' });
     }
     return false;
   };
@@ -82,13 +79,12 @@ const EcommerceStoreBuilder = () => {
   const selectPage = (pageId) => {
     setSelectedPageId(pageId);
 
-    // Auto analyze the selected page's HTML
     const pageHtml = pages[pageId].html;
     const detectedMappings = analyzePageElements(pageHtml);
 
-    // Merge detected mappings with any existing mappings
     const updatedPages = { ...pages };
-    updatedPages[pageId].mapping = { ...detectedMappings, ...updatedPages[pageId].mapping };
+    // Merge: preserve any user-set mappings, auto-fill the rest
+    updatedPages[pageId].mapping = { ...detectedMappings, ...(updatedPages[pageId].mapping || {}) };
     setPages(updatedPages);
 
     setCurrentStep(2);
@@ -98,9 +94,64 @@ const EcommerceStoreBuilder = () => {
     const updatedPages = { ...pages };
     updatedPages[selectedPageId].mapping = values;
     setPages(updatedPages);
+    message.success('Mappings confirmed!');
+    setCurrentStep(1); // Return to page list (not proceed to GrapesJS yet)
+  };
 
-    message.success('Mappings confirmed for this page!');
-    setCurrentStep(3);
+  // --- Save Store ---
+  const openSaveModal = () => {
+    if (Object.keys(pages).length === 0) {
+      message.warning('No pages detected. Please upload a valid ZIP first.');
+      return;
+    }
+    setStoreName('');
+    setIsSaveModalOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    const trimmedName = storeName.trim();
+    if (!trimmedName) {
+      message.error('Store name is required.');
+      return;
+    }
+    if (trimmedName.length > 100) {
+      message.error('Store name is too long (max 100 characters).');
+      return;
+    }
+    if (!workspaceId || !websiteId) {
+      message.error('No workspace/website found. Please ensure you have at least one website in your account.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const templateData = {
+        id: templateId,
+        name: trimmedName,
+        pages,
+        assets,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await saveTemplate(workspaceId, websiteId, templateId, templateData);
+
+      // Notify context to refresh template list
+      window.dispatchEvent(new CustomEvent('ecommerce_templates_updated'));
+      if (reloadTemplates) await reloadTemplates();
+      if (changeTemplate) changeTemplate(templateId);
+
+      message.success(`Store "${trimmedName}" saved successfully!`);
+      setIsSaveModalOpen(false);
+
+      // Navigate to Store Library
+      navigate('../templates');
+    } catch (err) {
+      console.error('Failed to save store', err);
+      message.error('Failed to save store. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderUpload = () => (
@@ -108,32 +159,47 @@ const EcommerceStoreBuilder = () => {
       <UploadCloud size={48} color="var(--accent-primary)" style={{ marginBottom: 16 }} />
       <Title level={4}>Upload Template ZIP</Title>
       <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-        Upload a complete e-commerce HTML template ZIP file containing index.html, cart.html, css, js, etc.
+        Upload a complete e-commerce HTML template ZIP containing index.html, cart.html, product.html, css/, js/, images/, etc.
       </Text>
       <Upload beforeUpload={handleFileUpload} accept=".zip" showUploadList={false}>
-        <Button type="primary" size="large">Select ZIP File</Button>
+        <Button type="primary" size="large" icon={<UploadCloud size={16} />}>Select ZIP File</Button>
       </Upload>
     </Card>
   );
 
   const renderPageList = () => (
-    <Card style={{ maxWidth: 800, margin: '0 auto', marginTop: 40 }}>
-      <Title level={4} style={{ marginBottom: 24 }}>Detected Pages</Title>
-      <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-        Select a page to configure its e-commerce mappings and edit its layout.
-      </Text>
+    <Card style={{ maxWidth: 900, margin: '0 auto', marginTop: 40 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>Detected Pages</Title>
+          <Text type="secondary">{Object.keys(pages).length} pages found. You may edit each page's mappings or go straight to Save.</Text>
+        </div>
+        <Button
+          type="primary"
+          size="large"
+          icon={<Store size={16} />}
+          onClick={openSaveModal}
+          disabled={Object.keys(pages).length === 0}
+        >
+          Save Store
+        </Button>
+      </div>
       <List
         dataSource={Object.values(pages)}
         renderItem={page => (
           <List.Item
-            actions={[<Button type="primary" onClick={() => selectPage(page.id)}>Edit & Map</Button>]}
+            actions={[
+              <Button onClick={() => selectPage(page.id)}>Configure Mappings</Button>
+            ]}
           >
             <List.Item.Meta
               avatar={<FileCode size={24} color="var(--accent-secondary)" />}
-              title={page.name}
-              description={page.id}
+              title={page.name || page.id}
+              description={page.fileName || page.id}
             />
-            <Tag color="blue">{page.role}</Tag>
+            <Tag color={page.role === 'Product Listing' ? 'blue' : page.role === 'Checkout' ? 'green' : page.role === 'Cart' ? 'orange' : 'default'}>
+              {page.role || 'General'}
+            </Tag>
           </List.Item>
         )}
       />
@@ -145,39 +211,42 @@ const EcommerceStoreBuilder = () => {
     if (!page) return null;
 
     const mappingKeys = [
-      { key: 'header', label: 'Header Section' },
-      { key: 'footer', label: 'Footer Section' },
       { key: 'productGrid', label: 'Product Grid Container' },
-      { key: 'productCard', label: 'Product Card' },
+      { key: 'productCard', label: 'Product Card Element' },
       { key: 'productImage', label: 'Product Image' },
       { key: 'productName', label: 'Product Name' },
       { key: 'productPrice', label: 'Product Price' },
+      { key: 'salePrice', label: 'Sale Price (optional)' },
       { key: 'addBtn', label: 'Add to Cart Button' },
+      { key: 'cartContainer', label: 'Cart Container' },
+      { key: 'cartItem', label: 'Cart Item Row' },
+      { key: 'cartTotal', label: 'Cart Total Element' },
+      { key: 'checkoutForm', label: 'Checkout Form' },
     ];
 
     return (
       <Card style={{ maxWidth: 800, margin: '0 auto', marginTop: 40 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <Title level={4} style={{ margin: 0 }}>Map Elements: {page.name}</Title>
-          <Button onClick={() => setCurrentStep(1)}>Back to Pages</Button>
+          <Title level={4} style={{ margin: 0 }}>Configure Mappings: {page.name || page.id}</Title>
+          <Button onClick={() => setCurrentStep(1)}>← Back to Pages</Button>
         </div>
         <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-          We detected the following elements in <b>{page.id}</b>. Adjust the CSS selectors if incorrect.
+          Adjust the CSS selectors to match your template's structure. Auto-detected values are pre-filled.
         </Text>
         <Form
           layout="horizontal"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
+          labelCol={{ span: 9 }}
+          wrapperCol={{ span: 15 }}
           initialValues={page.mapping}
           onFinish={handleMappingConfirm}
         >
           {mappingKeys.map(item => (
             <Form.Item key={item.key} name={item.key} label={item.label}>
-              <Input placeholder="CSS Selector (e.g., .product-card)" />
+              <Input placeholder="CSS Selector (e.g. .product-card)" />
             </Form.Item>
           ))}
-          <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-            <Button type="primary" htmlType="submit">Confirm Mappings & Build</Button>
+          <Form.Item wrapperCol={{ offset: 9, span: 15 }}>
+            <Button type="primary" htmlType="submit">Save Mappings</Button>
           </Form.Item>
         </Form>
       </Card>
@@ -201,17 +270,26 @@ const EcommerceStoreBuilder = () => {
             setCurrentStep(1);
           }
         }}
-        onSave={async (html, css, templateName) => {
+        onSave={async (html, css) => {
+          // Only update the edited page — never overwrite other pages
           const updatedPages = { ...pages };
-          updatedPages[selectedPageId].html = html;
-          updatedPages[selectedPageId].css = css;
+          updatedPages[selectedPageId] = {
+            ...updatedPages[selectedPageId],
+            html,
+            css,
+            updatedAt: new Date().toISOString()
+          };
           setPages(updatedPages);
 
-          const templates = await getTemplates(workspaceId, websiteId);
-          if (templates[templateId]) {
-            templates[templateId].pages = updatedPages;
-            if (templateName) templates[templateId].name = templateName;
-            await saveTemplate(workspaceId, websiteId, templateId, templates[templateId]);
+          // Persist only if the store is already saved
+          if (templateId) {
+            const templates = await getTemplates(workspaceId, websiteId);
+            if (templates[templateId]) {
+              templates[templateId].pages = updatedPages;
+              templates[templateId].updatedAt = new Date().toISOString();
+              await saveTemplate(workspaceId, websiteId, templateId, templates[templateId]);
+              window.dispatchEvent(new CustomEvent('ecommerce_templates_updated'));
+            }
           }
         }}
       />
@@ -234,6 +312,30 @@ const EcommerceStoreBuilder = () => {
       {currentStep === 0 && renderUpload()}
       {currentStep === 1 && renderPageList()}
       {currentStep === 2 && renderMapping()}
+
+      {/* Save Store Modal */}
+      <Modal
+        title="Save Store"
+        open={isSaveModalOpen}
+        onOk={handleConfirmSave}
+        onCancel={() => setIsSaveModalOpen(false)}
+        okText="Save Store"
+        confirmLoading={isSaving}
+        okButtonProps={{ disabled: !storeName.trim() }}
+      >
+        <div style={{ marginBottom: 8 }}>
+          <Text>Give your new store a name. This will appear in the Store Library and Active Store dropdown.</Text>
+        </div>
+        <Input
+          value={storeName}
+          onChange={e => setStoreName(e.target.value)}
+          placeholder="e.g. Fashion Boutique, Tech Store..."
+          maxLength={100}
+          showCount
+          onPressEnter={handleConfirmSave}
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getTemplates, getProducts, getSettings, getCart, saveCart } from '../utils/storage';
+import { getTemplates, getProducts, getSettings, getCart, saveCart, clearCartStorage } from '../utils/storage';
 import { useEcommerce } from '../contexts/EcommerceContext';
 
 const StorefrontContext = createContext();
@@ -23,11 +23,11 @@ export const StorefrontProvider = ({ children, templateId }) => {
   }, [currentPageId, selectedProductId, workspaceId, websiteId, templateId]);
 
   useEffect(() => {
-    if (!workspaceId || !websiteId) return;
+    if (!workspaceId || !websiteId || !templateId) return;
 
     const loadStore = async () => {
       const templates = await getTemplates(workspaceId, websiteId);
-      const activeTemplate = templates[templateId] || Object.values(templates)[0];
+      const activeTemplate = templates[templateId];
 
       if (activeTemplate && activeTemplate.pages && !sessionStorage.getItem(`storefront_page_${workspaceId}_${websiteId}_${templateId}`)) {
         setTemplate(activeTemplate);
@@ -38,13 +38,16 @@ export const StorefrontProvider = ({ children, templateId }) => {
         setTemplate(activeTemplate);
       }
 
-      const storeProducts = await getProducts(workspaceId, websiteId);
+      // Load products for this specific store
+      const storeProducts = await getProducts(workspaceId, websiteId, templateId);
       setProducts(storeProducts.filter(p => p.status === 'Active'));
 
-      const storeSettings = await getSettings(workspaceId, websiteId);
+      // Load settings for this specific store
+      const storeSettings = await getSettings(workspaceId, websiteId, templateId);
       setSettings(storeSettings);
 
-      const savedCart = getCart(workspaceId, websiteId);
+      // Load cart for this specific store
+      const savedCart = getCart(workspaceId, websiteId, templateId);
       setCart(savedCart || []);
     };
 
@@ -54,49 +57,66 @@ export const StorefrontProvider = ({ children, templateId }) => {
   const addToCart = (product, quantity = 1) => {
     setCart(prev => {
       let newCart;
-      const pid = product._id || product.id;
-      const existing = prev.find(item => (item._id || item.id) === pid);
+      const pid = product.id || product._id;
+      const existing = prev.find(item => item.id === pid);
       if (existing) {
         if (existing.quantity + quantity > product.stock) {
-          return prev; // Not enough stock (should be handled by caller visually)
+          return prev; // Not enough stock (caller UI should warn)
         }
-        newCart = prev.map(item => (item._id || item.id) === pid ? { ...item, quantity: item.quantity + quantity } : item);
+        newCart = prev.map(item => item.id === pid ? { ...item, quantity: item.quantity + quantity } : item);
       } else {
         if (product.stock < quantity) return prev;
-        newCart = [...prev, { ...product, id: pid, _id: pid, quantity }];
+        newCart = [...prev, { ...product, id: pid, quantity }];
       }
-      saveCart(workspaceId, websiteId, newCart);
+      saveCart(workspaceId, websiteId, templateId, newCart);
       return newCart;
     });
   };
 
   const removeFromCart = (productId) => {
     setCart(prev => {
-      const newCart = prev.filter(item => (item._id || item.id) !== productId);
-      saveCart(workspaceId, websiteId, newCart);
+      const newCart = prev.filter(item => item.id !== productId);
+      saveCart(workspaceId, websiteId, templateId, newCart);
       return newCart;
     });
   };
 
   const updateQty = (productId, quantity) => {
     setCart(prev => {
-      const newCart = prev.map(item => (item._id || item.id) === productId ? { ...item, quantity } : item);
-      saveCart(workspaceId, websiteId, newCart);
+      const product = products.find(p => p.id === productId);
+      if (!product || quantity > product.stock) {
+        return prev; // Prevent exceeding stock
+      }
+      const newCart = prev.map(item => item.id === productId ? { ...item, quantity } : item);
+      saveCart(workspaceId, websiteId, templateId, newCart);
       return newCart;
     });
   };
 
   const clearCart = () => {
     setCart([]);
-    saveCart(workspaceId, websiteId, []);
+    clearCartStorage(workspaceId, websiteId, templateId);
   };
 
   const navigateTo = (pageId, productId = null) => {
-    if (template?.pages?.[pageId]) {
-      setCurrentPageId(pageId);
+    let targetPageId = pageId;
+
+    if (!pageId && productId && template?.pages) {
+      // Find the product detail page if pageId is null
+      const detailPageKey = Object.keys(template.pages).find(k => template.pages[k].role === 'Product Detail');
+      if (detailPageKey) {
+        targetPageId = detailPageKey;
+      }
     }
+
+    if (template?.pages?.[targetPageId]) {
+      setCurrentPageId(targetPageId);
+    }
+    
     if (productId) {
       setSelectedProductId(productId);
+    } else {
+      setSelectedProductId(null);
     }
   };
 
@@ -115,7 +135,8 @@ export const StorefrontProvider = ({ children, templateId }) => {
       selectedProductId,
       setSelectedProductId,
       workspaceId,
-      websiteId
+      websiteId,
+      storeId: templateId
     }}>
       {children}
     </StorefrontContext.Provider>

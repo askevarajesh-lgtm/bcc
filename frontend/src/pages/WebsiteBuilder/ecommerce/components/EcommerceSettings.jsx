@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, InputNumber, Button, Switch, Card, Typography, message, Select, Row, Col } from 'antd';
-import { Save } from 'lucide-react';
+import { Card, Button, Typography, Form, Input, Switch, Select, Space, Divider, message, Alert, InputNumber } from 'antd';
+import { Settings, Save } from 'lucide-react';
 import { getSettings, saveSettings } from '../utils/storage';
 import { useEcommerce } from '../contexts/EcommerceContext';
 
@@ -9,192 +9,96 @@ const { Option } = Select;
 
 const EcommerceSettings = () => {
   const [form] = Form.useForm();
-  const { workspaceId, websiteId } = useEcommerce();
   const [loading, setLoading] = useState(false);
+  const { workspaceId, websiteId, activeStoreId } = useEcommerce();
 
-  const loadData = () => {
-    if (workspaceId && websiteId) {
-      const currentSettings = getSettings(workspaceId, websiteId);
-      form.setFieldsValue(currentSettings);
+  const loadData = async () => {
+    if (workspaceId && websiteId && activeStoreId) {
+      const data = await getSettings(workspaceId, websiteId, activeStoreId);
+      form.setFieldsValue(data);
     }
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      if (workspaceId && websiteId) {
-        const data = await getSettings(workspaceId, websiteId);
-        form.setFieldsValue(data);
-      }
-    };
     loadData();
-    const handleSync = (e) => {
-      if (e.detail?.entity === 'settings') loadData();
-    };
+    const handleSync = (e) => { if (!e.detail?.entity || e.detail?.entity === 'settings') loadData(); };
+    const handleStoreChange = () => loadData();
     window.addEventListener('ecommerce_data_updated', handleSync);
-    return () => window.removeEventListener('ecommerce_data_updated', handleSync);
-  }, [workspaceId, websiteId, form]);
+    window.addEventListener('ecommerce_store_changed', handleStoreChange);
+    return () => {
+      window.removeEventListener('ecommerce_data_updated', handleSync);
+      window.removeEventListener('ecommerce_store_changed', handleStoreChange);
+    };
+  }, [workspaceId, websiteId, activeStoreId, form]);
 
   const onFinish = async (values) => {
-    setLoading(true);
-    await saveSettings(workspaceId, websiteId, values);
-    message.success('Settings saved successfully');
-    setLoading(false);
+    try {
+      setLoading(true);
+      await saveSettings(workspaceId, websiteId, activeStoreId, values);
+      message.success('Settings saved successfully');
+    } catch (e) {
+      message.error('Failed to save settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  if (!activeStoreId) {
+    return <div style={{ padding: 24 }}><Alert type="warning" message="No Active Store Selected" description="Select an Ecommerce store to edit settings." showIcon /></div>;
+  }
+
   return (
-    <div style={{ padding: '24px', maxWidth: 800 }}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Store Settings</Title>
-        <Text type="secondary">Configure global settings for your e-commerce store</Text>
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Settings size={24} color="var(--accent-primary)" /> Store Settings
+          </Title>
+          <Text type="secondary">Configure store preferences and payment/shipping methods</Text>
+        </div>
+        <Button type="primary" icon={<Save size={16} />} loading={loading} onClick={() => form.submit()}>
+          Save Settings
+        </Button>
       </div>
 
-      <Card>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ currency: 'INR', currencySymbol: '₹', shippingEnabled: true }}
-        >
-          <Title level={5}>General Information</Title>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="storeName" label="Store Name" rules={[{ required: true }]}>
-                <Input placeholder="My Awesome Store" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="storeDescription" label="Store Description">
-                <Input placeholder="A short description of your store" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Title level={5} style={{ marginTop: 24 }}>Currency</Title>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="currency" label="Currency Code" rules={[{ required: true }]}>
-                <Select>
-                  <Option value="INR">INR (₹)</Option>
-                  <Option value="USD">USD ($)</Option>
-                  <Option value="EUR">EUR (€)</Option>
-                  <Option value="GBP">GBP (£)</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="currencySymbol" label="Currency Symbol" rules={[{ required: true }]}>
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Title level={5} style={{ marginTop: 24 }}>Shipping</Title>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="shippingEnabled" label="Enable Shipping Fee" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="shippingFee" label="Flat Shipping Fee">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Title level={5} style={{ marginTop: 24 }}>Payment Methods</Title>
-          <Form.List name="paymentMethods">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ key, name, ...restField }) => (
-                  <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'name']}
-                      rules={[{ required: true, message: 'Missing method name' }]}
-                    >
-                      <Input placeholder="Method Name (e.g., COD)" />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'id']}
-                      rules={[{ required: true, message: 'Missing method ID' }]}
-                    >
-                      <Input placeholder="ID (e.g., cod)" />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'enabled']}
-                      valuePropName="checked"
-                    >
-                      <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
-                    </Form.Item>
-                  </Space>
-                ))}
-              </>
-            )}
-          </Form.List>
-
-          <Title level={5} style={{ marginTop: 24 }}>Shipping Methods</Title>
-          <Form.List name="shippingMethods">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ key, name, ...restField }) => (
-                  <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'name']}
-                      rules={[{ required: true, message: 'Missing name' }]}
-                    >
-                      <Input placeholder="Method Name" />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'price']}
-                      rules={[{ required: true, message: 'Missing price' }]}
-                    >
-                      <InputNumber placeholder="Price" min={0} />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'enabled']}
-                      valuePropName="checked"
-                    >
-                      <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
-                    </Form.Item>
-                    <Button type="text" danger onClick={() => remove(name)}>Remove</Button>
-                  </Space>
-                ))}
-                <Form.Item>
-                  <Button type="dashed" onClick={() => add({ enabled: true, price: 0 })} block>
-                    Add Shipping Method
-                  </Button>
-                </Form.Item>
-              </>
-            )}
-          </Form.List>
-
-          <Title level={5} style={{ marginTop: 24 }}>Branding (Fallback)</Title>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="primaryColor" label="Primary Color">
-                <Input type="color" style={{ width: '100%', height: 40, padding: 4 }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="secondaryColor" label="Secondary Color">
-                <Input type="color" style={{ width: '100%', height: 40, padding: 4 }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" icon={<Save size={16} />} loading={loading}>
-              Save Settings
-            </Button>
+      <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Card title="General Settings" style={{ marginBottom: 24 }}>
+          <Form.Item name="storeName" label="Store Name" rules={[{ required: true }]}>
+            <Input />
           </Form.Item>
-        </Form>
-      </Card>
+          <Form.Item name="storeDescription" label="Store Description">
+            <Input.TextArea />
+          </Form.Item>
+          <Space size="large">
+            <Form.Item name="currency" label="Currency Code" rules={[{ required: true }]}>
+              <Select style={{ width: 120 }}>
+                <Option value="USD">USD</Option>
+                <Option value="EUR">EUR</Option>
+                <Option value="GBP">GBP</Option>
+                <Option value="INR">INR</Option>
+                <Option value="AUD">AUD</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="currencySymbol" label="Currency Symbol" rules={[{ required: true }]}>
+              <Input style={{ width: 100 }} />
+            </Form.Item>
+          </Space>
+        </Card>
+
+        <Card title="Shipping & Taxes" style={{ marginBottom: 24 }}>
+          <Form.Item name="shippingEnabled" label="Enable Shipping" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item name="shippingFee" label="Flat Shipping Fee">
+            <InputNumber min={0} style={{ width: 200 }} />
+          </Form.Item>
+        </Card>
+
+        {/* Keeping UI simple for MVP: only COD for now */}
+        <Card title="Payment Methods">
+          <Text type="secondary">Currently only Cash on Delivery (COD) is supported natively.</Text>
+        </Card>
+      </Form>
     </div>
   );
 };
