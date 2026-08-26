@@ -19,10 +19,43 @@ const StorefrontRendererContent = () => {
   // Intercept navigation events emitted by StorefrontPage
   React.useEffect(() => {
     const handleNavigate = (e) => {
-      const href = e.detail;
+      const href = e.detail || '';
+      const lowerHref = href.toLowerCase();
+      const pages = Object.values(template?.pages || {});
+      
+      // Dynamically resolve Cart navigation
+      if (lowerHref.includes('cart') || lowerHref === 'cart') {
+        const cartPage = pages.find(p => 
+          String(p.role || '').toLowerCase() === 'cart' ||
+          String(p.name || '').toLowerCase().includes('cart') ||
+          String(p.filename || '').toLowerCase().includes('cart')
+        );
+        if (cartPage) {
+          return navigateTo(cartPage.id || Object.keys(template.pages).find(k => template.pages[k] === cartPage));
+        } else {
+          console.warn('Storefront navigation: Cart page not found in template. Falling back to Quick Cart Drawer.');
+          setIsCheckoutDrawerOpen(true);
+          return;
+        }
+      }
+      
+      // Dynamically resolve Checkout navigation
+      if (lowerHref.includes('checkout') || lowerHref === 'checkout') {
+        const checkoutPage = pages.find(p => 
+          String(p.role || '').toLowerCase() === 'checkout' ||
+          String(p.name || '').toLowerCase().includes('checkout') ||
+          String(p.filename || '').toLowerCase().includes('checkout')
+        );
+        if (checkoutPage) {
+          return navigateTo(checkoutPage.id || Object.keys(template.pages).find(k => template.pages[k] === checkoutPage));
+        } else {
+          console.warn('Storefront navigation: Checkout page not found in template');
+        }
+      }
+
       // Strip leading ./ and # hashes to find the page ID
       const targetPath = href.replace(/^\.\//, '').split('#')[0];
-      if (template.pages[targetPath]) {
+      if (template?.pages?.[targetPath]) {
         navigateTo(targetPath);
       }
     };
@@ -85,19 +118,47 @@ const StorefrontRendererContent = () => {
         {cart.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40 }}>Your cart is empty.</div>
         ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={cart}
-            renderItem={item => (
-              <List.Item>
-                <List.Item.Meta
-                  avatar={<img src={item.image} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover' }} />}
-                  title={item.name}
-                  description={`${formatCurrency(item.price, workspaceId, websiteId)} x ${item.quantity}`}
-                />
-              </List.Item>
-            )}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <List
+                itemLayout="horizontal"
+                dataSource={cart}
+                renderItem={item => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<img src={item.image} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover' }} />}
+                      title={item.name}
+                      description={`${formatCurrency(item.price, workspaceId, websiteId)} x ${item.quantity}`}
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
+            <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+              <Button 
+                block 
+                style={{ marginBottom: 8 }} 
+                onClick={() => {
+                  const cartPageId = Object.keys(template.pages).find(k => template.pages[k].role === 'Cart');
+                  if (cartPageId) navigateTo(cartPageId);
+                  setIsCheckoutDrawerOpen(false);
+                }}
+              >
+                View Cart
+              </Button>
+              <Button 
+                type="primary" 
+                block 
+                onClick={() => {
+                  const checkoutPageId = Object.keys(template.pages).find(k => template.pages[k].role === 'Checkout');
+                  if (checkoutPageId) navigateTo(checkoutPageId);
+                  setIsCheckoutDrawerOpen(false);
+                }}
+              >
+                Proceed to Checkout
+              </Button>
+            </div>
+          </div>
         )}
       </Drawer>
     </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Typography, Card, Input, Tag, Alert } from 'antd';
+import { Table, Typography, Card, Input, Tag, Alert, Select, message } from 'antd';
 import { Truck, Search } from 'lucide-react';
-import { getShipping } from '../utils/storage';
+import { getShipping, updateShippingStatus } from '../utils/storage';
 import { useEcommerce } from '../contexts/EcommerceContext';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const EcommerceShipping = () => {
   const { workspaceId, websiteId, activeStoreId } = useEcommerce();
@@ -32,14 +33,27 @@ const EcommerceShipping = () => {
     };
   }, [workspaceId, websiteId, activeStoreId]);
 
+  const handleStatusChange = async (shippingId, status) => {
+    await updateShippingStatus(workspaceId, websiteId, activeStoreId, shippingId, status);
+    message.success(`Shipping status updated to ${status}`);
+    loadData();
+  };
+
   const columns = [
     { title: 'Customer', dataIndex: 'customerName', key: 'customerName' },
     { title: 'Address', dataIndex: 'address', key: 'address' },
     { title: 'Method', dataIndex: 'methodName', key: 'methodName' },
     { title: 'Tracking ID', dataIndex: 'trackingId', key: 'trackingId', render: t => <Text code>{t || '-'}</Text> },
     {
-      title: 'Status', dataIndex: 'status', key: 'status', render: text => (
-        <Tag color={text === 'Delivered' ? 'green' : text === 'Shipped' ? 'blue' : text === 'In Transit' ? 'cyan' : 'orange'}>{text}</Tag>
+      title: 'Status', dataIndex: 'status', key: 'status', render: (status, record) => (
+        <Select value={status} style={{ width: 130 }} onChange={(val) => handleStatusChange(record.id || record._id, val)}>
+          <Option value="Pending"><Tag color="orange">Pending</Tag></Option>
+          <Option value="Processing"><Tag color="cyan">Processing</Tag></Option>
+          <Option value="Shipped"><Tag color="blue">Shipped</Tag></Option>
+          <Option value="In Transit"><Tag color="cyan">In Transit</Tag></Option>
+          <Option value="Delivered"><Tag color="green">Delivered</Tag></Option>
+          <Option value="Returned"><Tag color="red">Returned</Tag></Option>
+        </Select>
       )
     },
     { title: 'Date', dataIndex: 'createdAt', key: 'createdAt', render: text => text ? new Date(text).toLocaleString() : '-' }

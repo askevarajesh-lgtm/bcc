@@ -98,9 +98,25 @@ export const getOrders = async (workspaceId, websiteId, storeId) => {
 };
 
 export const updateOrderStatus = async (workspaceId, websiteId, storeId, orderId, status) => {
-  // Backend update-order-status endpoint not yet implemented; log and return mock
-  console.warn('updateOrderStatus backend endpoint not yet implemented.');
-  return { id: orderId, status };
+  if (!websiteId || !storeId) return null;
+  try {
+    const res = await api.patch(`/ecommerce/${websiteId}/${storeId}/orders/${orderId}/status`, { status });
+    return res.data.success ? res.data.order : null;
+  } catch (e) {
+    console.error('Failed to update order status', e);
+    return null;
+  }
+};
+
+export const updateShippingStatus = async (workspaceId, websiteId, storeId, shippingId, status) => {
+  if (!websiteId || !storeId) return null;
+  try {
+    const res = await api.patch(`/ecommerce/${websiteId}/${storeId}/shipping/${shippingId}/status`, { status });
+    return res.data.success ? res.data.shipping : null;
+  } catch (e) {
+    console.error('Failed to update shipping status', e);
+    return null;
+  }
 };
 
 // ---- Customers (Backend) ----

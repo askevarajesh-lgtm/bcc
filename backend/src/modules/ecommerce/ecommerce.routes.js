@@ -56,9 +56,13 @@ router.get('/:websiteId/:storeId/settings', ecommerceController.getSettings);
 router.put('/:websiteId/:storeId/settings', ecommerceController.updateSettings);
 
 router.get('/:websiteId/:storeId/orders', ecommerceController.getOrders);
+router.patch('/:websiteId/:storeId/orders/:orderId/status', ecommerceController.updateOrderStatus);
+
 router.get('/:websiteId/:storeId/customers', ecommerceController.getCustomers);
 router.get('/:websiteId/:storeId/payments', ecommerceController.getPayments);
+
 router.get('/:websiteId/:storeId/shipping', ecommerceController.getShipping);
+router.patch('/:websiteId/:storeId/shipping/:shippingId/status', ecommerceController.updateShippingStatus);
 
 router.post('/:websiteId/:storeId/checkout', ecommerceController.checkout);
 

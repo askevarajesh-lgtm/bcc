@@ -63,7 +63,21 @@ const CartItem = ({ item, templateHtml }) => {
       btn.setAttribute('data-cart-action', 'remove');
     });
 
-    return itemEl.outerHTML;
+    // Inject item ID for event delegation if needed, though we use ref here.
+    itemEl.setAttribute('data-cart-item-id', item.id);
+    
+    // We will extract innerHTML and attributes to avoid the <div> wrapper issue
+    const attrs = {};
+    Array.from(itemEl.attributes).forEach(attr => {
+      if (attr.name === 'class') attrs.className = attr.value;
+      else if (attr.name !== 'style') attrs[attr.name] = attr.value;
+    });
+
+    return {
+      tagName: itemEl.tagName.toLowerCase(),
+      innerHtml: itemEl.innerHTML,
+      attrs
+    };
   }, [templateHtml, item, workspaceId, websiteId, storeId]);
 
   // Bind native event listeners to the injected HTML
@@ -103,14 +117,25 @@ const CartItem = ({ item, templateHtml }) => {
 
   if (!processedHtml) return null;
 
-  return (
-    <React.Fragment>
-      <div 
+  const Wrapper = processedHtml.tagName;
+  const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+  const isVoid = voidElements.includes(Wrapper);
+
+  if (isVoid) {
+    return (
+      <Wrapper 
         ref={containerRef}
-        style={{ display: 'contents' }} 
-        dangerouslySetInnerHTML={{ __html: processedHtml }} 
+        {...processedHtml.attrs}
       />
-    </React.Fragment>
+    );
+  }
+
+  return (
+    <Wrapper 
+      ref={containerRef}
+      {...processedHtml.attrs}
+      dangerouslySetInnerHTML={{ __html: processedHtml.innerHtml }} 
+    />
   );
 };
 

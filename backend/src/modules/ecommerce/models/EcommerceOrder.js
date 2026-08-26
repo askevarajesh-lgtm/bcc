@@ -8,6 +8,9 @@ const EcommerceOrderSchema = new mongoose.Schema({
   idempotencyKey: { type: String },
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'EcommerceCustomer', required: true },
   customerName: { type: String, required: true },
+  customerEmail: { type: String, required: true },
+  customerPhone: { type: String, default: '' },
+  shippingAddress: { type: String, default: '' },
   items: [{
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'EcommerceProduct', required: true },
     name: { type: String, required: true },
@@ -24,7 +27,7 @@ const EcommerceOrderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 EcommerceOrderSchema.index({ workspaceId: 1, websiteId: 1, storeId: 1 });
-EcommerceOrderSchema.index({ storeId: 1, idempotencyKey: 1 }, {
+EcommerceOrderSchema.index({ workspaceId: 1, websiteId: 1, storeId: 1, idempotencyKey: 1 }, {
   unique: true,
   partialFilterExpression: { idempotencyKey: { $exists: true, $type: 'string' } }
 });

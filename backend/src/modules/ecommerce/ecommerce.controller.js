@@ -70,7 +70,11 @@ exports.getSettings = async (req, res, next) => {
           { id: 'express', name: 'Express Delivery', price: 120, enabled: false }
         ]
       });
-      await settings.save();
+      try {
+        await settings.save();
+      } catch (err) {
+        console.warn('Fallback settings save failed in getSettings (legacy index?):', err.message);
+      }
     }
     res.json({ success: true, data: settings });
   } catch (error) { next(error); }
@@ -122,32 +126,45 @@ exports.checkout = async (req, res, next) => {
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty or invalid' });
     }
-
     if (!customerDetails || !customerDetails.name || !customerDetails.email) {
       return res.status(400).json({ success: false, message: 'Valid customer name and email are required' });
     }
 
-    // Idempotency check — prevent duplicate orders for same checkout attempt
+    // 1. Idempotency Check (Scoped to workspace+website+store)
     if (idempotencyKey) {
-      const existingOrder = await EcommerceOrder.findOne({ storeId: query.storeId, idempotencyKey });
+      const existingOrder = await EcommerceOrder.findOne({ ...query, idempotencyKey });
       if (existingOrder) {
         return res.json({ success: true, orderId: existingOrder._id, orderNumber: existingOrder.orderNumber, duplicate: true });
       }
     }
 
-    // Server-side Settings Validation
-    const settings = await EcommerceSettings.findOne(query);
+    // 2. Settings Validation & Fallback Creation
+    let settings = await EcommerceSettings.findOne(query);
     if (!settings) {
-      return res.status(400).json({ success: false, message: 'Store settings not configured. Please visit Settings first.' });
+      // Dynamic fallback creation for demo mode stability
+      settings = new EcommerceSettings({
+        ...query,
+        currency: 'USD',
+        currencySymbol: '$',
+        shippingEnabled: true,
+        shippingFee: 10,
+        paymentMethods: [{ id: 'COD', name: 'Cash on Delivery', enabled: true }],
+        shippingMethods: [{ id: 'standard', name: 'Standard Delivery', price: 10, enabled: true }]
+      });
+      try {
+        await settings.save();
+      } catch (err) {
+        console.warn('Fallback settings save failed (legacy index?):', err.message);
+      }
     }
 
-    // Validate shipping method & calculate fee
+    // 3. Shipping & Payment Calculation
     let shippingFee = 0;
     let shippingMethodName = 'Standard';
     if (settings.shippingEnabled) {
       let method = null;
       if (settings.shippingMethods && settings.shippingMethods.length > 0) {
-        method = settings.shippingMethods.find(m => m.id === shippingMethodId && m.enabled)
+        method = settings.shippingMethods.find(m => String(m.id).toLowerCase() === String(shippingMethodId).toLowerCase() && m.enabled)
               || settings.shippingMethods.find(m => m.enabled);
       }
       if (method) {
@@ -158,23 +175,20 @@ exports.checkout = async (req, res, next) => {
       }
     }
 
-    // Validate payment method
-    const selectedPayment = settings.paymentMethods?.find(m => m.id === paymentMethod && m.enabled);
+    const selectedPayment = settings.paymentMethods?.find(m => String(m.id).toLowerCase() === String(paymentMethod).toLowerCase() && m.enabled);
     if (!selectedPayment) {
       return res.status(400).json({ success: false, message: 'Invalid or disabled payment method' });
     }
 
+    // 4. Server-Side Price & Quantity Validation
     let subtotal = 0;
     const validatedItems = [];
-    const stockUpdates = [];
-
-    // 1. Fetch all products and validate stock/price server-side
+    
     for (const item of cart) {
       if (!item.quantity || !Number.isInteger(item.quantity) || item.quantity <= 0) {
         return res.status(400).json({ success: false, message: `Invalid quantity for product ${item.name}` });
       }
-
-      const product = await EcommerceProduct.findOne({ ...query, _id: item.id, status: 'Active' });
+      const product = await EcommerceProduct.findOne({ ...query, _id: item.id || item._id, status: 'Active' });
       if (!product) {
         return res.status(400).json({ success: false, message: `Product not found or inactive: ${item.name}` });
       }
@@ -184,7 +198,6 @@ exports.checkout = async (req, res, next) => {
 
       const priceToUse = product.salePrice ? product.salePrice : product.price;
       subtotal += priceToUse * item.quantity;
-
       validatedItems.push({
         productId: product._id,
         name: product.name,
@@ -192,49 +205,70 @@ exports.checkout = async (req, res, next) => {
         quantity: item.quantity,
         image: product.image
       });
-
-      stockUpdates.push({
-        updateOne: {
-          filter: { ...query, _id: product._id, stock: { $gte: item.quantity } },
-          update: { $inc: { stock: -item.quantity } }
-        }
-      });
     }
 
     const finalTotal = subtotal + shippingFee;
 
-    // 2. Perform atomic stock deduction with database-side stock check
-    const bulkWriteResult = await EcommerceProduct.bulkWrite(stockUpdates);
-    if (bulkWriteResult.modifiedCount !== stockUpdates.length) {
-      return res.status(400).json({ success: false, message: 'Checkout failed: one or more items ran out of stock during checkout.' });
+    // 5. Atomic Stock Deduction with Manual Rollback
+    const successfullyDeducted = [];
+    let failedProduct = null;
+    
+    for (const item of validatedItems) {
+      const updateRes = await EcommerceProduct.updateOne(
+        { ...query, _id: item.productId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } }
+      );
+      if (updateRes.modifiedCount === 1) {
+        successfullyDeducted.push(item);
+      } else {
+        failedProduct = item;
+        break; // Stop immediately upon failure
+      }
     }
 
-    // 3. Customer deduplication — upsert by storeId + email
+    if (failedProduct) {
+      // Rollback successful deductions
+      for (const item of successfullyDeducted) {
+        await EcommerceProduct.updateOne(
+          { ...query, _id: item.productId },
+          { $inc: { stock: item.quantity } }
+        );
+      }
+      return res.status(400).json({ success: false, message: `Checkout failed: Insufficient stock for ${failedProduct.name}. Someone just bought the last item.` });
+    }
+
+    // 6. Customer Upsertion
     const normalizedEmail = customerDetails.email.toLowerCase().trim();
     const customer = await EcommerceCustomer.findOneAndUpdate(
-      { storeId: query.storeId, email: normalizedEmail },
+      { ...query, email: normalizedEmail },
       {
         $inc: { ordersCount: 1, totalSpent: finalTotal },
         $set: {
           name: customerDetails.name,
+          firstName: customerDetails.firstName,
+          lastName: customerDetails.lastName,
+          phone: customerDetails.phone,
           address: customerDetails.address,
-          workspaceId: query.workspaceId,
-          websiteId: query.websiteId,
-          storeId: query.storeId
+          city: customerDetails.city,
+          state: customerDetails.state,
+          postalCode: customerDetails.postalCode,
+          country: customerDetails.country
         }
       },
       { new: true, upsert: true }
     );
 
-    // 4. Create Order
+    // 7. Order Creation
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-
     const order = new EcommerceOrder({
       ...query,
       orderNumber,
       idempotencyKey,
       customerId: customer._id,
       customerName: customer.name,
+      customerEmail: normalizedEmail,
+      customerPhone: customerDetails.phone,
+      shippingAddress: customerDetails.address,
       items: validatedItems,
       subtotal,
       shippingFee,
@@ -245,7 +279,7 @@ exports.checkout = async (req, res, next) => {
     });
     await order.save();
 
-    // 5. Create Payment & Shipping (non-fatal if fails — order already committed)
+    // 8. Payment & Shipping Creation
     try {
       const payment = new EcommercePayment({
         ...query,
@@ -269,10 +303,65 @@ exports.checkout = async (req, res, next) => {
         });
         await shipping.save();
       }
-    } catch (postOrderErr) {
-      console.error('Error creating payment/shipping records (order already saved):', postOrderErr);
+    } catch (err) {
+      console.error('Error creating payment/shipping records:', err);
     }
 
     res.json({ success: true, orderId: order._id, orderNumber });
   } catch (error) { next(error); }
 };
+
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    const query = getIsolatedQuery(req);
+    const { orderId } = req.params;
+    const { status } = req.body;
+    
+    if (!status) return res.status(400).json({ success: false, message: 'Status is required' });
+
+    const order = await EcommerceOrder.findOneAndUpdate(
+      { ...query, _id: orderId },
+      { status },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    // Sync shipping status if applicable
+    if (status === 'Shipped' || status === 'Delivered' || status === 'Returned') {
+      await EcommerceShipping.findOneAndUpdate(
+        { ...query, orderId: order._id },
+        { status }
+      );
+    }
+    
+    res.json({ success: true, order });
+  } catch (error) { next(error); }
+};
+
+exports.updateShippingStatus = async (req, res, next) => {
+  try {
+    const query = getIsolatedQuery(req);
+    const { shippingId } = req.params;
+    const { status } = req.body;
+
+    if (!status) return res.status(400).json({ success: false, message: 'Status is required' });
+
+    const shipping = await EcommerceShipping.findOneAndUpdate(
+      { ...query, _id: shippingId },
+      { status },
+      { new: true }
+    );
+    if (!shipping) return res.status(404).json({ success: false, message: 'Shipping record not found' });
+
+    // Sync order status if applicable
+    if (status === 'Shipped' || status === 'Delivered' || status === 'Returned') {
+      await EcommerceOrder.findOneAndUpdate(
+        { ...query, _id: shipping.orderId },
+        { status }
+      );
+    }
+
+    res.json({ success: true, shipping });
+  } catch (error) { next(error); }
+};
+

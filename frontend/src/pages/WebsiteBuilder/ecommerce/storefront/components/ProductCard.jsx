@@ -76,19 +76,48 @@ const ProductCard = ({ product, templateHtml, mapping }) => {
     });
 
     // Adjust Add to Cart button if out of stock
+    let addBtnEls = [];
     if (mapping?.addBtn) {
-      const btnEls = cardEl.querySelectorAll(mapping.addBtn);
-      btnEls.forEach(el => {
-        // Tag it so we can find it easily for event binding
-        el.setAttribute('data-ecommerce-action', 'add-to-cart');
-        if (product.stock <= 0) {
-          el.textContent = 'Out of Stock';
-          el.style.opacity = '0.5';
-          el.style.cursor = 'not-allowed';
-          el.disabled = true; // if it's a button
-        }
+      addBtnEls = Array.from(cardEl.querySelectorAll(mapping.addBtn));
+    }
+    
+    // Auto-detect if mapping is missing or failed to find the button
+    if (addBtnEls.length === 0) {
+      addBtnEls = Array.from(cardEl.querySelectorAll('button, a, [role="button"], li')).filter(el => {
+        const text = (el.textContent || '').toLowerCase().trim();
+        const className = (el.className || '').toString().toLowerCase();
+        const href = (el.getAttribute('href') || '').toLowerCase();
+        const title = (el.getAttribute('title') || '').toLowerCase();
+        const html = el.innerHTML.toLowerCase();
+        
+        return text.includes('add to cart') || 
+               text.includes('add to bag') ||
+               className.includes('add-to-cart') || 
+               className.includes('add_to_cart') ||
+               className.includes('btn-cart') ||
+               href.includes('add-to-cart') ||
+               title.includes('add to cart') ||
+               html.includes('cart') || 
+               html.includes('shopping-bag') || 
+               html.includes('basket') || 
+               html.includes('fa-shopping-cart') ||
+               html.includes('fa-cart-plus') ||
+               html.includes('ion-bag');
       });
     }
+
+    addBtnEls.forEach(el => {
+      // Tag it so we can find it easily for event binding
+      el.setAttribute('data-ecommerce-action', 'add-to-cart');
+      if (product.stock <= 0) {
+        if (el.children.length === 0) {
+          el.textContent = 'Out of Stock';
+        }
+        el.style.opacity = '0.5';
+        el.style.cursor = 'not-allowed';
+        if (el.tagName === 'BUTTON') el.disabled = true;
+      }
+    });
 
     // Tag the card itself for navigation
     cardEl.setAttribute('data-ecommerce-action', 'view-product');

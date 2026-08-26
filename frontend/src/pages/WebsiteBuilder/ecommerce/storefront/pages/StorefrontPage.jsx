@@ -64,12 +64,56 @@ const StorefrontPage = ({ page, assets, children, portalSelector }) => {
   // Handle internal navigation clicks (just like original preview did)
   useEffect(() => {
     const handleClick = (e) => {
-      const link = e.target.closest('a');
-      if (link) {
-        const href = link.getAttribute('href');
-        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+      // Find the closest actionable element
+      const actionable = e.target.closest('a, button, [role="button"], [data-cart], [class*="cart"], [id*="cart"]');
+      
+      if (!actionable) return;
+      
+      const text = (actionable.textContent || '').toLowerCase().trim();
+      // Let Add to Cart buttons be handled by their respective click handlers (e.g., ProductCard)
+      if (text.includes('add to cart') || actionable.closest('[data-ecommerce-action="add-to-cart"]')) {
+        return;
+      }
+
+      const href = actionable.getAttribute('href') || '';
+      const className = (actionable.className || '').toString().toLowerCase();
+      const id = (actionable.id || '').toLowerCase();
+      
+      const isCartUrl = [
+        'cart.html', './cart.html', '/cart.html', '#cart', 
+        'cart', 'shopping-cart', 'shopping_cart', 'basket', '#shopping-cart'
+      ].includes(href.toLowerCase());
+
+      const cartKeywords = ['cart', 'shopping-cart', 'shopping_cart', 'basket', 'view cart', 'cart icon', 'shopping bag'];
+      const hasCartClassOrId = cartKeywords.some(kw => className.includes(kw) || id.includes(kw));
+      const hasCartText = cartKeywords.some(kw => text === kw);
+      
+      // If it looks like a cart click, dispatch navigation
+      if (isCartUrl || hasCartClassOrId || hasCartText) {
+         e.preventDefault();
+         e.stopPropagation();
+         window.dispatchEvent(new CustomEvent('storefront_navigate', { detail: 'cart' }));
+         return;
+      }
+
+      // Check for checkout clicks
+      const isCheckoutUrl = [
+        'checkout.html', './checkout.html', '/checkout.html', '#checkout', 
+        'checkout'
+      ].includes(href.toLowerCase());
+      const hasCheckoutText = text === 'checkout';
+
+      if (isCheckoutUrl || hasCheckoutText) {
+         e.preventDefault();
+         e.stopPropagation();
+         window.dispatchEvent(new CustomEvent('storefront_navigate', { detail: 'checkout' }));
+         return;
+      }
+      
+      // Fallback for regular links
+      if (actionable.tagName === 'A') {
+        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:') && !href.startsWith('javascript:')) {
           e.preventDefault();
-          // Let the parent router handle this via context or custom event
           window.dispatchEvent(new CustomEvent('storefront_navigate', { detail: href }));
         }
       }
