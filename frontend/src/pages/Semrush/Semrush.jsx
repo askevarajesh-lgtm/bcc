@@ -177,8 +177,6 @@ const Semrush = () => {
             >
               {refreshing ? 'Analyzing...' : 'Refresh Intelligence'}
             </Button>
-            <Button type="text" icon={<ShareAltOutlined />} style={{ fontWeight: 500 }} onClick={handleShare}>Share</Button>
-            <Button type="text" icon={<ExportOutlined />} style={{ fontWeight: 500 }} onClick={handleExport}>Export</Button>
           </div>
         </div>
 
