@@ -11,7 +11,14 @@ const intelligenceComparisonService = require('./intelligenceComparison.service'
 
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await SemrushProject.find({ companyId: req.companyId, isActive: true })
+    const filter = { companyId: req.companyId, isActive: true };
+    const isClient = ['client', 'agency_client', 'brand_team_user', 'client_user', 'brand_manager'].includes(req.user.role);
+    if (isClient) {
+      const myClientId = req.user.brandId || req.user._id;
+      filter.$or = [{ clientId: myClientId }, { createdBy: req.user._id }];
+    }
+
+    const projects = await SemrushProject.find(filter)
       .populate('latestSnapshot')
       .lean()
       .sort({ createdAt: -1 });
@@ -49,9 +56,21 @@ exports.createProject = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Domain and name are required' });
     }
 
+    const isClient = ['client', 'agency_client', 'brand_team_user', 'client_user', 'brand_manager'].includes(req.user.role);
+    const myClientId = req.user.brandId || req.user._id;
+    const finalClientId = isClient ? myClientId : (req.body.clientId || null);
+
     const existing = await SemrushProject.findOne({ companyId: req.companyId, domain });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Project for this domain already exists' });
+      if (existing.isActive) {
+        return res.status(400).json({ success: false, message: 'Project for this domain already exists' });
+      } else {
+        existing.isActive = true;
+        existing.name = name;
+        existing.clientId = finalClientId;
+        await existing.save();
+        return res.status(201).json({ success: true, data: existing, message: 'Project reactivated' });
+      }
     }
 
     const project = new SemrushProject({
@@ -59,7 +78,7 @@ exports.createProject = async (req, res) => {
       createdBy: req.user._id,
       domain,
       name,
-      clientId: req.body.clientId || null
+      clientId: finalClientId
     });
 
     await project.save();

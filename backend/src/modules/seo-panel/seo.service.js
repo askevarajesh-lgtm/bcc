@@ -70,6 +70,19 @@ const getSEOById = async (seoId, tenantCompanyId) => {
 
 // Create SEO entry
 const createSEO = async (seoData, tenantCompanyId, userId) => {
+  const User = require("../auth/user.model");
+  const user = await User.findById(userId);
+
+  const agencyAdminRoles = ["agency_super_admin", "agency_manager", "agency"];
+  const commanderAdminRoles = ["supreme_super_admin", "superadmin", "commander_admin", "admin", "digital_marketing_coordinator", "website_coordinator"];
+  
+  if (user && !agencyAdminRoles.includes(user.role) && !commanderAdminRoles.includes(user.role)) {
+    const existingSeoCount = await SEO.countDocuments({ companyId: tenantCompanyId });
+    if (existingSeoCount >= 1) {
+      throw new Error("Clients are allowed to create only one SEO/AEO/GEO project.");
+    }
+  }
+
   const seo = await SEO.create({
     ...seoData,
     companyId: tenantCompanyId,

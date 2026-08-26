@@ -380,7 +380,7 @@ const SEOList = () => {
           >
             Client & User Report
           </Button>
-          {canAdd && (
+          {canAdd && (!['agency_super_admin', 'agency_manager', 'agency', 'commander_admin', 'superadmin', 'supreme_super_admin', 'admin', 'digital_marketing_coordinator', 'website_coordinator'].includes(currentUser?.role) ? total < 1 : true) && (
             <Button
               type="primary"
               icon={<PlusOutlined />}

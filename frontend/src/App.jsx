@@ -402,6 +402,21 @@ const AppRoutes = () => {
           <Route path="canva" element={<ClientCanvaPage />} />
           {/* <Route path="benchmarks" element={<Benchmarks />} /> */}
           <Route path="analytics" element={<Analytics />} />
+          <Route path="seo-aeo-geo" element={<SemrushDashboard />} />
+          <Route path="seo-aeo-geo/:projectId" element={<Semrush />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardTab />} />
+            <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="position-tracking" element={<PositionTrackingTab />} />
+            <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
+            <Route path="keyword-magic-tool" element={<KeywordMagicToolTab />} />
+            <Route path="competitor-analysis" element={<CompetitorAnalysisTab />} />
+            <Route path="backlinks" element={<BacklinksTab />} />
+            <Route path="site-health" element={<SiteHealthTab />} />
+            <Route path="traffic-analytics" element={<TrafficAnalyticsTab />} />
+            <Route path="reports" element={<ReportsTab />} />
+            <Route path="activity" element={<ActivityTab />} />
+          </Route>
           <Route path="master-items" element={<MasterItemsList />} />
           <Route path="master-items/new" element={<MasterItemForm />} />
           <Route path="master-items/:id" element={<MasterItemForm />} />
@@ -502,6 +517,21 @@ const AppRoutes = () => {
           {/* <Route path="intelligence/benchmarks" element={<Benchmarks />} /> */}
           <Route path="intelligence/reporting" element={<Reports />} />
           <Route path="intelligence/seo" element={<SeoIntelligence />} />
+          <Route path="intelligence/seo-aeo-geo" element={<SemrushDashboard />} />
+          <Route path="intelligence/seo-aeo-geo/:projectId" element={<Semrush />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardTab />} />
+            <Route path="domain-overview" element={<DomainOverviewTab />} />
+            <Route path="position-tracking" element={<PositionTrackingTab />} />
+            <Route path="organic-keywords" element={<OrganicKeywordsTab />} />
+            <Route path="keyword-magic-tool" element={<KeywordMagicToolTab />} />
+            <Route path="competitor-analysis" element={<CompetitorAnalysisTab />} />
+            <Route path="backlinks" element={<BacklinksTab />} />
+            <Route path="site-health" element={<SiteHealthTab />} />
+            <Route path="traffic-analytics" element={<TrafficAnalyticsTab />} />
+            <Route path="reports" element={<ReportsTab />} />
+            <Route path="activity" element={<ActivityTab />} />
+          </Route>
 
 
           <Route path="ops/time" element={<TimeTracking />} />

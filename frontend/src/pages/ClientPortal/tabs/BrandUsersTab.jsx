@@ -30,6 +30,7 @@ const BrandUsersTab = ({ user }) => {
     { id: 'analytics', label: 'Google Analytics' },
     { id: 'chatgpt', label: 'Chatgpt' },
     { id: 'canva', label: 'Canva' },
+    { id: 'seo-aeo-geo', label: 'SEO/AEO/GEO' },
     // { id: 'benchmark', label: 'Benchmark' },
   ].filter(f => parentFeatures.includes(f.id));
 

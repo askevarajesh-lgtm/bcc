@@ -44,6 +44,11 @@ const Semrush = () => {
     else setActiveTab('dashboard');
   }, [location]);
 
+  const getBasePath = () => {
+    const match = location.pathname.match(/^(.*\/seo-aeo-geo)/);
+    return match ? match[1] : '/intelligence/seo-aeo-geo';
+  };
+
   const fetchProjectData = async () => {
     try {
       const res = await semrushApi.getProject(projectId);
@@ -54,7 +59,7 @@ const Semrush = () => {
     } catch (error) {
       console.error(error);
       message.error('Failed to load project data');
-      navigate('/intelligence/seo-aeo-geo');
+      navigate(getBasePath());
     } finally {
       setLoading(false);
     }
@@ -115,8 +120,9 @@ const Semrush = () => {
 
   const handleTabChange = (key) => {
     setActiveTab(key);
-    if (key === 'dashboard') navigate(`/intelligence/seo-aeo-geo/${projectId}`);
-    else navigate(`/intelligence/seo-aeo-geo/${projectId}/${key}`);
+    const base = getBasePath();
+    if (key === 'dashboard') navigate(`${base}/${projectId}`);
+    else navigate(`${base}/${projectId}/${key}`);
   };
 
   if (loading) {
@@ -138,7 +144,7 @@ const Semrush = () => {
             <Button 
               type="text" 
               icon={<ArrowLeftOutlined style={{ fontSize: '18px' }} />} 
-              onClick={() => navigate('/intelligence/seo-aeo-geo')} 
+              onClick={() => navigate(getBasePath())} 
               style={{ padding: '4px 8px' }}
             />
             <div className="semrush-domain-info">

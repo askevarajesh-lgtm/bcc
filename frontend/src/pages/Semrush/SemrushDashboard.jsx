@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Card, Spin, Button, Row, Col, Modal, Form, Input, Checkbox, message, Table, Select, Popconfirm, Space } from 'antd';
 import { motion } from 'framer-motion';
 import { Search, FolderPlus, MessageSquare, HeartPulse, Eye, MousePointer2, Link, Plus, Edit2, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { semrushApi } from '../../api/semrushApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGetClientsQuery } from '../../api/clientApi';
@@ -17,12 +17,14 @@ const SemrushDashboard = () => {
   const [editingProject, setEditingProject] = useState(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { user } = useAuth();
 
-  const canCreate = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Create || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Create;
-  const canEdit = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Edit || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Edit;
-  const canDelete = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager', 'brand_super_admin', 'brand_manager'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Delete || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Delete;
+  const isAgencyOrAdmin = ['supreme_super_admin', 'superadmin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(user?.role);
+  const canCreate = isAgencyOrAdmin || projects.length < 1;
+  const canEdit = isAgencyOrAdmin || ['brand_super_admin', 'brand_manager', 'agency_client', 'client', 'client_user', 'brand_team_user'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Edit || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Edit;
+  const canDelete = isAgencyOrAdmin || ['brand_super_admin', 'brand_manager', 'agency_client', 'client', 'client_user', 'brand_team_user'].includes(user?.role) || user?.permissions?.['Intelligence-SEO / AEO / GEO(semrush)']?.Delete || user?.permissions?.['Workspace-SEO / AEO / GEO']?.Delete;
 
   const [adminClients, setAdminClients] = useState([]);
   const { data: clientsData } = useGetClientsQuery({});
@@ -267,7 +269,10 @@ const SemrushDashboard = () => {
             rowKey="_id"
             pagination={false}
             onRow={(record) => ({
-              onClick: () => navigate(`/intelligence/seo-aeo-geo/${record._id}`),
+              onClick: () => {
+                const basePath = location.pathname.replace(/\/$/, '');
+                navigate(`${basePath}/${record._id}`);
+              },
               style: { cursor: 'pointer' }
             })}
           />
@@ -319,10 +324,6 @@ const SemrushDashboard = () => {
               </Select>
             </Form.Item>
           )}
-
-          <Form.Item name="share" valuePropName="checked">
-            <Checkbox>Share once created</Checkbox>
-          </Form.Item>
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
             <Button type="primary" htmlType="submit" size="large" style={{ background: '#18181b', borderRadius: '6px' }}>

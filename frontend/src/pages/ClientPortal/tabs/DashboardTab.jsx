@@ -7,8 +7,10 @@ import BubbleCard from '../../../components/BubbleCard';
 import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
 import TaskCompletionCelebrate from '../../Tasks/TaskCompletionCelebrate';
 import api from '../../../services/api';
+import { semrushApi } from '../../../api/semrushApi';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import ScoreGaugeCard from '../../SEO/components/ScoreGaugeCard';
 
 const { Title, Text } = Typography;
 
@@ -18,7 +20,7 @@ const DashboardTab = () => {
 
   const [loading, setLoading] = useState(true);
   const [overviewData, setOverviewData] = useState(null);
-  const [auditScore, setAuditScore] = useState(null);
+  const [semrushProject, setSemrushProject] = useState(null);
   
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
@@ -29,17 +31,14 @@ const DashboardTab = () => {
   }, [selectedDate]);
 
   useEffect(() => {
-    // Fetch Audit score separately since it depends on the SEO module
-    api.get('/seo-workspace/audits')
+    // Fetch Client's SEO/AEO/GEO project to display scores
+    semrushApi.getProjects()
       .then(res => {
-        const audits = res.data;
-        if (audits && audits.length > 0) {
-          audits.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          const latestAudit = audits[audits.length - 1];
-          setAuditScore(latestAudit.metrics?.performance || 0);
+        if (res.data?.success && res.data.data?.length > 0) {
+          setSemrushProject(res.data.data[0]);
         }
       })
-      .catch(err => console.error('Failed to fetch audits:', err));
+      .catch(err => console.error('Failed to fetch Semrush project:', err));
   }, []);
 
   const fetchOverview = async () => {
@@ -289,36 +288,82 @@ const DashboardTab = () => {
           </Row>
         </motion.div>
 
-        {/* Marketing Health Score */}
+        {/* AI Optimization Intelligence Scores */}
         <motion.div variants={itemVariants}>
-          <BubbleCard large style={{ marginBottom: 40 }}>
-            <div style={{ display: 'flex', gap: 40, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: 140, height: 140, flexShrink: 0 }}>
-                <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 8px rgba(13,148,136,0.2))' }}>
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--border-color)" strokeWidth="3" />
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--accent-secondary)" strokeWidth="3" strokeDasharray={`${auditScore || 0}, 100`} strokeLinecap="round" />
-                </svg>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: auditScore ? 44 : 24, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{auditScore ? auditScore : 'N/A'}</span>
-                  {auditScore ? <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginTop: 4 }}>OF 100</span> : null}
+          <div style={{ marginBottom: 16 }}>
+            <Title level={2} style={{ margin: '0 0 4px 0', fontWeight: 800 }}>AI Optimization Intelligence</Title>
+            <Text type="secondary" style={{ fontSize: 15, fontWeight: 500 }}>Enterprise SEO, GEO, and AEO tracking and analysis.</Text>
+          </div>
+
+          {semrushProject ? (
+            <Row gutter={[24, 24]} style={{ marginBottom: 40, alignItems: 'stretch' }}>
+              <Col xs={24} md={12} xl={8}>
+                <ScoreGaugeCard 
+                  title="SEO Score" 
+                  score={semrushProject.optimizationScore?.seoScore ?? semrushProject.latestSnapshot?.scores?.seo ?? 0} 
+                  previousScore={null} 
+                  color="var(--accent-secondary)"
+                  description="Traditional Search Engine Optimization score based on authority and technical health."
+                  delay={0.1}
+                  details={[
+                    { label: 'Authority Score', ...(semrushProject.latestSnapshot?.seo?.authorityScore || {}) },
+                    { label: 'Technical Health', ...(semrushProject.latestSnapshot?.seo?.technicalScore || {}) },
+                    { label: 'Core Web Vitals', ...(semrushProject.latestSnapshot?.seo?.coreWebVitals || {}) }
+                  ]}
+                />
+              </Col>
+              <Col xs={24} md={12} xl={8}>
+                <ScoreGaugeCard 
+                  title="GEO Score" 
+                  score={semrushProject.optimizationScore?.geoScore ?? semrushProject.latestSnapshot?.scores?.geo ?? 0} 
+                  previousScore={null} 
+                  color="var(--accent-warning)"
+                  description="Generative Engine Optimization readiness for AI summaries."
+                  delay={0.2}
+                  details={[
+                    { label: 'E-E-A-T Signals', ...(semrushProject.latestSnapshot?.geo?.eeatSignals || {}) },
+                    { label: 'AI Readability', ...(semrushProject.latestSnapshot?.geo?.aiReadability || {}) },
+                    { label: 'LLM Formatting', ...(semrushProject.latestSnapshot?.geo?.llmFormatting || {}) }
+                  ]}
+                />
+              </Col>
+              <Col xs={24} md={12} xl={8}>
+                <ScoreGaugeCard 
+                  title="AEO Score" 
+                  score={semrushProject.optimizationScore?.aeoScore ?? semrushProject.latestSnapshot?.scores?.aeo ?? 0} 
+                  previousScore={null} 
+                  color="var(--accent-info)"
+                  description="Answer Engine Optimization for voice and direct answers."
+                  delay={0.3}
+                  details={[
+                    { label: 'Answer Intent', ...(semrushProject.latestSnapshot?.aeo?.answerIntent || {}) },
+                    { label: 'Conversational', ...(semrushProject.latestSnapshot?.aeo?.conversationalContent || {}) },
+                    { label: 'FAQ Schema', ...(semrushProject.latestSnapshot?.aeo?.faqSchema || {}) }
+                  ]}
+                />
+              </Col>
+            </Row>
+          ) : (
+            <BubbleCard large style={{ marginBottom: 40, textAlign: 'center', padding: '48px 24px' }}>
+              <div style={{ maxWidth: 500, margin: '0 auto' }}>
+                <div style={{ background: 'var(--bg-secondary)', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid var(--border-color)' }}>
+                  <TrendingUp size={36} style={{ color: 'var(--accent-primary)' }} />
                 </div>
+                <Title level={3} style={{ fontWeight: 800, marginBottom: 12 }}>No Optimization Project Found</Title>
+                <Text type="secondary" style={{ fontSize: 16, display: 'block', marginBottom: 24, lineHeight: 1.6 }}>
+                  Create an SEO/AEO/GEO project in the Intelligence tab to unlock powerful search engine performance metrics and AI optimization insights.
+                </Text>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  style={{ borderRadius: 8, fontWeight: 600, padding: '0 24px' }}
+                  onClick={() => navigate('/client/intelligence/seo-aeo-geo')}
+                >
+                  Create Project Now
+                </Button>
               </div>
-              <div style={{ flex: 1, minWidth: 300 }}>
-                <Text style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 800, letterSpacing: 1.5, display: 'block', marginBottom: 8 }}>MARKETING OPERATING SCORE</Text>
-                <Title level={2} style={{ margin: '0 0 12px 0', fontWeight: 800 }}>Marketing Health Score</Title>
-                {auditScore ? (
-                  <>
-                    <Tag style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: 12, fontWeight: 700, padding: '4px 16px', marginBottom: 16, fontSize: 14 }}>
-                      <CheckCircle2 size={16} style={{ marginRight: 6, verticalAlign: '-3px' }} /> Score Generated
-                    </Tag>
-                    <Text type="secondary" style={{ display: 'block', maxWidth: 600, fontSize: 15, fontWeight: 500, lineHeight: 1.6 }}>Your latest SEO audit score is <strong style={{color: 'var(--text-primary)'}}>{auditScore}</strong>. Keep optimizing to improve your performance.</Text>
-                  </>
-                ) : (
-                  <Text type="secondary" style={{ display: 'block', maxWidth: 600, fontSize: 15, fontWeight: 500, lineHeight: 1.6 }}>An SEO audit has not been generated yet for your account. Once your agency runs an audit, the score will appear here.</Text>
-                )}
-              </div>
-            </div>
-          </BubbleCard>
+            </BubbleCard>
+          )}
         </motion.div>
 
         {/* Deliverables and Upcoming Row */}

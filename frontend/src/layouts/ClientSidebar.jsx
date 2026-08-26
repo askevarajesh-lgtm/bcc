@@ -212,6 +212,7 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     // intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
     // intelligenceChildren.push({ key: '/client/intelligence/reporting', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
+    intelligenceChildren.push({ key: '/client/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO', featureId: 'seo-aeo-geo' });
   } else if (role === 'agency_client') {
     intelligenceChildren.push({ key: '/client/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics', featureId: 'analytics' });
     intelligenceChildren.push({ key: '/client/intelligence/chatgpt', icon: getIcon(MessageCircle), label: 'Chatgpt', featureId: 'chatgpt' });
@@ -219,10 +220,12 @@ const ClientSidebar = ({ collapsed, setCollapsed }) => {
     // intelligenceChildren.push({ key: '/client/intelligence/benchmarks', icon: getIcon(Activity), label: 'Benchmark', featureId: 'benchmark' });
     // intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
+    intelligenceChildren.push({ key: '/client/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO', featureId: 'seo-aeo-geo' });
   } else {
     intelligenceChildren.push({ key: '/client/intelligence/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics', featureId: 'analytics' });
     intelligenceChildren.push({ key: '/client/reports', icon: getIcon(FileText), label: 'Reports' });
     intelligenceChildren.push({ key: '/client/intelligence/seo', icon: getIcon(Search), label: 'Seo Intelligence', featureId: 'seo' });
+    intelligenceChildren.push({ key: '/client/intelligence/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO', featureId: 'seo-aeo-geo' });
   }
 
   if (intelligenceChildren.length > 0) {
