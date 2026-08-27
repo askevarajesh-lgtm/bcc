@@ -24,11 +24,12 @@ const StorefrontRendererContent = () => {
       const pages = Object.values(template?.pages || {});
       
       // Dynamically resolve Cart navigation
-      if (lowerHref.includes('cart') || lowerHref === 'cart') {
+      if (lowerHref.includes('cart') || lowerHref === 'cart' || lowerHref.includes('basket')) {
         const cartPage = pages.find(p => 
           String(p.role || '').toLowerCase() === 'cart' ||
           String(p.name || '').toLowerCase().includes('cart') ||
-          String(p.filename || '').toLowerCase().includes('cart')
+          String(p.fileName || p.filename || '').toLowerCase().includes('cart') ||
+          String(p.fileName || p.filename || '').toLowerCase().includes('basket')
         );
         if (cartPage) {
           return navigateTo(cartPage.id || Object.keys(template.pages).find(k => template.pages[k] === cartPage));
@@ -40,11 +41,13 @@ const StorefrontRendererContent = () => {
       }
       
       // Dynamically resolve Checkout navigation
-      if (lowerHref.includes('checkout') || lowerHref === 'checkout') {
+      if (lowerHref.includes('checkout') || lowerHref === 'checkout' || lowerHref.includes('cheackout') || lowerHref.includes('chackout')) {
         const checkoutPage = pages.find(p => 
           String(p.role || '').toLowerCase() === 'checkout' ||
           String(p.name || '').toLowerCase().includes('checkout') ||
-          String(p.filename || '').toLowerCase().includes('checkout')
+          String(p.fileName || p.filename || '').toLowerCase().includes('checkout') ||
+          String(p.fileName || p.filename || '').toLowerCase().includes('cheackout') ||
+          String(p.fileName || p.filename || '').toLowerCase().includes('chackout')
         );
         if (checkoutPage) {
           return navigateTo(checkoutPage.id || Object.keys(template.pages).find(k => template.pages[k] === checkoutPage));

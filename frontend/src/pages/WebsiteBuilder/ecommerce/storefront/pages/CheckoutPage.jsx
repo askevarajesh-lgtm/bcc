@@ -125,16 +125,25 @@ const CheckoutPage = () => {
         getField = scrapeInputByHint;
       }
 
+      // Prioritize analyzer mapping if available
+      const mapped = tpl.pages[currentPageId]?.mapping?.checkout || {};
+      const getMappedVal = (field) => {
+         const selector = mapped[field];
+         if(!selector) return '';
+         const input = formTarget ? formTarget.querySelector(selector) : document.querySelector(selector);
+         return input ? (input.value || '').trim() : '';
+      };
+
       const customerDetails = {
-        firstName: getField('first name', 'firstname', 'first_name', 'name'),
-        lastName: getField('last name', 'lastname', 'last_name'),
-        email: getField('email', 'e-mail', 'mail'),
-        phone: getField('phone', 'mobile', 'contact', 'cell'),
-        address: getField('address', 'street'),
-        city: getField('city', 'town'),
-        state: getField('state', 'province', 'region'),
-        postalCode: getField('zip', 'postal', 'postcode', 'pin'),
-        country: getField('country', 'nation')
+        firstName: getMappedVal('firstName') || getField('first name', 'firstname', 'first_name', 'name'),
+        lastName: getMappedVal('lastName') || getField('last name', 'lastname', 'last_name'),
+        email: getMappedVal('email') || getField('email', 'e-mail', 'mail'),
+        phone: getMappedVal('phone') || getField('phone', 'mobile', 'contact', 'cell'),
+        address: getMappedVal('address') || getField('address', 'street'),
+        city: getMappedVal('city') || getField('city', 'town'),
+        state: getMappedVal('state') || getField('state', 'province', 'region'),
+        postalCode: getMappedVal('postalCode') || getField('zip', 'postal', 'postcode', 'pin'),
+        country: getMappedVal('country') || getField('country', 'nation')
       };
       
       // Combine name if first/last name used

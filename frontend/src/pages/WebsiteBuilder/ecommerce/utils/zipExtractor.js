@@ -48,24 +48,38 @@ export const processZipFile = async (file) => {
           let role = 'Other';
           let name = baseName.charAt(0).toUpperCase() + baseName.slice(1);
 
-          if (lowerName === 'index' || lowerName === 'home' || lowerName === 'main') {
+          const normName = lowerName.replace(/[-_]/g, '');
+          
+          if (normName === 'index' || normName === 'home' || normName === 'main') {
             role = 'Home';
             name = 'Home';
-          } else if (lowerName.includes('list') || lowerName.includes('shop') || lowerName === 'products') {
+          } else if (normName.includes('list') || normName.includes('shop') || normName === 'products') {
             role = 'Product Listing';
             name = 'Product Listing';
-          } else if (lowerName.includes('detail') || lowerName.includes('single') || lowerName === 'product') {
+          } else if (normName.includes('detail') || normName.includes('single') || normName === 'product') {
             role = 'Product Detail';
             name = 'Product Detail';
-          } else if (lowerName.includes('cart')) {
+          } else if (normName.includes('cart') || normName.includes('basket')) {
             role = 'Cart';
             name = 'Cart';
-          } else if (lowerName.includes('checkout')) {
+          } else if (normName.includes('checkout') || normName.includes('cheackout') || normName.includes('chackout')) {
             role = 'Checkout';
             name = 'Checkout';
-          } else if (lowerName.includes('contact')) {
+          } else if (normName.includes('contact')) {
             role = 'Contact';
             name = 'Contact';
+          }
+          
+          // Content-based fallback if role is still Other
+          if (role === 'Other') {
+              const lowerHtml = sanitizedContent.toLowerCase();
+              if (lowerHtml.includes('billing address') && lowerHtml.includes('payment') && lowerHtml.includes('<form')) {
+                  role = 'Checkout';
+                  name = 'Checkout';
+              } else if (lowerHtml.includes('quantity') && lowerHtml.includes('price') && lowerHtml.includes('total') && (lowerHtml.includes('<table') || lowerHtml.includes('cart'))) {
+                  role = 'Cart';
+                  name = 'Cart';
+              }
           }
 
           pages[relativePath] = {

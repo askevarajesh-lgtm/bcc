@@ -101,10 +101,11 @@ const StorefrontPage = ({ page, assets, children, portalSelector }) => {
       }
 
       // Check for checkout clicks
+      const hrefLower = href.toLowerCase();
       const isCheckoutUrl = [
         'checkout.html', './checkout.html', '/checkout.html', '#checkout', 
-        'checkout'
-      ].includes(href.toLowerCase());
+        'checkout', 'cheackout.html', 'chackout.html'
+      ].includes(hrefLower) || hrefLower.includes('checkout') || hrefLower.includes('cheackout') || hrefLower.includes('chackout');
       const hasCheckoutText = text === 'checkout';
 
       if (isCheckoutUrl || hasCheckoutText) {

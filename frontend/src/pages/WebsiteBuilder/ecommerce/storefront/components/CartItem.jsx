@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { useStorefront } from '../StorefrontContext';
 import { formatCurrency } from '../../utils/currency';
 
-const CartItem = ({ item, templateHtml }) => {
+const CartItem = ({ item, templateHtml, mapping }) => {
   const { updateQty, removeFromCart, workspaceId, websiteId, storeId } = useStorefront();
   const containerRef = useRef(null);
 
@@ -38,7 +38,10 @@ const CartItem = ({ item, templateHtml }) => {
     };
 
     // Image
-    let imgEls = Array.from(itemEl.querySelectorAll('img, [class*="thumb"], [class*="img"]'));
+    let imgEls = [];
+    if (mapping?.cart?.image) imgEls = Array.from(itemEl.querySelectorAll(mapping.cart.image));
+    if (imgEls.length === 0) imgEls = Array.from(itemEl.querySelectorAll('img, [class*="thumb"], [class*="img"]'));
+    
     if (imgEls.length === 0 && cols.length > 0) {
       const img = doc.createElement('img');
       img.style.width = '50px';
@@ -56,10 +59,19 @@ const CartItem = ({ item, templateHtml }) => {
     });
 
     // Name
-    const nameWalker = document.createTreeWalker(cols[0] || itemEl, NodeFilter.SHOW_TEXT, null, false);
     let nameNode;
     let nameReplaced = false;
-    while (nameNode = nameWalker.nextNode()) {
+    if (mapping?.cart?.name) {
+       const mappedName = itemEl.querySelector(mapping.cart.name);
+       if (mappedName) {
+         replaceDeepText(mappedName, item.name);
+         nameReplaced = true;
+       }
+    }
+    
+    if (!nameReplaced) {
+      const nameWalker = document.createTreeWalker(cols[0] || itemEl, NodeFilter.SHOW_TEXT, null, false);
+      while (nameNode = nameWalker.nextNode()) {
       const txt = nameNode.textContent.trim();
       if (txt !== '') {
         if (!nameReplaced) {
@@ -73,7 +85,7 @@ const CartItem = ({ item, templateHtml }) => {
         }
       }
     }
-    
+    }
     // If we didn't find any text node to replace, inject a span for the name
     if (!nameReplaced && (cols[0] || itemEl)) {
       const span = doc.createElement('span');
@@ -82,10 +94,22 @@ const CartItem = ({ item, templateHtml }) => {
     }
 
     // Price
-    let priceEls = Array.from(itemEl.querySelectorAll('[class*="price"]'));
+    let priceEls = [];
+    if (mapping?.cart?.price) {
+        const found = itemEl.querySelector(mapping.cart.price);
+        if (found) priceEls.push(found);
+    }
+    if (mapping?.cart?.lineTotal) {
+        const found = itemEl.querySelector(mapping.cart.lineTotal);
+        if (found) priceEls.push(found);
+    }
+    
     if (priceEls.length === 0) {
-      if (cols.length >= 2) priceEls.push(cols[1]);
-      if (cols.length >= 4) priceEls.push(cols[3]); // Total
+      priceEls = Array.from(itemEl.querySelectorAll('[class*="price"]'));
+      if (priceEls.length === 0) {
+        if (cols.length >= 2) priceEls.push(cols[1]);
+        if (cols.length >= 4) priceEls.push(cols[3]); // Total
+      }
     }
     
     if (priceEls.length > 0) {
@@ -96,7 +120,14 @@ const CartItem = ({ item, templateHtml }) => {
     }
 
     // Quantity Input
-    let inputEls = Array.from(itemEl.querySelectorAll('input[type="number"], input[name="quantity"], [class*="qty"] input'));
+    let inputEls = [];
+    if (mapping?.cart?.quantityInput) {
+       inputEls = Array.from(itemEl.querySelectorAll(mapping.cart.quantityInput));
+    }
+    if (inputEls.length === 0) {
+       inputEls = Array.from(itemEl.querySelectorAll('input[type="number"], input[name="quantity"], [class*="qty"] input'));
+    }
+    
     if (inputEls.length === 0) {
       const anyInputs = itemEl.querySelectorAll('input');
       if (anyInputs.length > 0) {
@@ -120,7 +151,14 @@ const CartItem = ({ item, templateHtml }) => {
     });
 
     // Remove Button
-    let removeEls = Array.from(itemEl.querySelectorAll('[class*="remove"], [class*="delete"], .btn-remove'));
+    let removeEls = [];
+    if (mapping?.cart?.removeBtn) {
+       removeEls = Array.from(itemEl.querySelectorAll(mapping.cart.removeBtn));
+    }
+    if (removeEls.length === 0) {
+       removeEls = Array.from(itemEl.querySelectorAll('[class*="remove"], [class*="delete"], .btn-remove'));
+    }
+    
     if (removeEls.length === 0 && cols.length >= 5) {
       let btn = cols[4].querySelector('button, a');
       if (!btn) {
