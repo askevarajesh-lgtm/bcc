@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useClientContext } from '../../contexts/ClientContext';
 import {
   useGetEventsQuery, useGetEventByIdQuery, useGetCalendarAnalyticsQuery,
   useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
@@ -42,6 +43,7 @@ const cardStyle = (isDark) => ({
 const CalendarPage = () => {
   const { user: currentUser } = useAuth();
   const { isDark } = useTheme();
+  const { selectedClient } = useClientContext();
   const userRole = currentUser?.role;
 
   // Tabs state
@@ -52,6 +54,17 @@ const CalendarPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
+
+  // Auto-apply global client context — when a client is switched via the top bar,
+  // the calendar should show only that client's activities.
+  const effectiveClientId = selectedClient?._id || clientFilter || '';
+
+  // When selectedClient changes, clear the manual client filter to avoid conflicts
+  useEffect(() => {
+    if (selectedClient?._id) {
+      setClientFilter('');
+    }
+  }, [selectedClient?._id]);
 
   // Calendar dates range
   const [dateRange, setDateRange] = useState({
@@ -64,9 +77,20 @@ const CalendarPage = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
-  
+  // selectedEvent holds the full event object so the detail modal can render
+  // immediately without an API call for system-generated activities
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
   const [dayModalVisible, setDayModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // Helper: open the detail modal for any event object
+  const openDetailModal = (item) => {
+    setSelectedEvent(item);
+    // Only trigger the API lookup for custom calendar events (need notes/attachments)
+    setSelectedEventId(item.source === 'custom' || item.source === 'meeting' || item.source === 'task' ? item._id : null);
+    setDetailModalVisible(true);
+  };
 
   // Note/Attachment inputs
   const [noteContent, setNoteContent] = useState('');
@@ -79,7 +103,7 @@ const CalendarPage = () => {
   const { data: eventsResponse, refetch: refetchEvents, isLoading: isLoadingEvents } = useGetEventsQuery({
     search,
     eventType: typeFilter,
-    clientId: clientFilter,
+    clientId: effectiveClientId,
     startDate: dateRange.startDate,
     endDate: dateRange.endDate
   });
@@ -113,10 +137,10 @@ const CalendarPage = () => {
   const leads = leadsData?.data?.leads || leadsData?.data || [];
   const projects = projectsData?.data?.projects || projectsData?.data || [];
 
-  // Re-fetch on filter changes
+  // Re-fetch on filter changes (including global client switch)
   useEffect(() => {
     refetchEvents();
-  }, [search, statusFilter, typeFilter, clientFilter, dateRange]);
+  }, [search, statusFilter, typeFilter, effectiveClientId, dateRange]);
 
   // Handle drawer close
   const closeDrawer = () => {
@@ -275,33 +299,73 @@ const CalendarPage = () => {
 
   const calendarDateCellRender = (value) => {
     const listData = getCalendarListData(value);
+
+    // Color map per source: [background, text, border]
+    const sourceColors = {
+      meeting:              ['#dbeafe', '#1d4ed8', '#93c5fd'],
+      task:                 ['#fef3c7', '#b45309', '#fcd34d'],
+      lead:                 ['#fee2e2', '#b91c1c', '#fca5a5'],
+      client_creation:      ['#e0f2fe', '#0369a1', '#7dd3fc'],
+      proposal_created:     ['#ede9fe', '#6d28d9', '#c4b5fd'],
+      invoice_created:      ['#d1fae5', '#065f46', '#6ee7b7'],
+      project_created:      ['#ecfccb', '#3f6212', '#a3e635'],
+      transaction_recorded: ['#fef9c3', '#854d0e', '#fde047'],
+      seo_project_created:  ['#ffedd5', '#9a3412', '#fb923c'],
+      task_created:         ['#fce7f3', '#9d174d', '#f9a8d4'],
+      campaign_created:     ['#fee2e2', '#991b1b', '#f87171'],
+      deal_created:         ['#f3e8ff', '#6b21a8', '#d8b4fe'],
+      custom:               ['#dcfce7', '#14532d', '#86efac'],
+    };
+
     return (
-      <ul className="events" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {listData.map(item => (
-          <li key={item._id} style={{ margin: '2px 0' }}>
-            <Tooltip title={`${item.title} (${dayjs(item.startDateTime).format('h:mm a')})`}>
-              <Badge
-                status={
-                  item.source === 'meeting' ? 'processing' :
-                  item.source === 'task' ? 'warning' : 
-                  item.source === 'client_creation' ? 'default' : 'success'
-                }
-                text={
-                  <span
-                    style={{ fontSize: '11px', display: 'inline-block', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEventId(item._id);
-                      setDetailModalVisible(true);
-                    }}
-                  >
-                    {item.title}
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '90px', overflowY: 'auto' }}>
+        {listData.map(item => {
+          const [bg, text, border] = sourceColors[item.source] || ['#f3f4f6', '#374151', '#d1d5db'];
+          // Strip the bracket prefix like "[Proposal Created] " → keep just the name
+          const cleanTitle = item.title.replace(/^\[[^\]]+\]\s*/, '');
+          return (
+            <li key={item._id} style={{ marginBottom: '3px' }}>
+              <Tooltip title={`${item.title} · ${dayjs(item.startDateTime).format('h:mm a')}`}>
+                <div
+                  onClick={(e) => { e.stopPropagation(); openDetailModal(item); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: bg,
+                    border: `1px solid ${border}`,
+                    borderRadius: '4px',
+                    padding: '1px 6px',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    transition: 'opacity 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: text,
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: text,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '110px',
+                  }}>
+                    {cleanTitle}
                   </span>
-                }
-              />
-            </Tooltip>
-          </li>
-        ))}
+                </div>
+              </Tooltip>
+            </li>
+          );
+        })}
       </ul>
     );
   };
@@ -380,13 +444,21 @@ const CalendarPage = () => {
       key: 'source',
       render: (source) => {
         const sourceMap = {
-          meeting: { color: 'blue', label: 'Meetings' },
-          task: { color: 'purple', label: 'Task Milestones' },
-          lead: { color: 'orange', label: 'CRM Leads' },
-          client_creation: { color: 'cyan', label: 'Client Creation' },
-          custom: { color: 'green', label: 'Calendar Custom' }
+          meeting:              { color: 'blue',    label: 'Meeting' },
+          task:                 { color: 'purple',  label: 'Task (Due Date)' },
+          lead:                 { color: 'orange',  label: 'CRM Lead Followup' },
+          client_creation:      { color: 'cyan',    label: 'Client Created' },
+          proposal_created:     { color: 'geekblue',label: 'Proposal Created' },
+          invoice_created:      { color: 'green',   label: 'Invoice Created' },
+          project_created:      { color: 'lime',    label: 'Project Created' },
+          transaction_recorded: { color: 'gold',    label: 'Transaction Recorded' },
+          seo_project_created:  { color: 'volcano', label: 'SEO Project Created' },
+          task_created:         { color: 'magenta', label: 'Task Created' },
+          campaign_created:     { color: 'red',     label: 'Campaign Created' },
+          deal_created:         { color: 'purple',  label: 'Deal Created' },
+          custom:               { color: 'green',   label: 'Calendar Custom' },
         };
-        const item = sourceMap[source] || { color: 'default', label: 'Custom' };
+        const item = sourceMap[source] || { color: 'default', label: source || 'Custom' };
         return <Tag color={item.color}>{item.label}</Tag>;
       }
     },
@@ -604,9 +676,16 @@ const CalendarPage = () => {
                 </Col>
                 <Col xs={24} md={12}>
                   <Card title="Activity Summary Breakdown" style={cardStyle(isDark)}>
-                    <p>Total custom events: <strong>{analytics?.customEventsCount || 0}</strong></p>
-                    <p>Total linked Meetings: <strong>{analytics?.meetingsCount || 0}</strong></p>
-                    <p>Total linked Deliverables/Tasks: <strong>{analytics?.tasksCount || 0}</strong></p>
+                    <p>Custom Events: <strong>{analytics?.customEventsCount || 0}</strong></p>
+                    <p>Meetings: <strong>{analytics?.meetingsCount || 0}</strong></p>
+                    <p>Tasks (by due date): <strong>{analytics?.tasksCount || 0}</strong></p>
+                    <p>Proposals Created: <strong>{analytics?.proposalsCount || 0}</strong></p>
+                    <p>Invoices Created: <strong>{analytics?.invoicesCount || 0}</strong></p>
+                    <p>Projects Created: <strong>{analytics?.projectsCount || 0}</strong></p>
+                    <p>Transactions Recorded: <strong>{analytics?.transactionsCount || 0}</strong></p>
+                    <p>SEO Projects Created: <strong>{analytics?.seoProjectsCount || 0}</strong></p>
+                    <p>Campaigns Created: <strong>{analytics?.campaignsCount || 0}</strong></p>
+                    <p>Sales Deals Created: <strong>{analytics?.dealsCount || 0}</strong></p>
                   </Card>
                 </Col>
               </Row>
@@ -747,157 +826,224 @@ const CalendarPage = () => {
         </Form>
       </Drawer>
 
-      {/* Detail Modal */}
+      {/* Detail Modal — renders directly from selectedEvent; no API call needed for system activities */}
       <Modal
         title={
-          <div>
-            <span style={{ fontSize: '18px', fontWeight: 600 }}>{detailData?.event?.title}</span>
-            <div style={{ marginTop: 4 }}>
-              {detailData?.event && getStatusTag(detailData.event.status)}
+          selectedEvent ? (
+            <div>
+              <span style={{ fontSize: '18px', fontWeight: 600 }}>{selectedEvent.title}</span>
+              <div style={{ marginTop: 4 }}>{getStatusTag(selectedEvent.status)}</div>
             </div>
-          </div>
+          ) : null
         }
         open={detailModalVisible}
         onCancel={() => {
           setDetailModalVisible(false);
           setSelectedEventId(null);
+          setSelectedEvent(null);
         }}
         footer={null}
         width={720}
         styles={{ body: { padding: '0 24px 24px 24px' } }}
       >
-        {detailData ? (
-          <Tabs
-            defaultActiveKey="overview"
-            style={{ marginTop: '16px' }}
-            items={[
-              {
-                key: 'overview',
-                label: 'Overview',
-                children: (
-                  <Row gutter={16}>
-                    <Col span={14}>
-                      <p><strong>Description:</strong></p>
-                      <p>{detailData.event?.notes || 'No notes provided.'}</p>
+        {selectedEvent ? (() => {
+          // Use full selectedEvent for immediate rendering
+          const ev = detailData?.event || selectedEvent;
+          const isCustom = selectedEvent.source === 'custom';
 
-                      <p><strong>Schedule:</strong> {detailData.event?.startDateTime ? dayjs(detailData.event.startDateTime).format('MMMM DD, YYYY') : 'N/A'} at {detailData.event?.startDateTime ? dayjs(detailData.event.startDateTime).format('h:mm a') : ''} - {detailData.event?.endDateTime ? dayjs(detailData.event.endDateTime).format('h:mm a') : ''}</p>
+          // Source label map
+          const sourceLabels = {
+            meeting: 'Meeting',
+            task: 'Task (Due Date)',
+            lead: 'CRM Lead Followup',
+            client_creation: 'Client Created',
+            proposal_created: 'Proposal Created',
+            invoice_created: 'Invoice Created',
+            project_created: 'Project Created',
+            transaction_recorded: 'Transaction Recorded',
+            seo_project_created: 'SEO Project Created',
+            task_created: 'Task Created',
+            campaign_created: 'Campaign Created',
+            deal_created: 'Deal Created',
+            custom: 'Calendar Custom',
+          };
 
-                      {detailData.event?.meetingLink && (
-                        <Button
-                          type="primary"
-                          icon={<LinkOutlined />}
-                          href={detailData.event.meetingLink}
-                          target="_blank"
-                          style={{ marginBottom: '16px' }}
-                        >
-                          Join Meeting Link
-                        </Button>
-                      )}
-
-                      <Divider />
-
-                      <p><strong>Host:</strong> {detailData.event?.host?.name || 'N/A'}</p>
-                      <p><strong>Attendees:</strong></p>
-                      <List
-                        size="small"
-                        dataSource={Array.isArray(detailData.event?.attendees) ? detailData.event.attendees : []}
-                        renderItem={p => (
-                          <List.Item key={p._id}>
-                            <Space>
-                              <Avatar size="small" icon={<UserOutlined />} src={p.logo} />
-                              <span>{p.name} ({p.role})</span>
-                            </Space>
-                          </List.Item>
-                        )}
-                      />
-                    </Col>
-
-                    <Col span={10}>
-                      <Card title="Origin Details" size="small">
-                        <p>Origin: <strong>{detailData.event?.source ? detailData.event.source.toUpperCase() : 'CALENDAR'}</strong></p>
-                        {detailData.event?.clientId && <p>Client: {detailData.event.clientId.companyName || detailData.event.clientId.name}</p>}
-                        {detailData.event?.projectId && <p>Project: {detailData.event.projectId.name}</p>}
-                      </Card>
-                    </Col>
-                  </Row>
-                ),
-              },
-              ...(detailData.event?.source === 'custom' ? [
+          return (
+            <Tabs
+              defaultActiveKey="overview"
+              style={{ marginTop: '16px' }}
+              items={[
                 {
-                  key: 'notes',
-                  label: 'Event Notes',
+                  key: 'overview',
+                  label: 'Overview',
                   children: (
-                    <>
-                      <List
-                        dataSource={Array.isArray(detailData.notes) ? detailData.notes : []}
-                        style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}
-                        renderItem={note => (
-                          <List.Item key={note._id}>
-                            <List.Item.Meta
-                              avatar={<Avatar icon={<UserOutlined />} />}
-                              title={<span>{note.createdBy?.name || 'User'} <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{dayjs(note.createdAt).format('MMM D, h:mm a')}</span></span>}
-                              description={note.content}
-                            />
-                          </List.Item>
+                    <Row gutter={16}>
+                      <Col span={14}>
+                        <p><strong>Description / Notes:</strong></p>
+                        <p style={{ color: '#555', lineHeight: 1.7 }}>{ev.notes || 'No additional notes.'}</p>
+
+                        <p style={{ marginTop: 16 }}>
+                          <strong>Date:</strong>{' '}
+                          {ev.startDateTime ? dayjs(ev.startDateTime).format('MMMM DD, YYYY') : 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Time:</strong>{' '}
+                          {ev.startDateTime ? dayjs(ev.startDateTime).format('h:mm a') : ''}{' — '}
+                          {ev.endDateTime ? dayjs(ev.endDateTime).format('h:mm a') : ''}
+                        </p>
+
+                        {ev.location && ev.location !== 'System' && (
+                          <p><strong>Location:</strong> {ev.location}</p>
                         )}
-                      />
-                      <Divider />
-                      <Form.Item label="Add note / comment">
-                        <TextArea
-                          rows={3}
-                          value={noteContent}
-                          onChange={e => setNoteContent(e.target.value)}
-                          placeholder="Type details or discussions..."
+
+                        {ev.meetingLink && (
+                          <Button
+                            type="primary"
+                            icon={<LinkOutlined />}
+                            href={ev.meetingLink}
+                            target="_blank"
+                            style={{ marginBottom: '16px' }}
+                          >
+                            Join Meeting Link
+                          </Button>
+                        )}
+
+                        {(ev.host?.name || (Array.isArray(ev.attendees) && ev.attendees.length > 0)) && (
+                          <>
+                            <Divider />
+                            {ev.host?.name && <p><strong>Host / Created By:</strong> {ev.host.name}</p>}
+                            {Array.isArray(ev.attendees) && ev.attendees.length > 0 && (
+                              <>
+                                <p><strong>Attendees:</strong></p>
+                                <List
+                                  size="small"
+                                  dataSource={ev.attendees}
+                                  renderItem={p => (
+                                    <List.Item key={p._id || p}>
+                                      <Space>
+                                        <Avatar size="small" icon={<UserOutlined />} src={p.logo} />
+                                        <span>{p.name || p}</span>
+                                      </Space>
+                                    </List.Item>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </>
+                        )}
+                      </Col>
+
+                      <Col span={10}>
+                        <Card
+                          title="Activity Details"
+                          size="small"
+                          style={{ borderRadius: 8 }}
+                          bodyStyle={{ padding: '12px 16px' }}
+                        >
+                          <p style={{ marginBottom: 8 }}>
+                            <strong>Module:</strong>{' '}
+                            <Tag color="geekblue" style={{ marginLeft: 4 }}>
+                              {sourceLabels[selectedEvent.source] || selectedEvent.source}
+                            </Tag>
+                          </p>
+                          <p style={{ marginBottom: 8 }}>
+                            <strong>Status:</strong> {getStatusTag(ev.status)}
+                          </p>
+                          {ev.clientId && (
+                            <p style={{ marginBottom: 8 }}>
+                              <strong>Client:</strong>{' '}
+                              {ev.clientId?.companyName || ev.clientId?.name || 'N/A'}
+                            </p>
+                          )}
+                          {ev.projectId && (
+                            <p style={{ marginBottom: 8 }}>
+                              <strong>Project:</strong>{' '}
+                              {ev.projectId?.name || 'N/A'}
+                            </p>
+                          )}
+                        </Card>
+                      </Col>
+                    </Row>
+                  ),
+                },
+                // Notes & Attachments tabs only for custom calendar events
+                ...(isCustom ? [
+                  {
+                    key: 'notes',
+                    label: 'Event Notes',
+                    children: (
+                      <>
+                        <List
+                          dataSource={Array.isArray(detailData?.notes) ? detailData.notes : []}
+                          style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}
+                          renderItem={note => (
+                            <List.Item key={note._id}>
+                              <List.Item.Meta
+                                avatar={<Avatar icon={<UserOutlined />} />}
+                                title={<span>{note.createdBy?.name || 'User'} <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{dayjs(note.createdAt).format('MMM D, h:mm a')}</span></span>}
+                                description={note.content}
+                              />
+                            </List.Item>
+                          )}
                         />
-                        <Button
-                          type="primary"
-                          style={{ marginTop: 12 }}
-                          onClick={handleAddNote}
-                          loading={isAddingNote}
-                        >
-                          Post Note
-                        </Button>
-                      </Form.Item>
-                    </>
-                  ),
-                },
-                {
-                  key: 'attachments',
-                  label: 'Attachments',
-                  children: (
-                    <>
-                      <List
-                        dataSource={Array.isArray(detailData.attachments) ? detailData.attachments : []}
-                        renderItem={att => (
-                          <List.Item key={att._id}>
-                            <Space>
-                              <PaperClipOutlined />
-                              <a href={att.url} target="_blank" rel="noreferrer">{att.fileName}</a>
-                            </Space>
-                          </List.Item>
-                        )}
-                      />
-                      <Divider />
-                      <h4>Link Proposal / Doc Link</h4>
-                      <Form layout="vertical">
-                        <Form.Item label="Document Name" required>
-                          <Input value={attachmentName} onChange={e => setAttachmentName(e.target.value)} placeholder="e.g. SEO Campaign Proposal" />
+                        <Divider />
+                        <Form.Item label="Add note / comment">
+                          <TextArea
+                            rows={3}
+                            value={noteContent}
+                            onChange={e => setNoteContent(e.target.value)}
+                            placeholder="Type details or discussions..."
+                          />
+                          <Button
+                            type="primary"
+                            style={{ marginTop: 12 }}
+                            onClick={handleAddNote}
+                            loading={isAddingNote}
+                          >
+                            Post Note
+                          </Button>
                         </Form.Item>
-                        <Form.Item label="Document URL" required>
-                          <Input value={attachmentUrl} onChange={e => setAttachmentUrl(e.target.value)} placeholder="https://drive.google.com/..." />
-                        </Form.Item>
-                        <Button type="primary" onClick={handleAddAttachment}>
-                          Add Document
-                        </Button>
-                      </Form>
-                    </>
-                  ),
-                },
-              ] : []),
-            ]}
-          />
-        ) : (
-          <div style={{ textAlign: 'center', padding: '24px' }}>Loading event metadata...</div>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'attachments',
+                    label: 'Attachments',
+                    children: (
+                      <>
+                        <List
+                          dataSource={Array.isArray(detailData?.attachments) ? detailData.attachments : []}
+                          renderItem={att => (
+                            <List.Item key={att._id}>
+                              <Space>
+                                <PaperClipOutlined />
+                                <a href={att.url} target="_blank" rel="noreferrer">{att.fileName}</a>
+                              </Space>
+                            </List.Item>
+                          )}
+                        />
+                        <Divider />
+                        <h4>Link Proposal / Doc Link</h4>
+                        <Form layout="vertical">
+                          <Form.Item label="Document Name" required>
+                            <Input value={attachmentName} onChange={e => setAttachmentName(e.target.value)} placeholder="e.g. SEO Campaign Proposal" />
+                          </Form.Item>
+                          <Form.Item label="Document URL" required>
+                            <Input value={attachmentUrl} onChange={e => setAttachmentUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                          </Form.Item>
+                          <Button type="primary" onClick={handleAddAttachment}>
+                            Add Document
+                          </Button>
+                        </Form>
+                      </>
+                    ),
+                  },
+                ] : []),
+              ]}
+            />
+          );
+        })() : (
+          <div style={{ textAlign: 'center', padding: '24px' }}>Select an activity to view details.</div>
         )}
       </Modal>
 
@@ -914,17 +1060,17 @@ const CalendarPage = () => {
       >
         <List
           itemLayout="horizontal"
+          style={{ maxHeight: '60vh', overflowY: 'auto' }}
           dataSource={selectedDate ? events.filter(e => dayjs(e.startDateTime).format('YYYY-MM-DD') === selectedDate) : []}
           renderItem={item => (
             <List.Item
               actions={[
-                <Button 
-                  type="link" 
-                  size="small" 
+                <Button
+                  type="link"
+                  size="small"
                   onClick={() => {
                     setDayModalVisible(false);
-                    setSelectedEventId(item._id);
-                    setDetailModalVisible(true);
+                    openDetailModal(item);
                   }}
                 >
                   View Details

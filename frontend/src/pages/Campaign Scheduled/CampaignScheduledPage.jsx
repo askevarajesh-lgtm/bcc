@@ -24,6 +24,7 @@ import ReviewsView from "./ReviewsView";
 import { campaignScheduledApi, getCookie } from "./api";
 import "./campaignScheduled.css";
 import { useAuth } from "../../contexts/AuthContext";
+import { useClientContext } from "../../contexts/ClientContext";
 import NoClientSelected from "./NoClientSelected";
 import DashboardView from "./DashboardView";
 
@@ -67,9 +68,11 @@ export default function CampaignScheduledPage() {
   const [gbDiscoveryId, setGbDiscoveryId] = useState(null);
   const [gbConnecting, setGbConnecting] = useState(false);
   const { user } = useAuth();
-  const headerSelectedClientId = null; // Replaced Redux client scope
+  const { selectedClient } = useClientContext();
+  const headerSelectedClientId = selectedClient?._id || null;
 
   const getInitialActiveClientId = () => {
+    if (headerSelectedClientId) return headerSelectedClientId;
     const isClientRole = ["client", "agency_client", "brand_super_admin", "brand_manager", "brand_team_user"].includes(user?.role) || (user?.role === "user" && user?.brandId);
     if (isClientRole && (user?.clientId || user?.brandId || user?._id)) return user.clientId || user.brandId || user._id;
     return null;

@@ -5,6 +5,7 @@ import { LayoutProvider } from './contexts/LayoutContext';
 import { FeatureProvider } from './contexts/FeatureContext';
 import SignIn from './pages/SignIn/SignIn';
 import ForgotPassword from './pages/SignIn/ForgotPassword';
+import { ClientProvider } from './contexts/ClientContext';
 
 // Layouts
 import AppLayout from './layouts/AppLayout';
@@ -692,11 +693,13 @@ function App() {
     <Router>
       <ScrollToTop />
       <AuthProvider>
-        <FeatureProvider>
-          <LayoutProvider>
-            <AppRoutes />
-          </LayoutProvider>
-        </FeatureProvider>
+        <ClientProvider>
+          <FeatureProvider>
+            <LayoutProvider>
+              <AppRoutes />
+            </LayoutProvider>
+          </FeatureProvider>
+        </ClientProvider>
       </AuthProvider>
     </Router>
   );

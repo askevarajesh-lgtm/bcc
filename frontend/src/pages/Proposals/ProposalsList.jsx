@@ -3,6 +3,7 @@ import { Card, Typography, Button, Table, Tag, Space, message, Popconfirm, Modal
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useActionPermissions } from '../../hooks/useActionPermissions';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -28,13 +29,9 @@ const ProposalsList = () => {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch('/api/proposals', {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProposals(data.data);
+      const res = await api.get('/proposals');
+      if (res.data?.success) {
+        setProposals(res.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch proposals:', error);
@@ -46,17 +43,12 @@ const ProposalsList = () => {
 
   const handleDelete = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/proposals/${id}`, {
-        method: 'DELETE',
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
+      const res = await api.delete(`/proposals/${id}`);
+      if (res.data?.success) {
         message.success('Proposal deleted successfully');
         fetchProposals();
       } else {
-        message.error(data.message || 'Failed to delete proposal');
+        message.error(res.data?.message || 'Failed to delete proposal');
       }
     } catch (error) {
       console.error('Failed to delete proposal:', error);

@@ -58,6 +58,10 @@ exports.getSlaDashboardStats = async (req, res, next) => {
       match.clientId = req.user.brandId || userId;
     }
 
+    if (req.selectedClientId) {
+      match.clientId = req.selectedClientId;
+    }
+
     const slas = await SlaRecord.find(match);
 
     const stats = {
@@ -139,6 +143,15 @@ exports.getSlas = async (req, res, next) => {
       ];
     } else if (role === 'client' || role === 'agency_client' || role === 'brand_manager' || role === 'brand_super_admin') {
       query.clientId = req.user.brandId || userId;
+    }
+
+    if (req.selectedClientId) {
+      query.clientId = req.selectedClientId;
+      if (query.$or) {
+        // Remove agencyId/clientId $or condition if it exists, since we are overriding with clientId
+        query.$or = query.$or.filter(c => !c.agencyId && !c.clientId);
+        if (query.$or.length === 0) delete query.$or;
+      }
     }
 
     if (status && status !== 'All') query.status = status;

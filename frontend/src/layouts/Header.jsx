@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Avatar, Badge, Button, Dropdown, Grid, Layout, Popover, List, Typography, Spin } from 'antd';
+import { Avatar, Badge, Button, Dropdown, Grid, Layout, Popover, List, Typography, Spin, Select } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import {
   Bell,
@@ -13,6 +13,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLayoutContext } from '../contexts/LayoutContext';
+import { useClientContext } from '../contexts/ClientContext';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../services/api';
 
@@ -24,6 +25,7 @@ const Header = ({ collapsed, setCollapsed }) => {
   const { isDark, toggleTheme } = useTheme();
   const { role, user, logout } = useAuth();
   const { toggleMobileMenu } = useLayoutContext();
+  const { selectedClient, switchClient, agencyClients } = useClientContext();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = useBreakpoint();
@@ -32,6 +34,12 @@ const Header = ({ collapsed, setCollapsed }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [notifsVisible, setNotifsVisible] = useState(false);
+  
+  const [draftSelectedClientId, setDraftSelectedClientId] = useState(selectedClient?._id || 'all');
+
+  useEffect(() => {
+    setDraftSelectedClientId(selectedClient?._id || 'all');
+  }, [selectedClient]);
 
   useEffect(() => {
     fetchNotifications();
@@ -281,6 +289,40 @@ const Header = ({ collapsed, setCollapsed }) => {
       </div>
 
       <div className="app-header__actions">
+        {['agency_super_admin', 'agency_manager', 'agency', 'commander_admin'].includes(role) && (
+          <div style={{ marginRight: 16, display: 'flex', alignItems: 'center' }}>
+            <Select
+              showSearch
+              placeholder="All Clients"
+              optionFilterProp="children"
+              value={draftSelectedClientId}
+              onChange={(val) => setDraftSelectedClientId(val)}
+              style={{ width: 220 }}
+            >
+              <Select.Option value="all">All Clients</Select.Option>
+              {agencyClients.map(c => (
+                <Select.Option key={c._id} value={c._id}>
+                  {c.name || c.companyName}
+                </Select.Option>
+              ))}
+            </Select>
+            <Button 
+              type="primary" 
+              style={{ marginLeft: 8 }}
+              onClick={() => {
+                if (draftSelectedClientId === 'all') {
+                  switchClient(null);
+                } else {
+                  const client = agencyClients.find(c => c._id === draftSelectedClientId);
+                  switchClient(client);
+                }
+              }}
+            >
+              Switch
+            </Button>
+          </div>
+        )}
+
         {origUser && (
           <Button
             type="primary"

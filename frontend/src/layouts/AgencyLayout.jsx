@@ -4,11 +4,13 @@ import { Outlet } from 'react-router-dom';
 import AgencySidebar from './AgencySidebar';
 import Header from './Header';
 import PageTransition from '../components/PageTransition';
+import { useClientContext } from '../contexts/ClientContext';
 
 const { Content } = Layout;
 
 const AgencyLayout = () => {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 1300);
+  const { selectedClient } = useClientContext();
 
   useEffect(() => {
     const handleResize = () => {
@@ -28,7 +30,7 @@ const AgencyLayout = () => {
       <AgencySidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <Layout className="app-main-shell">
         <Header collapsed={collapsed} setCollapsed={setCollapsed} />
-        <Content className="app-content">
+        <Content key={selectedClient?._id || 'all'} className="app-content">
           <div className="app-content__inner">
             <Outlet />
           </div>

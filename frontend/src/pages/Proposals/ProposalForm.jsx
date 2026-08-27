@@ -4,6 +4,7 @@ import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 import dayjs from 'dayjs';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -35,13 +36,10 @@ const ProposalForm = () => {
   const fetchProposal = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/proposals/${id}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        const proposal = data.data;
+      setLoading(true);
+      const res = await api.get(`/proposals/${id}`);
+      if (res.data?.success) {
+        const proposal = res.data.data;
         form.setFieldsValue({
           name: proposal.name,
           clientId: proposal.clientId?._id || proposal.clientId,
@@ -110,13 +108,9 @@ const ProposalForm = () => {
 
   const fetchClients = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch('/api/brands', {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setClients(data.data);
+      const res = await api.get('/brands');
+      if (res.data?.success) {
+        setClients(res.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch clients:', error);
@@ -125,13 +119,9 @@ const ProposalForm = () => {
 
   const fetchMasterItems = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch('/api/master-items', {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMasterItems(data.data);
+      const res = await api.get('/master-items');
+      if (res.data?.success) {
+        setMasterItems(res.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch master items:', error);
@@ -148,7 +138,6 @@ const ProposalForm = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
       
       const payload = {
         name: values.name,
@@ -178,24 +167,20 @@ const ProposalForm = () => {
         };
       }
 
-      const url = isEditing ? `/api/proposals/${id}` : '/api/proposals';
-      const method = isEditing ? 'PUT' : 'POST';
+      const url = isEditing ? `/proposals/${id}` : '/proposals';
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+      let res;
+      if (isEditing) {
+        res = await api.put(url, payload);
+      } else {
+        res = await api.post(url, payload);
+      }
 
-      const data = await res.json();
-      if (data.success) {
+      if (res.data?.success) {
         message.success(`Proposal ${isEditing ? 'updated' : 'created'} successfully`);
         navigate(`${getBaseRoute()}/proposals`);
       } else {
-        message.error(data.message || "Operation failed");
+        message.error(res.data?.message || "Operation failed");
       }
     } catch (error) {
       console.error(error);

@@ -7,10 +7,24 @@ export function getCookie(name) {
 
 function getAuthHeaders(extra = {}) {
   const token = localStorage.getItem("token");
-  return {
+  const headers = {
     ...(token ? { authorization: `Bearer ${token}` } : {}),
     ...extra,
   };
+
+  const selectedClient = localStorage.getItem('selectedClient');
+  if (selectedClient) {
+    try {
+      const parsed = JSON.parse(selectedClient);
+      if (parsed?._id) {
+        headers['x-selected-client-id'] = parsed._id;
+      }
+    } catch (e) {
+      console.error('Failed to parse selectedClient from localStorage', e);
+    }
+  }
+
+  return headers;
 }
 
 function buildScopedUrl(path, clientCompanyId) {
@@ -206,6 +220,13 @@ export const campaignScheduledApi = {
   },
   startFacebookOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     let extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
@@ -225,6 +246,13 @@ export const campaignScheduledApi = {
   },
   startInstagramOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
@@ -232,6 +260,13 @@ export const campaignScheduledApi = {
   },
   startInstagramDirectOAuth: (clientCompanyId = "") => {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const query = [
       `token=${encodeURIComponent(token)}`,
       clientCompanyId
@@ -244,6 +279,13 @@ export const campaignScheduledApi = {
   },
   startLinkedinOAuth: (clientCompanyId = "") => {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
@@ -251,6 +293,13 @@ export const campaignScheduledApi = {
   },
   startYoutubeOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
@@ -258,6 +307,13 @@ export const campaignScheduledApi = {
   },
   startGoogleBusinessOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";
@@ -265,6 +321,13 @@ export const campaignScheduledApi = {
   },
   startPinterestOAuth(clientCompanyId = null) {
     const token = localStorage.getItem("token") || "";
+    const selectedClient = localStorage.getItem("selectedClient");
+    if (!clientCompanyId && selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        clientCompanyId = parsed?._id;
+      } catch (e) {}
+    }
     const extra = clientCompanyId
       ? `&clientCompanyId=${encodeURIComponent(clientCompanyId)}`
       : "";

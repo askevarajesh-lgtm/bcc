@@ -11,14 +11,14 @@ exports.getDashboard = async (req, res, next) => {
     
     let { clientId } = req.query;
     
-    // Check if the user is a super admin
-    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+    // Check if the user is a super admin or agency
+    const isAgencyOrAdmin = ['commander_admin', 'supreme_super_admin', 'agency_super_admin', 'agency_manager', 'agency'].includes(req.user.role);
     
     // If clientId is not provided or it's not a super admin requesting a specific client, use the user's default agency
     let targetAgencyId = agencyId;
     if (req.isClientRole) {
       targetAgencyId = req.clientUserId;
-    } else if (clientId && isSuperAdmin) {
+    } else if (clientId && isAgencyOrAdmin) {
       targetAgencyId = clientId;
     }
 
@@ -42,12 +42,15 @@ exports.syncData = async (req, res, next) => {
     }
     
     let { clientId } = req.body;
-    const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(req.user.role);
+    
+    // Check if the user is a super admin or agency
+    const isAgencyOrAdmin = ['commander_admin', 'supreme_super_admin', 'agency_super_admin', 'agency_manager', 'agency'].includes(req.user.role);
+    
     let targetAgencyId = agencyId;
     
     if (req.isClientRole) {
       targetAgencyId = req.clientUserId;
-    } else if (clientId && isSuperAdmin) {
+    } else if (clientId && isAgencyOrAdmin) {
       targetAgencyId = clientId;
     }
 

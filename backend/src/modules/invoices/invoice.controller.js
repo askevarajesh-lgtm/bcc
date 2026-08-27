@@ -91,7 +91,7 @@ exports.getInvoices = async (req, res, next) => {
     if (req.user.role === 'commander_admin') {
       queryFilter.adminId = req.user._id;
     } else if (['brand_super_admin', 'brand_manager'].includes(req.user.role)) {
-      queryFilter.brandId = req.user.brandId || req.user._id;
+      queryFilter.clientId = req.user.brandId || req.user._id;
       // Clients should not see draft invoices
       queryFilter.invoiceStatus = { $ne: 'Draft' };
     } else {

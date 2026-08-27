@@ -14,6 +14,19 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  const selectedClient = localStorage.getItem('selectedClient');
+  if (selectedClient) {
+    try {
+      const parsed = JSON.parse(selectedClient);
+      if (parsed?._id) {
+        config.headers['x-selected-client-id'] = parsed._id;
+      }
+    } catch (e) {
+      console.error('Failed to parse selectedClient from localStorage', e);
+    }
+  }
+
   // If the request data is FormData, remove the Content-Type header so
   // axios can automatically set multipart/form-data with the correct boundary.
   if (config.data instanceof FormData) {
@@ -37,3 +50,46 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+
+// Patch global fetch to include x-selected-client-id header for all /api requests
+// This ensures that legacy or third-party code using native fetch still respects the client context.
+const originalFetch = window.fetch;
+window.fetch = async function () {
+  let [resource, config] = arguments;
+  
+  if (typeof resource === 'string' && resource.startsWith('/api')) {
+    config = config || {};
+    
+    // Convert Headers object to plain object if needed, or initialize it
+    let headers = config.headers || {};
+    if (headers instanceof Headers) {
+      const plainHeaders = {};
+      headers.forEach((value, key) => {
+        plainHeaders[key] = value;
+      });
+      headers = plainHeaders;
+    }
+    
+    // Add token if not present
+    const token = localStorage.getItem('token');
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Add selected client ID
+    const selectedClient = localStorage.getItem('selectedClient');
+    if (selectedClient) {
+      try {
+        const parsed = JSON.parse(selectedClient);
+        if (parsed?._id) {
+          headers['x-selected-client-id'] = parsed._id;
+        }
+      } catch (e) {}
+    }
+    
+    config.headers = headers;
+    return originalFetch.apply(this, [resource, config]);
+  }
+  
+  return originalFetch.apply(this, arguments);
+};

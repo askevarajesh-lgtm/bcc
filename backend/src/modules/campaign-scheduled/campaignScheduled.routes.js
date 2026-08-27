@@ -135,6 +135,8 @@ async function resolveClientCompanyId(rawClientId, companyId) {
     String(scopedClient._id) === String(companyId) ||
     (scopedClient.companyId && String(scopedClient.companyId) === String(companyId));
 
+  console.log("[resolveClientCompanyId] isMatch:", isMatch, "scopedClient._id:", scopedClient._id, "agencyId:", scopedClient.agencyId, "companyId:", companyId);
+
   return isMatch ? String(scopedClient._id) : null;
 }
 
@@ -1622,7 +1624,7 @@ router.use(async (req, _res, next) => {
     }
 
     const requestedClientCompanyId = String(
-      req.query?.clientCompanyId || req.body?.clientCompanyId || "",
+      req.query?.clientCompanyId || req.body?.clientCompanyId || req.headers['x-selected-client-id'] || "",
     ).trim();
     if (!requestedClientCompanyId) {
       req.clientCompanyId = null;

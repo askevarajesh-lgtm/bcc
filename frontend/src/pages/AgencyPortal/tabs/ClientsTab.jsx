@@ -13,6 +13,7 @@ import TaskDetailDrawer from '../../Tasks/TaskDetailDrawer';
 import ClientBilling from './ClientBilling';
 import ClientActivity from './ClientActivity';
 import ClientDetailContent from './ClientDetailContent';
+import { useClientContext } from '../../../contexts/ClientContext';
 
 const { Title, Text } = Typography;
 
@@ -63,7 +64,7 @@ const ClientsTab = () => {
   const [clientEditCountryIso, setClientEditCountryIso] = useState('IN');
 
   const { user, features: agencyFeatures, login } = useAuth();
-  const allowedFeatures = availableFeatures.filter(feat => (agencyFeatures || []).includes(feat.id));
+  const { selectedClient: globalSelectedClient } = useClientContext();
 
   const { data: integrationsData } = useGetIntegrationsQuery();
   const rawIntegrations = integrationsData?.data?.integrations || [];
@@ -407,9 +408,13 @@ const ClientsTab = () => {
   // This is the piece that was missing: the Input had no value/onChange,
   // so nothing ever consumed what the user typed.
   const filteredClients = useMemo(() => {
+    let clientsToFilter = dbClients;
+    if (globalSelectedClient) {
+      clientsToFilter = dbClients.filter(c => c._id === globalSelectedClient._id);
+    }
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return dbClients;
-    return dbClients.filter(c => {
+    if (!q) return clientsToFilter;
+    return clientsToFilter.filter(c => {
       const name = (c.name || '').toLowerCase();
       const email = (c.adminEmail || c.email || '').toLowerCase();
       return name.includes(q) || email.includes(q);
@@ -835,7 +840,7 @@ const ClientsTab = () => {
         {selectedClient && (
           <ClientDetailContent
             selectedClient={selectedClient}
-            allowedFeatures={allowedFeatures}
+            allowedFeatures={availableFeatures}
             allowedIntegrations={user?.integrations || []}
             getStatusColor={getStatusColor}
             getScoreColor={getScoreColor}
@@ -984,7 +989,7 @@ const ClientsTab = () => {
                     Included Modules
                   </Text>
                   <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                    {allowedFeatures.map(feat => {
+                    {availableFeatures.map(feat => {
                       const isIncluded = includedFeatures.includes(feat.id);
                       return (
                         <Col span={12} key={feat.id}>

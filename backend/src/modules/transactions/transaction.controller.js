@@ -91,18 +91,20 @@ exports.createManualTransaction = async (req, res) => {
 
 exports.getTransactions = async (req, res) => {
   try {
-    const { invoiceId, companyId, status, paymentMethod } = req.query;
+    const { invoiceId, status, paymentMethod } = req.query;
     let query = {};
     
-    // RBAC filtering
-    if (req.user.role !== 'commander_admin') {
+    // If a specific client is selected via the agency switcher, filter by their company ID
+    if (req.selectedClientId) {
+      query.companyId = req.selectedClientId;
+    } else if (req.user.role !== 'commander_admin') {
+      // RBAC filtering for non-impersonated requests
       if (req.user.role.includes('brand')) query.brandId = req.user.brandId || req.user._id;
       else if (req.user.role.includes('agency')) query.agencyId = req.user.agencyId || req.user._id;
       else if (req.user.role.includes('admin')) query.adminId = req.user.adminId || req.user._id;
     }
 
     if (invoiceId) query.invoiceId = invoiceId;
-    if (companyId) query.companyId = companyId;
     if (status) query.status = status;
     if (paymentMethod) query.paymentMethod = paymentMethod;
 

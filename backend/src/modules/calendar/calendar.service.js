@@ -3,6 +3,13 @@ const { Meeting } = require('../meetings/models/meetingAsset.model');
 const Task = require('../tasks/task.model');
 const Lead = require('../leads/lead.model');
 const User = require('../auth/user.model');
+const Proposal = require('../proposals/proposal.model');
+const Invoice = require('../invoices/invoice.model');
+const Project = require('../projects/project.model');
+const Transaction = require('../transactions/transaction.model');
+const WorkspaceProject = require('../seoWorkspace/models/workspaceProject.model');
+const { Campaign } = require('../campaigns/campaign.model');
+const Deal = require('../salesPipeline/deal.model');
 const mongoose = require('mongoose');
 
 // Helper to determine scoping query based on user role
@@ -64,6 +71,16 @@ const getScopingFilters = (userRole, userId, companyId) => {
   leadFilter.assignedTo = userId;
 
   return { eventFilter, meetingFilter, taskFilter, leadFilter };
+};
+
+// Helper: build a date range filter on a given field
+const applyDateRange = (filter, field, startDate, endDate) => {
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setUTCHours(23, 59, 59, 999);
+    filter[field] = { $gte: start, $lte: end };
+  }
 };
 
 const calendarService = {
@@ -240,12 +257,7 @@ const calendarService = {
       clientCreationFilter.agencyId = companyId;
     }
 
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setUTCHours(23, 59, 59, 999);
-      clientCreationFilter.createdAt = { $gte: start, $lte: end };
-    }
+    applyDateRange(clientCreationFilter, 'createdAt', startDate, endDate);
 
     const createdClients = await User.find(clientCreationFilter);
     const mappedClients = createdClients.map(c => {
@@ -269,8 +281,297 @@ const calendarService = {
       };
     });
 
+    // ─── NEW ACTIVITY SOURCES ────────────────────────────────────────────────
+
+    // 6. Proposals Created
+    const proposalFilter = {};
+    if (['agency_super_admin', 'agency_manager'].includes(userRole) ||
+        ['supreme_super_admin', 'commander_admin'].includes(userRole)) {
+      proposalFilter.agencyId = companyId;
+    } else {
+      proposalFilter.agencyId = companyId;
+    }
+    if (clientId) proposalFilter.clientId = clientId;
+    applyDateRange(proposalFilter, 'createdAt', startDate, endDate);
+
+    const proposals = await Proposal.find(proposalFilter)
+      .populate('clientId', 'name companyName')
+      .populate('createdBy', 'name email');
+
+    const mappedProposals = proposals.map(p => {
+      const start = new Date(p.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: p._id,
+        title: `[Proposal Created] ${p.name}`,
+        eventType: 'proposal_review',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'System',
+        host: p.createdBy || null,
+        attendees: [],
+        status: 'completed',
+        companyId: p.agencyId,
+        clientId: p.clientId,
+        isInternal: false,
+        source: 'proposal_created',
+        notes: `Proposal "${p.name}" (${p.proposalNumber}) created for ${p.clientId?.companyName || p.clientId?.name || 'Client'} — Grand Total: ₹${p.grandTotal?.toLocaleString('en-IN') || '0'}`
+      };
+    });
+
+    // 7. Invoices Created
+    const invoiceFilter = {};
+    if (['agency_super_admin', 'agency_manager', 'supreme_super_admin', 'commander_admin'].includes(userRole)) {
+      invoiceFilter.agencyId = companyId;
+    } else {
+      invoiceFilter.agencyId = companyId;
+    }
+    if (clientId) invoiceFilter.clientId = clientId;
+    applyDateRange(invoiceFilter, 'createdAt', startDate, endDate);
+
+    const invoices = await Invoice.find(invoiceFilter)
+      .populate('clientId', 'name companyName')
+      .populate('createdBy', 'name email');
+
+    const mappedInvoices = invoices.map(inv => {
+      const start = new Date(inv.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: inv._id,
+        title: `[Invoice Created] ${inv.invoiceNumber}`,
+        eventType: 'client_creation',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'System',
+        host: inv.createdBy || null,
+        attendees: [],
+        status: 'completed',
+        companyId: inv.agencyId,
+        clientId: inv.clientId,
+        isInternal: false,
+        source: 'invoice_created',
+        notes: `Invoice ${inv.invoiceNumber} for ${inv.clientId?.companyName || inv.clientId?.name || 'Client'} — ₹${inv.grandTotal?.toLocaleString('en-IN') || '0'} (${inv.invoiceStatus})`
+      };
+    });
+
+    // 8. Projects Created
+    const projectFilter = { companyId };
+    if (clientId) projectFilter.clientId = clientId;
+    applyDateRange(projectFilter, 'createdAt', startDate, endDate);
+
+    const projects = await Project.find(projectFilter)
+      .populate('clientId', 'name companyName')
+      .populate('createdBy', 'name email');
+
+    const mappedProjects = projects.map(proj => {
+      const start = new Date(proj.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: proj._id,
+        title: `[Project Created] ${proj.name}`,
+        eventType: 'campaign_launch',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'System',
+        host: proj.createdBy || null,
+        attendees: [],
+        status: 'completed',
+        companyId: proj.companyId,
+        clientId: proj.clientId,
+        projectId: proj._id,
+        isInternal: false,
+        source: 'project_created',
+        notes: `Project "${proj.name}" created for ${proj.clientId?.companyName || proj.clientId?.name || 'Client'} — Status: ${proj.status}`
+      };
+    });
+
+    // 9. Transactions Recorded
+    // Transaction.companyId = the agency (tenant). It doesn't have a direct agencyId field.
+    const transactionFilter = { companyId };
+    applyDateRange(transactionFilter, 'paymentDate', startDate, endDate);
+    // Note: Transaction doesn't store clientId directly; we scope by agency companyId.
+    // Populate invoiceId to get client info for display and client filtering.
+
+    const transactions = await Transaction.find(transactionFilter)
+      .populate('invoiceId', 'invoiceNumber clientId')
+      .populate({ path: 'invoiceId', populate: { path: 'clientId', select: 'name companyName' } })
+      .populate('recordedBy', 'name email');
+
+    // If clientId filter is active, post-filter transactions via populated invoice
+    const filteredTransactions = clientId
+      ? transactions.filter(t => {
+          const tClientId = t.invoiceId?.clientId?._id?.toString() || t.invoiceId?.clientId?.toString();
+          return tClientId === clientId.toString();
+        })
+      : transactions;
+
+    const mappedTransactions = filteredTransactions.map(t => {
+      const start = new Date(t.paymentDate);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const clientName = t.invoiceId?.clientId?.companyName || t.invoiceId?.clientId?.name || 'Client';
+      return {
+        _id: t._id,
+        title: `[Transaction] ₹${t.amount?.toLocaleString('en-IN') || '0'} — ${clientName}`,
+        eventType: 'retainer_renewal',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'Finance',
+        host: t.recordedBy || null,
+        attendees: [],
+        status: t.status === 'Verified' || t.status === 'Successful' ? 'completed' : 'upcoming',
+        companyId: t.agencyId,
+        clientId: t.invoiceId?.clientId?._id || null,
+        isInternal: false,
+        source: 'transaction_recorded',
+        notes: `Payment of ₹${t.amount?.toLocaleString('en-IN') || '0'} via ${t.paymentMethod} — Status: ${t.status}${t.referenceNumber ? ` | Ref: ${t.referenceNumber}` : ''}`
+      };
+    });
+
+    // 10. SEO Projects (Workspace Projects) Created
+    const seoProjectFilter = { companyId, isDeleted: { $ne: true } };
+    if (clientId) seoProjectFilter.clientId = clientId;
+    applyDateRange(seoProjectFilter, 'createdAt', startDate, endDate);
+
+    const seoProjects = await WorkspaceProject.find(seoProjectFilter)
+      .populate('clientId', 'name companyName')
+      .populate('createdBy', 'name email');
+
+    const mappedSeoProjects = seoProjects.map(sp => {
+      const start = new Date(sp.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: sp._id,
+        title: `[SEO Project Created] ${sp.name}`,
+        eventType: 'performance_review',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'SEO Workspace',
+        host: sp.createdBy || null,
+        attendees: [],
+        status: 'completed',
+        companyId: sp.companyId,
+        clientId: sp.clientId,
+        isInternal: false,
+        source: 'seo_project_created',
+        notes: `SEO project "${sp.name}" created for ${sp.clientId?.companyName || sp.clientId?.name || 'Client'} — Domain: ${sp.domain}`
+      };
+    });
+
+    // 11. Tasks Created (by createdAt — distinct from task due-date entries above)
+    const taskCreatedFilter = {};
+    if (['agency_super_admin', 'agency_manager', 'supreme_super_admin', 'commander_admin'].includes(userRole)) {
+      taskCreatedFilter.tenantCompanyId = companyId;
+    } else {
+      taskCreatedFilter.tenantCompanyId = companyId;
+    }
+    if (clientId) taskCreatedFilter.companyId = clientId;
+    applyDateRange(taskCreatedFilter, 'createdAt', startDate, endDate);
+
+    const createdTasks = await Task.find(taskCreatedFilter)
+      .populate('assignedTo', 'name email logo')
+      .populate('assignedBy', 'name email')
+      .populate('companyId', 'name companyName');
+
+    const mappedCreatedTasks = createdTasks.map(t => {
+      const start = new Date(t.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: `task_created_${t._id}`,
+        title: `[Task Created] ${t.title}`,
+        eventType: 'internal_sync',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'Task Board',
+        host: t.assignedBy || null,
+        attendees: t.assignedTo ? [t.assignedTo] : [],
+        status: 'completed',
+        companyId: t.tenantCompanyId,
+        clientId: t.companyId,
+        taskId: t._id,
+        isInternal: !t.companyId,
+        source: 'task_created',
+        notes: `Task "${t.title}" assigned to ${t.assignedTo?.name || 'Team'} — Due: ${t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-IN') : 'N/A'}`
+      };
+    });
+
+    // 12. Campaigns Created
+    const campaignFilter = { companyId };
+    if (clientId) {
+      campaignFilter.$or = [{ clientCompanyId: clientId }, { clientId }];
+    }
+    applyDateRange(campaignFilter, 'createdAt', startDate, endDate);
+
+    const campaigns = await Campaign.find(campaignFilter)
+      .populate('clientCompanyId', 'name companyName')
+      .populate('clientId', 'name companyName');
+
+    const mappedCampaigns = campaigns.map(c => {
+      const start = new Date(c.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const clientName = c.clientCompanyId?.companyName || c.clientCompanyId?.name || c.clientId?.companyName || 'Client';
+      const resolvedClientId = c.clientCompanyId?._id || c.clientId?._id || c.clientCompanyId || c.clientId;
+      return {
+        _id: c._id,
+        title: `[Campaign Created] ${c.platform?.toUpperCase() || 'Campaign'} — ${clientName}`,
+        eventType: 'campaign_launch',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'Marketing',
+        host: null,
+        attendees: [],
+        status: 'completed',
+        companyId: c.companyId,
+        clientId: resolvedClientId,
+        isInternal: false,
+        source: 'campaign_created',
+        notes: `${c.platform?.toUpperCase() || 'Campaign'} campaign created for ${clientName} — Budget: ₹${c.campaignAmount?.toLocaleString('en-IN') || c.dailyBudget?.toLocaleString('en-IN') || 'N/A'}`
+      };
+    });
+
+    // 13. Sales Deals Created
+    const dealFilter = { companyId };
+    if (clientId) dealFilter.clientId = clientId;
+    applyDateRange(dealFilter, 'createdAt', startDate, endDate);
+
+    const deals = await Deal.find(dealFilter);
+
+    const mappedDeals = deals.map(d => {
+      const start = new Date(d.createdAt);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return {
+        _id: d._id,
+        title: `[Deal Created] ${d.name}`,
+        eventType: 'sales_call',
+        startDateTime: start,
+        endDateTime: end,
+        location: 'Sales Pipeline',
+        host: null,
+        attendees: [],
+        status: 'completed',
+        companyId: d.companyId,
+        clientId: d.clientId || null,
+        isInternal: false,
+        source: 'deal_created',
+        notes: `Deal "${d.name}" created — Stage: ${d.stage}, Value: ₹${d.value?.toLocaleString('en-IN') || '0'}, Rep: ${d.rep || 'N/A'}`
+      };
+    });
+
     // Combine everything
-    let allEvents = [...mappedCustom, ...mappedMeetings, ...mappedTasks, ...mappedLeads, ...mappedClients];
+    let allEvents = [
+      ...mappedCustom,
+      ...mappedMeetings,
+      ...mappedTasks,
+      ...mappedLeads,
+      ...mappedClients,
+      ...mappedProposals,
+      ...mappedInvoices,
+      ...mappedProjects,
+      ...mappedTransactions,
+      ...mappedSeoProjects,
+      ...mappedCreatedTasks,
+      ...mappedCampaigns,
+      ...mappedDeals,
+    ];
 
     // Filter by type if specified
     if (eventType) {
@@ -486,6 +787,15 @@ const calendarService = {
     const meetingCompleted = await Meeting.countDocuments({ ...meetingFilter, status: 'completed' });
     const meetingCancelled = await Meeting.countDocuments({ ...meetingFilter, status: 'cancelled' });
 
+    // Count new activity sources
+    const proposalCount = await Proposal.countDocuments({ agencyId: companyId });
+    const invoiceCount = await Invoice.countDocuments({ agencyId: companyId });
+    const projectCount = await Project.countDocuments({ companyId });
+    const transactionCount = await Transaction.countDocuments({ companyId });
+    const seoProjectCount = await WorkspaceProject.countDocuments({ companyId, isDeleted: { $ne: true } });
+    const campaignCount = await Campaign.countDocuments({ companyId });
+    const dealCount = await Deal.countDocuments({ companyId });
+
     // Group custom events by type
     const typeAgg = await CalendarEvent.aggregate([
       { $match: { companyId: new mongoose.Types.ObjectId(companyId) } },
@@ -501,6 +811,13 @@ const calendarService = {
       customEventsCount: customCount,
       meetingsCount: meetingCount,
       tasksCount: taskCount,
+      proposalsCount: proposalCount,
+      invoicesCount: invoiceCount,
+      projectsCount: projectCount,
+      transactionsCount: transactionCount,
+      seoProjectsCount: seoProjectCount,
+      campaignsCount: campaignCount,
+      dealsCount: dealCount,
       statusStats: {
         upcoming: customUpcoming + meetingUpcoming,
         completed: customCompleted + meetingCompleted,

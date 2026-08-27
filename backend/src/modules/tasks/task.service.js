@@ -2688,14 +2688,14 @@ const getTasksForKanban = async (
       { assignedTo: userObjId },
       { watchers: userObjId },
     ];
-  } else if ((userRole === "client" || userRole === "agency_client") && userId) {
+  } else if (['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(userRole) && userId) {
     // Strict isolation for clients: only their own company data
     const user = await User.findById(userId).select("clientId");
     if (user && user.clientId) {
       query.companyId = user.clientId;
     } else {
-      // If no clientId linked, return no tasks
-      query._id = null;
+      // If no clientId linked, fallback to user ID as they are likely the client company itself
+      query.companyId = userObjId;
     }
   } else if (restrictToOwnAssignedTasks) {
     // Regular assignee roles should only see tasks explicitly assigned to them, created by them, or watched by them.

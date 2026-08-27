@@ -21,7 +21,7 @@ const getAllTasks = async (req, res) => {
       req.companyId,
       query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     // If pagination exists, return paginated response, otherwise return legacy format
     if (result.pagination) {
@@ -42,7 +42,7 @@ const getTasksDropdown = async (req, res) => {
       req.companyId,
       req.query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Tasks retrieved successfully", { tasks });
   } catch (error) {
@@ -56,7 +56,7 @@ const getTaskById = async (req, res) => {
       req.params.id,
       req.companyId,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Task retrieved successfully", { task });
   } catch (error) {
@@ -269,7 +269,7 @@ const getTasksForKanban = async (req, res) => {
       req.companyId,
       query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Tasks retrieved successfully", { tasks });
   } catch (error) {
@@ -373,7 +373,7 @@ const getTaskComments = async (req, res) => {
       id,
       req.companyId,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Comments retrieved successfully", { comments });
   } catch (error) {
@@ -389,7 +389,7 @@ const getTaskActivity = async (req, res) => {
       id,
       req.companyId,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Activity retrieved successfully", { activity });
   } catch (error) {

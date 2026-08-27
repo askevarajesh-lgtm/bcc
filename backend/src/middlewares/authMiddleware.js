@@ -68,6 +68,33 @@ const authMiddleware = async (req, res, next) => {
     req.companyId = req.user.agencyId || req.user.brandId || req.user.workspaceId || req.user.adminId;
   }
 
+  // Parse global client switcher header for Agency Users
+  const selectedClientIdHeader = req.headers['x-selected-client-id'];
+  if (selectedClientIdHeader && mongoose.Types.ObjectId.isValid(selectedClientIdHeader) && req.user) {
+    req.selectedClientId = new mongoose.Types.ObjectId(selectedClientIdHeader);
+    
+    // Inject into query parameters so that existing controllers/services 
+    // that support frontend client filtering automatically apply it.
+    if (!req.query) req.query = {};
+    req.query.clientId = selectedClientIdHeader;
+    req.query.companyId = selectedClientIdHeader;
+    req.query.clientCompanyId = selectedClientIdHeader;
+
+    // Soft Impersonation for Agency Users
+    // This allows Agency Managers to seamlessly use the client portal context across all modules
+    const agencyRoles = ['agency_manager', 'agency_super_admin', 'agency', 'commander_admin'];
+    if (agencyRoles.includes(req.user.role)) {
+       req.user.originalRole = req.user.role;
+       req.user.role = 'brand_manager'; // Act as a client manager to isolate data
+       req.user.brandId = req.selectedClientId;
+       
+       // Ensure agencyId is preserved so any records created still link back to the agency properly
+       if (!req.user.agencyId) {
+         req.user.agencyId = req.companyId || req.user._id; 
+       }
+    }
+  }
+
   if (req.user) {
     req.isClientRole = ['client', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(req.user.role) || (req.user.role === 'user' && req.user.brandId);
     req.user.isClientRole = req.isClientRole;

@@ -199,26 +199,17 @@ function buildWebsiteAuthQuery(req, baseQuery = {}) {
   const query = { ...baseQuery, isDeleted: false };
   const workspaceId = req.workspaceId;
 
-  if (req.isClientRole) {
-    query.$or = [
-      { brandId: req.clientUserId },
-      { createdBy: req.user._id }
-    ];
+  if (req.isClientRole || (req.user && ['client', 'agency_client', 'brand_super_admin', 'brand_manager'].includes(req.user.role))) {
+    // Strictly isolate client websites. Only return websites that belong to the client.
+    query.brandId = req.clientUserId || req.user._id;
   } else if (req.user && req.user.role !== 'commander_admin') {
     if (req.user.agencyId) {
       // Strictly enforce agencyId. 
       // Agency managers should only see agency-level websites (brandId is null)
-      // or websites they explicitly created themselves.
-      // Client-level websites will have a non-null brandId and are isolated to the client.
-      query.$or = [
-        { agencyId: req.user.agencyId, brandId: { $in: [null, undefined] } },
-        { createdBy: req.user._id }
-      ];
+      query.agencyId = req.user.agencyId;
+      query.brandId = { $in: [null, undefined] };
     } else if (req.user.brandId) {
-      query.$or = [
-        { brandId: req.user.brandId },
-        { createdBy: req.user._id }
-      ];
+      query.brandId = req.user.brandId;
     } else {
       query.workspaceId = workspaceId;
     }

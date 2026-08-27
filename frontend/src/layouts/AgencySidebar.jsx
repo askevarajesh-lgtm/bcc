@@ -27,6 +27,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useClientContext } from '../contexts/ClientContext';
 import PortalSidebar from './PortalSidebar';
 import { slaApi } from '../api/slaApi';
 
@@ -34,6 +35,7 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, features, user } = useAuth();
+  const { selectedClient } = useClientContext();
 
   const [slaCount, setSlaCount] = React.useState(0);
 
@@ -90,7 +92,12 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     }
   ];
 
-  const feats = features || [];
+  let feats = features || [];
+  if (selectedClient && Array.isArray(selectedClient.features)) {
+    // Intersect the user's features with the client's features
+    feats = feats.filter(f => selectedClient.features.includes(f));
+  }
+  
   const hasAgencyFullAccess = ['agency_manager', 'agency_super_admin'].includes(role);
 
   if (hasAgencyFullAccess || feats.includes('clients')) {
@@ -106,6 +113,9 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       ],
     });
   }
+
+  // When a specific client is selected, these modules should be hidden
+  const isClientSelected = !!selectedClient;
 
   const workspaceChildren = [];
 
@@ -133,14 +143,16 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
       ]
     });
     if (feats.includes('website')) workspaceChildren.push({ key: '/agency/website', icon: getIcon(LayoutDashboard), label: 'Websites' });
-    if (['agency_manager', 'agency'].includes(role)) {
+    // Marketplace: hidden when a specific client is selected
+    if (!isClientSelected && ['agency_manager', 'agency'].includes(role)) {
       workspaceChildren.push({
         key: '/agency/marketplace',
         icon: getIcon(Store),
         label: 'Marketplace',
       });
     }
-    if (feats.includes('seo-panel') || ['agency_super_admin', 'agency_manager'].includes(role)) {
+    // SEO Panel: hidden when a specific client is selected
+    if (!isClientSelected && (feats.includes('seo-panel') || ['agency_super_admin', 'agency_manager'].includes(role))) {
       workspaceChildren.push({ key: '/agency/workspace/seo-panel', icon: getIcon(Search), label: 'SEO Panel' });
     }
   }
@@ -157,8 +169,10 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const intelligenceChildren = [];
   if (role !== 'agency_super_admin') {
     if (feats.includes('analytics')) intelligenceChildren.push({ key: '/agency/analytics', icon: getIcon(TrendingUp), label: 'Google Analytics' });
-    if (feats.includes('chatgpt')) intelligenceChildren.push({ key: '/agency/chatgpt', icon: getIcon(HelpCircle), label: 'ChatGPT' });
-    if (feats.includes('canva')) intelligenceChildren.push({ key: '/agency/canva', icon: getIcon(PenTool), label: 'Canva' });
+    // ChatGPT: hidden when a specific client is selected
+    if (!isClientSelected && feats.includes('chatgpt')) intelligenceChildren.push({ key: '/agency/chatgpt', icon: getIcon(HelpCircle), label: 'ChatGPT' });
+    // Canva: hidden when a specific client is selected
+    if (!isClientSelected && feats.includes('canva')) intelligenceChildren.push({ key: '/agency/canva', icon: getIcon(PenTool), label: 'Canva' });
     if (feats.includes('seo-aeo-geo')) intelligenceChildren.push({ key: '/agency/seo-aeo-geo', icon: getIcon(Search), label: 'SEO/AEO/GEO' });
     // if (feats.includes('benchmark')) intelligenceChildren.push({ key: '/agency/benchmarks', icon: getIcon(Activity), label: 'Benchmark' });
   }
@@ -177,9 +191,12 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   }
 
   const opsChildren = [];
-  opsChildren.push({ key: '/agency/time', icon: getIcon(Calendar), label: 'Time Tracking' });
-  opsChildren.push({ key: '/agency/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
-  opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
+  // Time Tracking: hidden when a specific client is selected
+  if (!isClientSelected) opsChildren.push({ key: '/agency/time', icon: getIcon(Calendar), label: 'Time Tracking' });
+  // Sales Pipeline: hidden when a specific client is selected
+  if (!isClientSelected) opsChildren.push({ key: '/agency/salespipeline', icon: getIcon(Briefcase), label: 'Sales Pipeline' });
+  // Meetings: hidden when a specific client is selected
+  if (!isClientSelected) opsChildren.push({ key: '/agency/meetings', icon: getIcon(Calendar), label: 'Meetings' });
   opsChildren.push({ key: '/agency/calendar', icon: getIcon(Calendar), label: 'Calendar' });
   opsChildren.push({ key: '/agency/deliverables', icon: getIcon(FileText), label: 'Deliverables' });
 
@@ -195,10 +212,14 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
   const accountsChildren = [];
   accountsChildren.push({ key: '/agency/invoices', icon: getIcon(CreditCard), label: 'Invoices' });
   accountsChildren.push({ key: '/agency/accounts/transactions', icon: getIcon(CreditCard), label: 'Transactions' });
-  accountsChildren.push({ key: '/agency/accounts/sales-tracking', icon: getIcon(TrendingUp), label: 'Sales Tracking' });
-  accountsChildren.push({ key: '/agency/accounts/expenses', icon: getIcon(FileText), label: 'Expenses Management' });
-  accountsChildren.push({ key: '/agency/accounts/campaign-expenses', icon: getIcon(DollarSign), label: 'Campaign Expenses' });
-  accountsChildren.push({ key: '/agency/accounts/pl-analytics', icon: getIcon(PieChart), label: 'P&L Analytics' });
+  // Sales Tracking: hidden when a specific client is selected
+  if (!isClientSelected) accountsChildren.push({ key: '/agency/accounts/sales-tracking', icon: getIcon(TrendingUp), label: 'Sales Tracking' });
+  // Expenses Management: hidden when a specific client is selected
+  if (!isClientSelected) accountsChildren.push({ key: '/agency/accounts/expenses', icon: getIcon(FileText), label: 'Expenses Management' });
+  // Campaign Expenses: hidden when a specific client is selected
+  if (!isClientSelected) accountsChildren.push({ key: '/agency/accounts/campaign-expenses', icon: getIcon(DollarSign), label: 'Campaign Expenses' });
+  // P&L Analytics: hidden when a specific client is selected
+  if (!isClientSelected) accountsChildren.push({ key: '/agency/accounts/pl-analytics', icon: getIcon(PieChart), label: 'P&L Analytics' });
 
   if (accountsChildren.length > 0) {
     menuItems.push({
@@ -209,35 +230,41 @@ const AgencySidebar = ({ collapsed, setCollapsed }) => {
     });
   }
 
-  const hrmsChildren = [];
-  if (feats.includes('hrms')) {
-    hrmsChildren.push({ key: '/agency/hrms/staff', icon: getIcon(Users), label: 'Staff' });
-    hrmsChildren.push({ key: '/agency/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' });
-  }
+  // HRMS: entire section hidden when a specific client is selected
+  if (!isClientSelected) {
+    const hrmsChildren = [];
+    if (feats.includes('hrms')) {
+      hrmsChildren.push({ key: '/agency/hrms/staff', icon: getIcon(Users), label: 'Staff' });
+      hrmsChildren.push({ key: '/agency/hrms/attendance', icon: getIcon(ClipboardList), label: 'Attendance' });
+    }
 
-  if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
-    hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
-    hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
-  }
+    if (['agency_super_admin', 'agency_manager', 'agency'].includes(role)) {
+      hrmsChildren.push({ key: '/agency/hrms/performance', icon: getIcon(Activity), label: 'Performance' });
+      hrmsChildren.push({ key: '/agency/hrms/daily-reports', icon: getIcon(FileText), label: 'Daily Reports' });
+    }
 
-  if (hrmsChildren.length > 0) {
-    menuItems.push({
-      key: 'hrms',
-      label: 'HRMS',
-      icon: getIcon(ClipboardList),
-      children: hrmsChildren,
-    });
+    if (hrmsChildren.length > 0) {
+      menuItems.push({
+        key: 'hrms',
+        label: 'HRMS',
+        icon: getIcon(ClipboardList),
+        children: hrmsChildren,
+      });
+    }
   }
 
   const settingsChildren = [];
-  if (feats.includes('master-items') || hasAgencyFullAccess) settingsChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
+  // Master Item: hidden when a specific client is selected
+  if (!isClientSelected && (feats.includes('master-items') || hasAgencyFullAccess)) settingsChildren.push({ key: '/agency/master-items', icon: getIcon(Store), label: 'Master Item' });
   if (role === 'agency_super_admin') {
     settingsChildren.push({ key: '/agency/users', icon: getIcon(Shield), label: 'Manager' });
     settingsChildren.push({ key: '/agency/billing', icon: getIcon(CreditCard), label: 'Billing' });
   }
-  if (['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {
+  // Support: hidden when a specific client is selected
+  if (!isClientSelected && ['agency_super_admin', 'agency_manager', 'agency_client'].includes(role)) {
     settingsChildren.push({ key: '/agency/support', icon: getIcon(HelpCircle), label: 'Support' });
   }
+  // Settings item itself: always shown, unaffected by client selection
   if (feats.includes('settings') || hasAgencyFullAccess) settingsChildren.push({ key: '/agency/settings', icon: getIcon(Settings), label: 'Settings' });
 
   if (settingsChildren.length > 0) {

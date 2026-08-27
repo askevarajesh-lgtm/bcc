@@ -13,7 +13,7 @@ const getAllProjects = async (req, res) => {
       req.companyId,
       req.query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     // If pagination exists, return paginated response, otherwise return legacy format
     if (result.pagination) {
@@ -34,7 +34,7 @@ const getProjectListSummaryStats = async (req, res) => {
       req.companyId,
       req.query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Project summary retrieved successfully", {
       summary,
@@ -50,7 +50,7 @@ const getUnassignedDeliverablesSummary = async (req, res) => {
       req.companyId,
       req.query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(
       res,
@@ -68,7 +68,7 @@ const getProjectReport = async (req, res) => {
       req.companyId,
       req.query,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Project report retrieved successfully", {
       report,
@@ -83,7 +83,7 @@ const getProjectsDropdown = async (req, res) => {
     const projects = await projectService.getProjectsDropdown(req.companyId, {
       ...req.query,
       userRole: req.user?.role,
-      userId: req.user?._id,
+      userId: req.user?.clientUserId || req.user?._id,
     });
     return sendSuccess(res, "Projects retrieved successfully", { projects });
   } catch (error) {
@@ -97,7 +97,7 @@ const getProjectById = async (req, res) => {
       req.params.id,
       req.companyId,
       req.user?.role,
-      req.user?._id,
+      req.user?.clientUserId || req.user?._id,
     );
     return sendSuccess(res, "Project retrieved successfully", { project });
   } catch (error) {
