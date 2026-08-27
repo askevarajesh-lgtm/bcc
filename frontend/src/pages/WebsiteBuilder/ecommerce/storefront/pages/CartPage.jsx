@@ -6,11 +6,11 @@ import { useStorefront } from '../StorefrontContext';
 import { formatCurrency } from '../../utils/currency';
 
 const CartPage = () => {
-  const { template, currentPageId, cart, workspaceId, websiteId, storeId } = useStorefront();
+  const { template, currentPageId, cart, workspaceId, websiteId, storeId, settings } = useStorefront();
   const page = template?.pages?.[currentPageId];
   
-  const { modifiedPage, itemTemplateHtml } = useMemo(() => {
-    if (!page) return { modifiedPage: null, itemTemplateHtml: '' };
+  const { modifiedPage, itemTemplateHtml, hasEmptyState } = useMemo(() => {
+    if (!page) return { modifiedPage: null, itemTemplateHtml: '', hasEmptyState: false };
 
     const modPage = { ...page };
     const parser = new DOMParser();
@@ -40,13 +40,12 @@ const CartPage = () => {
         if (text.includes('product') && text.includes('price') && (text.includes('quantity') || text.includes('qty'))) {
           const tbody = table.querySelector('tbody') || table;
           const rows = Array.from(tbody.querySelectorAll('tr'));
-          const itemRow = rows.find(r => !r.querySelector('th'));
+          const itemRow = rows.find(r => !r.querySelector('th') && !r.textContent.toLowerCase().includes('cart is empty') && !r.textContent.toLowerCase().includes('cart empty') && !r.textContent.toLowerCase().includes('total'));
           
           mountParent = tbody;
           if (itemRow) {
             itemTemplate = itemRow;
           } else {
-            // Found cart table but no rows (empty raw template)
             const tr = doc.createElement('tr');
             tr.innerHTML = `
               <td class="product-name" style="padding: 15px;">Product</td>
@@ -67,15 +66,13 @@ const CartPage = () => {
     if (!itemTemplate) {
       const allDivs = Array.from(doc.querySelectorAll('div, section, ul'));
       for (const div of allDivs) {
-        // Look for the header row
         const text = div.textContent.toLowerCase().replace(/\s+/g, ' ');
         if (text.includes('product') && text.includes('price') && (text.includes('quantity') || text.includes('qty')) && text.length < 200) {
           let next = div.nextElementSibling;
           mountParent = div.parentElement;
-          if (next && (next.tagName === 'DIV' || next.tagName === 'LI' || next.tagName === 'ARTICLE')) {
+          if (next && (next.tagName === 'DIV' || next.tagName === 'LI' || next.tagName === 'ARTICLE') && !next.textContent.toLowerCase().includes('cart is empty')) {
             itemTemplate = next;
           } else {
-            // Found header but no items
             const fallbackDiv = doc.createElement('div');
             fallbackDiv.style.display = 'flex';
             fallbackDiv.style.justifyContent = 'space-between';
@@ -109,62 +106,124 @@ const CartPage = () => {
       
       mountParent.insertBefore(mountPoint, itemTemplate);
       
-      // Remove placeholder items (assume siblings with the same tag are also items)
       let current = itemTemplate;
       let count = 0;
       while (current && current.tagName === itemTemplate.tagName && count < 10) {
         let next = current.nextElementSibling;
-        // Safety check: don't remove totals if they happen to share the same tag name and parent
-        if (current.textContent.toLowerCase().includes('total')) break;
+        const textLower = current.textContent.toLowerCase();
+        if (textLower.includes('total') || textLower.includes('subtotal') || textLower.includes('cart is empty') || textLower.includes('cart empty')) {
+          break; // Stop removing if we hit totals or empty state
+        }
         current.remove();
         current = next;
         count++;
       }
     }
 
-    // 4. Find Totals heuristically to mark them for native DOM updates
-    let totalEls = [];
-    if (page.mapping && page.mapping.cartTotal) {
-      const el = doc.querySelector(page.mapping.cartTotal);
-      if (el) totalEls.push(el);
-    }
-
-    if (totalEls.length === 0) {
-      const allEls = Array.from(doc.querySelectorAll('td, span, div, strong, b, p, h3, h4'));
-      for (const el of allEls) {
-        const text = el.textContent.toLowerCase().trim();
-        if (text === 'total' || text === 'grand total' || text === 'sub total' || text === 'subtotal') {
-          // Check next sibling
-          let next = el.nextElementSibling;
-          if (next && next.textContent.match(/[\$\£\€\₹]/)) {
-            totalEls.push(next);
-          } else if (el.parentElement && el.parentElement.nextElementSibling) {
-            let parentNext = el.parentElement.nextElementSibling;
-            if (parentNext.textContent.match(/[\$\£\€\₹]/)) {
-              totalEls.push(parentNext);
-            }
-          }
-        }
+    // 4. Find Totals and Empty State heuristically to mark them for native DOM updates
+    let emptyStateFound = false;
+    const allEls = Array.from(doc.querySelectorAll('td, span, div, strong, b, p, h3, h4, th, tr, li'));
+    for (const el of allEls) {
+      const text = el.textContent.toLowerCase().trim();
+      
+      if (text.includes('cart is empty') || text.includes('cart empty') || text.includes('your cart is empty')) {
+         el.setAttribute('data-cart-empty-state', 'true');
+         emptyStateFound = true;
       }
     }
 
-    totalEls.forEach(el => {
-      el.setAttribute('data-cart-total-node', 'true');
-    });
+    const findAmountNode = (labelKeywords) => {
+      for (const el of allEls) {
+        if (el.tagName === 'TH' || el.closest('thead')) continue;
+        const text = el.textContent.toLowerCase().trim();
+        const hasKeyword = labelKeywords.some(kw => text === kw || text === kw + ':');
+        if (hasKeyword) {
+          let next = el.nextElementSibling;
+          if (next && next.textContent.match(/[\$\£\€\₹\d]/)) return next;
+          if (el.parentElement && el.parentElement.nextElementSibling) {
+            let parentNext = el.parentElement.nextElementSibling;
+            if (parentNext.textContent.match(/[\$\£\€\₹\d]/)) return parentNext;
+          }
+        }
+        
+        const hasKeywordStart = labelKeywords.some(kw => text.startsWith(kw));
+        if (hasKeywordStart && text.match(/[\$\£\€\₹]/)) {
+          const children = Array.from(el.querySelectorAll('*'));
+          let foundChild = null;
+          for (const child of children) {
+            if (child.textContent.match(/[\$\£\€\₹\d]/) && !labelKeywords.some(kw => child.textContent.toLowerCase().includes(kw))) {
+              foundChild = child;
+              break;
+            }
+          }
+          if (foundChild) return foundChild;
+          
+          el.innerHTML = el.innerHTML.replace(/([\$\£\€\₹]\s*[\d\.,]+)/, '<span class="dynamic-amount">$1</span>');
+          const newSpan = el.querySelector('.dynamic-amount');
+          if (newSpan) return newSpan;
+        }
+      }
+      return null;
+    };
+
+    const subtotalNode = findAmountNode(['sub total', 'subtotal']);
+    if (subtotalNode) subtotalNode.setAttribute('data-cart-subtotal', 'true');
+
+    const shippingNode = findAmountNode(['shipping', 'shipping cost', 'shipping fee']);
+    if (shippingNode) shippingNode.setAttribute('data-cart-shipping', 'true');
+
+    let grandtotalNode = findAmountNode(['grand total', 'grandtotal', 'total amount']);
+    if (!grandtotalNode) {
+      // Fallback if the template just uses "Total", but this might catch table headers.
+      // We will only accept it if it contains a price pattern in itself or next sibling.
+      grandtotalNode = findAmountNode(['total']);
+    }
+    if (grandtotalNode) grandtotalNode.setAttribute('data-cart-grandtotal', 'true');
 
     modPage.html = doc.documentElement.innerHTML;
-    return { modifiedPage: modPage, itemTemplateHtml };
+    return { modifiedPage: modPage, itemTemplateHtml, hasEmptyState: emptyStateFound };
   }, [page]);
 
-  const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const shipping = settings?.shippingEnabled ? (settings.shippingFee || 0) : 0;
+  const grandTotal = subTotal + shipping;
 
   // Native DOM update for totals to prevent wiping the DOM with re-renders
   useEffect(() => {
-    const totalNodes = document.querySelectorAll('[data-cart-total-node="true"]');
-    totalNodes.forEach(node => {
-      node.textContent = formatCurrency(total, workspaceId, websiteId, storeId);
+    const subtotalNodes = document.querySelectorAll('[data-cart-subtotal="true"]');
+    subtotalNodes.forEach(node => {
+      node.textContent = formatCurrency(subTotal, workspaceId, websiteId, storeId);
     });
-  }, [total, workspaceId, websiteId, storeId]);
+
+    const shippingNodes = document.querySelectorAll('[data-cart-shipping="true"]');
+    shippingNodes.forEach(node => {
+      node.textContent = formatCurrency(shipping, workspaceId, websiteId, storeId);
+    });
+
+    const grandtotalNodes = document.querySelectorAll('[data-cart-grandtotal="true"]');
+    grandtotalNodes.forEach(node => {
+      node.textContent = formatCurrency(grandTotal, workspaceId, websiteId, storeId);
+    });
+
+    // Handle Empty State Visibility
+    const emptyStateNodes = document.querySelectorAll('[data-cart-empty-state="true"]');
+    emptyStateNodes.forEach(node => {
+      if (cart.length > 0) {
+        node.style.display = 'none';
+      } else {
+        node.style.display = ''; // restore
+      }
+    });
+    
+    // Also hide the cart container/table if cart is empty and we have a native empty state
+    const cartList = document.getElementById('storefront-react-cart-list');
+    if (cartList && emptyStateNodes.length > 0) {
+       const table = cartList.closest('table');
+       if (table) {
+         table.style.display = cart.length === 0 ? 'none' : '';
+       }
+    }
+  }, [cart.length, subTotal, shipping, grandTotal, workspaceId, websiteId, storeId]);
 
   const { navigateTo } = useStorefront();
   
@@ -196,12 +255,12 @@ const CartPage = () => {
 
   return (
     <StorefrontPage page={modifiedPage} assets={template.assets}>
-      <CartListPortal cart={cart} itemTemplateHtml={itemTemplateHtml} />
+      <CartListPortal cart={cart} itemTemplateHtml={itemTemplateHtml} hasEmptyState={hasEmptyState} />
     </StorefrontPage>
   );
 };
 
-const CartListPortal = ({ cart, itemTemplateHtml }) => {
+const CartListPortal = ({ cart, itemTemplateHtml, hasEmptyState }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   
@@ -211,7 +270,7 @@ const CartListPortal = ({ cart, itemTemplateHtml }) => {
 
   return createPortal(
     <>
-      {cart.length === 0 ? (
+      {cart.length === 0 && !hasEmptyState ? (
         <tr><td colSpan="5" style={{ padding: 20, textAlign: 'center' }}>Your cart is empty.</td></tr>
       ) : (
         cart.map(item => <CartItem key={item.id} item={item} templateHtml={itemTemplateHtml} />)

@@ -10,16 +10,44 @@ const CartItem = ({ item, templateHtml }) => {
   const processedHtml = useMemo(() => {
     if (!templateHtml) return '';
     
+    let htmlToParse = templateHtml;
+    const isTr = templateHtml.trim().toLowerCase().startsWith('<tr');
+    if (isTr) {
+      htmlToParse = `<table><tbody>${templateHtml}</tbody></table>`;
+    }
+    
     const parser = new DOMParser();
-    const doc = parser.parseFromString(templateHtml, 'text/html');
-    const itemEl = doc.body.firstElementChild;
+    const doc = parser.parseFromString(htmlToParse, 'text/html');
+    const itemEl = isTr ? doc.querySelector('tr') : doc.body.firstElementChild;
     if (!itemEl) return '';
 
-    // The cart item template likely has elements we can guess by content or class.
-    // For a generic approach without explicit mappings, we look for common classes or tags.
-    // E-commerce templates often use .product-thumbnail, .product-name, .product-price, .product-quantity, .product-remove
-    
-    const imgEls = itemEl.querySelectorAll('img, [class*="thumb"], [class*="img"]');
+    const cols = isTr ? Array.from(itemEl.querySelectorAll('td, th')) : Array.from(itemEl.children);
+
+    const replaceDeepText = (el, newText) => {
+      if (!el) return;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      let replaced = false;
+      while (node = walker.nextNode()) {
+        if (node.textContent.trim() !== '') {
+          node.textContent = newText;
+          replaced = true;
+          break;
+        }
+      }
+    };
+
+    // Image
+    let imgEls = Array.from(itemEl.querySelectorAll('img, [class*="thumb"], [class*="img"]'));
+    if (imgEls.length === 0 && cols.length > 0) {
+      const img = doc.createElement('img');
+      img.style.width = '50px';
+      img.style.height = '50px';
+      img.style.objectFit = 'cover';
+      img.style.marginRight = '10px';
+      cols[0].insertBefore(img, cols[0].firstChild);
+      imgEls = [img];
+    }
     imgEls.forEach(img => {
       if (img.tagName === 'IMG') {
         img.src = item.image || '';
@@ -28,26 +56,60 @@ const CartItem = ({ item, templateHtml }) => {
     });
 
     // Name
-    const nameEls = itemEl.querySelectorAll('[class*="name"], [class*="title"], h1, h2, h3, h4, h5, a');
-    if (nameEls.length > 0) {
-      nameEls[0].textContent = item.name;
-    } else {
-      // fallback: just find the first text node that isn't a price/qty
-      const tds = itemEl.querySelectorAll('td');
-      if (tds.length >= 2) tds[1].textContent = item.name;
+    const nameWalker = document.createTreeWalker(cols[0] || itemEl, NodeFilter.SHOW_TEXT, null, false);
+    let nameNode;
+    let nameReplaced = false;
+    while (nameNode = nameWalker.nextNode()) {
+      const txt = nameNode.textContent.trim();
+      if (txt !== '') {
+        if (!nameReplaced) {
+          nameNode.textContent = item.name;
+          nameReplaced = true;
+        } else {
+          const lowerTxt = txt.toLowerCase();
+          if (lowerTxt.includes('product') || lowerTxt.includes('name') || lowerTxt === item.name.toLowerCase()) {
+            nameNode.textContent = '';
+          }
+        }
+      }
+    }
+    
+    // If we didn't find any text node to replace, inject a span for the name
+    if (!nameReplaced && (cols[0] || itemEl)) {
+      const span = doc.createElement('span');
+      span.textContent = item.name;
+      (cols[0] || itemEl).appendChild(span);
     }
 
     // Price
-    const priceEls = itemEl.querySelectorAll('[class*="price"]');
+    let priceEls = Array.from(itemEl.querySelectorAll('[class*="price"]'));
+    if (priceEls.length === 0) {
+      if (cols.length >= 2) priceEls.push(cols[1]);
+      if (cols.length >= 4) priceEls.push(cols[3]); // Total
+    }
+    
     if (priceEls.length > 0) {
-      priceEls[0].textContent = formatCurrency(item.price, workspaceId, websiteId, storeId);
-      if (priceEls.length > 1) { // Maybe subtotal is the second one
-        priceEls[1].textContent = formatCurrency(item.price * item.quantity, workspaceId, websiteId, storeId);
+      replaceDeepText(priceEls[0], formatCurrency(item.price, workspaceId, websiteId, storeId));
+      if (priceEls.length > 1) { 
+        replaceDeepText(priceEls[1], formatCurrency(item.price * item.quantity, workspaceId, websiteId, storeId));
       }
     }
 
     // Quantity Input
-    const inputEls = itemEl.querySelectorAll('input[type="number"], input[name="quantity"], [class*="qty"] input');
+    let inputEls = Array.from(itemEl.querySelectorAll('input[type="number"], input[name="quantity"], [class*="qty"] input'));
+    if (inputEls.length === 0) {
+      const anyInputs = itemEl.querySelectorAll('input');
+      if (anyInputs.length > 0) {
+        inputEls = Array.from(anyInputs);
+      } else if (cols.length >= 3) {
+        cols[2].innerHTML = '';
+        const input = doc.createElement('input');
+        input.type = 'number';
+        input.style.width = '60px';
+        cols[2].appendChild(input);
+        inputEls.push(input);
+      }
+    }
     inputEls.forEach(input => {
       if (input.tagName === 'INPUT') {
         input.value = item.quantity;
@@ -58,15 +120,25 @@ const CartItem = ({ item, templateHtml }) => {
     });
 
     // Remove Button
-    const removeEls = itemEl.querySelectorAll('[class*="remove"], [class*="delete"], .btn-remove');
+    let removeEls = Array.from(itemEl.querySelectorAll('[class*="remove"], [class*="delete"], .btn-remove'));
+    if (removeEls.length === 0 && cols.length >= 5) {
+      let btn = cols[4].querySelector('button, a');
+      if (!btn) {
+        cols[4].innerHTML = '';
+        btn = doc.createElement('button');
+        btn.textContent = 'Remove';
+        btn.className = 'btn btn-danger btn-sm';
+        cols[4].appendChild(btn);
+      }
+      removeEls.push(btn);
+    }
     removeEls.forEach(btn => {
       btn.setAttribute('data-cart-action', 'remove');
+      if (btn.tagName === 'A' && !btn.getAttribute('href')) btn.href = '#';
     });
 
-    // Inject item ID for event delegation if needed, though we use ref here.
     itemEl.setAttribute('data-cart-item-id', item.id);
     
-    // We will extract innerHTML and attributes to avoid the <div> wrapper issue
     const attrs = {};
     Array.from(itemEl.attributes).forEach(attr => {
       if (attr.name === 'class') attrs.className = attr.value;

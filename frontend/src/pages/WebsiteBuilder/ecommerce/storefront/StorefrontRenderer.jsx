@@ -87,6 +87,8 @@ const StorefrontRendererContent = () => {
     PageComponent = <StorefrontPage page={page} assets={template.assets} />;
   }
 
+  const totalQuantity = cart.reduce((acc, item) => acc + item.quantity, 0);
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: '#1e293b', color: 'white', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -95,7 +97,7 @@ const StorefrontRendererContent = () => {
           <Text style={{ color: '#94a3b8' }}>{page?.name} ({currentPageId})</Text>
         </Space>
         <Space>
-          <Badge count={cart.length} showZero>
+          <Badge count={totalQuantity} showZero>
             <Button size="small" type="primary" onClick={() => setIsCheckoutDrawerOpen(true)}>
               <ShoppingCart size={14} style={{ marginRight: 8 }} />
               Quick Cart Drawer
@@ -104,7 +106,7 @@ const StorefrontRendererContent = () => {
         </Space>
       </div>
 
-      <div style={{ flex: 1, position: 'relative', overflowY: 'auto' }}>
+      <div style={{ flex: 1, position: 'relative', overflowY: 'auto', transform: 'translate(0)' }}>
         {PageComponent}
       </div>
 

@@ -44,19 +44,6 @@ const normalizeId = (doc) => {
 
 const normalizeArray = (arr) => (Array.isArray(arr) ? arr.map(normalizeId) : []);
 
-// ---- IndexedDB for templates ----
-
-const initDB = () => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('EcommerceStoreDB', 1);
-    request.onupgradeneeded = (e) => {
-      e.target.result.createObjectStore('templates');
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
-
 // ---- Products (Backend) — require storeId ----
 
 export const getProducts = async (workspaceId, websiteId, storeId) => {
@@ -201,77 +188,55 @@ export const saveSettings = async (workspaceId, websiteId, storeId, settings) =>
   return res.data.data;
 };
 
-// ---- Templates (IndexedDB) ----
+// ---- Templates (Backend) ----
 
 export const getTemplates = async (workspaceId, websiteId) => {
+  if (!websiteId) return {};
   try {
-    const db = await initDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['templates'], 'readonly');
-      const store = transaction.objectStore('templates');
-      const key = getScopedKey(workspaceId, websiteId, 'templates');
-      const request = store.get(key);
-      request.onsuccess = () => resolve(request.result || {});
-      request.onerror = () => reject(request.error);
-    });
+    const res = await api.get(`/ecommerce/${websiteId}/templates`);
+    return res.data.data || {};
   } catch (e) {
-    console.warn('Falling back to localStorage for templates', e);
+    console.error('Failed to get templates from backend', e);
     return getStorageData(workspaceId, websiteId, 'templates', {});
   }
 };
 
 export const saveTemplate = async (workspaceId, websiteId, templateId, templateData) => {
-  const templates = await getTemplates(workspaceId, websiteId);
-  templates[templateId] = templateData;
   try {
-    const db = await initDB();
-    await new Promise((resolve, reject) => {
-      const transaction = db.transaction(['templates'], 'readwrite');
-      const store = transaction.objectStore('templates');
-      const key = getScopedKey(workspaceId, websiteId, 'templates');
-      const request = store.put(templates, key);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    // Upsert template data (templateData usually contains id/name/pages/assets)
+    await api.put(`/ecommerce/${websiteId}/templates/${templateId}`, templateData);
+    window.dispatchEvent(new CustomEvent('ecommerce_templates_updated', {
+      detail: { workspaceId, websiteId, entity: 'templates' }
+    }));
   } catch (e) {
-    console.warn('Falling back to localStorage for templates', e);
+    console.error('Failed to save template to backend', e);
+    // Fallback in case of server failure during offline dev
+    const templates = await getStorageData(workspaceId, websiteId, 'templates', {});
+    templates[templateId] = templateData;
     setStorageData(workspaceId, websiteId, 'templates', templates);
   }
 };
 
 export const updateTemplate = async (workspaceId, websiteId, templateId, updateData) => {
-  const templates = await getTemplates(workspaceId, websiteId);
-  if (templates[templateId]) {
-    templates[templateId] = { ...templates[templateId], ...updateData, updatedAt: new Date().toISOString() };
-    try {
-      const db = await initDB();
-      await new Promise((resolve, reject) => {
-        const transaction = db.transaction(['templates'], 'readwrite');
-        const store = transaction.objectStore('templates');
-        const request = store.put(templates, getScopedKey(workspaceId, websiteId, 'templates'));
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      setStorageData(workspaceId, websiteId, 'templates', templates);
-    }
+  try {
+    const res = await api.put(`/ecommerce/${websiteId}/templates/${templateId}`, updateData);
+    window.dispatchEvent(new CustomEvent('ecommerce_templates_updated', {
+      detail: { workspaceId, websiteId, entity: 'templates' }
+    }));
+    return res.data.data;
+  } catch (e) {
+    console.error('Failed to update template in backend', e);
   }
 };
 
 export const deleteTemplate = async (workspaceId, websiteId, templateId) => {
-  const templates = await getTemplates(workspaceId, websiteId);
-  delete templates[templateId];
   try {
-    const db = await initDB();
-    await new Promise((resolve, reject) => {
-      const transaction = db.transaction(['templates'], 'readwrite');
-      const store = transaction.objectStore('templates');
-      const request = store.put(templates, getScopedKey(workspaceId, websiteId, 'templates'));
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    await api.delete(`/ecommerce/${websiteId}/templates/${templateId}`);
+    window.dispatchEvent(new CustomEvent('ecommerce_templates_updated', {
+      detail: { workspaceId, websiteId, entity: 'templates' }
+    }));
   } catch (e) {
-    setStorageData(workspaceId, websiteId, 'templates', templates);
+    console.error('Failed to delete template from backend', e);
   }
 };
 

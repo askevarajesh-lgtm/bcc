@@ -46,7 +46,13 @@ const verifyWebsiteOwnership = async (req, res, next) => {
 
 router.use('/:websiteId', verifyWebsiteOwnership);
 
-// All routes are scoped: /ecommerce/:websiteId/:storeId/...
+// Templates are scoped by websiteId (they represent the stores)
+router.get('/:websiteId/templates', ecommerceController.getTemplates);
+router.post('/:websiteId/templates', ecommerceController.createTemplate);
+router.put('/:websiteId/templates/:templateId', ecommerceController.updateTemplate);
+router.delete('/:websiteId/templates/:templateId', ecommerceController.deleteTemplate);
+
+// All other routes are scoped: /ecommerce/:websiteId/:storeId/...
 router.get('/:websiteId/:storeId/products', ecommerceController.getProducts);
 router.post('/:websiteId/:storeId/products', ecommerceController.createProduct);
 router.put('/:websiteId/:storeId/products/:productId', ecommerceController.updateProduct);

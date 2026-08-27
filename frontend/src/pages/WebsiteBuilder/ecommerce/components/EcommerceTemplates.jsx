@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 const EcommerceTemplates = () => {
   const [templates, setTemplates] = useState({});
   const navigate = useNavigate();
-  const { workspaceId, websiteId } = useEcommerce();
+  const { workspaceId, websiteId, changeTemplate } = useEcommerce();
 
   useEffect(() => {
     loadTemplates();
@@ -66,18 +66,14 @@ const EcommerceTemplates = () => {
         <Space>
           <Button
             size="small"
-            icon={<Edit size={14} />}
-            onClick={() => navigate(`../store/${record.id}`)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="small"
             type="primary"
             icon={<Eye size={14} />}
-            onClick={() => navigate(`../preview/${record.id}`)}
+            onClick={() => {
+              changeTemplate(record.id);
+              navigate('../dashboard');
+            }}
           >
-            Preview
+            Manage
           </Button>
           <Popconfirm title="Delete store?" onConfirm={() => handleDelete(record.id)}>
             <Button size="small" danger icon={<Trash2 size={14} />} />

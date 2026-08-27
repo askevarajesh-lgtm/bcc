@@ -15,6 +15,10 @@ const StorefrontPage = ({ page, assets, children, portalSelector }) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
+    // Remove common preloaders since stripped JS won't hide them automatically
+    const preloaders = doc.querySelectorAll('#preloader, .preloader, #loader, .loader, #spinner, .spinner, .preloading');
+    preloaders.forEach(el => el.remove());
+    
     // If we have a specific portal target, find it and mark it
     let targetEl = portalSelector ? doc.querySelector(portalSelector) : null;
     

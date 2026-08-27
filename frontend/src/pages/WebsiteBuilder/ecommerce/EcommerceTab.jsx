@@ -11,7 +11,8 @@ import {
   Users,
   Package,
   LayoutTemplate,
-  Paintbrush
+  Paintbrush,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -54,10 +55,14 @@ const EcommerceTabContent = ({ itemVariants }) => {
     navigate(`${basePath}/${key}`);
   };
 
-  const menuItems = [
-    { key: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+  const baseMenuItems = [
+    { key: 'templates', icon: <LayoutTemplate size={18} />, label: 'Saved Stores' },
     { key: 'builder', icon: <Paintbrush size={18} />, label: 'Store Builder' },
-    { key: 'templates', icon: <LayoutTemplate size={18} />, label: 'Store Library' },
+  ];
+
+  const storeMenuItems = [
+    { key: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+    { key: 'pages', icon: <FileText size={18} />, label: 'Pages' },
     { key: 'preview', icon: <ShoppingBag size={18} />, label: 'Store Preview' },
     { key: 'products', icon: <Package size={18} />, label: 'Products' },
     { key: 'orders', icon: <ShoppingBag size={18} />, label: 'Orders' },
@@ -67,52 +72,50 @@ const EcommerceTabContent = ({ itemVariants }) => {
     { key: 'settings', icon: <Settings size={18} />, label: 'Settings' }
   ];
 
+  const menuItems = activeTemplateId ? storeMenuItems : baseMenuItems;
+
+  const showSider = activeTemplateId && lastPart !== 'templates';
+
   return (
     <motion.div variants={itemVariants} style={{ height: '100%', minHeight: 'calc(100vh - 200px)' }}>
       <Layout style={{ background: 'transparent', height: '100%' }}>
-        <Sider
-          width={240}
-          style={{
-            background: 'var(--bg-secondary)',
-            borderRight: '1px solid var(--border-color)',
-            borderRadius: '16px 0 0 16px',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{ padding: '24px 16px' }}>
-            <Title level={5} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShoppingBag size={20} color="var(--accent-primary)" /> E-commerce
-            </Title>
-            <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>Store Management</Text>
-          </div>
-          <Menu
-            mode="inline"
-            selectedKeys={[activeKey]}
-            onClick={handleMenuClick}
-            items={menuItems}
+        {showSider && (
+          <Sider
+            width={240}
             style={{
-              borderRight: 'none',
-              background: 'transparent',
-              padding: '0 8px'
+              background: 'var(--bg-secondary)',
+              borderRight: '1px solid var(--border-color)',
+              borderRadius: '16px 0 0 16px',
+              overflow: 'hidden'
             }}
-          />
-        </Sider>
-        <Layout style={{ background: 'transparent', padding: '0 0 0 24px' }}>
+          >
+            <div style={{ padding: '24px 16px' }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShoppingBag size={20} color="var(--accent-primary)" /> E-commerce
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>Store Management</Text>
+            </div>
+            <Menu
+              mode="inline"
+              selectedKeys={[activeKey]}
+              onClick={handleMenuClick}
+              items={menuItems}
+              style={{
+                borderRight: 'none',
+                background: 'transparent',
+                padding: '0 8px'
+              }}
+            />
+          </Sider>
+        )}
+        <Layout style={{ background: 'transparent', padding: showSider ? '0 0 0 24px' : '0' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
-            <Space>
-              <Text type="secondary" style={{ fontWeight: 600 }}>Active Store:</Text>
-              <Select
-                value={activeTemplateId || undefined}
-                onChange={changeTemplate}
-                style={{ width: 220 }}
-                placeholder={allTemplates?.length > 0 ? "Select Store Template" : "Upload a template first"}
-                disabled={!allTemplates || allTemplates.length === 0}
-              >
-                {allTemplates?.map(t => (
-                  <Option key={t.id} value={t.id}>{t.name}</Option>
-                ))}
-              </Select>
-            </Space>
+            {activeTemplateId && showSider && (
+              <Space>
+                <Text type="secondary" style={{ fontWeight: 600 }}>Active Store:</Text>
+                <Text strong>{allTemplates?.find(t => t.id === activeTemplateId)?.name || activeTemplateId}</Text>
+              </Space>
+            )}
           </div>
           <Content style={{ position: 'relative' }}>
             {websiteId ? (
@@ -125,19 +128,22 @@ const EcommerceTabContent = ({ itemVariants }) => {
                 style={{ height: '100%' }}
               >
                 <Routes>
-                  <Route path="dashboard" element={<EcommerceDashboard />} />
+                  {activeTemplateId && <Route path="dashboard" element={<EcommerceDashboard />} />}
+                  {activeTemplateId && <Route path="products" element={<EcommerceProducts />} />}
+                  {activeTemplateId && <Route path="orders" element={<EcommerceOrders />} />}
+                  {activeTemplateId && <Route path="customers" element={<EcommerceCustomers />} />}
+                  {activeTemplateId && <Route path="payments" element={<EcommercePayments />} />}
+                  {activeTemplateId && <Route path="shipping" element={<EcommerceShipping />} />}
+                  {activeTemplateId && <Route path="settings" element={<EcommerceSettings />} />}
+                  
                   <Route path="builder/:templateId/:pageId?" element={<EcommerceStoreBuilder />} />
                   <Route path="builder" element={<EcommerceStoreBuilder />} />
                   <Route path="store/:templateId" element={<EcommerceStoreManager />} />
+                  <Route path="pages" element={<EcommerceStoreManager templateId={activeTemplateId} />} />
+                  <Route path="preview/:templateId?" element={<StorefrontRenderer templateId={activeTemplateId} />} />
                   <Route path="templates" element={<EcommerceTemplates />} />
-                  <Route path="preview/:templateId?" element={<StorefrontRenderer />} />
-                  <Route path="products" element={<EcommerceProducts />} />
-                  <Route path="orders" element={<EcommerceOrders />} />
-                  <Route path="customers" element={<EcommerceCustomers />} />
-                  <Route path="payments" element={<EcommercePayments />} />
-                  <Route path="shipping" element={<EcommerceShipping />} />
-                  <Route path="settings" element={<EcommerceSettings />} />
-                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                  
+                  <Route path="*" element={<Navigate to="templates" replace />} />
                 </Routes>
               </motion.div>
             ) : (

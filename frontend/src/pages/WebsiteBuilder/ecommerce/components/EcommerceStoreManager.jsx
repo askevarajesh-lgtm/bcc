@@ -7,8 +7,9 @@ import { useEcommerce } from '../contexts/EcommerceContext';
 
 const { Title, Text } = Typography;
 
-const EcommerceStoreManager = () => {
-  const { templateId } = useParams();
+const EcommerceStoreManager = ({ templateId: propTemplateId }) => {
+  const { templateId: paramTemplateId } = useParams();
+  const templateId = paramTemplateId || propTemplateId;
   const navigate = useNavigate();
   const { workspaceId, websiteId, reloadTemplates } = useEcommerce();
   const [template, setTemplate] = useState(null);

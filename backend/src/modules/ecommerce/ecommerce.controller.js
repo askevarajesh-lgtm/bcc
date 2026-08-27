@@ -4,6 +4,7 @@ const EcommerceCustomer = require('./models/EcommerceCustomer');
 const EcommercePayment = require('./models/EcommercePayment');
 const EcommerceShipping = require('./models/EcommerceShipping');
 const EcommerceSettings = require('./models/EcommerceSettings');
+const EcommerceTemplate = require('./models/EcommerceTemplate');
 
 // Helper to construct isolated query — scope by workspace + website + store
 const getIsolatedQuery = (req) => {
@@ -15,6 +16,83 @@ const getIsolatedQuery = (req) => {
     websiteId: req.params.websiteId,
     storeId: req.params.storeId
   };
+};
+
+// Helper for Template queries (scoped by workspace + website only)
+const getTemplateQuery = (req) => {
+  if (!req.workspaceId) throw new Error('Unauthorized: Missing workspaceId');
+  if (!req.params.websiteId) throw new Error('Bad Request: Missing websiteId');
+  return {
+    workspaceId: req.workspaceId,
+    websiteId: req.params.websiteId
+  };
+};
+
+// --- TEMPLATES ---
+exports.getTemplates = async (req, res, next) => {
+  try {
+    const templates = await EcommerceTemplate.find(getTemplateQuery(req));
+    
+    // Map to object keyed by template ID to match frontend IndexedDB format
+    const templateMap = {};
+    templates.forEach(t => {
+      // Return as plain object mapping ID to object
+      const tObj = t.toObject();
+      tObj.id = tObj.templateId; // Map templateId to id for frontend
+      templateMap[tObj.templateId] = tObj;
+    });
+    
+    res.json({ success: true, data: templateMap });
+  } catch (error) { next(error); }
+};
+
+exports.createTemplate = async (req, res, next) => {
+  try {
+    const template = new EcommerceTemplate({
+      ...getTemplateQuery(req),
+      templateId: req.body.id || `tpl_${Date.now()}`,
+      name: req.body.name,
+      pages: req.body.pages || {},
+      assets: req.body.assets || {}
+    });
+    await template.save();
+    
+    const tObj = template.toObject();
+    tObj.id = tObj.templateId;
+    
+    res.json({ success: true, data: tObj });
+  } catch (error) { next(error); }
+};
+
+exports.updateTemplate = async (req, res, next) => {
+  try {
+    const query = { ...getTemplateQuery(req), templateId: req.params.templateId };
+    
+    // Support partial updates (upsert to handle saveTemplate replacing entire object)
+    const updateData = req.body;
+    if (updateData.id) delete updateData.id;
+    if (updateData.templateId) delete updateData.templateId;
+
+    const template = await EcommerceTemplate.findOneAndUpdate(
+      query,
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+    
+    const tObj = template.toObject();
+    tObj.id = tObj.templateId;
+    
+    res.json({ success: true, data: tObj });
+  } catch (error) { next(error); }
+};
+
+exports.deleteTemplate = async (req, res, next) => {
+  try {
+    const query = { ...getTemplateQuery(req), templateId: req.params.templateId };
+    const template = await EcommerceTemplate.findOneAndDelete(query);
+    if (!template) return res.status(404).json({ success: false, message: 'Template not found' });
+    res.json({ success: true, message: 'Template deleted' });
+  } catch (error) { next(error); }
 };
 
 // --- PRODUCTS ---
