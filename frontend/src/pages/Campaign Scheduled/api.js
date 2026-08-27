@@ -190,8 +190,15 @@ export const campaignScheduledApi = {
     return request("/connected-accounts", { clientCompanyId });
   },
   async getAccounts(clientCompanyId = null) {
-    const data = await request("/accounts", { clientCompanyId });
-    return data.accounts || [];
+    console.log("getAccounts requested with clientCompanyId:", clientCompanyId);
+    try {
+      const data = await request("/accounts", { clientCompanyId });
+      console.log("getAccounts returned:", data);
+      return data.accounts || [];
+    } catch (err) {
+      console.error("getAccounts failed:", err);
+      return [];
+    }
   },
   async disconnectAccount(accountId, clientCompanyId = null) {
     await request(`/accounts/${accountId}`, {

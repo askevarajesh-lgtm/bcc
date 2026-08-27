@@ -98,8 +98,15 @@ const authMiddleware = async (req, res, next) => {
        req.user.brandId = req.selectedClientId;
        
        // Ensure agencyId is preserved so any records created still link back to the agency properly
-       if (!req.user.agencyId) {
-         req.user.agencyId = req.companyId || req.user._id; 
+       if (req.selectedClientId) {
+          try {
+             const ClientCompany = mongoose.model("User"); // ClientCompany is User model in this architecture
+             const clientData = await ClientCompany.findById(req.selectedClientId).select("agencyId").lean();
+             if (clientData && clientData.agencyId) {
+               req.companyId = clientData.agencyId;
+               req.user.agencyId = clientData.agencyId;
+             }
+          } catch(e) {}
        }
     }
   }
