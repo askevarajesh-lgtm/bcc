@@ -289,7 +289,7 @@ const Header = ({ collapsed, setCollapsed }) => {
       </div>
 
       <div className="app-header__actions">
-        {['agency_super_admin', 'agency_manager', 'agency', 'commander_admin'].includes(role) && (
+        {['agency_manager', 'agency'].includes(role) && (
           <div style={{ marginRight: 16, display: 'flex', alignItems: 'center' }}>
             <Select
               showSearch
