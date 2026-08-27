@@ -133,7 +133,7 @@ exports.getAdAccounts = async (req, res, next) => {
 
     const { accessToken, userId } = integration.config;
     
-    // Fetch Ad Accounts
+    // Fetch Personal/Direct Ad Accounts
     const accountsRes = await axios.get(`https://graph.facebook.com/v18.0/${userId}/adaccounts`, {
       params: {
         access_token: accessToken,
@@ -141,9 +141,59 @@ exports.getAdAccounts = async (req, res, next) => {
       }
     });
 
+    let allAccounts = [...(accountsRes.data.data || [])];
+    let allPages = [];
+    let allBusinesses = [];
+
+    // Fetch Pages
+    try {
+      const pagesRes = await axios.get(`https://graph.facebook.com/v18.0/${userId}/accounts`, {
+        params: { access_token: accessToken, fields: 'id,name,category' }
+      });
+      allPages = pagesRes.data.data || [];
+    } catch (pagesErr) {
+      console.error('Failed to fetch pages:', pagesErr.response?.data || pagesErr.message);
+    }
+
+    // Fetch Business Ad Accounts
+    try {
+      const bizRes = await axios.get(`https://graph.facebook.com/v18.0/${userId}/businesses`, {
+        params: {
+          access_token: accessToken,
+          fields: 'id,name,owned_ad_accounts{id,name,account_status,currency,timezone_name,balance,amount_spent,funding_source_details},client_ad_accounts{id,name,account_status,currency,timezone_name,balance,amount_spent,funding_source_details}'
+        }
+      });
+      
+      const businesses = bizRes.data.data || [];
+      allBusinesses = businesses.map(b => ({ id: b.id, name: b.name }));
+      
+      businesses.forEach(biz => {
+        if (biz.owned_ad_accounts && biz.owned_ad_accounts.data) {
+          biz.owned_ad_accounts.data.forEach(acc => {
+            if (!allAccounts.find(a => a.id === acc.id)) {
+              allAccounts.push({ ...acc, business_name: biz.name });
+            }
+          });
+        }
+        if (biz.client_ad_accounts && biz.client_ad_accounts.data) {
+          biz.client_ad_accounts.data.forEach(acc => {
+            if (!allAccounts.find(a => a.id === acc.id)) {
+              allAccounts.push({ ...acc, business_name: biz.name });
+            }
+          });
+        }
+      });
+    } catch (bizErr) {
+      console.error('Failed to fetch business ad accounts:', bizErr.response?.data || bizErr.message);
+    }
+
     res.status(200).json({
       success: true,
-      data: accountsRes.data.data
+      data: {
+        adAccounts: allAccounts,
+        pages: allPages,
+        businesses: allBusinesses
+      }
     });
   } catch (error) {
     const errorData = error.response?.data;
@@ -305,3 +355,23 @@ exports.disconnectMeta = async (req, res, next) => {
   }
 
 };
+
+exports.getMetaIntegrationStatus = async (req, res, next) => {
+  try {
+    const agencyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.query.clientId || req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const integration = await Integration.findOne({ companyId: agencyId, type: 'meta_ads', isActive: true });
+    
+    if (!integration) {
+      return res.status(200).json({ success: true, isConnected: false });
+    }
+
+    res.status(200).json({
+      success: true,
+      isConnected: true,
+      data: integration
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

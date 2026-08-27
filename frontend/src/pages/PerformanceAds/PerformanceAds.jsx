@@ -25,6 +25,8 @@ const PerformanceAds = () => {
 
   const [isAdAccountModalOpen, setIsAdAccountModalOpen] = useState(false);
   const [availableAdAccounts, setAvailableAdAccounts] = useState([]);
+  const [availablePages, setAvailablePages] = useState([]);
+  const [availableBusinesses, setAvailableBusinesses] = useState([]);
   const [selectedAdAccountIds, setSelectedAdAccountIds] = useState([]);
   const [isFetchingAccounts, setIsFetchingAccounts] = useState(false);
   const [isSavingAccounts, setIsSavingAccounts] = useState(false);
@@ -50,13 +52,32 @@ const PerformanceAds = () => {
           const agencies = (agenciesRes.data.data || []).map(a => ({ ...a, clientType: 'Agency' }));
           const brands = (brandsRes.data.data || []).map(b => ({ ...b, clientType: 'Direct Brand' }));
           setAdminClients([...agencies, ...brands]);
+          if ([...agencies, ...brands].length === 0) {
+            setLoading(false);
+          }
         } catch (error) {
           console.error("Failed to fetch admin clients", error);
+          setLoading(false);
         }
       }
     };
     fetchAdminClients();
   }, [user]);
+
+  useEffect(() => {
+    // Handle OAuth redirect success/error and clean URL
+    if (window.location.hash === '#_=_' || window.location.hash === '#') {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      message.success('Meta Ads account connected successfully!');
+    }
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get('meta_error');
+    if (error) {
+      message.error('Failed to connect Meta Ads. Please try again.');
+      window.history.replaceState(null, document.title, window.location.pathname);
+    }
+  }, []);
 
   const isSuperAdmin = ['commander_admin', 'supreme_super_admin'].includes(user?.role);
   const clients = isSuperAdmin ? adminClients : (clientsData?.data || []);
@@ -87,20 +108,22 @@ const PerformanceAds = () => {
       }
 
       // Check Meta Integration Status
-      const intRes = await api.get('/integrations', { params: { clientId: selectedClient } });
+      const intRes = await api.get('/integrations/meta/status', { params: { clientId: selectedClient } });
       const intData = intRes.data;
-      if (intData.success && intData.data && intData.data.integrations) {
-        const metaInt = intData.data.integrations.find(i => i.type === 'meta_ads' && i.isActive);
-        if (metaInt) {
-          setIsMetaConnected(true);
-          setMetaIntegration(metaInt);
-          const accounts = metaInt.config.selectedAdAccounts || [];
-          setAdAccounts(accounts);
-          
-          if (accounts.length === 0) {
-            setIsAdAccountModalOpen(true);
-          }
+      if (intData.success && intData.isConnected && intData.data) {
+        const metaInt = intData.data;
+        setIsMetaConnected(true);
+        setMetaIntegration(metaInt);
+        const accounts = metaInt.config.selectedAdAccounts || [];
+        setAdAccounts(accounts);
+        
+        if (accounts.length === 0) {
+          setIsAdAccountModalOpen(true);
         }
+      } else {
+        setIsMetaConnected(false);
+        setMetaIntegration(null);
+        setAdAccounts([]);
       }
     } catch (error) {
       console.error('Failed to fetch performance ads data:', error);
@@ -116,7 +139,15 @@ const PerformanceAds = () => {
         try {
           const res = await api.get(`/integrations/meta/ad-accounts?clientId=${selectedClient}`);
           if (res.data.success) {
-            setAvailableAdAccounts(res.data.data);
+            if (res.data.data && res.data.data.adAccounts !== undefined) {
+              setAvailableAdAccounts(res.data.data.adAccounts || []);
+              setAvailablePages(res.data.data.pages || []);
+              setAvailableBusinesses(res.data.data.businesses || []);
+            } else {
+              setAvailableAdAccounts(res.data.data || []);
+              setAvailablePages([]);
+              setAvailableBusinesses([]);
+            }
             setSelectedAdAccountIds(adAccounts.map(a => a.id));
           } else {
             message.error('Failed to fetch ad accounts');
@@ -543,29 +574,91 @@ const PerformanceAds = () => {
       />
 
       <Modal
-        title="Select Meta Ad Accounts"
+        title="Meta Connection Details"
         open={isAdAccountModalOpen}
         onCancel={() => setIsAdAccountModalOpen(false)}
         onOk={handleSaveAdAccounts}
         confirmLoading={isSavingAccounts}
-        okText="Save Accounts"
+        okText="Save Ad Accounts"
+        width={500}
       >
         {isFetchingAccounts ? (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}><Spin /></div>
-        ) : availableAdAccounts.length > 0 ? (
-          <Checkbox.Group
-            style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}
-            value={selectedAdAccountIds}
-            onChange={(checkedValues) => setSelectedAdAccountIds(checkedValues)}
-          >
-            {availableAdAccounts.map(account => (
-              <Checkbox key={account.id} value={account.id}>
-                {account.name} <Text type="secondary">({account.id})</Text>
-              </Checkbox>
-            ))}
-          </Checkbox.Group>
+          <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin /></div>
         ) : (
-          <Text type="secondary">No ad accounts found for your Meta account.</Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 8 }}>
+            
+            {/* Pages Section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <CheckCircle2 size={16} color="var(--accent-primary)" />
+                <Text strong style={{ fontSize: 14 }}>Connected Pages</Text>
+              </div>
+              {availablePages.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                  {availablePages.map(p => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text strong>{p.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{p.id}</Text>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Text type="secondary" style={{ fontSize: 13 }}>No pages linked during Facebook OAuth.</Text>
+              )}
+            </div>
+
+            {/* Businesses Section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <CheckCircle2 size={16} color="var(--accent-info)" />
+                <Text strong style={{ fontSize: 14 }}>Connected Businesses</Text>
+              </div>
+              {availableBusinesses.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                  {availableBusinesses.map(b => (
+                    <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text strong>{b.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{b.id}</Text>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Text type="secondary" style={{ fontSize: 13 }}>No businesses linked during Facebook OAuth.</Text>
+              )}
+            </div>
+
+            {/* Ad Accounts Section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Megaphone size={16} color="var(--accent-warning)" />
+                <Text strong style={{ fontSize: 14 }}>Select Ad Accounts to Sync</Text>
+              </div>
+              {availableAdAccounts.length > 0 ? (
+                <Checkbox.Group
+                  style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+                  value={selectedAdAccountIds}
+                  onChange={(checkedValues) => setSelectedAdAccountIds(checkedValues)}
+                >
+                  {availableAdAccounts.map(account => (
+                    <div key={account.id} style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                      <Checkbox value={account.id} style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <Text strong>{account.name}</Text>
+                            {account.business_name && <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>{account.business_name}</Tag>}
+                          </div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>ID: {account.id}</Text>
+                        </div>
+                      </Checkbox>
+                    </div>
+                  ))}
+                </Checkbox.Group>
+              ) : (
+                <Text type="secondary" style={{ fontSize: 13 }}>No Ad Accounts found in your profile or connected businesses.</Text>
+              )}
+            </div>
+            
+          </div>
         )}
       </Modal>
 
