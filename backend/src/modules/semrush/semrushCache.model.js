@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const semrushCacheSchema = new mongoose.Schema({
   companyId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed,
     required: true,
     index: true
   },

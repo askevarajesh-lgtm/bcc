@@ -23,6 +23,5 @@ const AutomationWorkflowSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 AutomationWorkflowSchema.index({ projectId: 1, status: 1 });
-AutomationWorkflowSchema.index({ agencyId: 1 });
 
 module.exports = mongoose.model('AutomationWorkflow', AutomationWorkflowSchema, 'automation_workflows');

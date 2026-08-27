@@ -51,6 +51,5 @@ const WorkspaceAutomationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 WorkspaceAutomationSchema.index({ projectId: 1, isEnabled: 1 });
-WorkspaceAutomationSchema.index({ agencyId: 1 });
 
 module.exports = mongoose.model('WorkspaceAutomation', WorkspaceAutomationSchema, 'workspace_automations');

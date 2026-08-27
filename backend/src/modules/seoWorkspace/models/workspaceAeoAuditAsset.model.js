@@ -110,7 +110,7 @@ const WorkspaceAeoAuditPage = WorkspaceAeoAuditEntity.discriminator('WorkspaceAe
 }), 'page');
 
 // Use a partial filter instead of {unique: true} alone, as multiple assetTypes will be in the same collection
-WorkspaceAeoAuditEntitySchema.index({ entityType: 1, auditId: 1, pageUrl: 1 }, { unique: true, partialFilterExpression: { entityType: 'page' } });
+WorkspaceAeoAuditEntitySchema.index({ entityType: 1, auditId: 1, pageUrl: 1 }, { unique: true, partialFilterExpression: { entityType: 'page' }, name: 'idx_unique_audit_page' });
 WorkspaceAeoAuditEntitySchema.index({ projectId: 1, status: 1 }, { sparse: true });
 
 
@@ -175,7 +175,7 @@ const WorkspaceAeoAuditEntityGraph = WorkspaceAeoAuditEntity.discriminator('Work
   }]
 }), 'entityGraph');
 
-WorkspaceAeoAuditEntitySchema.index({ entityType: 1, auditId: 1, pageUrl: 1 }, { unique: true, partialFilterExpression: { entityType: 'entityGraph' } });
+WorkspaceAeoAuditEntitySchema.index({ entityType: 1, auditId: 1, pageUrl: 1 }, { unique: true, partialFilterExpression: { entityType: 'entityGraph' }, name: 'idx_unique_audit_entity_graph' });
 
 
 // 5. AEO Audit Simulation Model
