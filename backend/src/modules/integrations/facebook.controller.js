@@ -23,17 +23,18 @@ exports.generateAuthUrl = async (req, res, next) => {
     }
 
     let companyId = decoded.agencyId || decoded.brandId || decoded.workspaceId;
+    let clientId = null;
     const isClientRole = ['client', 'agency_client', 'brand_super_admin', 'brand_manager', 'brand_team_user'].includes(decoded.role) || (decoded.role === 'user' && decoded.brandId);
     if (isClientRole) {
-      companyId = decoded.clientId || decoded.brandId || decoded._id;
+      clientId = decoded.clientId || decoded.brandId || decoded._id;
     }
 
     if (!companyId) {
       return res.status(400).json({ success: false, message: 'Company ID missing from user token' });
     }
 
-    // Embed companyId, redirectPath, and userId in the state parameter
-    const stateObj = { companyId, redirectPath, userId: decoded._id };
+    // Embed companyId, clientId, redirectPath, and userId in the state parameter
+    const stateObj = { companyId, clientId, redirectPath, userId: decoded._id };
     const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
     const scopes = ['pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'pages_manage_ads', 'leads_retrieval', 'ads_read', 'business_management', 'pages_read_user_content'].join(',');
     
@@ -65,6 +66,7 @@ exports.handleCallback = async (req, res, next) => {
     }
 
     const companyId = stateObj.companyId;
+    const clientId = stateObj.clientId || null;
     const ownerId = stateObj.userId || null;
 
     // 1. Exchange code for short-lived token
@@ -121,7 +123,7 @@ exports.handleCallback = async (req, res, next) => {
 
     // 4. Save to Database
     await Integration.findOneAndUpdate(
-      { companyId, type: 'facebook_leads', ownerId },
+      { companyId, clientId, type: 'facebook_leads', ownerId },
       {
         name: 'Facebook Leads Integration',
         isActive: true,
@@ -146,13 +148,14 @@ exports.handleCallback = async (req, res, next) => {
 
 exports.getIntegrations = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const ownerId = (req.user && req.user.role === 'user') ? req.user._id : null;
     
     // Admins should see the company's active integration regardless of who authorized it.
     // Regular users should see their own, or we can just show the company's integration.
     // For Facebook Leads, it's typically a company-wide setting, so we'll fetch the latest active one for the company.
-    const query = { companyId, type: 'facebook_leads', isActive: true };
+    const query = { companyId, clientId, type: 'facebook_leads', isActive: true };
     if (ownerId) {
       query.ownerId = ownerId;
     }
@@ -213,12 +216,13 @@ exports.getIntegrations = async (req, res, next) => {
 
 exports.subscribePage = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
 
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(404).json({ success: false, message: 'Facebook integration not found' });
     }
@@ -273,12 +277,13 @@ exports.subscribePage = async (req, res, next) => {
 
 exports.unsubscribePage = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
 
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(404).json({ success: false, message: 'Facebook integration not found' });
     }
@@ -318,10 +323,11 @@ exports.unsubscribePage = async (req, res, next) => {
 
 exports.disconnectPage = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.params;
 
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) {
       return res.status(404).json({ success: false, message: 'Integration not found' });
     }
@@ -343,7 +349,8 @@ exports.disconnectPage = async (req, res, next) => {
 
 exports.getLogs = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.params;
 
     if (!pageId) {
@@ -352,11 +359,11 @@ exports.getLogs = async (req, res, next) => {
 
     const Lead = require('../leads/lead.model');
     
-    const leads = await Lead.find({ 
-      companyId, 
-      source: 'Facebook Lead Ads', 
-      'customData.pageId': pageId 
-    }).sort({ createdAt: -1 }).limit(50);
+    const query = { companyId, source: 'Facebook Lead Ads', 'customData.pageId': pageId };
+    if (clientId) query.clientId = clientId;
+    else query.clientId = null;
+    
+    const leads = await Lead.find(query).sort({ createdAt: -1 }).limit(50);
 
     const logs = leads.map(lead => ({
       status: 'success',
@@ -375,14 +382,15 @@ exports.getLogs = async (req, res, next) => {
 
 exports.syncLeads = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId, formIds } = req.body;
     
     if (!pageId) {
       return res.status(400).json({ success: false, message: 'pageId is required to sync leads' });
     }
 
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(404).json({ success: false, message: 'Facebook integration not found or disconnected' });
     }
@@ -390,7 +398,6 @@ exports.syncLeads = async (req, res, next) => {
     const { accessToken } = integration.config;
     let targetAccessToken = accessToken;
     const manualPage = (integration.config.pages || []).find(p => p.pageId === pageId);
-    let clientId = manualPage ? manualPage.clientId : null;
 
     if (manualPage && manualPage.accessToken && manualPage.accessToken !== accessToken) {
       targetAccessToken = manualPage.accessToken;
@@ -579,8 +586,9 @@ exports.syncLeads = async (req, res, next) => {
 // Asset Discovery Endpoints
 exports.getAdAccounts = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
     const accountsRes = await axios.get(`https://graph.facebook.com/v18.0/me/adaccounts`, {
@@ -594,11 +602,12 @@ exports.getAdAccounts = async (req, res, next) => {
 
 exports.getCampaigns = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { adAccountId } = req.query;
     if (!adAccountId) return res.status(400).json({ success: false, message: 'adAccountId is required' });
     
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
     const campaignsRes = await axios.get(`https://graph.facebook.com/v18.0/${adAccountId}/campaigns`, {
@@ -612,11 +621,12 @@ exports.getCampaigns = async (req, res, next) => {
 
 exports.getAdSets = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { campaignId } = req.query;
     if (!campaignId) return res.status(400).json({ success: false, message: 'campaignId is required' });
     
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
     const adsetsRes = await axios.get(`https://graph.facebook.com/v18.0/${campaignId}/adsets`, {
@@ -630,11 +640,12 @@ exports.getAdSets = async (req, res, next) => {
 
 exports.getAds = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { adSetId } = req.query;
     if (!adSetId) return res.status(400).json({ success: false, message: 'adSetId is required' });
     
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
     const adsRes = await axios.get(`https://graph.facebook.com/v18.0/${adSetId}/ads`, {
@@ -648,11 +659,12 @@ exports.getAds = async (req, res, next) => {
 
 exports.getForms = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.query;
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
     
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
 
     let targetAccessToken = integration.config.accessToken;
@@ -725,7 +737,6 @@ exports.handleWebhook = async (req, res) => {
             const integrations = await Integration.find({ type: 'facebook_leads', isActive: true });
             let validIntegration = null;
             let pageAccessToken = null;
-            let clientId = null;
             
             for (const intg of integrations) {
               try {
@@ -733,7 +744,6 @@ exports.handleWebhook = async (req, res) => {
                 if (manualPage && manualPage.accessToken) {
                   validIntegration = intg;
                   pageAccessToken = manualPage.accessToken;
-                  clientId = manualPage.clientId;
                   break;
                 }
 
@@ -755,8 +765,9 @@ exports.handleWebhook = async (req, res) => {
             
             const Lead = require('../leads/lead.model');
             const companyId = validIntegration.companyId;
+            const clientId = validIntegration.clientId || null;
             
-            const existing = await Lead.findOne({ companyId, 'customData.leadgenId': leadgenId });
+            const existing = await Lead.findOne({ companyId, clientId, 'customData.leadgenId': leadgenId });
             if (existing) {
               console.log('Webhook Leadgen: Duplicate lead skipped', leadgenId);
               continue;
@@ -786,7 +797,7 @@ exports.handleWebhook = async (req, res) => {
             
             await Lead.create({
               companyId,
-              clientId: clientId || null,
+              clientId,
               isClientLead: !!clientId,
               ownerId: validIntegration.ownerId || null,
               createdBy: validIntegration.companyId, // Or a system user ID
@@ -823,12 +834,13 @@ exports.handleWebhook = async (req, res) => {
 
 exports.connectManualPage = async (req, res, next) => {
   try {
-    const companyId = (req.isClientRole && req.clientUserId) ? req.clientUserId : (req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency)));
+    const companyId = req.companyId || (req.user && (req.user.agencyId || req.user.workspaceId || req.user.agency));
+    const clientId = (req.isClientRole && req.clientUserId) ? req.clientUserId : null;
     const { pageId } = req.body;
     
     if (!pageId) return res.status(400).json({ success: false, message: 'pageId is required' });
 
-    const integration = await Integration.findOne({ companyId, type: 'facebook_leads', isActive: true });
+    const integration = await Integration.findOne({ companyId, clientId, type: 'facebook_leads', isActive: true });
     if (!integration || !integration.config || !integration.config.accessToken) {
       return res.status(404).json({ success: false, message: 'Facebook integration not found' });
     }
