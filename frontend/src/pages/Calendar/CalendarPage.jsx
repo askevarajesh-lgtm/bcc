@@ -10,7 +10,7 @@ import {
   BarChartOutlined, PaperClipOutlined, FileTextOutlined, TeamOutlined,
   UserOutlined, ClockCircleOutlined, LinkOutlined, DeleteOutlined,
   EditOutlined, CheckCircleOutlined, InfoCircleOutlined, CloseCircleOutlined,
-  CalendarTwoTone, WarningOutlined, FileAddOutlined
+  CalendarTwoTone, WarningOutlined, FileAddOutlined, EyeOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '../../contexts/AuthContext';
@@ -399,10 +399,7 @@ const CalendarPage = () => {
         <div>
           <span
             style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }}
-            onClick={() => {
-              setSelectedEventId(record._id);
-              setDetailModalVisible(true);
-            }}
+            onClick={() => openDetailModal(record)}
           >
             {text}
           </span>
@@ -473,6 +470,17 @@ const CalendarPage = () => {
       key: 'actions',
       render: (_, record) => (
         <Space size="small">
+          {/* View button — always visible for every activity */}
+          <Tooltip title="View Details">
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              style={{ color: 'var(--accent-primary)' }}
+              onClick={() => openDetailModal(record)}
+            />
+          </Tooltip>
+
+          {/* Join meeting link */}
           {record.meetingLink && (
             <Tooltip title="Join Meeting">
               <Button
@@ -484,6 +492,8 @@ const CalendarPage = () => {
               />
             </Tooltip>
           )}
+
+          {/* Edit / Delete only for custom calendar events */}
           {record.source === 'custom' && ['supreme_super_admin', 'commander_admin', 'agency_super_admin', 'agency_manager'].includes(userRole) && (
             <>
               <Tooltip title="Edit">
