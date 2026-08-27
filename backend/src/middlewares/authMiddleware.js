@@ -70,7 +70,16 @@ const authMiddleware = async (req, res, next) => {
 
   // Parse global client switcher header for Agency Users
   const selectedClientIdHeader = req.headers['x-selected-client-id'];
-  if (selectedClientIdHeader && mongoose.Types.ObjectId.isValid(selectedClientIdHeader) && req.user) {
+  
+  // Skip soft impersonation/client-filtering for management endpoints
+  const isManagementRoute = req.originalUrl && (
+    req.originalUrl.includes('/brands') ||
+    req.originalUrl.includes('/packages') ||
+    req.originalUrl.includes('/users') ||
+    req.originalUrl.includes('/agencies')
+  );
+
+  if (selectedClientIdHeader && mongoose.Types.ObjectId.isValid(selectedClientIdHeader) && req.user && !isManagementRoute) {
     req.selectedClientId = new mongoose.Types.ObjectId(selectedClientIdHeader);
     
     // Inject into query parameters so that existing controllers/services 
