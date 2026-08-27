@@ -61,6 +61,8 @@ const contentAIRoutes = require('../modules/contentAI/contentAI.routes');
 const semrushRoutes = require('../modules/semrush/semrush.routes');
 const competitorIntelligenceRoutes = require('../modules/competitorIntelligence/competitorIntelligence.routes');
 
+const seoPanelRoutes = require('../modules/seo-panel/seo.routes');
+
 // Missing Financial & Analytics Routes
 const expenseRoutes = require('../modules/expenses/expense.routes');
 const transactionRoutes = require('../modules/transactions/transaction.routes');
@@ -90,6 +92,8 @@ router.use('/benchmark', benchmarkRoutes);
 router.use('/reports', reportRoutes);
 router.use('/seo-intelligence', seoIntelligenceRoutes);
 router.use('/seo-workspace', seoWorkspaceRoutes);
+
+router.use('/seo-panel', seoPanelRoutes);
 
 const automationV1Routes = require('../modules/seoWorkspace/routes/automationV1.routes');
 router.use('/v1/automation', automationV1Routes);
