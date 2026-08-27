@@ -55,6 +55,9 @@ export default function AccountsView({
         const matchingAccounts = accounts.filter(
           (item) => item.platform === account.id,
         );
+        if (account.id === 'facebook' || account.id === 'instagram') {
+          console.log(`[AccountsView] ${account.id} -> connected:`, connected, 'matching:', matchingAccounts, 'allAccounts:', accounts);
+        }
 
         return (
           <Col xs={24} md={12} key={account.id}>

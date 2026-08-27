@@ -25,6 +25,9 @@ const authMiddleware = async (req, res, next) => {
             const dbUser = await User.findById(decoded._id).lean();
             if (dbUser) {
               req.companyId = dbUser.agencyId || dbUser.brandId || dbUser.workspaceId || dbUser.adminId;
+              if (!req.companyId && ['agency', 'agency_manager', 'agency_super_admin', 'brand_super_admin', 'brand_manager', 'client', 'commander_admin', 'supreme_super_admin'].includes(dbUser.role)) {
+                req.companyId = dbUser._id;
+              }
               req.user.adminId = dbUser.adminId;
             }
           } catch (dbErr) {
@@ -66,6 +69,9 @@ const authMiddleware = async (req, res, next) => {
 
   if (!req.companyId && req.user) {
     req.companyId = req.user.agencyId || req.user.brandId || req.user.workspaceId || req.user.adminId;
+    if (!req.companyId && ['agency', 'agency_manager', 'agency_super_admin', 'brand_super_admin', 'brand_manager', 'client', 'commander_admin', 'supreme_super_admin'].includes(req.user.role)) {
+      req.companyId = req.user._id;
+    }
   }
 
   // Parse global client switcher header for Agency Users

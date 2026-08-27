@@ -55,6 +55,7 @@ const {
   broadcastSSE,
   getAllPosts,
   getAllAccounts,
+  buildScopeQuery,
   // seedDemoPosts,
   upsertAccount,
   dispatchPost,
@@ -136,7 +137,7 @@ async function resolveCompanyIdFromQueryToken(req) {
   console.log("[OAuth Debug] resolveCompanyIdFromQueryToken rawToken exists:", !!rawToken);
   const user = await resolveUserFromToken(rawToken);
   
-  const companyId = user?.companyId || user?.agencyId || user?.brandId || user?.workspaceId || user?._id;
+  const companyId = user?.companyId || user?.agencyId || user?.brandId || user?.workspaceId || user?.adminId || user?._id;
   console.log("[OAuth Debug] companyId resolved as:", companyId);
   
   if (!user || !companyId) return null;
@@ -1771,11 +1772,9 @@ router.get("/accounts", async (req, res) => {
 });
 
 router.delete("/accounts/:id", async (req, res) => {
-  await Account.deleteOne({
-    id: req.params.id,
-    companyId: req.companyId,
-    clientCompanyId: req.clientCompanyId || null,
-  });
+  const query = buildScopeQuery(req.companyId, req.clientCompanyId);
+  query.id = req.params.id;
+  await Account.deleteOne(query);
   const accounts = await getAllAccounts(req.companyId, req.clientCompanyId);
   const scope = {
     companyId: req.companyId,

@@ -97,10 +97,15 @@ function buildScopeQuery(companyId, clientCompanyId = null) {
   }
 
   // When a specific client is requested, we search for:
-  // 1. Posts/Accounts explicitly linked to this client under this agency (Standard pattern)
+  // 1. Posts/Accounts explicitly linked to this client under this agency (companyId + clientCompanyId)
   // 2. Posts/Accounts where this client ID is used as the primary companyId (Legacy/Invoice-style pattern)
+  // 3. Posts/Accounts where this client ID is just the clientCompanyId (useful when clients fetch their own data)
   return {
-    $or: [{ companyId, clientCompanyId }, { companyId: clientCompanyId }],
+    $or: [
+      { companyId, clientCompanyId }, 
+      { companyId: clientCompanyId },
+      { clientCompanyId }
+    ],
   };
 }
 
@@ -2362,6 +2367,7 @@ module.exports = {
   broadcastSSE,
   getAllPosts,
   getAllAccounts,
+  buildScopeQuery,
   // seedDemoPosts,
   upsertAccount,
   dispatchPost,

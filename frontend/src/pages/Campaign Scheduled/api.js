@@ -38,6 +38,7 @@ async function request(path, options = {}) {
   const { clientCompanyId: _omit, ...rest } = options;
   const res = await fetch(buildScopedUrl(path, clientCompanyId), {
     credentials: "include",
+    cache: "no-store",
     headers: getAuthHeaders({
       "Content-Type": "application/json",
       ...(rest.headers || {}),
