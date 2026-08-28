@@ -10,7 +10,7 @@ const authMiddleware = async (req, res, next) => {
   let user = null;
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(',')[0].split(' ')[1].replace(/,$/, '');
     if (token && token !== 'null' && token !== 'undefined' && token.trim() !== '') {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_12345');
@@ -39,7 +39,7 @@ const authMiddleware = async (req, res, next) => {
           return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
         }
         // In development/sandbox, allow continuing with mock user fallback
-        console.warn('AuthMiddleware: Invalid JWT token in dev, falling back to sandbox user');
+        console.warn('AuthMiddleware Error:', error.message, 'Token:', token);
       }
     }
   }

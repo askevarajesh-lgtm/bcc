@@ -35,6 +35,84 @@ import {
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect, useRef } from "react";
 
+const cropImage = (file, cropData, containerRatio) => {
+  return new Promise((resolve) => {
+    if (!file || !cropData) return resolve(file);
+    
+    const { x, y, zoom } = cropData;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      // Calculate container dimensions to match aspect ratio
+      // We assume the image is drawn into a canvas that has the target ratio
+      // and the image is scaled by `zoom` and translated by `x, y`
+      let canvasWidth = img.width;
+      let canvasHeight = img.height;
+      
+      if (containerRatio) {
+        if (img.width / img.height > containerRatio) {
+          canvasWidth = img.height * containerRatio;
+          canvasHeight = img.height;
+        } else {
+          canvasWidth = img.width;
+          canvasHeight = img.width / containerRatio;
+        }
+      }
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext("2d");
+      
+      // Fill background black for padded areas
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // We must perfectly replicate the CSS `object-fit: contain` and `transform` logic
+      let fitWidth = canvasWidth;
+      let fitHeight = canvasHeight;
+      const imgRatio = img.width / img.height;
+      const canvasRatio = canvasWidth / canvasHeight;
+
+      if (imgRatio > canvasRatio) {
+        // Image is wider than canvas
+        fitHeight = canvasWidth / imgRatio;
+      } else {
+        // Image is taller than canvas
+        fitWidth = canvasHeight * imgRatio;
+      }
+      
+      const drawWidth = fitWidth * zoom;
+      const drawHeight = fitHeight * zoom;
+      
+      // CSS translates by x * 100% of the image's fitted size
+      const centerX = canvasWidth / 2 + x * fitWidth;
+      const centerY = canvasHeight / 2 + y * fitHeight;
+      
+      const dx = centerX - drawWidth / 2;
+      const dy = centerY - drawHeight / 2;
+      
+      ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, drawWidth, drawHeight);
+      
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          URL.revokeObjectURL(url);
+          return resolve(file);
+        }
+        const croppedFile = new File([blob], file.name, { type: file.type });
+        URL.revokeObjectURL(url);
+        resolve(croppedFile);
+      }, file.type);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+};
+
 const { Text } = Typography;
 
 const PLATFORM_CAPABILITIES = {
@@ -78,13 +156,95 @@ const LOGICAL_POST_OPTIONS = [
   { label: "Short-form (Reel / Shorts)", value: "short" },
 ];
 
+const DraggableImage = ({ src, cropData, setCropData }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef(null);
+  
+  const currentCrop = cropData || { x: 0, y: 0, zoom: 1 };
+  
+  const handlePointerDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  
+  const handlePointerMove = (e) => {
+    if (!isDragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    // Normalize movement to percentage of container size so it scales to full image
+    const dx = e.movementX / rect.width;
+    const dy = e.movementY / rect.height;
+    
+    setCropData((prev) => ({
+      ...currentCrop,
+      x: currentCrop.x + dx,
+      y: currentCrop.y + dy,
+    }));
+  };
+  
+  const handlePointerUp = () => setIsDragging(false);
+  
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const zoomChange = e.deltaY * -0.001;
+    const newZoom = Math.max(0.1, Math.min(5, currentCrop.zoom + zoomChange));
+    setCropData((prev) => ({
+      ...currentCrop,
+      zoom: newZoom,
+    }));
+  };
+  
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [currentCrop.zoom]);
+  
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", cursor: isDragging ? "grabbing" : "grab", display: "flex", alignItems: "center", justifyContent: "center" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+    >
+      <img 
+        src={src} 
+        alt="Preview" 
+        draggable={false}
+        style={{
+          transform: `translate(${currentCrop.x * 100}%, ${currentCrop.y * 100}%) scale(${currentCrop.zoom})`,
+          maxWidth: "100%",
+          maxHeight: "100%",
+          objectFit: "contain",
+          transition: isDragging ? "none" : "transform 0.1s"
+        }}
+      />
+    </div>
+  );
+};
+
 const PostPreview = ({
   title,
   caption,
   media,
   postType,
   platform = "generic",
+  aspectRatio,
+  cropData,
+  setCropData,
 }) => {
+  const currentRatio = aspectRatio || "1/1";
+  
+  const ratioNumber = useMemo(() => {
+    if (currentRatio === "original" || !currentRatio) return null;
+    const parts = currentRatio.split("/");
+    if (parts.length !== 2) return null;
+    return parseFloat(parts[0]) / parseFloat(parts[1]);
+  }, [currentRatio]);
+
   const mediaUrl = useMemo(() => {
     if (!media || media.length === 0) return null;
     const file = media[0];
@@ -150,12 +310,24 @@ const PostPreview = ({
 
         <div className="post-preview-content">
           {postType !== "text" && (
-            <div className="post-preview-media">
+            <div className="post-preview-media" style={{ 
+               position: "relative",
+               aspectRatio: currentRatio !== "original" ? currentRatio : "auto",
+               height: ratioNumber ? "auto" : undefined,
+            }}>
               {mediaUrl ? (
                 postType === "video" ? (
                   <video src={mediaUrl} autoPlay muted loop />
                 ) : (
-                  <img src={mediaUrl} alt="Preview" />
+                  ratioNumber ? (
+                    <DraggableImage 
+                      src={mediaUrl} 
+                      cropData={cropData} 
+                      setCropData={setCropData} 
+                    />
+                  ) : (
+                    <img src={mediaUrl} alt="Preview" style={{ objectFit: "cover" }} />
+                  )
                 )
               ) : (
                 <div style={{ textAlign: "center", color: "#94a3b8" }}>
@@ -179,13 +351,6 @@ const PostPreview = ({
               >
                 {title}
               </div>
-            )}
-            {caption ? (
-              <div style={{ whiteSpace: "pre-wrap" }}>{caption}</div>
-            ) : (
-              <Text type="secondary" italic>
-                Your caption will appear here...
-              </Text>
             )}
           </div>
         </div>
@@ -213,11 +378,21 @@ export default function PostEditor({
   const [postMode, setPostMode] = useState("immediate");
   const [saving, setSaving] = useState(false);
   const [previewTab, setPreviewTab] = useState("all");
+  const [aspectRatio, setAspectRatio] = useState("1/1");
+  const [cropData, setCropData] = useState({ x: 0, y: 0, zoom: 1 });
   const postType = Form.useWatch("postType", form) || "image";
   const caption = Form.useWatch("caption", form);
   const campaign = Form.useWatch("campaign", form);
   const media = Form.useWatch("media", form);
   const selectedPlatformIds = Form.useWatch("platforms", form) || [];
+  
+  const hasYoutubeSelected = useMemo(() => {
+    return selectedPlatformIds.some(id => {
+      const account = accounts.find(a => a.id === id);
+      return account && account.platform === "youtube";
+    });
+  }, [selectedPlatformIds, accounts]);
+
   const [platformOptions, setPlatformOptions] = useState({});
   const [pinterestBoardsData, setPinterestBoardsData] = useState({});
   const [selectedBoards, setSelectedBoards] = useState({});
@@ -232,7 +407,6 @@ export default function PostEditor({
       return acc;
     }, {});
 
-    // Map platforms that are already "occupied"
     const occupiedPlatforms = new Set(
       (accounts || [])
         .filter((acc) => selectedPlatformIds.includes(acc.id))
@@ -244,7 +418,6 @@ export default function PostEditor({
       options: platformAccounts.map((account) => ({
         label: account.page_name || account.username || account.id,
         value: account.id,
-        // Disable if another account from the same platform is already selected
         disabled:
           occupiedPlatforms.has(platform) &&
           !selectedPlatformIds.includes(account.id),
@@ -263,7 +436,6 @@ export default function PostEditor({
 
     if (selectedPlatforms.length === 0) return ["image", "video", "text"];
 
-    // Intersection of capabilities
     let common = PLATFORM_CAPABILITIES[selectedPlatforms[0]] || [];
     for (let i = 1; i < selectedPlatforms.length; i++) {
       const caps = PLATFORM_CAPABILITIES[selectedPlatforms[i]] || [];
@@ -300,15 +472,12 @@ export default function PostEditor({
     const next = { ...platformOptions };
     let changed = false;
     selectedPlatforms.forEach((p) => {
-      // Check if p is already a key in next, rather than truthiness,
-      // to avoid infinite loop if the default value is undefined.
       if (!(p in next)) {
         const defaultOption = (PLATFORM_POST_OPTIONS[p] || [])[0]?.value;
         if (defaultOption !== undefined) {
           next[p] = defaultOption;
           changed = true;
         } else {
-          // Explicitly set to null to indicate it has been processed
           next[p] = null;
           changed = true;
         }
@@ -317,7 +486,6 @@ export default function PostEditor({
     if (changed) setPlatformOptions(next);
   }, [selectedPlatforms, platformOptions]);
 
-  // Fetch Pinterest Boards
   useEffect(() => {
     let cancelled = false;
     const fetchPinterestBoards = async () => {
@@ -338,7 +506,7 @@ export default function PostEditor({
             fetchedPinterestAccountIds.current.add(p_id);
           } catch (err) {
             console.error("Failed to fetch boards for account " + p_id, err);
-            newFetchedBoards[p_id] = []; // fallback to prevent infinite re-fetches
+            newFetchedBoards[p_id] = [];
             fetchedPinterestAccountIds.current.add(p_id);
           }
         }
@@ -401,7 +569,6 @@ export default function PostEditor({
     setPostMode(post?.post_mode || post?.postMode || "immediate");
   }, [post, form, open, accounts]);
 
-  // Validation: ensure postType is valid for selected platforms
   useEffect(() => {
     if (!allowedPostTypes.includes(postType) && allowedPostTypes.length > 0) {
       form.setFieldValue("postType", allowedPostTypes[0]);
@@ -412,13 +579,15 @@ export default function PostEditor({
     }
   }, [allowedPostTypes, postType, form]);
 
-  const buildPostPayload = (values, mode) => {
+  const buildPostPayload = (values, mode, customMediaFile = null) => {
     const uploadedFile = values.media?.[0];
-    const mediaFile = uploadedFile?.originFileObj || null;
+    const mediaFile = customMediaFile || uploadedFile?.originFileObj || null;
     const mediaUrl =
       values.postType === "text"
         ? undefined
-        : uploadedFile?.originFileObj
+        : customMediaFile
+          ? URL.createObjectURL(customMediaFile)
+          : uploadedFile?.originFileObj
           ? URL.createObjectURL(uploadedFile.originFileObj)
           : uploadedFile?.url || post?.media_url || post?.mediaUrl || undefined;
 
@@ -460,7 +629,13 @@ export default function PostEditor({
     if (saving) return;
     setSaving(true);
     try {
-      await onSaved(buildPostPayload(values, postMode), postMode);
+      const uploadedFile = values.media?.[0];
+      let croppedFile = null;
+      const ratioNum = aspectRatio !== "original" ? parseFloat(aspectRatio.split("/")[0]) / parseFloat(aspectRatio.split("/")[1]) : null;
+      if (uploadedFile?.originFileObj && values.postType === "image" && aspectRatio !== "original" && cropData) {
+        croppedFile = await cropImage(uploadedFile.originFileObj, cropData, ratioNum);
+      }
+      await onSaved(buildPostPayload(values, postMode, croppedFile), postMode);
     } finally {
       setSaving(false);
     }
@@ -469,15 +644,21 @@ export default function PostEditor({
   const onSaveDraft = async () => {
     if (saving) return;
     try {
-      const values = await form.validateFields([
+      await form.validateFields([
         "caption",
         "campaign",
         "platforms",
       ]);
       setSaving(true);
-      await onSaved(buildPostPayload(values, "draft"), "draft");
+      const allValues = form.getFieldsValue();
+      const uploadedFile = allValues.media?.[0];
+      let croppedFile = null;
+      const ratioNum = aspectRatio !== "original" ? parseFloat(aspectRatio.split("/")[0]) / parseFloat(aspectRatio.split("/")[1]) : null;
+      if (uploadedFile?.originFileObj && allValues.postType === "image" && aspectRatio !== "original" && cropData) {
+        croppedFile = await cropImage(uploadedFile.originFileObj, cropData, ratioNum);
+      }
+      await onSaved(buildPostPayload(allValues, "draft", croppedFile), "draft");
     } catch (err) {
-      // Form validation failed
     } finally {
       setSaving(false);
     }
@@ -590,35 +771,60 @@ export default function PostEditor({
             </Form.Item>
 
             {postType !== "text" && (
-              <Form.Item
-                label="Media Upload"
-                name="media"
-                valuePropName="fileList"
-                getValueFromEvent={(e) => e?.fileList || []}
-                rules={[
-                  { required: true, message: `Please upload a ${postType}` },
-                ]}
-              >
-                <Upload
-                  beforeUpload={() => false}
-                  maxCount={1}
-                  accept={postType === "video" ? "video/*" : "image/*"}
-                  listType="text"
+              <Form.Item label="Media Upload" required>
+                <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {postType === "video" ? "Max video size: 100MB" : "Max image size: 10MB"}
+                </div>
+                <Form.Item
+                  name="media"
+                  valuePropName="fileList"
+                  getValueFromEvent={(e) => e?.fileList || []}
+                  rules={[
+                    { required: true, message: `Please upload a ${postType}` },
+                  ]}
+                  noStyle
                 >
-                  <Button icon={<UploadOutlined />}>
-                    {postType === "video" ? "Upload Video" : "Upload Image"}
-                  </Button>
-                </Upload>
+                  <Upload
+                    beforeUpload={() => false}
+                    maxCount={1}
+                    accept={postType === "video" ? "video/*" : "image/*"}
+                    listType="text"
+                  >
+                    <Button icon={<UploadOutlined />}>
+                      {postType === "video" ? "Upload Video" : "Upload Image"}
+                    </Button>
+                  </Upload>
+                </Form.Item>
               </Form.Item>
             )}
 
-            <Form.Item
-              label="Title"
-              name="campaign"
-              rules={[{ required: true, message: "Title is required" }]}
-            >
-              <Input placeholder="Enter post title" maxLength={100} showCount />
-            </Form.Item>
+            {postType === "image" && media?.length > 0 && (
+              <Form.Item label="Image Aspect Ratio (Applies to all platforms)">
+                <Radio.Group
+                  value={aspectRatio}
+                  onChange={(e) => {
+                    setAspectRatio(e.target.value);
+                    setCropData({ x: 0, y: 0, zoom: 1 });
+                  }}
+                  optionType="button"
+                  buttonStyle="solid"
+                >
+                  <Radio.Button value="1/1">1:1</Radio.Button>
+                  <Radio.Button value="4/5">4:5</Radio.Button>
+                  <Radio.Button value="16/9">16:9</Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+            )}
+
+            {hasYoutubeSelected && (
+              <Form.Item
+                label="Title"
+                name="campaign"
+                rules={[{ required: true, message: "Title is required for YouTube posts" }]}
+              >
+                <Input placeholder="Enter post title" maxLength={100} showCount />
+              </Form.Item>
+            )}
 
             <Form.Item
               label="Caption"
@@ -772,14 +978,17 @@ export default function PostEditor({
               >
                 {selectedPlatforms.length > 0 ? (
                   selectedPlatforms.map((p) => (
-                    <PostPreview
-                      key={p}
-                      title={campaign}
-                      caption={caption}
-                      media={media}
-                      postType={postType}
-                      platform={p}
-                    />
+                      <PostPreview
+                        key={p}
+                        title={campaign}
+                        caption={caption}
+                        media={media}
+                        postType={postType}
+                        platform={p}
+                        aspectRatio={aspectRatio}
+                        cropData={cropData}
+                        setCropData={setCropData}
+                      />
                   ))
                 ) : (
                   <PostPreview
@@ -787,6 +996,10 @@ export default function PostEditor({
                     caption={caption}
                     media={media}
                     postType={postType}
+                    platform="generic"
+                    aspectRatio={aspectRatio}
+                    cropData={cropData}
+                    setCropData={setCropData}
                   />
                 )}
               </div>
@@ -797,6 +1010,9 @@ export default function PostEditor({
                 media={media}
                 postType={postType}
                 platform={previewTab}
+                aspectRatio={aspectRatio}
+                cropData={cropData}
+                setCropData={setCropData}
               />
             )}
           </div>

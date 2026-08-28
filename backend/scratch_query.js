@@ -1,13 +1,26 @@
 const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://askevarajesh_db_user:8VdzZrQ8MwAtuZht@m1local.lp8xr7i.mongodb.net/bcc')
-.then(async () => {
-  const Page = require('./src/modules/websites/page.model.js');
-  const pages = await Page.find({ html: { $regex: 'Lightning-fast performance' } }).limit(1);
-  if(pages.length) {
-    console.log("HTML:", pages[0].html.substring(0, 1500));
-    console.log("CSS:", pages[0].css ? pages[0].css.substring(0, 500) : null);
-  } else {
-    console.log('not found');
+const Task = require('./src/modules/tasks/task.model');
+const Project = require('./src/modules/projects/project.model');
+require('dotenv').config();
+
+async function run() {
+  await mongoose.connect(process.env.MONGODB_URI);
+  const project = await Project.findOne({ name: /Kumar/i });
+  if (!project) {
+    console.log("Project not found");
+    process.exit(1);
   }
+  const tasks = await Task.find({ projectId: project._id });
+  console.log("Tasks found:", tasks.length);
+  tasks.forEach(t => console.log(`Task: ${t.title}, status: ${t.status}, type: ${t.serviceType}`));
+  
+  // also check custom statuses
+  const WorkflowConfig = require('./src/modules/tasks/workflowConfig.model');
+  const configs = await WorkflowConfig.find();
+  console.log("Workflow configs:");
+  configs.forEach(c => console.log(c.projectId, c.statuses));
+  
   process.exit(0);
-}).catch(console.error);
+}
+
+run();

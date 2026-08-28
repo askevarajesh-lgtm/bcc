@@ -551,7 +551,6 @@ const getProjectServiceCapacity = async (
     ? tasksInput
     : await Task.find({
         projectId: project._id,
-        tenantCompanyId,
       }).select("serviceType status");
 
   const { assignedCounts, completedCounts } = summarizeProjectTasksByDeliverable(tasks);
@@ -631,7 +630,6 @@ const reconcileProjectTaskCounts = async (
     ? tasksInput
     : await Task.find({
         projectId: project._id,
-        tenantCompanyId,
       }).select("serviceType status");
 
   const { assignedCounts, completedCounts } =
@@ -1296,7 +1294,7 @@ const getProjectById = async (
   }
 
   // Get tasks for this project
-  const tasks = await Task.find({ projectId: project._id, tenantCompanyId })
+  const tasks = await Task.find({ projectId: project._id })
     .populate("assignedTo", "name email role")
     .populate("assignedBy", "name email")
     .sort({ dueDate: 1 });
@@ -1624,7 +1622,6 @@ const createProject = async (projectData, tenantCompanyId, createdByUserId) => {
   // Task model has both companyId (client) and tenantCompanyId (tenant)
   const tasks = await Task.find({
     projectId: project._id,
-    tenantCompanyId: tenantCompanyId,
   })
     .populate("assignedTo", "name email role")
     .populate("assignedBy", "name email")
@@ -1883,7 +1880,6 @@ const deleteProject = async (projectId, tenantCompanyId) => {
   // Check if project has tasks (only non-deleted tasks block deletion)
   const taskCount = await Task.countDocuments({
     projectId: project._id,
-    tenantCompanyId,
   });
   if (taskCount > 0) {
     throw new Error(

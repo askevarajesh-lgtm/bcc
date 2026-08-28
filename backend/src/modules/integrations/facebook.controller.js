@@ -195,8 +195,27 @@ exports.getIntegrations = async (req, res, next) => {
       }
     });
 
+    // Determine pages claimed by other clients
+    const otherIntegrations = await Integration.find({
+      companyId,
+      type: 'facebook_leads',
+      isActive: true,
+      _id: { $ne: integration._id }
+    });
+
+    const claimedPageIds = new Set();
+    otherIntegrations.forEach(intg => {
+      const disconnected = intg.config?.disconnectedPages || [];
+      const pages = intg.config?.pages || [];
+      pages.forEach(p => {
+        if (!disconnected.includes(p.pageId)) {
+          claimedPageIds.add(p.pageId);
+        }
+      });
+    });
+
     const integrations = allPages
-      .filter(p => !disconnectedPages.includes(p.id))
+      .filter(p => !disconnectedPages.includes(p.id) && !claimedPageIds.has(p.id))
       .map(p => ({
         pageId: p.id,
         pageName: p.name,
@@ -411,6 +430,21 @@ exports.syncLeads = async (req, res, next) => {
         }
       } catch (err) {
         console.error('Error fetching page access token, falling back to user token', err.message);
+      }
+    }
+
+    // Enforce data isolation: ensure this page is not claimed by another client's integration
+    const otherIntegrations = await Integration.find({
+      companyId,
+      type: 'facebook_leads',
+      isActive: true,
+      _id: { $ne: integration._id }
+    });
+    for (const intg of otherIntegrations) {
+      const disconnected = intg.config?.disconnectedPages || [];
+      const pages = intg.config?.pages || [];
+      if (!disconnected.includes(pageId) && pages.some(p => p.pageId === pageId)) {
+        return res.status(403).json({ success: false, message: 'This page is already integrated with another client.' });
       }
     }
 
@@ -739,6 +773,11 @@ exports.handleWebhook = async (req, res) => {
             let pageAccessToken = null;
             
             for (const intg of integrations) {
+              const disconnectedPages = intg.config?.disconnectedPages || [];
+              if (disconnectedPages.includes(pageId)) {
+                continue;
+              }
+
               try {
                 const manualPage = (intg.config.pages || []).find(p => p.pageId === pageId);
                 if (manualPage && manualPage.accessToken) {

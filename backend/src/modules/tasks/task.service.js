@@ -2601,8 +2601,20 @@ const clientApproveTask = async (taskId, approvedByUserId, tenantCompanyId) => {
 
   task.clientReviewStatus = "approved";
   task.requiresClientReview = true;
+  task.status = "completed";
+  task.actualCompletionDate = new Date();
   task.updatedBy = approvedByUserId || task.updatedBy;
   await task.save();
+
+  if (task.projectId) {
+    const {
+      reconcileProjectTaskCounts,
+      checkAndMarkProjectCompleted,
+    } = require('./shimProjectService');
+    const projectId = task.projectId._id || task.projectId;
+    await reconcileProjectTaskCounts(projectId, tenantCompanyId);
+    await checkAndMarkProjectCompleted(projectId, approvedByUserId, tenantCompanyId);
+  }
 
   return await getTaskById(task._id, tenantCompanyId);
 };

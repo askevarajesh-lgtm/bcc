@@ -276,7 +276,7 @@ const AEODashboard = ({ projectId }) => {
           children: (
             <div>
               <div style={{marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8}}>
-                <Button onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/seo-workspace/projects/${projectId}/aeo-agent/${audit._id}/export?token=${localStorage.getItem('token')}`)} type="default">Export CSV</Button>
+                <Button onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5500/api'}/seo-workspace/projects/${projectId}/aeo-agent/${audit._id}/export?token=${localStorage.getItem('token')}`)} type="default">Export CSV</Button>
                 <Button type="primary" onClick={handleApproveAll} loading={loading}>Approve All Pending</Button>
               </div>
               <Table size="small" loading={recsLoading} dataSource={recommendations} columns={recColumns} rowKey="_id" pagination={{ pageSize: 15 }} />

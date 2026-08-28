@@ -6,9 +6,9 @@ export function getCookie(name) {
 }
 
 function getAuthHeaders(extra = {}) {
-  const token = localStorage.getItem("token");
+  const token = getCookie("token") || localStorage.getItem("token");
   const headers = {
-    ...(token ? { authorization: `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   };
 
@@ -227,7 +227,7 @@ export const campaignScheduledApi = {
     return data.scheduler;
   },
   startFacebookOAuth(clientCompanyId = null) {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -253,7 +253,7 @@ export const campaignScheduledApi = {
     });
   },
   startInstagramOAuth(clientCompanyId = null) {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -267,7 +267,7 @@ export const campaignScheduledApi = {
     window.location.href = `${BASE}/auth/instagram?token=${encodeURIComponent(token)}${extra}`;
   },
   startInstagramDirectOAuth: (clientCompanyId = "") => {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -286,7 +286,7 @@ export const campaignScheduledApi = {
     window.location.href = `/api/campaign-scheduled/auth/instagram/direct${query ? `?${query}` : ""}`;
   },
   startLinkedinOAuth: (clientCompanyId = "") => {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -300,7 +300,7 @@ export const campaignScheduledApi = {
     window.location.href = `${BASE}/auth/linkedin?token=${encodeURIComponent(token)}${extra}`;
   },
   startYoutubeOAuth(clientCompanyId = null) {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -314,7 +314,7 @@ export const campaignScheduledApi = {
     window.location.href = `${BASE}/auth/youtube?token=${encodeURIComponent(token)}${extra}`;
   },
   startGoogleBusinessOAuth(clientCompanyId = null) {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {
@@ -328,7 +328,7 @@ export const campaignScheduledApi = {
     window.location.href = `${BASE}/auth/google-business?token=${encodeURIComponent(token)}${extra}`;
   },
   startPinterestOAuth(clientCompanyId = null) {
-    const token = localStorage.getItem("token") || "";
+    const token = getCookie("token") || localStorage.getItem("token") || "";
     const selectedClient = localStorage.getItem("selectedClient");
     if (!clientCompanyId && selectedClient) {
       try {

@@ -270,7 +270,10 @@ async function getAllPosts(companyId, clientCompanyId = null) {
 
 async function getAllAccounts(companyId, clientCompanyId = null) {
   const query = buildScopeQuery(companyId, clientCompanyId);
-  return Account.find(query).sort({ createdAt: -1 }).lean();
+  return Account.find(query).sort({ createdAt: -1 }).lean().then(res => {
+    require('fs').appendFileSync('accounts_debug.log', `getAllAccounts returned ${res.length} items for companyId: ${companyId}, clientCompanyId: ${clientCompanyId}\n`);
+    return res;
+  });
 }
 
 // async function seedDemoPosts() {

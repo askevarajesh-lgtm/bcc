@@ -349,9 +349,9 @@ export default function ListView({
               key: "status",
               render: (value, row) => {
                 const intendedCount = (row.platforms || []).length;
-                const publishedCount = Object.keys(
-                  row.platform_publications || {},
-                ).length;
+                const publishedCount = Object.values(
+                  row.platform_publications || {}
+                ).filter(p => !p.status || p.status === "Published").length;
 
                 let displayStatus = value;
                 let color = "var(--accent-primary)"; // Default Blue
