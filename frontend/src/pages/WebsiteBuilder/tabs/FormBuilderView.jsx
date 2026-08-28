@@ -46,6 +46,7 @@ const SortableFieldItem = ({ field, onEdit, onDelete, onDuplicate, onMoveUp, onM
        field.type === 'Checkbox Group' ? <Checkbox.Group options={field.options && field.options.length ? field.options : ['Option 1']} disabled /> :
        field.type === 'Radio Group' ? <Radio.Group options={field.options && field.options.length ? field.options : ['Option 1']} disabled /> :
        field.type === 'Date Field' ? <DatePicker style={{ width: '100%', borderRadius: 8 }} disabled /> :
+       field.type === 'File Upload' ? <Input type="file" style={{ borderRadius: 8 }} disabled /> :
        <Input size="large" placeholder={field.placeholder} style={{ borderRadius: 8 }} readOnly />}
     </div>
   );
@@ -352,7 +353,7 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
     }
   };
 
-  const fieldTypes = ["Autocomplete", "Button", "Checkbox Group", "Date Field", "File Upload", "Header", "Hidden Input", "Number", "Paragraph", "Radio Group", "Select", "Text Field", "Text Area"];
+  const fieldTypes = ["Checkbox Group", "Date Field", "File Upload", "Number", "Radio Group", "Select", "Text Field", "Text Area"];
 
   return (
     <motion.div variants={itemVariants} className="builder-view-container" style={{ minHeight: "calc(100vh - 64px)", background: 'var(--bg-primary)', margin: "-24px", paddingTop: 0 }}>
@@ -517,6 +518,7 @@ const FormBuilderView = ({ activeForm, setActiveForm, itemVariants }) => {
                            field.type === 'Checkbox Group' ? <Checkbox.Group options={field.options || []} /> :
                            field.type === 'Radio Group' ? <Radio.Group options={field.options || []} /> :
                            field.type === 'Date Field' ? <DatePicker style={{ width: '100%' }} /> :
+                           field.type === 'File Upload' ? <Input type="file" size="large" style={{ borderRadius: 8 }} /> :
                            <Input size="large" placeholder={field.placeholder} />}
                         </Form.Item>
                       ))}

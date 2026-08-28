@@ -88,7 +88,7 @@ const UserManagementTab = () => {
           'Sales Pipeline',
           'Global Meetings', 'Global Calendar', 'Global Deliverables'
         ],
-        'HRMS': ['Performance', 'Daily Reports']
+        'HRMS': ['Performance']
       };
     } else if (['agency_super_admin', 'agency_manager', 'agency'].includes(currentRole)) {
       const groups = {
@@ -126,7 +126,7 @@ const UserManagementTab = () => {
       // Settings extras (can go in General or Agency Ops)
       groups.General.push('Master Item');
 
-      groups['HRMS'] = ['Performance', 'Daily Reports'];
+      groups['HRMS'] = ['Performance'];
 
       return groups;
     } else if (['brand_super_admin', 'brand_manager', 'brand_team_user'].includes(currentRole)) {
@@ -159,7 +159,7 @@ const UserManagementTab = () => {
       // Agency Ops default modules
       groups['Agency Ops'].push('Time Tracking', 'Sales Pipeline');
 
-      groups['HRMS'] = ['Performance', 'Daily Reports'];
+      groups['HRMS'] = ['Performance'];
 
       return groups;
     }
@@ -794,7 +794,6 @@ const UserManagementTab = () => {
                         if (record.module === 'Performance Ads' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         if (record.module === 'Task Analytics' && ['Create', 'Edit', 'Delete'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         if (record.module === 'Deliverables' && !['Read', 'Create', 'Edit'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
-                        if (record.module === 'Daily Reports' && !['Read', 'View'].includes(field)) return <span style={{ color: 'var(--text-tertiary)' }}>-</span>;
                         return (
                           <Checkbox
                             checked={
