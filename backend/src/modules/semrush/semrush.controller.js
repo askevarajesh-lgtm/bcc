@@ -219,8 +219,8 @@ exports.deleteProject = async (req, res) => {
     }
     const project = await SemrushProject.findOneAndUpdate(
       { _id: id, companyId: req.companyId },
-      { isActive: false },
-      { returnDocument: 'after' }
+      { $set: { isActive: false } },
+      { new: true }
     );
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });

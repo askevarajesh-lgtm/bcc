@@ -82,7 +82,7 @@ export default function AccountsView({
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   {matchingAccounts.map((acc, idx) => {
                     const pageName =
-                      acc.page_name || acc.username || "Connected account";
+                      acc.username || acc.page_name || "Connected account";
                     return (
                       <div
                         key={acc.id || idx}
@@ -102,7 +102,7 @@ export default function AccountsView({
                             className="campaign-scheduler-account-name"
                             style={{ fontSize: 13 }}
                           >
-                            {account.id === "pinterest" || acc.platform === "pinterest" ? "Profile: " : "Page: "}{pageName}
+                            {account.id === "pinterest" || acc.platform === "pinterest" ? "Profile: " : "Username: "}{pageName}
                           </Text>
                         </Space>
                         <Button
