@@ -72,6 +72,7 @@ import CampaignExpensesForm from './pages/campaign-expenses/CampaignForm';
 import CampaignExpensesView from './pages/campaign-expenses/CampaignView';
 import ProposalsList from './pages/Proposals/ProposalsList';
 import ProposalForm from './pages/Proposals/ProposalForm';
+import ProposalViewPage from './pages/Proposals/ProposalViewPage';
 import InvoicesList from './pages/Invoices/InvoicesList';
 import InvoiceForm from './pages/Invoices/InvoiceForm';
 import InvoiceViewPage from './pages/Invoices/InvoiceViewPage';
@@ -302,6 +303,7 @@ const AppRoutes = () => {
           <Route path="workspace/proposals" element={<ProposalsList />} />
           <Route path="workspace/proposals/new" element={<ProposalForm />} />
           <Route path="workspace/proposals/:id" element={<ProposalForm />} />
+          <Route path="workspace/proposals/:id/view" element={<ProposalViewPage />} />
           <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/invoices/new" element={<InvoiceForm />} />
           <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
@@ -424,6 +426,7 @@ const AppRoutes = () => {
           <Route path="proposals" element={<ProposalsList />} />
           <Route path="proposals/new" element={<ProposalForm />} />
           <Route path="proposals/:id" element={<ProposalForm />} />
+          <Route path="proposals/:id/view" element={<ProposalViewPage />} />
           <Route path="invoices" element={<InvoicesList />} />
           <Route path="invoices/new" element={<InvoiceForm />} />
           <Route path="invoices/:id" element={<InvoiceForm />} />
@@ -500,6 +503,7 @@ const AppRoutes = () => {
           <Route path="workspace/proposals" element={<ProposalsList />} />
           <Route path="workspace/proposals/new" element={<ProposalForm />} />
           <Route path="workspace/proposals/:id" element={<ProposalForm />} />
+          <Route path="workspace/proposals/:id/view" element={<ProposalViewPage />} />
           <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/invoices/new" element={<InvoiceForm />} />
           <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
@@ -616,6 +620,7 @@ const AppRoutes = () => {
           <Route path="workspace/proposals" element={<ProposalsList />} />
           <Route path="workspace/proposals/new" element={<ProposalForm />} />
           <Route path="workspace/proposals/:id" element={<ProposalForm />} />
+          <Route path="workspace/proposals/:id/view" element={<ProposalViewPage />} />
           <Route path="workspace/invoices" element={<InvoicesList />} />
           <Route path="workspace/invoices/new" element={<InvoiceForm />} />
           <Route path="workspace/invoices/:id" element={<InvoiceForm />} />
