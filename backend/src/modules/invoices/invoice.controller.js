@@ -100,7 +100,9 @@ exports.getInvoices = async (req, res, next) => {
 
     const total = await Invoice.countDocuments(queryFilter);
     const invoices = await Invoice.find(queryFilter)
-      .populate('clientId', 'name email')
+      .populate('clientId', 'companyName name email')
+      .populate('agencyId', 'companyName name email phone industry logo logoDark invoiceSignature')
+      .populate('brandId', 'companyName name email phone industry logo logoDark invoiceSignature')
       .populate({
         path: 'proposalId',
         select: 'proposalNumber name masterItems',
@@ -131,7 +133,10 @@ exports.getInvoices = async (req, res, next) => {
 exports.getInvoice = async (req, res, next) => {
   try {
     const invoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false })
-      .populate('clientId', 'name email address phone')
+      .populate('clientId', 'companyName name email address phone')
+      .populate('agencyId', 'companyName name email phone industry logo logoDark invoiceSignature')
+      .populate('brandId', 'companyName name email phone industry logo logoDark invoiceSignature')
+      .populate('adminId', 'companyName name email phone industry logo logoDark invoiceSignature')
       .populate({
         path: 'proposalId',
         select: 'proposalNumber name masterItems',
@@ -231,7 +236,10 @@ exports.sendInvoice = async (req, res, next) => {
 
     // Populate before returning to frontend so it doesn't break UI
     const populatedInvoice = await Invoice.findOne({ _id: req.params.id, isDeleted: false })
-      .populate('clientId', 'name email address phone')
+      .populate('clientId', 'companyName name email address phone')
+      .populate('agencyId', 'companyName name email phone industry logo logoDark invoiceSignature')
+      .populate('brandId', 'companyName name email phone industry logo logoDark invoiceSignature')
+      .populate('adminId', 'companyName name email phone industry logo logoDark invoiceSignature')
       .populate({
         path: 'proposalId',
         select: 'proposalNumber name masterItems',

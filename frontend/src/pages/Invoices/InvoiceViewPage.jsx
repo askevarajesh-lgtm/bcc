@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Card, Tabs, Button, Typography, message, Table, Spin, Tag, Space, Dropdown } from "antd";
+import { Card, Tabs, Button, Typography, message, Spin, Tag, Space, Dropdown } from "antd";
 import { ArrowLeftOutlined, PrinterOutlined, SendOutlined, MailOutlined, DashboardOutlined, WhatsAppOutlined } from "@ant-design/icons";
 import ProfessionalInvoice from "./components/ProfessionalInvoice";
 import InvoiceTransactionsTab from "./components/InvoiceTransactionsTab";
@@ -32,7 +32,14 @@ const InvoiceViewPage = () => {
 
   useEffect(() => {
     if (invoice) {
-      const agencyName = invoice.agencyId?.name || invoice.adminId?.name || 'Invoice';
+      const agencyName =
+        invoice.agencyId?.companyName ||
+        invoice.agencyId?.name ||
+        invoice.brandId?.companyName ||
+        invoice.brandId?.name ||
+        invoice.adminId?.companyName ||
+        invoice.adminId?.name ||
+        'Invoice';
       document.title = `${agencyName} - ${invoice.invoiceNumber}`;
     }
     return () => {
@@ -158,7 +165,7 @@ const InvoiceViewPage = () => {
   if (isClientRole) {
     return (
       <div className="page-container">
-        <Space style={{ marginBottom: 24 }} wrap>
+        <Space className="invoice-page-actions" style={{ marginBottom: 24 }} wrap>
           <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
             Back to Billing
           </Button>
@@ -179,23 +186,42 @@ const InvoiceViewPage = () => {
           </Button>
         </div>
 
-        <Card bodyStyle={{ padding: 0 }} bordered={false}>
+        <Card bodyStyle={{ padding: 0, background: "transparent" }} bordered={false} style={{ background: "transparent", boxShadow: "none" }}>
           <ProfessionalInvoice invoice={invoice} />
         </Card>
 
         <style>{`
           @media print {
+            @page {
+              margin: 0;
+            }
             /* Hide the sidebar and header if they exist */
             .ant-layout-sider, .ant-layout-header, aside, header { display: none !important; }
-            /* Hide the action buttons and spaces */
-            .ant-space, .ant-btn, .ant-tag { display: none !important; }
+            /* Hide only the page-level controls */
+            .invoice-page-actions { display: none !important; }
+            .invoice-page-actions .ant-tag { display: none !important; }
             
             /* Remove padding and margins for full width print */
-            body, .ant-layout, .ant-layout-content, .page-container {
+            html, body, #root, .ant-layout, .ant-layout-content, .page-container {
               background: white !important;
               padding: 0 !important;
               margin: 0 !important;
               width: 100% !important;
+            }
+            
+            .professional-invoice {
+              padding: 0 !important;
+              background: white !important;
+            }
+            
+            .invoice-sheet {
+              box-shadow: none !important;
+              border: none !important;
+              margin: 0 auto !important;
+              max-width: 100% !important;
+              width: 100% !important;
+              transform: scale(0.92);
+              transform-origin: top center;
             }
             
             /* Ensure the invoice card doesn't have borders or shadow when printing */
@@ -213,7 +239,7 @@ const InvoiceViewPage = () => {
       label: "Invoice",
       children: (
         <div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 12 }}>
+          <div className="invoice-toolbar" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 12 }}>
             <Dropdown
               menu={{
                 items: sendMenuItems,
@@ -229,7 +255,7 @@ const InvoiceViewPage = () => {
               Print / Save as PDF
             </Button>
           </div>
-          <Card bodyStyle={{ padding: 0 }} bordered={false}>
+          <Card bodyStyle={{ padding: 0, background: "transparent" }} bordered={false} style={{ background: "transparent", boxShadow: "none" }}>
             <ProfessionalInvoice invoice={invoice} />
           </Card>
         </div>
@@ -244,7 +270,7 @@ const InvoiceViewPage = () => {
 
   return (
     <div className="page-container">
-      <Space style={{ marginBottom: 24 }}>
+      <Space className="invoice-page-actions" style={{ marginBottom: 24 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
           Back
         </Button>
@@ -257,17 +283,35 @@ const InvoiceViewPage = () => {
 
       <style>{`
         @media print {
+          @page {
+            margin: 0;
+          }
           /* Hide layout wrappers */
           .ant-layout-sider, .ant-layout-header, aside, header { display: none !important; }
-          /* Hide tabs nav, buttons, and spaces */
-          .ant-tabs-nav, .ant-space, .ant-btn { display: none !important; }
+          /* Hide the page controls but keep the invoice document visible */
+          .invoice-toolbar, .invoice-page-actions, .invoice-tabs .ant-tabs-nav { display: none !important; }
           
           /* Remove all padding, margin, and backgrounds */
-          body, .ant-layout, .ant-layout-content, .page-container {
+          html, body, #root, .ant-layout, .ant-layout-content, .page-container {
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
             width: 100% !important;
+          }
+          
+          .professional-invoice {
+            padding: 0 !important;
+            background: white !important;
+          }
+          
+          .invoice-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            transform: scale(0.92);
+            transform-origin: top center;
           }
           
           /* Remove overflow constraints from tabs */
@@ -285,4 +329,3 @@ const InvoiceViewPage = () => {
 };
 
 export default InvoiceViewPage;
-

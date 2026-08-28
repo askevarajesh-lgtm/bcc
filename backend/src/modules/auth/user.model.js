@@ -56,6 +56,7 @@ const UserSchema = new mongoose.Schema({
   // Agency Specific Fields
   logo: { type: String, default: null },
   logoDark: { type: String, default: null },
+  invoiceSignature: { type: String, default: null },
   avatar: { type: String, default: null },
   domain: { type: String, default: null },
   contactEmail: { type: String, default: null },

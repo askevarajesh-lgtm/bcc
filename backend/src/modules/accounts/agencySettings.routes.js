@@ -21,10 +21,10 @@ router.get('/profile', async (req, res) => {
 // Update current agency profile
 router.put('/profile', async (req, res) => {
   try {
-    const { companyName, name, email, logo, taxSettings } = req.body;
+    const { companyName, name, email, logo, logoDark, invoiceSignature, taxSettings } = req.body;
     const userId = req.user._id || req.user.id;
     
-    const updateData = { companyName, name, email, logo };
+    const updateData = { companyName, name, email, logo, logoDark, invoiceSignature };
     if (taxSettings !== undefined) {
       updateData.taxSettings = taxSettings;
     }

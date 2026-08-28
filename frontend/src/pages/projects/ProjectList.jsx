@@ -351,6 +351,19 @@ const ProjectList = () => {
       title: "Renewal Date",
       key: "renewalDate",
       render: (_, record) => {
+        if (record.renewalDate) {
+          const rDate = dayjs(record.renewalDate);
+          if (rDate.isValid()) {
+            const isExpired = rDate.isBefore(dayjs().startOf("day"));
+            return (
+              <span style={isExpired ? { color: "#dc2626", fontWeight: 600 } : {}}>
+                {rDate.format("DD/MM/YYYY")}
+              </span>
+            );
+          }
+        }
+
+        // Fallback for older records
         const isDigitalMarketing =
           (record.masterItemId?.name || "").toLowerCase() ===
           "digital marketing";

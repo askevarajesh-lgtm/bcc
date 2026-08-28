@@ -42,8 +42,10 @@ const AgencySettingsTab = () => {
   const [submittingUpgrade, setSubmittingUpgrade] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoDarkPreview, setLogoDarkPreview] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
@@ -59,6 +61,7 @@ const AgencySettingsTab = () => {
         phone: user.supportPhone || '',
         logo: user.logo || '',
         logoDark: user.logoDark || '',
+        invoiceSignature: user.invoiceSignature || '',
         theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
         theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
       });
@@ -66,6 +69,7 @@ const AgencySettingsTab = () => {
       setAgencyCountryIso(user.countryIso || '');
       if (user.logo) setLogoPreview(user.logo);
       if (user.logoDark) setLogoDarkPreview(user.logoDark);
+      if (user.invoiceSignature) setSignaturePreview(user.invoiceSignature);
       if (user.avatar) setAvatarPreview(user.avatar);
       formAccount.setFieldsValue({
         firstName: (user.name || '').split(' ')[0] || '',
@@ -183,6 +187,59 @@ const AgencySettingsTab = () => {
     }
   };
 
+  const customUploadSignature = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingSignature(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos');
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setSignaturePreview(url);
+        formAgency.setFieldsValue({ invoiceSignature: url });
+        
+        // Auto-save the signature to the DB
+        const payload = {
+          companyName: formAgency.getFieldValue('name'),
+          domain: formAgency.getFieldValue('domain'),
+          contactEmail: formAgency.getFieldValue('email'),
+          supportPhone: formAgency.getFieldValue('phone'),
+          logo: formAgency.getFieldValue('logo'),
+          logoDark: formAgency.getFieldValue('logoDark'),
+          invoiceSignature: url,
+          theme: {
+            primaryColor: typeof formAgency.getFieldValue('theme_primaryColor') === 'string' ? formAgency.getFieldValue('theme_primaryColor') : formAgency.getFieldValue('theme_primaryColor')?.toHexString(),
+            secondaryColor: typeof formAgency.getFieldValue('theme_secondaryColor') === 'string' ? formAgency.getFieldValue('theme_secondaryColor') : formAgency.getFieldValue('theme_secondaryColor')?.toHexString()
+          }
+        };
+        const updateRes = await api.put(`/users/${user._id}`, payload);
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+
+        onSuccess(res.data);
+        message.success('Invoice signature uploaded and applied successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload invoice signature');
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
   const customUploadAvatar = async ({ file, onSuccess, onError }) => {
     try {
       setUploadingAvatar(true);
@@ -275,6 +332,7 @@ const AgencySettingsTab = () => {
         countryCode: agencyCountryCode,
         logo: values.logo,
         logoDark: values.logoDark,
+        invoiceSignature: values.invoiceSignature,
         theme: {
           primaryColor: typeof values.theme_primaryColor === 'string' ? values.theme_primaryColor : values.theme_primaryColor?.toHexString(),
           secondaryColor: typeof values.theme_secondaryColor === 'string' ? values.theme_secondaryColor : values.theme_secondaryColor?.toHexString()
@@ -349,6 +407,7 @@ const AgencySettingsTab = () => {
             phone: user?.supportPhone || '',
             logo: user?.logo || '',
             logoDark: user?.logoDark || '',
+            invoiceSignature: user?.invoiceSignature || '',
             theme_primaryColor: user?.effectiveTheme?.primaryColor || user?.theme?.primaryColor || '#034EA1',
             theme_secondaryColor: user?.effectiveTheme?.secondaryColor || user?.theme?.secondaryColor || '#0ea5e9'
           }}
@@ -495,6 +554,54 @@ const AgencySettingsTab = () => {
                         </Button>
                       </Upload>
                       <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                    </div>
+                  </div>
+                </div>
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12} style={{ marginTop: 16 }}>
+              <Form.Item label={<Text style={{ fontWeight: 600 }}>Invoice Signature</Text>}>
+                <Form.Item name="invoiceSignature" hidden>
+                  <Input />
+                </Form.Item>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                    <div style={{ 
+                      width: 88, 
+                      height: 88, 
+                      borderRadius: 12, 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center', 
+                      color: '#000', 
+                      fontSize: 28, 
+                      fontWeight: 800, 
+                      boxShadow: 'var(--shadow-sm)',
+                      overflow: 'hidden',
+                      background: '#f3f4f6'
+                    }}>
+                      {signaturePreview ? (
+                        <img src={signaturePreview} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={() => setSignaturePreview(null)} />
+                      ) : (
+                        "Sign"
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Upload
+                        customRequest={customUploadSignature}
+                        showUploadList={false}
+                        accept="image/*"
+                      >
+                        <Button 
+                          icon={<UploadIcon size={16}/>} 
+                          loading={uploadingSignature}
+                          style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                        >
+                          Upload Signature
+                        </Button>
+                      </Upload>
+                      <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x100px (Transparent PNG recommended)</Text>
                     </div>
                   </div>
                 </div>

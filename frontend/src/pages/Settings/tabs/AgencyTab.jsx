@@ -44,8 +44,10 @@ const AgencyTab = () => {
   const [fetching, setFetching] = useState(true);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoDarkPreview, setLogoDarkPreview] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -56,18 +58,20 @@ const AgencyTab = () => {
       setFetching(true);
       const res = await api.get('/agency/settings/profile');
       if (res.data && res.data.success) {
-        const { companyName, name, email, logo, logoDark, theme } = res.data.data;
+        const { companyName, name, email, logo, logoDark, invoiceSignature, theme } = res.data.data;
         form.setFieldsValue({
           companyName,
           name,
           email,
           logo,
           logoDark,
+          invoiceSignature,
           theme_primaryColor: theme?.primaryColor || '#034EA1',
           theme_secondaryColor: theme?.secondaryColor || '#0ea5e9'
         });
         if (logo) setLogoPreview(logo);
         if (logoDark) setLogoDarkPreview(logoDark);
+        if (invoiceSignature) setSignaturePreview(invoiceSignature);
       }
     } catch (error) {
       message.error('Failed to load agency profile');
@@ -190,6 +194,46 @@ const AgencyTab = () => {
       message.error('Failed to upload dark mode logo');
     } finally {
       setUploadingLogoDark(false);
+    }
+  };
+
+  const customUploadSignature = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploadingSignature(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'agency-logos'); // Using same folder or maybe agency-signatures
+
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        const url = res.data.data.url;
+        setSignaturePreview(url);
+        form.setFieldsValue({ invoiceSignature: url });
+        
+        // Auto-save the signature to the DB
+        const currentVals = form.getFieldsValue();
+        const updateRes = await api.put('/agency/settings/profile', { ...currentVals, invoiceSignature: url });
+        
+        if (updateRes.data && updateRes.data.data) {
+          const updatedUser = { ...user, ...updateRes.data.data };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+
+        onSuccess(res.data);
+        message.success('Invoice signature uploaded and applied successfully.');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      onError(error);
+      message.error('Failed to upload invoice signature');
+    } finally {
+      setUploadingSignature(false);
     }
   };
 
@@ -336,6 +380,52 @@ const AgencyTab = () => {
                           </Button>
                         </Upload>
                         <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x200px</Text>
+                      </div>
+                    </div>
+                  </div>
+                </Form.Item>
+
+                <Form.Item label={<strong style={{ color: 'var(--text-secondary)' }}>Invoice Signature</strong>}>
+                  <Form.Item name="invoiceSignature" hidden>
+                    <Input />
+                  </Form.Item>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                      <div style={{ 
+                        width: 88, 
+                        height: 88, 
+                        background: '#f3f4f6', 
+                        borderRadius: 12, 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        color: '#000', 
+                        fontSize: 28, 
+                        fontWeight: 800, 
+                        boxShadow: 'var(--shadow-sm)',
+                        overflow: 'hidden'
+                      }}>
+                        {signaturePreview ? (
+                          <img src={signaturePreview} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={() => setSignaturePreview(null)} />
+                        ) : (
+                          "Sign"
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Upload
+                          customRequest={customUploadSignature}
+                          showUploadList={false}
+                          accept="image/*"
+                        >
+                          <Button 
+                            icon={<UploadIcon size={16}/>} 
+                            loading={uploadingSignature}
+                            style={{ borderRadius: 8, marginBottom: 8, background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}
+                          >
+                            Upload Signature
+                          </Button>
+                        </Upload>
+                        <Text type="secondary" style={{ display: 'block', fontSize: 11, fontWeight: 500 }}>Min 200x100px (Transparent PNG recommended)</Text>
                       </div>
                     </div>
                   </div>

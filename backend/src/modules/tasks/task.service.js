@@ -1847,14 +1847,21 @@ const updateTask = async (
     }
 
     const wasCompletedStatus = ["completed", "validated", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(oldStatus);
+    const isNowCompletedStatus = ["completed", "validated", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(taskStatus);
+    
     if (wasCompletedStatus && task.status === "in_progress") {
       task.workStartedAt = new Date();
       task.workCompletedAt = null;
+      task.actualCompletionDate = undefined;
       task.workDurationMinutes = null;
     } else if (wasCompletedStatus && (task.status === "assigned" || task.status === "to_do")) {
       task.workStartedAt = null;
       task.workCompletedAt = null;
+      task.actualCompletionDate = undefined;
       task.workDurationMinutes = null;
+    } else if (isNowCompletedStatus && !wasCompletedStatus) {
+      task.workCompletedAt = now;
+      task.actualCompletionDate = now;
     }
 
     // If starting work, set status to 'in_progress'
@@ -3375,10 +3382,16 @@ const updateTaskStatusAndOrder = async (
     if (!task.startDate) task.startDate = now;
   }
 
-  const isTerminalStatus = ["validated", "completed", "done", "complete"].includes(finalStatus);
+  const isTerminalStatus = ["validated", "completed", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(finalStatus);
+  const wasTerminalStatus = ["validated", "completed", "done", "complete", "review", "in_review", "sent_for_client_review"].includes(oldStatus);
+  
   // If moving TO terminal status -> Set final completion timestamp
-  if (isTerminalStatus && !task.workCompletedAt) {
+  if (isTerminalStatus && !wasTerminalStatus) {
     task.workCompletedAt = now;
+    task.actualCompletionDate = now;
+  } else if (!isTerminalStatus && wasTerminalStatus) {
+    task.workCompletedAt = null;
+    task.actualCompletionDate = undefined;
   }
 
   // ── [STATUS & CATEGORY UPDATES] ───────────────────────────────────────────
@@ -5300,6 +5313,7 @@ const getTodayTaskStats = async (
   tenantCompanyId,
   selectedClientCompanyId = null,
 ) => {
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -5308,21 +5322,25 @@ const getTodayTaskStats = async (
 
   const completedStatuses = ["done", "completed", "validated", "complete", "review", "in_review", "in review", "reviewing"];
 
-  // 1. All active (incomplete) tasks assigned to the user
+  // 1. All active (incomplete) tasks assigned to the user, due on or before today
   const activeTasksCount = await Task.countDocuments({
     assignedTo: userId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     ...(selectedClientCompanyId ? { companyId: selectedClientCompanyId } : {}),
     status: { $nin: completedStatuses },
+    dueDate: { $lte: todayEnd },
   });
 
   // 2. All tasks completed by the user TODAY
   const completedTodayCount = await Task.countDocuments({
     assignedTo: userId,
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     ...(selectedClientCompanyId ? { companyId: selectedClientCompanyId } : {}),
     status: { $in: completedStatuses },
-    actualCompletionDate: { $gte: todayStart, $lte: todayEnd },
+    $or: [
+      { actualCompletionDate: { $gte: todayStart, $lte: todayEnd } },
+      { workCompletedAt: { $gte: todayStart, $lte: todayEnd } }
+    ]
   });
 
   const totalToday = activeTasksCount + completedTodayCount;
@@ -5338,6 +5356,7 @@ const getTodayAssignedTaskBreakdownForDigitalMarketing = async (
   tenantCompanyId,
   selectedClientCompanyId = null,
 ) => {
+  const clientCompanyIds = await getClientCompanyIds(tenantCompanyId);
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -5367,13 +5386,13 @@ const getTodayAssignedTaskBreakdownForDigitalMarketing = async (
 
   const dmUserIds = dmUsers.map((u) => u._id);
   const dmTasks = await Task.find({
-    tenantCompanyId,
+    tenantCompanyId: { $in: [tenantCompanyId, ...clientCompanyIds] },
     ...(selectedClientCompanyId ? { companyId: selectedClientCompanyId } : {}),
     assignedTo: { $in: dmUserIds },
     department: "digital-marketing",
-    // "Assigned today" in task planning is based on dueDate day-bucket,
-    // count decreases when task is moved to review.
-    status: { $nin: ["review", "in_review", "sent_for_client_review", "done", "completed", "validated", "complete", "rejected"] },
+    // "Assigned today" in task planning is based on dueDate day-bucket.
+    // Count all tasks regardless of if they are completed so capacity doesn't go back up.
+    status: { $ne: "rejected" },
     dueDate: { $gte: todayStart, $lte: todayEnd },
   })
     .select("assignedTo")
