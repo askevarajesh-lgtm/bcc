@@ -61,7 +61,7 @@ const ConnectDomainView = ({ setView, handleConnectDomain, itemVariants }) => {
     return [];
   };
 
-  const error = formData.customDomain.includes("bcc.askeva.io") || formData.customDomain.includes("m1.workforce.themilabs.com")
+  const error = formData.customDomain.includes("tunepath.askeva.io") || formData.customDomain.includes("m1.workforce.themilabs.com")
     ? "That hostname is reserved for this application." 
     : null;
 
@@ -184,7 +184,7 @@ const ManageDomainView = ({ activeDomain, setView, handleDisconnect, handleVerif
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>Target</span>
-                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>bcc.askeva.io</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: 800, fontSize: 14 }}>tunepath.askeva.io</span>
               </div>
             </div>
 

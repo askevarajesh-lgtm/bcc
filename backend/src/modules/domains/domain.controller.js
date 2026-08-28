@@ -19,7 +19,7 @@ exports.connectDomain = async (req, res, next) => {
     const domainName = customDomain.trim().toLowerCase();
 
     // Reserved hostname check
-    if (domainName.includes('bcc.askeva.io') || domainName.includes('m1.workforce.themilabs.com')) {
+    if (domainName.includes('tunepath.askeva.io') || domainName.includes('m1.workforce.themilabs.com')) {
       return res.status(400).json({ success: false, error: 'That hostname is reserved for this application.' });
     }
 
@@ -169,7 +169,7 @@ exports.verifyDNS = async (req, res, next) => {
     try {
       // 1. Perform CNAME lookup verification
       const cnameRecords = await dns.resolveCname(domain.domain);
-      if (cnameRecords.some(r => r.includes('bcc.askeva.io') || r.includes('m1.workforce.themilabs.com'))) {
+      if (cnameRecords.some(r => r.includes('tunepath.askeva.io') || r.includes('m1.workforce.themilabs.com'))) {
         isVerified = true;
       }
     } catch (e) {

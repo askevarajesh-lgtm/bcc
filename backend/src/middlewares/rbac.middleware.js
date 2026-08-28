@@ -18,7 +18,7 @@ exports.verifyToken = (req, res, next) => {
       req.user = {
         _id: '60d0fe4f5311236168a20000',
         name: 'Sandbox User',
-        email: 'sandbox@bcc.askeva.io',
+        email: 'sandbox@tunepath.askeva.io',
         role: 'commander_admin'
       };
       return next();
@@ -35,7 +35,7 @@ exports.verifyToken = (req, res, next) => {
       req.user = {
         _id: '60d0fe4f5311236168a20000',
         name: 'Sandbox User',
-        email: 'sandbox@bcc.askeva.io',
+        email: 'sandbox@tunepath.askeva.io',
         role: 'commander_admin'
       };
       return next();

@@ -17,7 +17,7 @@ exports.createQR = async (req, res, next) => {
     }
 
     // Default destination link
-    const scanLink = customUrl || `https://bcc.askeva.io/q/${slug}`;
+    const scanLink = customUrl || `https://tunepath.askeva.io/q/${slug}`;
 
     const qrLink = new QRLink({
       workspaceId,
